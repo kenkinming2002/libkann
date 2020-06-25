@@ -1,0 +1,6 @@
+$out_root/
+{
+  include libkann/
+}
+
+export $out_root/libkann/$import.target

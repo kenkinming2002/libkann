@@ -1,0 +1,3 @@
+import libs = libkann%lib{kann}
+
+exe{driver}: {hxx ixx txx cxx}{**} $libs testscript{**}
