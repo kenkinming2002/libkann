@@ -23,3 +23,7 @@
 *.exe.dlls/
 *.exe.manifest
 *.pc
+
+# Linux perf
+perf.data
+perf.data.old
