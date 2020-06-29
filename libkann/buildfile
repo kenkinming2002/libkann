@@ -1,6 +1,7 @@
 int_libs = # Interface dependencies.
 imp_libs = # Implementation dependencies.
-#import imp_libs += libhello%lib{hello}
+
+import int_libs += libeigen3%lib{eigen3}
 
 lib{kann}: {hxx ixx txx cxx}{** -version} hxx{version} $imp_libs $int_libs
 

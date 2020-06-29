@@ -1,3 +1,5 @@
 import libs = libkann%lib{kann}
 
+import libs += libsfml%lib{sfml-all}
+
 exe{driver}: {hxx ixx txx cxx}{**} $libs testscript{**}
