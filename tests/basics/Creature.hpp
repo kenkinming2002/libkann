@@ -14,17 +14,9 @@ class World;
 
 class Creature : public sf::Drawable
 {
-public:
-  static constexpr double MAX_ENERGY = 1000.0f;
-  static constexpr double MAX_HEALTH = 100.0f;
-
 private:
   static constexpr size_t NUM_INPUT = 6; // Energy, health, Offset of closest berry bushes and closest creature
   static constexpr size_t NUM_OUTPUT = 4; // Linear, angular speed, eating and mating desire
-
-private:
-  static constexpr float EATING_COOLDOWN = 5.0f;
-  static constexpr float MATING_COOLDOWN = 60.0f;
 
 public:
   using seed_type = typename NeuralNetwork::seed_type;

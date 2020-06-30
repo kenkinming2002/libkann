@@ -1,0 +1,31 @@
+{
+  "NeuralNetwork" : {
+    "MutationRate" : 0.314
+  },
+  "BerryBush" : {
+    "EnergyPerBerry" : 300.0,
+    "MaxBerryCount" : 10,
+    "GrowthRate" : 0.1
+  },
+  "Creature" : {
+    "MaxEnergy" : 1000.0,
+    "MaxHealth" : 100.0,
+
+    "LinearSpeed" : 100.0,
+    "AngularSpeed" : 0.1,
+
+    "PassiveEnergyDrain" : 2.0,
+    "MovementEnergyDrainMultiplier" : 0.001,
+
+    "HungerHealthDrain" : 5.0,
+
+    "EatingCooldown" : 5.0,
+    "MatingCooldown" : 60.0
+  },
+  "World" : {
+    "Width" : 2000.0,
+    "Height" : 2000.0,
+    "InitialCreaturesCount" : 50,
+    "InitialBerryBushesCount" : 10
+  }
+}

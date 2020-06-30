@@ -1,6 +1,7 @@
 #include "Creature.hpp"
 
 #include "World.hpp"
+#include "Config.hpp"
 
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
@@ -20,11 +21,11 @@ static sf::Color lerp(sf::Color a, sf::Color b, float t)
 
 Creature::Creature(typename NeuralNetwork::seed_type seed, Eigen::Vector2d position) 
   : m_neuralNetwork({NUM_INPUT, 50, 50, 50, 50, 50, 50, NUM_OUTPUT}, seed), 
-    m_position(position), m_energy(MAX_ENERGY), m_health(MAX_HEALTH) {}
+    m_position(position), m_energy(CONFIG.creature.maxEnergy), m_health(CONFIG.creature.maxHealth) {}
 
 Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy) 
   : m_neuralNetwork(std::move(neuralNetwork)),
-    m_position(position), m_energy(energy), m_health(MAX_HEALTH) {}
+    m_position(position), m_energy(energy), m_health(CONFIG.creature.maxHealth) {}
 
 void Creature::updateSight(const World& world)
 {
@@ -58,15 +59,6 @@ void Creature::updateSight(const World& world)
 
 void Creature::update(float dt, Eigen::Vector2d worldDimension)
 {
-  static constexpr double FORWARD_LINEAR_SPEED_MULTIPLIER = 100.0;
-  static constexpr double BACKWARD_LINEAR_SPEED_MULTIPLIER = 80.0;
-  static constexpr double ANGULAR_SPEED_MULTIPLIER = 0.1;
-
-  static constexpr double PASSIVE_ENERGY_DRAIN = 2.0;
-  static constexpr double MOVEMENT_ENERGY_DRAIN_MULTIPIER = 0.001;
-
-  static constexpr double HUNGER_HEALTH_DRAIN = 5.0;
-
   // 1: Neural network
   // Prepare input
   Eigen::Vector2d closesetBerryBushOffset = Eigen::Rotation2Dd(-m_rotation) * (m_sight.closestBerryBushLocation - m_position);
@@ -79,8 +71,9 @@ void Creature::update(float dt, Eigen::Vector2d worldDimension)
 
   // Parse output
   auto output = m_neuralNetwork.output();
-  double linearSpeed = output[0] >= 0.0 ? output[0] * FORWARD_LINEAR_SPEED_MULTIPLIER : output[0] * BACKWARD_LINEAR_SPEED_MULTIPLIER;
-  double angularSpeed = output[1] * ANGULAR_SPEED_MULTIPLIER;
+
+  double linearSpeed = output[0] >= 0.0 ? output[0] * CONFIG.creature.forwardLinearSpeed : output[0] * CONFIG.creature.backwardLinearSpeed;
+  double angularSpeed = output[1] * CONFIG.creature.angularSpeed;
   m_eatingDesire = output[2];
   m_matingDesire = output[3];
 
@@ -92,10 +85,10 @@ void Creature::update(float dt, Eigen::Vector2d worldDimension)
   m_position(1) = std::clamp(m_position(1), -worldDimension(1)/2.0, worldDimension(1)/2.0);
 
   // 3: Energy, health and suvival
-  double energyDrain = (PASSIVE_ENERGY_DRAIN + MOVEMENT_ENERGY_DRAIN_MULTIPIER * linearSpeed * linearSpeed) * dt;
+  double energyDrain = (CONFIG.creature.passiveEnergyDrain + CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed) * dt;
 
   if(!takeEnergy(energyDrain))
-    takeHealth(HUNGER_HEALTH_DRAIN * dt);
+    takeHealth(CONFIG.creature.hungerHealthDrain * dt);
 
   m_eatingCooldown -= dt;
   if(m_eatingCooldown<0.0f)
@@ -127,10 +120,9 @@ bool Creature::takeHealth(double amount)
 bool Creature::canEat(const BerryBush& berryBush) const
 {
   static constexpr double EATING_DISTANCE = 50.0;
-  static constexpr double EATING_DESIRE_THRESHOLD = 0.0;
 
-  return m_eatingDesire > EATING_DESIRE_THRESHOLD &&
-         MAX_ENERGY - m_energy >= BerryBush::ENERGY_PER_BERRY &&
+  return m_eatingDesire > 0.0 &&
+         CONFIG.creature.maxEnergy - m_energy >= CONFIG.berryBush.energyPerBerry &&
          (m_position - berryBush.position()).norm() < EATING_DISTANCE &&
          berryBush.count() != 0 &&
          m_eatingCooldown == 0.0f;
@@ -138,32 +130,31 @@ bool Creature::canEat(const BerryBush& berryBush) const
 
 void Creature::eat(BerryBush& berryBush)
 {
-  m_eatingCooldown = EATING_COOLDOWN;
+  m_eatingCooldown = CONFIG.creature.eatingCooldown;
 
   berryBush.take();
-  m_energy += BerryBush::ENERGY_PER_BERRY;
+  m_energy += CONFIG.berryBush.energyPerBerry;
 }
 
 bool Creature::canMate(const Creature& lhs, const Creature& rhs)
 {
   static constexpr double MATING_DISTANCE = 20.0;
-  static constexpr double MATING_DESIRE_THRESHOLD = -0.25;
-  return lhs.m_matingDesire > MATING_DESIRE_THRESHOLD && 
-         rhs.m_matingDesire > MATING_DESIRE_THRESHOLD &&
+  return lhs.m_matingDesire > 0.0 && 
+         rhs.m_matingDesire > 0.0 &&
          (lhs.m_position - rhs.m_position).norm() < MATING_DISTANCE &&
          lhs.m_matingCooldown == 0.0f && rhs.m_matingCooldown == 0.0f;
 }
 
 std::optional<Creature> Creature::mate(Creature& lhs, Creature& rhs, seed_type seed)
 {
-  lhs.m_matingCooldown = MATING_COOLDOWN;
-  rhs.m_matingCooldown = MATING_COOLDOWN;
+  lhs.m_matingCooldown = CONFIG.creature.matingCooldown;
+  rhs.m_matingCooldown = CONFIG.creature.matingCooldown;
 
-  if(!lhs.takeEnergy(Creature::MAX_ENERGY * 0.2) || !rhs.takeEnergy(Creature::MAX_ENERGY * 0.2))
+  if(!lhs.takeEnergy(CONFIG.creature.maxEnergy * 0.2) || !rhs.takeEnergy(CONFIG.creature.maxEnergy * 0.2))
     return std::nullopt; // Mating without sufficient energy does nothing
 
   //TODO: implement inheritance
-  return Creature(NeuralNetwork::cross(lhs.m_neuralNetwork, rhs.m_neuralNetwork, seed), (lhs.m_position+rhs.m_position)/2.0, 0.3 * MAX_ENERGY);
+  return Creature(NeuralNetwork::cross(lhs.m_neuralNetwork, rhs.m_neuralNetwork, seed, CONFIG.neuralNetwork.mutationRate), (lhs.m_position+rhs.m_position)/2.0, 0.3 * CONFIG.creature.maxEnergy);
 }
 
 void Creature::draw(sf::RenderTarget& target, sf::RenderStates states) const
@@ -171,12 +162,12 @@ void Creature::draw(sf::RenderTarget& target, sf::RenderStates states) const
   sf::CircleShape circleShape;
   {
     static constexpr float RADIUS_MULTIPIER = 10.0f;
-    float radius = (m_health / MAX_HEALTH) * RADIUS_MULTIPIER;
+    float radius = (m_health / CONFIG.creature.maxHealth) * RADIUS_MULTIPIER;
 
     circleShape.setRadius(radius);
     circleShape.setOrigin({radius, radius});
 
-    circleShape.setFillColor(lerp(sf::Color::Yellow, sf::Color::Green, m_energy / MAX_ENERGY));
+    circleShape.setFillColor(lerp(sf::Color::Yellow, sf::Color::Green, m_energy / CONFIG.creature.maxEnergy));
 
     circleShape.setOutlineThickness(2);
     circleShape.setOutlineColor(sf::Color::Black);

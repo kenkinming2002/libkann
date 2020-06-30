@@ -14,7 +14,7 @@ public:
   using seed_type = typename random_engine_type::result_type;
 
 public:
-  World(size_t creaturesCount, size_t berryBushesCount, Eigen::Vector2d dimension, seed_type seed);
+  World(seed_type seed);
 
 public:
   void update(float dt);

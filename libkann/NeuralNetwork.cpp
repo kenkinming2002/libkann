@@ -65,15 +65,13 @@ void NeuralNetwork::feedForward()
     m_layers[i+1].input(m_weights[i] * m_layers[i].output());
 }
 
-NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, seed_type seed)
+NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, seed_type seed, double mutationRate)
 {
   std::mt19937 generator(seed);
   std::uniform_int_distribution<> distribution(0, 1);
 
   std::uniform_real_distribution<double> mutationDistribution(0.0, 1.0);
   std::uniform_real_distribution<double> weightDistribution(-1.0, 1.0);
-
-  static constexpr double MUTATION_PROBABILITY = 0.01;
 
   NeuralNetwork output(lhs.m_topology);
   for(size_t i=0; i<lhs.m_weights.size(); ++i)
@@ -89,7 +87,7 @@ NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork
       else
         outputWeight.data()[j] = rhsWeight.data()[j];
 
-      if(mutationDistribution(generator) < MUTATION_PROBABILITY)
+      if(mutationDistribution(generator) < mutationRate)
         outputWeight.data()[j] = weightDistribution(generator);
     }
   }

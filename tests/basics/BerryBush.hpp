@@ -11,11 +11,6 @@
 class BerryBush : public sf::Drawable
 {
 public:
-  static constexpr double ENERGY_PER_BERRY = 300.0;
-  static constexpr size_t MAX_BERRY_COUNT = 10;
-  static constexpr float BERRY_GROWTH_RATE = 0.1;
-
-public:
   BerryBush(Eigen::Vector2d position);
 
 public:

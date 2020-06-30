@@ -6,17 +6,19 @@
 #include <iostream>
 #include <algorithm>
 
-World::World(size_t creaturesCount, size_t berryBushesCount, Eigen::Vector2d dimension, seed_type seed) : m_dimension(dimension), m_generator(seed)
+#include "Config.hpp"
+
+World::World(seed_type seed) : m_dimension(CONFIG.world.width, CONFIG.world.height), m_generator(seed)
 {
   std::uniform_int_distribution<typename Creature::random_engine_type::result_type> seedDistribution(
     Creature::random_engine_type::min(), 
     Creature::random_engine_type::max()
   );
 
-  std::uniform_real_distribution<double> xPositionDistribution(-dimension(0)/2.0, dimension(0)/2.0);
-  std::uniform_real_distribution<double> yPositionDistribution(-dimension(1)/2.0, dimension(1)/2.0);
+  std::uniform_real_distribution<double> xPositionDistribution(-m_dimension(0)/2.0, m_dimension(0)/2.0);
+  std::uniform_real_distribution<double> yPositionDistribution(-m_dimension(1)/2.0, m_dimension(1)/2.0);
 
-  for(size_t i=0; i<creaturesCount; ++i)
+  for(size_t i=0; i<CONFIG.world.initialCreaturesCount; ++i)
     m_creatures.emplace_back(seedDistribution(m_generator), 
       Eigen::Vector2d(
         xPositionDistribution(m_generator), 
@@ -24,7 +26,7 @@ World::World(size_t creaturesCount, size_t berryBushesCount, Eigen::Vector2d dim
       )
     );
 
-  for(size_t i=0; i<berryBushesCount; ++i)
+  for(size_t i=0; i<CONFIG.world.initialBerryBushesCount; ++i)
     m_berryBushes.emplace_back(Eigen::Vector2d(
         xPositionDistribution(m_generator), 
         yPositionDistribution(m_generator)
@@ -93,6 +95,6 @@ void World::log() const
 {
   std::cout << "Creature count:" << m_creatures.size() << '\n';
   std::cout << "Healthy Creature count:" << std::count_if(m_creatures.begin(), m_creatures.end(), [](const auto& creature){
-      return creature.health() == Creature::MAX_HEALTH;
+      return creature.health() == CONFIG.creature.maxHealth;
   }) << '\n';
 }

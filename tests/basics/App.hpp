@@ -12,9 +12,6 @@ public:
   static constexpr unsigned WINDOW_WIDTH = 1000;
   static constexpr unsigned WINDOW_HEIGHT = 1000;
 
-  static constexpr unsigned WORLD_WIDTH = 1000;
-  static constexpr unsigned WORLD_HEIGHT = 1000;
-
 public:
   static constexpr float NORMAL_SPEED_UP = 1.0f;
   static constexpr float SUPER_SPEED_SPEED_UP = 5.0f;

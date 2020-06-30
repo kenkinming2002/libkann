@@ -30,7 +30,7 @@ public:
   LIBKANN_SYMEXPORT void backPropagate(const std::vector<double>& input);
 
 public:
-  LIBKANN_SYMEXPORT static NeuralNetwork cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, seed_type seed);
+  LIBKANN_SYMEXPORT static NeuralNetwork cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, seed_type seed, double mutationRate);
 
 public:
   LIBKANN_SYMEXPORT friend std::ostream& operator<<(std::ostream& os, const NeuralNetwork& neuralNetwork);

@@ -1,12 +1,15 @@
 #include "App.hpp"
 
+#include "Config.hpp"
+
 #include <random>
 #include <iostream>
 
 App::App() : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
-  m_world(50, 10, {WORLD_WIDTH, WORLD_HEIGHT}, std::random_device()())
+  m_world(std::random_device()())
 {
-  m_window.setView(sf::View({0.0f, 0.0f}, {WORLD_WIDTH, WORLD_HEIGHT}));
+  // FIXME: change this into a function in world
+  m_window.setView(sf::View({0.0f, 0.0f}, {static_cast<float>(CONFIG.world.width), static_cast<float>(CONFIG.world.height)}));
 }
 
 void App::run()

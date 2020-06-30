@@ -1,5 +1,7 @@
 import libs = libkann%lib{kann}
 
 import libs += libsfml%lib{sfml-all}
+import libs += nlohmann-json%lib{json}
 
+cc.coptions += -fopenmp
 exe{driver}: {hxx ixx txx cxx}{**} $libs testscript{**}
