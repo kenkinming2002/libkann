@@ -23,6 +23,8 @@ Config::Config(const char* fileName)
   this->berryBush.maxBerryCount  = berryBushConfig.at("MaxBerryCount").get<size_t>();
   this->berryBush.growthRate     = berryBushConfig.at("GrowthRate").get<float>();
 
+  this->berryBush.radius = berryBushConfig.at("Radius").get<double>();
+
   auto creatureConfig = config.at("Creature");
   this->creature.maxEnergy = creatureConfig.at("MaxEnergy").get<double>();
   this->creature.maxHealth = creatureConfig.at("MaxHealth").get<double>();
@@ -38,6 +40,8 @@ Config::Config(const char* fileName)
 
   this->creature.eatingCooldown = creatureConfig.at("EatingCooldown").get<float>();
   this->creature.matingCooldown = creatureConfig.at("MatingCooldown").get<float>();
+
+  this->creature.radius = creatureConfig.at("Radius").get<double>();
 
   auto worldConfig = config.at("World");
   this->world.width = worldConfig.at("Width").get<double>();

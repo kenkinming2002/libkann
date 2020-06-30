@@ -21,6 +21,8 @@ public:
     double energyPerBerry;
     size_t maxBerryCount;
     float growthRate;
+
+    double radius;
   };
   BerryBush berryBush;
 
@@ -40,6 +42,8 @@ public:
 
     float eatingCooldown;
     float matingCooldown;
+
+    double radius;
   };
   Creature creature;
 

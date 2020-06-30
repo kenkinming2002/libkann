@@ -27,15 +27,14 @@ void BerryBush::update(float dt)
 
 void BerryBush::draw(sf::RenderTarget &target, sf::RenderStates states) const
 {
-  static constexpr float BUSH_RADIUS = 30.0f;
-  static constexpr float BERRY_RADIUS = 10.0f;
-  static constexpr unsigned TEXT_SIZE = 30;
+  // Consider using a multiplier
+  const auto TEXT_SIZE = static_cast<unsigned>(CONFIG.berryBush.radius);
 
   sf::CircleShape circleShape;
 
   // Draw the bush
-  circleShape.setRadius(BUSH_RADIUS);
-  circleShape.setOrigin({BUSH_RADIUS, BUSH_RADIUS});
+  circleShape.setRadius(static_cast<float>(CONFIG.berryBush.radius));
+  circleShape.setOrigin({static_cast<float>(CONFIG.berryBush.radius), static_cast<float>(CONFIG.berryBush.radius)});
 
   circleShape.setFillColor(*TARGETED_COUNT ? sf::Color::Yellow : sf::Color::Green);
 

@@ -5,7 +5,9 @@
   "BerryBush" : {
     "EnergyPerBerry" : 300.0,
     "MaxBerryCount" : 10,
-    "GrowthRate" : 0.1
+    "GrowthRate" : 0.1,
+
+    "Radius" : 30.0
   },
   "Creature" : {
     "MaxEnergy" : 1000.0,
@@ -20,7 +22,9 @@
     "HungerHealthDrain" : 5.0,
 
     "EatingCooldown" : 5.0,
-    "MatingCooldown" : 60.0
+    "MatingCooldown" : 60.0,
+
+    "Radius" : 10.0
   },
   "World" : {
     "Width" : 2000.0,

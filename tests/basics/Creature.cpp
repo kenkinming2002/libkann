@@ -41,7 +41,7 @@ void Creature::updateSight(const World& world)
   const Creature& closestCreature = *std::min_element(world.creatures().begin(), world.creatures().end(), [&](const auto& lhs, const auto& rhs){ 
     return distance_to(lhs) < distance_to(rhs);
   });
-  m_sight.closestCreatureLocation = closestCreature.position();
+  m_sight.closestCreatureLocation = closestCreature.m_position;
 
   /// 2: Closest Berry Bush
   const BerryBush& closestBerryBush = *std::min_element(world.berryBushes().begin(), world.berryBushes().end(), [this](const auto& lhs, const auto& rhs){
@@ -119,7 +119,7 @@ bool Creature::takeHealth(double amount)
 
 bool Creature::canEat(const BerryBush& berryBush) const
 {
-  static constexpr double EATING_DISTANCE = 50.0;
+  const double EATING_DISTANCE = CONFIG.creature.radius + CONFIG.berryBush.radius;
 
   return m_eatingDesire > 0.0 &&
          CONFIG.creature.maxEnergy - m_energy >= CONFIG.berryBush.energyPerBerry &&
@@ -138,7 +138,7 @@ void Creature::eat(BerryBush& berryBush)
 
 bool Creature::canMate(const Creature& lhs, const Creature& rhs)
 {
-  static constexpr double MATING_DISTANCE = 20.0;
+  const double MATING_DISTANCE = 2 * CONFIG.creature.radius;
   return lhs.m_matingDesire > 0.0 && 
          rhs.m_matingDesire > 0.0 &&
          (lhs.m_position - rhs.m_position).norm() < MATING_DISTANCE &&
@@ -161,8 +161,7 @@ void Creature::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
   sf::CircleShape circleShape;
   {
-    static constexpr float RADIUS_MULTIPIER = 10.0f;
-    float radius = (m_health / CONFIG.creature.maxHealth) * RADIUS_MULTIPIER;
+    float radius = CONFIG.creature.radius * m_health / CONFIG.creature.maxHealth;
 
     circleShape.setRadius(radius);
     circleShape.setOrigin({radius, radius});
