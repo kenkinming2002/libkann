@@ -1,0 +1,2 @@
+Reimplement eating and mating behavior to make use of doEat and doMate instead
+of merely a desire and add an energy cost

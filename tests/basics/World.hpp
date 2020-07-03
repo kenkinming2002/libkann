@@ -25,14 +25,27 @@ public:
 
 public:
   const auto& creatures() const { return m_creatures; }
+  auto& creatures() { return m_creatures; }
   const auto& berryBushes() const { return m_berryBushes; }
+  auto& berryBushes() { return m_berryBushes; }
+
+public:
+  auto dimension() const { return m_dimension; }
 
 private:
   Eigen::Vector2d m_dimension;
   std::vector<Creature> m_creatures;
   std::vector<BerryBush> m_berryBushes;
 
+public:
+  void addCreature(const Creature& creature) { m_newborns.push_back(creature); }
+
+public:
+  auto& prng() { return m_generator; }
+
+private:
+  std::vector<Creature> m_newborns;
+
 private:
   std::mt19937 m_generator;
-
 };

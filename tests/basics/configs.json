@@ -22,14 +22,14 @@
     "HungerHealthDrain" : 5.0,
 
     "EatingCooldown" : 5.0,
-    "MatingCooldown" : 60.0,
+    "MatingCooldown" : 120.0,
 
     "Radius" : 10.0
   },
   "World" : {
     "Width" : 2000.0,
     "Height" : 2000.0,
-    "InitialCreaturesCount" : 50,
+    "InitialCreaturesCount" : 100,
     "InitialBerryBushesCount" : 10
   }
 }

@@ -6,6 +6,7 @@
 #include <SFML/Graphics/Drawable.hpp>
 #include <ostream>
 
+#include <utility>
 #include <optional>
 
 #include "BerryBush.hpp"
@@ -27,21 +28,19 @@ public:
   Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy);
 
 public:
-  void updateSight(const World& world);
-  void update(float dt, Eigen::Vector2d worldDimension);
+  void update(float dt, World& world);
+
+public:
+  void updateSight(World& world);
+  void updateEating();
+  void updateMating(World& world);
+
+public:
   bool dead() const { return m_health == 0.0; }
 
 private:
   bool takeEnergy(double amount);
   bool takeHealth(double amount);
-
-public:
-  bool canEat(const BerryBush& berryBush) const;
-  void eat(BerryBush& berryBush);
-
-public:
-  static bool canMate(const Creature& lhs, const Creature& rhs);
-  static std::optional<Creature> mate(Creature& lhs, Creature& rhs, seed_type seed);
 
 public:
   double health() const { return m_health; }
@@ -74,9 +73,8 @@ private:
 private:
   struct Sight
   {
-    const BerryBush* closestBerryBush = nullptr;
-
-    Eigen::Vector2d closestBerryBushLocation = {0.0, 0.0};
-    Eigen::Vector2d closestCreatureLocation = {0.0, 0.0};
-  } m_sight;
+    std::reference_wrapper<BerryBush> closestBerryBush;
+    std::reference_wrapper<Creature>  closestCreature;
+  };
+  std::optional<Sight> m_sight;
 };

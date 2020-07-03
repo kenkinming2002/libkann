@@ -5,9 +5,6 @@
 #include <SFML/Graphics/Drawable.hpp>
 #include <ostream>
 
-#include <atomic>
-#include <memory>
-
 class BerryBush : public sf::Drawable
 {
 public:
@@ -28,7 +25,4 @@ private:
   Eigen::Vector2d m_position;
   size_t m_berryCount;
   float m_growth;
-
-public:
-  mutable std::unique_ptr<std::atomic<size_t>> TARGETED_COUNT = std::make_unique<std::atomic<size_t>>(0);
 };

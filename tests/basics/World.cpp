@@ -36,38 +36,19 @@ World::World(seed_type seed) : m_dimension(CONFIG.world.width, CONFIG.world.heig
 
 void World::update(float dt)
 {
-  std::uniform_int_distribution<typename Creature::random_engine_type::result_type> seedDistribution(
-    Creature::random_engine_type::min(), 
-    Creature::random_engine_type::max()
-  );
-
-#pragma omp parallel for
-  for(auto& creature: m_creatures)
-    creature.updateSight(*this);
-
-#pragma omp parallel for
-  for(auto& creature: m_creatures)
-    creature.update(dt, m_dimension);
-
-  m_creatures.erase(std::remove_if(m_creatures.begin(), m_creatures.end(), [](const auto& creature){ return creature.dead(); }), m_creatures.end());
-
-#pragma omp parallel for
   for(auto& berryBush: m_berryBushes)
     berryBush.update(dt);
 
   for(auto& creature: m_creatures)
-    for(auto& berryBush: m_berryBushes)
-      if(creature.canEat(berryBush))
-        creature.eat(berryBush);
+    creature.update(dt, *this);
 
-  std::vector<Creature> newborns;
-  for(size_t i=0; i<m_creatures.size(); ++i)
-    for(size_t j=0; j<m_creatures.size(); ++j)
-      if(i!=j && Creature::canMate(m_creatures[i], m_creatures[j]))
-        if(auto newborn = Creature::mate(m_creatures[i], m_creatures[j], seedDistribution(m_generator)))
-          newborns.push_back(*newborn);
+  m_creatures.erase(std::remove_if(m_creatures.begin(), m_creatures.end(), [](const auto& creature){ return creature.dead(); }), m_creatures.end());
 
-  m_creatures.insert(m_creatures.end(), newborns.begin(), newborns.end());
+  if(m_newborns.size())
+    std::clog << "DEBUG: newborn number - " << m_newborns.size() << std::endl;
+
+  m_creatures.insert(m_creatures.end(), m_newborns.begin(), m_newborns.end());
+  m_newborns.clear();
 }
 
 void World::draw(sf::RenderTarget &target, sf::RenderStates states) const

@@ -36,7 +36,7 @@ void BerryBush::draw(sf::RenderTarget &target, sf::RenderStates states) const
   circleShape.setRadius(static_cast<float>(CONFIG.berryBush.radius));
   circleShape.setOrigin({static_cast<float>(CONFIG.berryBush.radius), static_cast<float>(CONFIG.berryBush.radius)});
 
-  circleShape.setFillColor(*TARGETED_COUNT ? sf::Color::Yellow : sf::Color::Green);
+  circleShape.setFillColor(sf::Color::Green);
 
   circleShape.setOutlineThickness(2);
   circleShape.setOutlineColor(sf::Color::Black);
