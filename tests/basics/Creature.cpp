@@ -122,7 +122,13 @@ void Creature::updateEating()
     return; // No berry to eat
 
   m_sight->closestBerryBush.get().take();
-  m_energy = std::min(CONFIG.creature.maxEnergy, m_energy + CONFIG.berryBush.energyPerBerry);
+  m_energy += CONFIG.berryBush.energyPerBerry;
+  if(m_energy>CONFIG.creature.maxEnergy)
+  {
+    this->takeHealth(m_energy-CONFIG.creature.maxEnergy);
+    m_energy = CONFIG.creature.maxEnergy;
+    std::clog << "DEBUG: over-eating behaviour detected" << std::endl;
+  }
 
   std::clog << "DEBUG: Eating" << std::endl;
 }
