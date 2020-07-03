@@ -20,11 +20,8 @@ private:
   static constexpr size_t NUM_OUTPUT = 4; // Linear, angular speed, eating and mating desire
 
 public:
-  using seed_type = typename NeuralNetwork::seed_type;
-  using random_engine_type = typename NeuralNetwork::random_engine_type;
-
-public:
-  Creature(seed_type seed, Eigen::Vector2d position);
+  template<typename PRNG>
+  Creature(PRNG& prng, Eigen::Vector2d position);
   Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy);
 
 public:

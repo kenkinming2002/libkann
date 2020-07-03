@@ -19,9 +19,12 @@ static sf::Color lerp(sf::Color a, sf::Color b, float t)
   );
 }
 
-Creature::Creature(typename NeuralNetwork::seed_type seed, Eigen::Vector2d position) 
-  : m_neuralNetwork({NUM_INPUT, 50, 50, 50, 50, 50, 50, NUM_OUTPUT}, seed), 
+template<typename PRNG>
+Creature::Creature(PRNG& prng, Eigen::Vector2d position) 
+  : m_neuralNetwork({NUM_INPUT, 50, 50, 50, 50, 50, 50, NUM_OUTPUT}, prng), 
     m_position(position), m_energy(CONFIG.creature.maxEnergy), m_health(CONFIG.creature.maxHealth) {}
+
+template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);
 
 Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy) 
   : m_neuralNetwork(neuralNetwork),
@@ -151,9 +154,7 @@ void Creature::updateMating(World& world)
   if(!takeEnergy(CONFIG.creature.maxEnergy * 0.2) || !otherCreature.takeEnergy(CONFIG.creature.maxEnergy * 0.2))
     return;
 
-  std::uniform_int_distribution<seed_type> seedDistribution(random_engine_type::min(), random_engine_type::max());
-  auto seed = seedDistribution(world.prng());
-  auto neuralNetwork = NeuralNetwork::cross(m_neuralNetwork, otherCreature.m_neuralNetwork, seed, CONFIG.neuralNetwork.mutationRate);
+  auto neuralNetwork = NeuralNetwork::cross(m_neuralNetwork, otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
   Eigen::Vector2d position = (m_position + otherCreature.m_position) / 2.0;
 
   world.addCreature(Creature(std::move(neuralNetwork), position, 0.3 * CONFIG.creature.maxEnergy));

@@ -13,12 +13,10 @@
 class NeuralNetwork
 {
 public:
-  using random_engine_type = std::mt19937;
-  using seed_type = typename random_engine_type::result_type;
-
-public:
   LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology);
-  LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology, seed_type seed);
+
+  template<typename PRNG>
+  LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng);
 
 public:
   // TODO: Consider optimizing this
@@ -30,7 +28,8 @@ public:
   LIBKANN_SYMEXPORT void backPropagate(const std::vector<double>& input);
 
 public:
-  LIBKANN_SYMEXPORT static NeuralNetwork cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, seed_type seed, double mutationRate);
+  template<typename PRNG>
+  LIBKANN_SYMEXPORT static NeuralNetwork cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate);
 
 public:
   LIBKANN_SYMEXPORT friend std::ostream& operator<<(std::ostream& os, const NeuralNetwork& neuralNetwork);

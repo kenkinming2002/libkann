@@ -10,16 +10,11 @@
 
 World::World(seed_type seed) : m_dimension(CONFIG.world.width, CONFIG.world.height), m_generator(seed)
 {
-  std::uniform_int_distribution<typename Creature::random_engine_type::result_type> seedDistribution(
-    Creature::random_engine_type::min(), 
-    Creature::random_engine_type::max()
-  );
-
   std::uniform_real_distribution<double> xPositionDistribution(-m_dimension(0)/2.0, m_dimension(0)/2.0);
   std::uniform_real_distribution<double> yPositionDistribution(-m_dimension(1)/2.0, m_dimension(1)/2.0);
 
   for(size_t i=0; i<CONFIG.world.initialCreaturesCount; ++i)
-    m_creatures.emplace_back(seedDistribution(m_generator), 
+    m_creatures.emplace_back(m_generator,
       Eigen::Vector2d(
         xPositionDistribution(m_generator), 
         yPositionDistribution(m_generator)

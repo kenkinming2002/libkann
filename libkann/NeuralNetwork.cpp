@@ -30,24 +30,25 @@ NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology) : m_topology(t
   }
 }
 
-NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, seed_type seed) : m_topology(topology)
+template<typename PRNG>
+NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng) : m_topology(topology)
 {
   // Layers
   for(size_t size: topology)
     m_layers.emplace_back(size);
 
-  // Weights
-  std::mt19937 generator(seed);
   std::uniform_real_distribution<double> distribution(-1.0, 1.0);
 
   for(size_t i=0; i<topology.size()-1; i++)
   {
     size_t a = topology[i], b = topology[i+1];
     m_weights.emplace_back(Eigen::MatrixXd::NullaryExpr(b, a,[&](){
-      return distribution(generator);
+      return distribution(prng);
     }));
   }
 }
+
+template NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, std::mt19937& prng);
 
 void NeuralNetwork::input(const std::vector<double>& input)
 {
@@ -65,9 +66,9 @@ void NeuralNetwork::feedForward()
     m_layers[i+1].input(m_weights[i] * m_layers[i].output());
 }
 
-NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, seed_type seed, double mutationRate)
+template<typename PRNG>
+NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate)
 {
-  std::mt19937 generator(seed);
   std::uniform_int_distribution<> distribution(0, 1);
 
   std::uniform_real_distribution<double> mutationDistribution(0.0, 1.0);
@@ -82,18 +83,20 @@ NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork
 
     for(size_t j=0; j<lhsWeight.size(); ++j)
     {
-      if(distribution(generator) == 0)
+      if(distribution(prng) == 0)
         outputWeight.data()[j] = lhsWeight.data()[j];
       else
         outputWeight.data()[j] = rhsWeight.data()[j];
 
-      if(mutationDistribution(generator) < mutationRate)
-        outputWeight.data()[j] = weightDistribution(generator);
+      if(mutationDistribution(prng) < mutationRate)
+        outputWeight.data()[j] = weightDistribution(prng);
     }
   }
 
   return output;
 }
+
+template NeuralNetwork NeuralNetwork::cross<std::mt19937>(const NeuralNetwork& lhs, const NeuralNetwork& rhs, std::mt19937& prng, double mutationRate);
 
 std::ostream& operator<<(std::ostream& os, const NeuralNetwork& neuralNetwork)
 {
