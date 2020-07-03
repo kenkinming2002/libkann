@@ -25,10 +25,12 @@ public:
   Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy);
 
 public:
+  void preUpdate(float dt, World& world) const;
+  // Modify externally visible data
   void update(float dt, World& world);
 
 public:
-  void updateSight(World& world);
+  void updateSight(World& world) const;
   void updateEating();
   void updateMating(World& world);
 
@@ -51,7 +53,7 @@ public:
   friend std::ostream& operator<<(std::ostream& os, const Creature& creature);
 
 private:
-  NeuralNetwork m_neuralNetwork;
+  mutable NeuralNetwork m_neuralNetwork;
 
 private:
   Eigen::Vector2d m_position;
@@ -73,5 +75,5 @@ private:
     std::reference_wrapper<BerryBush> closestBerryBush;
     std::reference_wrapper<Creature>  closestCreature;
   };
-  std::optional<Sight> m_sight;
+  mutable std::optional<Sight> m_sight;
 };

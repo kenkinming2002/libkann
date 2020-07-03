@@ -34,6 +34,10 @@ void World::update(float dt)
   for(auto& berryBush: m_berryBushes)
     berryBush.update(dt);
 
+#pragma omp parallel for
+  for(auto& creature: m_creatures)
+    creature.preUpdate(dt, *this);
+
   for(auto& creature: m_creatures)
     creature.update(dt, *this);
 

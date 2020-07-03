@@ -30,7 +30,7 @@ Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double
   : m_neuralNetwork(neuralNetwork),
     m_position(position), m_energy(energy), m_health(CONFIG.creature.maxHealth) {}
 
-void Creature::updateSight(World& world)
+void Creature::updateSight(World& world) const
 {
   /// 1: Closest Creature
   auto distance_to = [this](const Creature& rhs) {
@@ -52,7 +52,7 @@ void Creature::updateSight(World& world)
   m_sight = Sight{closestBerryBush, closestCreature};
 }
 
-void Creature::update(float dt, World& world)
+void Creature::preUpdate(float /*dt*/, World& world) const
 {
   updateSight(world);
 
@@ -63,10 +63,12 @@ void Creature::update(float dt, World& world)
 
   m_neuralNetwork.input({m_energy, m_health, closestBerryBushOffset(0), closestBerryBushOffset(1), closestCreatureOffset(0), closestCreatureOffset(1)});
 
-
   // Feed Forwrad
   m_neuralNetwork.feedForward();
+}
 
+void Creature::update(float dt, World& world)
+{
   // Parse output
   auto output = m_neuralNetwork.output();
 
