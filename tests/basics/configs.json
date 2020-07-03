@@ -11,7 +11,7 @@
   },
   "Creature" : {
     "MaxEnergy" : 1000.0,
-    "MaxHealth" : 100.0,
+    "MaxHealth" : 1000.0,
 
     "LinearSpeed" : 100.0,
     "AngularSpeed" : 0.1,
@@ -21,15 +21,18 @@
 
     "HungerHealthDrain" : 5.0,
 
+    "HealingThreshold" : 0.5,
+    "HealingRate" : 10.0,
+
     "EatingCooldown" : 5.0,
     "MatingCooldown" : 120.0,
 
     "Radius" : 10.0
   },
   "World" : {
-    "Width" : 2000.0,
-    "Height" : 2000.0,
-    "InitialCreaturesCount" : 100,
-    "InitialBerryBushesCount" : 10
+    "Width" : 4000.0,
+    "Height" : 4000.0,
+    "InitialCreaturesCount" : 500,
+    "InitialBerryBushesCount" : 50
   }
 }

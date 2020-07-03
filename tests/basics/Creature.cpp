@@ -88,6 +88,19 @@ void Creature::update(float dt, World& world)
   if(!takeEnergy(energyDrain))
     takeHealth(CONFIG.creature.hungerHealthDrain * dt);
 
+  if(m_energy >= CONFIG.creature.maxEnergy * CONFIG.creature.healingThreshold)
+  {
+    double amount = std::min(CONFIG.creature.maxHealth - m_health, m_energy);
+    m_health += amount;
+    m_energy -= amount;
+
+    if(amount != 0.0)
+    {
+      std::clog << "DEBUG: Healing" << std::endl;
+      std::clog << "DEBUG: Health" << m_health << std::endl;
+    }
+  }
+
   m_eatingCooldown -= dt;
   if(m_eatingCooldown<0.0f)
     m_eatingCooldown=0.0f;

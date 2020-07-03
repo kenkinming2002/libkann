@@ -40,6 +40,9 @@ public:
 
     double hungerHealthDrain;
 
+    double healingThreshold;
+    double healingRate;
+
     float eatingCooldown;
     float matingCooldown;
 

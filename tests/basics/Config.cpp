@@ -38,6 +38,9 @@ Config::Config(const char* fileName)
   this->creature.movementEnergyDrainMultiplier = creatureConfig.at("MovementEnergyDrainMultiplier").get<double>();
   this->creature.hungerHealthDrain = creatureConfig.at("HungerHealthDrain").get<double>();
 
+  this->creature.healingThreshold = creatureConfig.at("HealingThreshold").get<double>();
+  this->creature.healingRate = creatureConfig.at("HealingRate").get<double>();
+
   this->creature.eatingCooldown = creatureConfig.at("EatingCooldown").get<float>();
   this->creature.matingCooldown = creatureConfig.at("MatingCooldown").get<float>();
 
