@@ -41,6 +41,7 @@ private:
   void toggleSpeed();
   void zoom(float scale);
   void move(float x, float y);
+  void resetView();
 
 private:
   mutable sf::RenderWindow m_window;
@@ -50,6 +51,9 @@ public:
   float m_elapsedtime = 0.0f;
   bool m_superSpeed;
   float m_speedUp = NORMAL_SPEED_UP;
+
+public:
+  float m_zoom = 1.0f;
 
 private:
   World m_world;

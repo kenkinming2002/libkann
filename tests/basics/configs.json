@@ -1,6 +1,6 @@
 {
   "NeuralNetwork" : {
-    "MutationRate" : 0.314
+    "MutationRate" : 0.01
   },
   "BerryBush" : {
     "EnergyPerBerry" : 300.0,
@@ -30,9 +30,9 @@
     "Radius" : 10.0
   },
   "World" : {
-    "Width" : 4000.0,
-    "Height" : 4000.0,
-    "InitialCreaturesCount" : 500,
-    "InitialBerryBushesCount" : 50
+    "Width" : 2000.0,
+    "Height" : 2000.0,
+    "InitialCreaturesCount" : 100,
+    "InitialBerryBushesCount" : 10
   }
 }
