@@ -90,20 +90,27 @@ void App::handleInput()
 
 void App::update()
 {
-  size_t i=0;
-
-  m_elapsedtime += m_clock.restart().asSeconds();
-  if(m_elapsedtime > FIXED_DELTA_TIME * MAX_FIXED_UPDATE_PER_FRAME)
+  switch(m_speedMode)
   {
-    std::clog << "Warning: Large total elapsed time - clamping to prevent death spiral\n";
-    m_elapsedtime = FIXED_DELTA_TIME * MAX_FIXED_UPDATE_PER_FRAME;
-  }
+  case SpeedMode::NORMAL:
+    m_elapsedtime += m_clock.restart().asSeconds();
+    while(m_elapsedtime>=FIXED_DELTA_TIME)
+    {
+      m_elapsedtime-=FIXED_DELTA_TIME;
+      m_world.update(FIXED_DELTA_TIME);
+    }
+    break;
+  case SpeedMode::ASAP:
+    size_t i=0;
+    while(m_clock.getElapsedTime().asSeconds() <= FRAME_TIME)
+    {
+      i++;
+      m_world.update(FIXED_DELTA_TIME);
+    }
+    std::clog << "DEBUG: " << i << "updates in one go\n";
 
-  while(m_elapsedtime>=FIXED_DELTA_TIME / m_speedUp)
-  {
-    m_elapsedtime-=FIXED_DELTA_TIME / m_speedUp;
-    m_world.update(FIXED_DELTA_TIME);
-    ++i;
+    m_clock.restart();
+    break;
   }
 }
 
@@ -116,8 +123,7 @@ void App::render() const
 
 void App::toggleSpeed()
 {
-  m_superSpeed = !m_superSpeed;
-  m_speedUp = m_superSpeed ? SUPER_SPEED_SPEED_UP : NORMAL_SPEED_UP;
+  m_speedMode = m_speedMode == SpeedMode::NORMAL ? SpeedMode::ASAP : SpeedMode::NORMAL;
 }
 
 void App::zoom(float scale)

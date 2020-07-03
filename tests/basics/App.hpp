@@ -18,7 +18,7 @@ public:
 
 public:
   static constexpr float FIXED_DELTA_TIME = 1 / 30.0f;
-  static constexpr size_t MAX_FIXED_UPDATE_PER_FRAME = 10;
+  static constexpr float FRAME_TIME = 1 / 60.0f;
 
 public:
   static constexpr float ZOOM_SPEED = 2.0f;
@@ -46,13 +46,18 @@ private:
 private:
   mutable sf::RenderWindow m_window;
 
-public:
+private:
   sf::Clock m_clock;
   float m_elapsedtime = 0.0f;
+  enum class SpeedMode
+  {
+    NORMAL,
+    ASAP
+  } m_speedMode = SpeedMode::NORMAL;
   bool m_superSpeed;
   float m_speedUp = NORMAL_SPEED_UP;
 
-public:
+private:
   float m_zoom = 1.0f;
 
 private:
