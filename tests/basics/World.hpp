@@ -14,7 +14,7 @@ class World : public sf::Drawable
 {
 public:
   using random_engine_type = std::mt19937;
-  using seed_type = typename random_engine_type::result_type;
+  using seed_type = random_engine_type::result_type;
 
 public:
   static constexpr float ZOOM_SPEED = 2.0f;

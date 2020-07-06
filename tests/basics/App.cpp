@@ -2,11 +2,10 @@
 
 #include "Config.hpp"
 
-#include <random>
 #include <iostream>
 
-App::App() : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
-  m_world(sf::View({0.0, 0.0}, {WINDOW_WIDTH, WINDOW_HEIGHT}), std::random_device()()) {}
+App::App(seed_type seed) : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
+  m_world(sf::View({0.0, 0.0}, {WINDOW_WIDTH, WINDOW_HEIGHT}), seed) {}
 
 void App::run()
 {

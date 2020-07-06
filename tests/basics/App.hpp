@@ -9,6 +9,10 @@
 class App
 {
 public:
+  using random_engine_type = World::random_engine_type;
+  using seed_type = World::seed_type;
+
+public:
   static constexpr unsigned WINDOW_WIDTH = 1000;
   static constexpr unsigned WINDOW_HEIGHT = 1000;
 
@@ -17,7 +21,7 @@ public:
   static constexpr float FRAME_TIME = 1 / 60.0f;
 
 public:
-  App();
+  App(seed_type seed);
 
 public:
   void run();
