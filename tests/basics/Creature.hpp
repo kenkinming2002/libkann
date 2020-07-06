@@ -88,5 +88,6 @@ private:
   public:
     std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>> target;
   };
-  mutable Eye m_eyes[EYES_COUNT] = {Eye(-15.0, 200.0), Eye(15.0, 200.0)};
+  static constexpr double ANGLE = M_PI / 12.0;
+  mutable Eye m_eyes[EYES_COUNT] = {Eye(-ANGLE, 200.0), Eye(ANGLE, 200.0)};
 };

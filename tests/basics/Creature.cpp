@@ -45,7 +45,7 @@ void Creature::updateSight(World& world) const
         continue;
 
       CircleCollider circleCollider{creature.m_position, CONFIG.creature.radius};
-      if(double distance = ray.cast(circleCollider); distance < eye.distance)
+      if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)
       {
         eye.distance = distance;
         eye.target = std::ref(creature);
@@ -55,7 +55,7 @@ void Creature::updateSight(World& world) const
     for(auto& berryBush: world.berryBushes())
     {
       CircleCollider circleCollider{berryBush.position(), CONFIG.berryBush.radius};
-      if(double distance = ray.cast(circleCollider); distance < eye.distance)
+      if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)
       {
         eye.distance = distance;
         eye.target = std::ref(berryBush);
@@ -233,19 +233,21 @@ void Creature::draw(sf::RenderTarget& target, sf::RenderStates states) const
   circleShape.setPosition(m_position(0), m_position(1));
   target.draw(circleShape, states);
 
-  sf::RectangleShape rectangleShape;
+  static constexpr float THICKNESS = 3.0f;
+
+  for(const auto& eye: m_eyes)
   {
-    static constexpr float THICKNESS = 3.0f;
-    static constexpr float LENGTH = 30.0f;
+    sf::RectangleShape rectangleShape;
+    {
+      rectangleShape.setSize({static_cast<float>(eye.distance), THICKNESS});
+      rectangleShape.setOrigin(0.0f, THICKNESS/2.0f);
 
-    rectangleShape.setSize({LENGTH, THICKNESS});
-    rectangleShape.setOrigin(0.0f, THICKNESS/2.0f);
-
-    rectangleShape.setFillColor(sf::Color::Red);
-    rectangleShape.setRotation(360.0f * m_rotation / (2*M_PI));
+      rectangleShape.setFillColor(sf::Color::Red);
+      rectangleShape.setRotation((m_rotation+eye.angle) * 360.0 / (2*M_PI));
+    }
+    rectangleShape.setPosition(m_position(0), m_position(1));
+    target.draw(rectangleShape, states);
   }
-  rectangleShape.setPosition(m_position(0), m_position(1));
-  target.draw(rectangleShape, states);
 }
 
 std::ostream& operator<<(std::ostream& os, const Creature& creature)
