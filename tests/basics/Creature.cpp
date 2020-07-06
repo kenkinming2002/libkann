@@ -105,12 +105,6 @@ void Creature::update(float dt, World& world)
     double amount = std::min(CONFIG.creature.maxHealth - m_health, m_energy);
     m_health += amount;
     m_energy -= amount;
-
-    if(amount != 0.0)
-    {
-      std::clog << "DEBUG: Healing" << std::endl;
-      std::clog << "DEBUG: Health" << m_health << std::endl;
-    }
   }
 
   m_eatingCooldown -= dt;
@@ -153,15 +147,12 @@ void Creature::updateEating()
     if(berryBush.count() == 0)
       continue; // No berry to eat
 
-    std::clog << "DEBUG: Eating" << std::endl;
-
     berryBush.take();
     m_energy += CONFIG.berryBush.energyPerBerry;
     if(m_energy>CONFIG.creature.maxEnergy)
     {
       this->takeHealth(m_energy-CONFIG.creature.maxEnergy);
       m_energy = CONFIG.creature.maxEnergy;
-      std::clog << "DEBUG: over-eating behaviour detected" << std::endl;
     }
 
     return;
@@ -186,7 +177,6 @@ void Creature::updateMating(World& world)
     if(m_matingCooldown!=0.0 || otherCreature.m_matingCooldown != 0.0)
       return; // Cooldown
 
-    std::clog << "DEBUG: desired to mate" << std::endl;
     this->takeEnergy(MATING_ENERGY_COST);
 
     m_matingCooldown = CONFIG.creature.matingCooldown;
@@ -198,8 +188,6 @@ void Creature::updateMating(World& world)
 
     if(!takeEnergy(CONFIG.creature.maxEnergy * 0.2) || !otherCreature.takeEnergy(CONFIG.creature.maxEnergy * 0.2))
       continue;
-
-    std::clog << "DEBUG: Mating" << std::endl;
 
     auto neuralNetwork = NeuralNetwork::cross(m_neuralNetwork, otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
     Eigen::Vector2d position = (m_position + otherCreature.m_position) / 2.0;

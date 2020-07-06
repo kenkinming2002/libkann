@@ -102,9 +102,6 @@ void World::update(float dt)
 
   m_creatures.erase(std::remove_if(m_creatures.begin(), m_creatures.end(), [](const auto& creature){ return creature.dead(); }), m_creatures.end());
 
-  if(m_newborns.size())
-    std::clog << "DEBUG: newborn number - " << m_newborns.size() << std::endl;
-
   m_creatures.insert(m_creatures.end(), m_newborns.begin(), m_newborns.end());
   m_newborns.clear();
 }

@@ -66,13 +66,8 @@ void App::update()
     }
     break;
   case SpeedMode::ASAP:
-    size_t i=0;
     while(m_clock.getElapsedTime().asSeconds() <= FRAME_TIME)
-    {
-      i++;
       m_world.update(FIXED_DELTA_TIME);
-    }
-    std::clog << "DEBUG: " << i << "updates in one go\n";
 
     m_clock.restart();
     break;
