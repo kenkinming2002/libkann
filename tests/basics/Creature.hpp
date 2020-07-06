@@ -8,6 +8,7 @@
 
 #include <utility>
 #include <optional>
+#include <variant>
 
 #include "BerryBush.hpp"
 
@@ -16,7 +17,10 @@ class World;
 class Creature : public sf::Drawable
 {
 private:
-  static constexpr size_t NUM_INPUT = 6; // Energy, health, Offset of closest berry bushes and closest creature
+  static constexpr size_t EYES_COUNT = 2;
+
+private:
+  static constexpr size_t NUM_INPUT = 4; // Energy, health, Sight
   static constexpr size_t NUM_OUTPUT = 4; // Linear, angular speed, eating and mating desire
 
 public:
@@ -70,10 +74,19 @@ private:
   float m_matingCooldown = 0.0f;
 
 private:
-  struct Sight
+  struct Eye
   {
-    std::reference_wrapper<BerryBush> closestBerryBush;
-    std::reference_wrapper<Creature>  closestCreature;
+  public:
+    Eye(double angle, double viewDistance) : angle(angle), viewDistance(viewDistance) {}
+
+  public:
+    double angle;
+    double viewDistance;
+
+    double distance;
+
+  public:
+    std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>> target;
   };
-  mutable std::optional<Sight> m_sight;
+  mutable Eye m_eyes[EYES_COUNT] = {Eye(-15.0, 200.0), Eye(15.0, 200.0)};
 };

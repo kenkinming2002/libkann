@@ -2,6 +2,7 @@
 
 #include "World.hpp"
 #include "Config.hpp"
+#include "Ray.hpp"
 
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
@@ -9,6 +10,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <limits>
 
 static sf::Color lerp(sf::Color a, sf::Color b, float t)
 {
@@ -32,24 +34,34 @@ Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double
 
 void Creature::updateSight(World& world) const
 {
-  /// 1: Closest Creature
-  auto distance_to = [this](const Creature& rhs) {
-    static_assert(std::numeric_limits<double>::is_iec559);
-    if(this == &rhs)
-      return std::numeric_limits<double>::infinity();
-    else
-      return Creature::distance(*this, rhs);
-  };
+  for(Eye& eye: m_eyes)
+  {
+    eye.distance = eye.viewDistance;
+    Ray ray{m_position, m_rotation + eye.angle};
 
-  BerryBush& closestBerryBush = *std::min_element(world.berryBushes().begin(), world.berryBushes().end(), [this](const auto& lhs, const auto& rhs){
-      return this->distance(lhs) < this->distance(rhs);
-  });
+    for(auto& creature: world.creatures())
+    {
+      if(&creature == this)
+        continue;
 
-  Creature& closestCreature = *std::min_element(world.creatures().begin(), world.creatures().end(), [&](const auto& lhs, const auto& rhs){ 
-    return distance_to(lhs) < distance_to(rhs);
-  });
+      CircleCollider circleCollider{creature.m_position, CONFIG.creature.radius};
+      if(double distance = ray.cast(circleCollider); distance < eye.distance)
+      {
+        eye.distance = distance;
+        eye.target = std::ref(creature);
+      }
+    }
 
-  m_sight = Sight{closestBerryBush, closestCreature};
+    for(auto& berryBush: world.berryBushes())
+    {
+      CircleCollider circleCollider{berryBush.position(), CONFIG.berryBush.radius};
+      if(double distance = ray.cast(circleCollider); distance < eye.distance)
+      {
+        eye.distance = distance;
+        eye.target = std::ref(berryBush);
+      }
+    }
+  }
 }
 
 void Creature::preUpdate(float /*dt*/, World& world) const
@@ -58,10 +70,8 @@ void Creature::preUpdate(float /*dt*/, World& world) const
 
   // 1: Neural network
   // Prepare input
-  Eigen::Vector2d closestBerryBushOffset = Eigen::Rotation2Dd(-m_rotation) * (m_sight->closestBerryBush.get().position() - m_position);
-  Eigen::Vector2d closestCreatureOffset  = Eigen::Rotation2Dd(-m_rotation) * (m_sight->closestCreature.get().m_position - m_position);
-
-  m_neuralNetwork.input({m_energy, m_health, closestBerryBushOffset(0), closestBerryBushOffset(1), closestCreatureOffset(0), closestCreatureOffset(1)});
+  m_neuralNetwork.input({m_energy, m_health, m_eyes[0].distance, m_eyes[1].distance});
+  //m_neuralNetwork.input({m_energy, m_health, 0.0, 0.0});
 
   // Feed Forwrad
   m_neuralNetwork.feedForward();
@@ -129,23 +139,33 @@ void Creature::updateEating()
   this->takeEnergy(EATING_ENERGY_COST);
   m_eatingCooldown = CONFIG.creature.eatingCooldown;
 
-  if(auto distance = (m_position - m_sight->closestBerryBush.get().position()).norm();
-      distance >= EATING_DISTANCE)
-    return; // Too far away
-
-  if(m_sight->closestBerryBush.get().count() == 0)
-    return; // No berry to eat
-
-  m_sight->closestBerryBush.get().take();
-  m_energy += CONFIG.berryBush.energyPerBerry;
-  if(m_energy>CONFIG.creature.maxEnergy)
+  for(auto& eye: m_eyes)
   {
-    this->takeHealth(m_energy-CONFIG.creature.maxEnergy);
-    m_energy = CONFIG.creature.maxEnergy;
-    std::clog << "DEBUG: over-eating behaviour detected" << std::endl;
-  }
+    if(!std::holds_alternative<std::reference_wrapper<BerryBush>>(eye.target))
+      continue;
 
-  std::clog << "DEBUG: Eating" << std::endl;
+    auto& berryBush = std::get<std::reference_wrapper<BerryBush>>(eye.target).get();
+
+    if(auto distance = (m_position - berryBush.position()).norm();
+        distance >= EATING_DISTANCE)
+      continue;
+
+    if(berryBush.count() == 0)
+      continue; // No berry to eat
+
+    std::clog << "DEBUG: Eating" << std::endl;
+
+    berryBush.take();
+    m_energy += CONFIG.berryBush.energyPerBerry;
+    if(m_energy>CONFIG.creature.maxEnergy)
+    {
+      this->takeHealth(m_energy-CONFIG.creature.maxEnergy);
+      m_energy = CONFIG.creature.maxEnergy;
+      std::clog << "DEBUG: over-eating behaviour detected" << std::endl;
+    }
+
+    return;
+  }
 }
 
 void Creature::updateMating(World& world)
@@ -153,34 +173,41 @@ void Creature::updateMating(World& world)
   static constexpr double MATING_ENERGY_COST = 5.0f;
   const double MATING_DISTANCE = CONFIG.creature.radius * 2.5;
 
-  auto& otherCreature = m_sight->closestCreature.get();
+  for(auto& eye: m_eyes)
+  {
+    if(!std::holds_alternative<std::reference_wrapper<Creature>>(eye.target))
+      continue;
 
-  if(m_matingDesire<0.0 || otherCreature.m_matingDesire<0.0)
-    return; // Don't want to mate
+    auto& otherCreature = std::get<std::reference_wrapper<Creature>>(eye.target).get();
 
-  if(m_matingCooldown!=0.0 || otherCreature.m_matingCooldown != 0.0)
-    return; // Cooldown
+    if(m_matingDesire<0.0 || otherCreature.m_matingDesire<0.0)
+      return; // Don't want to mate
 
-  std::clog << "DEBUG: desired to mate" << std::endl;
-  this->takeEnergy(MATING_ENERGY_COST);
+    if(m_matingCooldown!=0.0 || otherCreature.m_matingCooldown != 0.0)
+      return; // Cooldown
 
-  m_matingCooldown = CONFIG.creature.matingCooldown;
-  otherCreature.m_matingCooldown = CONFIG.creature.matingCooldown;
+    std::clog << "DEBUG: desired to mate" << std::endl;
+    this->takeEnergy(MATING_ENERGY_COST);
 
+    m_matingCooldown = CONFIG.creature.matingCooldown;
+    otherCreature.m_matingCooldown = CONFIG.creature.matingCooldown;
 
-  if(auto distance = (m_position - otherCreature.m_position).norm();
-      distance >= MATING_DISTANCE)
-    return; // Too far away
+    if(auto distance = (m_position - otherCreature.m_position).norm();
+        distance >= MATING_DISTANCE)
+      continue; // Too far away
 
-  if(!takeEnergy(CONFIG.creature.maxEnergy * 0.2) || !otherCreature.takeEnergy(CONFIG.creature.maxEnergy * 0.2))
+    if(!takeEnergy(CONFIG.creature.maxEnergy * 0.2) || !otherCreature.takeEnergy(CONFIG.creature.maxEnergy * 0.2))
+      continue;
+
+    std::clog << "DEBUG: Mating" << std::endl;
+
+    auto neuralNetwork = NeuralNetwork::cross(m_neuralNetwork, otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
+    Eigen::Vector2d position = (m_position + otherCreature.m_position) / 2.0;
+
+    world.addCreature(Creature(std::move(neuralNetwork), position, 0.3 * CONFIG.creature.maxEnergy));
+
     return;
-
-  auto neuralNetwork = NeuralNetwork::cross(m_neuralNetwork, otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
-  Eigen::Vector2d position = (m_position + otherCreature.m_position) / 2.0;
-
-  world.addCreature(Creature(std::move(neuralNetwork), position, 0.3 * CONFIG.creature.maxEnergy));
-
-  std::clog << "DEBUG: Mating" << std::endl;
+  }
 }
 
 bool Creature::takeEnergy(double amount)
