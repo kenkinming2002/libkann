@@ -10,7 +10,7 @@ double Ray::cast(CircleCollider circle) const
   Eigen::Vector2d offset = circle.position - position;
 
   Eigen::Vector2d rayTangent = Eigen::Rotation2Dd(angle) * Eigen::Vector2d(1.0, 0.0);
-  Eigen::Vector2d rayNormal = Eigen::Rotation2Dd(M_PI/2.0) * rayTangent; // TODO: compute this
+  Eigen::Vector2d rayNormal = Eigen::Vector2d(-rayTangent(1), rayTangent(0));
 
   double tangentProjectionLength = offset.dot(rayTangent);
   double normalProjectionLength = offset.dot(rayNormal);
