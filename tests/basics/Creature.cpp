@@ -36,6 +36,17 @@ void Creature::updateSight(World& world) const
 {
   for(Eye& eye: m_eyes)
   {
+    // MEMORIAL: The following line costs hours of debugging to add
+    // 
+    // Thanks: gcc asan
+    //
+    // This following line of code has cost hours of debugging to add
+    // This is because if eye.target is not set, (perhaps because no creature is
+    // in front of us), the previous result will be used which may well be
+    // freed. This manifest itself into errors in mating process.
+    //
+    eye.target = std::monostate{};
+
     eye.distance = eye.viewDistance;
     Ray ray{m_position, m_rotation + eye.angle};
 
