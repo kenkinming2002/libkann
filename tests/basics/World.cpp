@@ -90,6 +90,7 @@ bool World::handleInput(sf::Event event)
 
 void World::update(float dt)
 {
+#pragma omp parallel for
   for(auto& berryBush: m_berryBushes)
     berryBush.update(dt);
 
