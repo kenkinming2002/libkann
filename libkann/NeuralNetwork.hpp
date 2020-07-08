@@ -13,14 +13,14 @@
 class NeuralNetwork
 {
 public:
-  LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology);
+  LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology, size_t memory);
 
   template<typename PRNG>
-  LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng);
+  LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng, size_t memory);
 
 public:
   // TODO: Consider optimizing this
-  LIBKANN_SYMEXPORT void input(const std::vector<double>& input);
+  LIBKANN_SYMEXPORT void input(std::vector<double> input);
   LIBKANN_SYMEXPORT std::vector<double> output() const;
 
 public:
@@ -35,6 +35,9 @@ public:
   LIBKANN_SYMEXPORT friend std::ostream& operator<<(std::ostream& os, const NeuralNetwork& neuralNetwork);
 
 private:
+  size_t m_memory;
+
+public:
   std::vector<size_t> m_topology;
   std::vector<Layer> m_layers;
   std::vector<Eigen::MatrixXd> m_weights;

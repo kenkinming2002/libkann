@@ -3,6 +3,7 @@
 #include <libkann/ActivationFunction.hpp>
 
 #include <cassert>
+#include <iostream>
 
 static Eigen::VectorXd convert(const std::vector<double>& input)
 {
@@ -17,41 +18,51 @@ static std::vector<double> convert(Eigen::VectorXd input)
   return std::vector<double>(input.data(), input.data() + input.size());
 }
 
-NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology) : m_topology(topology)
+NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory) : m_memory(memory), m_topology(topology)
 {
+  m_topology.front() += memory;
+  m_topology.back() += memory;
+
   // Layers
-  for(size_t size: topology)
+  for(size_t size: m_topology)
     m_layers.emplace_back(size);
 
-  for(size_t i=0; i<topology.size()-1; i++)
+  for(size_t i=0; i<m_topology.size()-1; i++)
   {
-    size_t a = topology[i], b = topology[i+1];
+    size_t a = m_topology[i], b = m_topology[i+1];
     m_weights.emplace_back(Eigen::MatrixXd(b, a));
   }
 }
 
 template<typename PRNG>
-NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng) : m_topology(topology)
+NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng, size_t memory) : m_memory(memory), m_topology(topology)
 {
+  m_topology.front() += memory;
+  m_topology.back() += memory;
+
   // Layers
-  for(size_t size: topology)
+  for(size_t size: m_topology)
     m_layers.emplace_back(size);
 
   std::uniform_real_distribution<double> distribution(-1.0, 1.0);
 
-  for(size_t i=0; i<topology.size()-1; i++)
+  for(size_t i=0; i<m_topology.size()-1; i++)
   {
-    size_t a = topology[i], b = topology[i+1];
+    size_t a = m_topology[i], b = m_topology[i+1];
     m_weights.emplace_back(Eigen::MatrixXd::NullaryExpr(b, a,[&](){
       return distribution(prng);
     }));
   }
 }
 
-template NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, std::mt19937& prng);
+template NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, std::mt19937& prng, size_t memory);
 
-void NeuralNetwork::input(const std::vector<double>& input)
+void NeuralNetwork::input(std::vector<double> input)
 {
+  auto output = this->output();
+  for(size_t i=0; i<m_memory; ++i)
+    input.push_back(output[output.size() - m_memory + i]);
+
   m_layers.front().input(convert(input));
 }
 
@@ -74,12 +85,23 @@ NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork
   std::uniform_real_distribution<double> mutationDistribution(0.0, 1.0);
   std::uniform_real_distribution<double> weightDistribution(-1.0, 1.0);
 
-  NeuralNetwork output(lhs.m_topology);
+  // Note: assertion somtimes failed bug
+  if(lhs.m_weights.size() != rhs.m_weights.size())
+  {
+    std::cerr << lhs.m_weights.size() << " " << rhs.m_weights.size() << std::endl;
+    assert(lhs.m_weights.size() == rhs.m_weights.size());
+  }
+
+  NeuralNetwork output = lhs;
   for(size_t i=0; i<lhs.m_weights.size(); ++i)
   {
     auto& lhsWeight = lhs.m_weights[i];
     auto& rhsWeight = rhs.m_weights[i]; 
     auto& outputWeight = output.m_weights[i];
+
+    assert(lhsWeight.size() != 0);
+    assert(lhsWeight.size() == rhsWeight.size());
+    assert(rhsWeight.size() == outputWeight.size());
 
     for(size_t j=0; j<lhsWeight.size(); ++j)
     {

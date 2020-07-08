@@ -23,7 +23,7 @@ static sf::Color lerp(sf::Color a, sf::Color b, float t)
 
 template<typename PRNG>
 Creature::Creature(PRNG& prng, Eigen::Vector2d position) 
-  : m_neuralNetwork({NUM_INPUT, 50, 50, 50, 50, 50, 50, NUM_OUTPUT}, prng), 
+  : m_neuralNetwork({NUM_INPUT, 50, 50, 50, 50, 50, 50, NUM_OUTPUT}, prng, CONFIG.creature.memory), 
     m_position(position), m_energy(CONFIG.creature.maxEnergy), m_health(CONFIG.creature.maxHealth) {}
 
 template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);

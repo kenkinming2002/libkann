@@ -47,6 +47,8 @@ public:
     float matingCooldown;
 
     double radius;
+
+    size_t memory;
   };
   Creature creature;
 

@@ -5,7 +5,7 @@
   "BerryBush" : {
     "EnergyPerBerry" : 300.0,
     "MaxBerryCount" : 10,
-    "GrowthRate" : 0.1,
+    "GrowthRate" : 0.02,
 
     "Radius" : 30.0
   },
@@ -14,25 +14,27 @@
     "MaxHealth" : 1000.0,
 
     "LinearSpeed" : 100.0,
-    "AngularSpeed" : 0.1,
+    "AngularSpeed" : 0.0005,
 
     "PassiveEnergyDrain" : 2.0,
-    "MovementEnergyDrainMultiplier" : 0.001,
+    "MovementEnergyDrainMultiplier" : 0.0001,
 
     "HungerHealthDrain" : 5.0,
 
     "HealingThreshold" : 0.5,
     "HealingRate" : 10.0,
 
-    "EatingCooldown" : 5.0,
-    "MatingCooldown" : 120.0,
+    "EatingCooldown" : 2.0,
+    "MatingCooldown" : 60.0,
 
-    "Radius" : 10.0
+    "Radius" : 10.0,
+
+    "Memory": 100
   },
   "World" : {
-    "Width" : 2000.0,
-    "Height" : 2000.0,
-    "InitialCreaturesCount" : 100,
-    "InitialBerryBushesCount" : 10
+    "Width" : 1000.0,
+    "Height" : 1000.0,
+    "InitialCreaturesCount" : 500,
+    "InitialBerryBushesCount" : 100
   }
 }
