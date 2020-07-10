@@ -150,5 +150,5 @@ void World::log() const
       return creature.get().health() == CONFIG.creature.maxHealth;
   });
   size_t creaturesCount = creatures.size();
-  std::cout << "\rCreatures Count Healthy/All:" << healthyCreaturesCount << "/" << creaturesCount << std::flush;
+  std::cout << "\033[2K\r" << "Creatures Count:" << healthyCreaturesCount << "/" << creaturesCount << "(Healthy/All)" << std::flush;
 }
