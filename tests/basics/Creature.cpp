@@ -240,6 +240,7 @@ bool Creature::takeHealth(double amount)
   return m_health != 0.0;
 }
 
+bool Creature::DRAW_DEBUG = false;
 void Creature::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
   sf::CircleShape circleShape;
@@ -257,20 +258,23 @@ void Creature::draw(sf::RenderTarget& target, sf::RenderStates states) const
   circleShape.setPosition(m_position(0), m_position(1));
   target.draw(circleShape, states);
 
-  static constexpr float THICKNESS = 3.0f;
-
-  for(const auto& eye: m_eyes)
+  if(DRAW_DEBUG)
   {
-    sf::RectangleShape rectangleShape;
-    {
-      rectangleShape.setSize({static_cast<float>(eye.distance), THICKNESS});
-      rectangleShape.setOrigin(0.0f, THICKNESS/2.0f);
+    static constexpr float THICKNESS = 3.0f;
 
-      rectangleShape.setFillColor(sf::Color::Red);
-      rectangleShape.setRotation((m_rotation+eye.angle) * 360.0 / (2*M_PI));
+    for(const auto& eye: m_eyes)
+    {
+      sf::RectangleShape rectangleShape;
+      {
+        rectangleShape.setSize({static_cast<float>(eye.distance), THICKNESS});
+        rectangleShape.setOrigin(0.0f, THICKNESS/2.0f);
+
+        rectangleShape.setFillColor(sf::Color::Red);
+        rectangleShape.setRotation((m_rotation+eye.angle) * 360.0 / (2*M_PI));
+      }
+      rectangleShape.setPosition(m_position(0), m_position(1));
+      target.draw(rectangleShape, states);
     }
-    rectangleShape.setPosition(m_position(0), m_position(1));
-    target.draw(rectangleShape, states);
   }
 }
 

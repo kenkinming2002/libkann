@@ -88,4 +88,7 @@ private:
     std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>> target;
   };
   mutable Eye m_eyes[EYES_COUNT];
+
+public:
+  static bool DRAW_DEBUG;
 };

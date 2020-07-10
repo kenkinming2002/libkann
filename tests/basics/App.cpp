@@ -36,6 +36,9 @@ void App::handleInput()
           case sf::Keyboard::Space:
             this->toggleSpeed();
             break;
+          case sf::Keyboard::D:
+            Creature::DRAW_DEBUG = !Creature::DRAW_DEBUG;
+            break;
           default:
             break;
         }
