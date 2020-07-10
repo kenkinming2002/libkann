@@ -36,9 +36,6 @@ void App::handleInput()
           case sf::Keyboard::Space:
             this->toggleSpeed();
             break;
-          case sf::Keyboard::M:
-            m_world.log();
-            break;
           default:
             break;
         }
@@ -78,6 +75,8 @@ void App::render() const
   m_window.clear(sf::Color::Black);
   m_window.draw(m_world);
   m_window.display();
+
+  m_world.log();
 }
 
 void App::toggleSpeed()

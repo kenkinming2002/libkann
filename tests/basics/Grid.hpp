@@ -234,8 +234,6 @@ public:
       }
     }
 
-    std::cout << "DEBUG: Grid - orphans count - " << orphans.size() << '\n';
-
     auto it = orphans.begin();
     while(it != orphans.end())
     {

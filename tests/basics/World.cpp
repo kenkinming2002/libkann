@@ -134,8 +134,9 @@ void World::draw(sf::RenderTarget &target, sf::RenderStates states) const
 void World::log() const
 {
   auto creatures = m_creatures.all();
-  std::cout << "Creature count:" << creatures.size() << '\n';
-  std::cout << "Healthy Creature count:" << std::count_if(creatures.begin(), creatures.end(), [](std::reference_wrapper<const Creature> creature){
+  size_t healthyCreaturesCount =  std::count_if(creatures.begin(), creatures.end(), [](std::reference_wrapper<const Creature> creature){
       return creature.get().health() == CONFIG.creature.maxHealth;
-  }) << '\n';
+  });
+  size_t creaturesCount = creatures.size();
+  std::cout << "\rCreatures Count Healthy/All:" << healthyCreaturesCount << "/" << creaturesCount << std::flush;
 }
