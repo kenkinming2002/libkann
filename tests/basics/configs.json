@@ -17,7 +17,7 @@
     "AngularSpeed" : 0.01,
 
     "PassiveEnergyDrain" : 2.0,
-    "MovementEnergyDrainMultiplier" : 0.00001,
+    "MovementEnergyDrainMultiplier" : 0.000005,
 
     "HungerHealthDrain" : 5.0,
 
@@ -37,6 +37,6 @@
     "Width" : 5000.0,
     "Height" : 5000.0,
     "InitialCreaturesCount" : 1000,
-    "InitialBerryBushesCount" : 100
+    "InitialBerryBushesCount" : 500
   }
 }
