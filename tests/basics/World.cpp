@@ -8,12 +8,24 @@
 
 #include "Config.hpp"
 
-static constexpr double GRID_DIVISION_LENGTH = 100.0;
+#include <cmath>
+
+static constexpr double AVERAGE_COUNT_PER_CELL = 10.0;
+
+static double GRID_DIVISION_LENGTH_CREATURE()
+{
+  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (static_cast<double>(CONFIG.world.initialCreaturesCount) / 10.0));
+}
+
+static double GRID_DIVISION_LENGTH_BERRYBUSH()
+{
+  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (static_cast<double>(CONFIG.world.initialBerryBushesCount) / 10.0));
+}
 
 World::World(sf::View view, seed_type seed) 
   : m_defaultView(view), m_view(view), m_dimension(CONFIG.world.width, CONFIG.world.height), 
-    m_creatures(Grid<Creature>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH),
-    m_berryBushes(Grid<BerryBush>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH),
+    m_creatures(Grid<Creature>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_CREATURE()),
+    m_berryBushes(Grid<BerryBush>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_BERRYBUSH()),
     m_generator(seed)
 {
   std::uniform_real_distribution<double> xPositionDistribution(-m_dimension(0)/2.0, m_dimension(0)/2.0);
