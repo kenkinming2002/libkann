@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Config.hpp"
+
 #include <Eigen/Eigen>
 #include <libkann/NeuralNetwork.hpp>
 
@@ -40,6 +42,7 @@ public:
 
 public:
   bool dead() const { return m_health == 0.0; }
+  bool healthy() const { return m_health == CONFIG.creature.maxHealth; }
 
 private:
   bool takeEnergy(double amount);

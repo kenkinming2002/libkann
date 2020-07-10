@@ -117,7 +117,8 @@ void World::update(float dt)
 
   m_creatures.synchronize(std::mem_fn(&Creature::position)); // Register the updated position
 
-  m_creatures.remove_if(std::mem_fn(&Creature::dead));
+  m_birthCount += m_newborns.size();
+  m_deathToll += m_creatures.remove_if(std::mem_fn(&Creature::dead));
   m_creatures.insert(std::mem_fn(&Creature::position), m_newborns.begin(), m_newborns.end());
   m_newborns.clear();
 }
@@ -146,9 +147,9 @@ void World::draw(sf::RenderTarget &target, sf::RenderStates states) const
 void World::log() const
 {
   auto creatures = m_creatures.all();
-  size_t healthyCreaturesCount =  std::count_if(creatures.begin(), creatures.end(), [](std::reference_wrapper<const Creature> creature){
-      return creature.get().health() == CONFIG.creature.maxHealth;
-  });
+
+  size_t healthyCreaturesCount =  std::count_if(creatures.begin(), creatures.end(), std::mem_fn(&Creature::healthy));
   size_t creaturesCount = creatures.size();
-  std::cout << "\033[2K\r" << "Creatures Count:" << healthyCreaturesCount << "/" << creaturesCount << "(Healthy/All)" << std::flush;
+
+  std::cout << "\033[2K\r" << "Creatures:" << healthyCreaturesCount << "/" << creaturesCount << "(Healthy/All)" << ", " << m_deathToll << "/" << m_birthCount << "(DeathToll/BirthCount)" << std::flush;
 }

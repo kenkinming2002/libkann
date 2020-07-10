@@ -62,4 +62,8 @@ private:
 
 private:
   std::mt19937 m_generator;
+
+private:
+  size_t m_deathToll = 0;
+  size_t m_birthCount = 0;
 };

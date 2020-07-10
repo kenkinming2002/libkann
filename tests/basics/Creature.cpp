@@ -1,7 +1,6 @@
 #include "Creature.hpp"
 
 #include "World.hpp"
-#include "Config.hpp"
 #include "Ray.hpp"
 
 #include <SFML/Graphics/CircleShape.hpp>
