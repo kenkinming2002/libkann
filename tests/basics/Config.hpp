@@ -49,6 +49,8 @@ public:
     double radius;
 
     size_t memory;
+
+    double viewDistance;
   };
   Creature creature;
 

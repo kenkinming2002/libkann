@@ -78,17 +78,14 @@ private:
   struct Eye
   {
   public:
-    Eye(double angle, double viewDistance) : angle(angle), viewDistance(viewDistance) {}
+    Eye(double angle) : angle(angle) {}
 
   public:
     double angle;
-    double viewDistance;
-
     double distance;
 
   public:
     std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>> target;
   };
-  static constexpr double ANGLE = M_PI / 12.0;
-  mutable Eye m_eyes[EYES_COUNT] = {Eye(-ANGLE, 200.0), Eye(ANGLE, 200.0)};
+  mutable Eye m_eyes[EYES_COUNT];
 };

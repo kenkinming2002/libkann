@@ -47,6 +47,8 @@ Config::Config(const char* fileName)
   this->creature.radius = creatureConfig.at("Radius").get<double>();
 
   this->creature.memory = creatureConfig.at("Memory").get<size_t>();
+  
+  this->creature.viewDistance = creatureConfig.at("ViewDistance").get<double>();
 
   auto worldConfig = config.at("World");
   this->world.width = worldConfig.at("Width").get<double>();

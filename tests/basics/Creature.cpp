@@ -21,16 +21,21 @@ static sf::Color lerp(sf::Color a, sf::Color b, float t)
   );
 }
 
+
+static constexpr double ANGLE = M_PI / 12.0;
+
 template<typename PRNG>
 Creature::Creature(PRNG& prng, Eigen::Vector2d position) 
   : m_neuralNetwork({NUM_INPUT, 50, 50, 50, 50, 50, 50, NUM_OUTPUT}, prng, CONFIG.creature.memory), 
-    m_position(position), m_energy(CONFIG.creature.maxEnergy), m_health(CONFIG.creature.maxHealth) {}
+    m_position(position), m_energy(CONFIG.creature.maxEnergy), m_health(CONFIG.creature.maxHealth),
+    m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
 template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);
 
 Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy) 
   : m_neuralNetwork(neuralNetwork),
-    m_position(position), m_energy(energy), m_health(CONFIG.creature.maxHealth) {}
+    m_position(position), m_energy(energy), m_health(CONFIG.creature.maxHealth),
+    m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
 void Creature::updateSight(World& world) const
 {
@@ -47,11 +52,13 @@ void Creature::updateSight(World& world) const
     //
     eye.target = std::monostate{};
 
-    eye.distance = eye.viewDistance;
+    eye.distance = CONFIG.creature.viewDistance;
     Ray ray{m_position, m_rotation + eye.angle};
 
-    Eigen::Vector2d halfDimensionCreature(eye.viewDistance + CONFIG.creature.radius, eye.viewDistance + CONFIG.creature.radius);
-    Eigen::Vector2d halfDimensionBerryBush(eye.viewDistance + CONFIG.berryBush.radius, eye.viewDistance + CONFIG.berryBush.radius);
+    Eigen::Vector2d halfDimensionCreature(CONFIG.creature.viewDistance + CONFIG.creature.radius, 
+        CONFIG.creature.viewDistance + CONFIG.creature.radius);
+    Eigen::Vector2d halfDimensionBerryBush(CONFIG.creature.viewDistance + CONFIG.berryBush.radius, 
+        CONFIG.creature.viewDistance + CONFIG.berryBush.radius);
 
     Box queryBoxCreature(m_position - halfDimensionCreature, 2.0 * halfDimensionCreature);
     Box queryBoxBerryBush(m_position - halfDimensionBerryBush, 2.0 * halfDimensionBerryBush);
