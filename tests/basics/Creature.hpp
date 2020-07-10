@@ -47,6 +47,7 @@ private:
 
 public:
   double health() const { return m_health; }
+  auto position() const { return m_position; }
 
 public:
   static double distance(const Creature& lhs, const Creature& rhs) { return (lhs.m_position - rhs.m_position).norm(); }

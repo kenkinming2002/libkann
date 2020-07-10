@@ -4,6 +4,8 @@
 #include "App.hpp"
 #include "Config.hpp"
 
+#include "Grid.hpp"
+
 #include <iostream>
 #include <cstdlib>
 #include <sstream>

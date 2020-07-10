@@ -32,9 +32,9 @@
     "Memory": 100
   },
   "World" : {
-    "Width" : 1000.0,
-    "Height" : 1000.0,
-    "InitialCreaturesCount" : 500,
+    "Width" : 5000.0,
+    "Height" : 5000.0,
+    "InitialCreaturesCount" : 1000,
     "InitialBerryBushesCount" : 100
   }
 }

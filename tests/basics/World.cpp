@@ -8,26 +8,28 @@
 
 #include "Config.hpp"
 
+static constexpr double GRID_DIVISION_LENGTH = 100.0;
+
 World::World(sf::View view, seed_type seed) 
-  : m_defaultView(view), m_view(view), m_dimension(CONFIG.world.width, CONFIG.world.height), m_generator(seed)
+  : m_defaultView(view), m_view(view), m_dimension(CONFIG.world.width, CONFIG.world.height), 
+    m_creatures(Grid<Creature>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH),
+    m_berryBushes(Grid<BerryBush>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH),
+    m_generator(seed)
 {
   std::uniform_real_distribution<double> xPositionDistribution(-m_dimension(0)/2.0, m_dimension(0)/2.0);
   std::uniform_real_distribution<double> yPositionDistribution(-m_dimension(1)/2.0, m_dimension(1)/2.0);
 
   for(size_t i=0; i<CONFIG.world.initialCreaturesCount; ++i)
-    m_creatures.emplace_back(m_generator,
-      Eigen::Vector2d(
-        xPositionDistribution(m_generator), 
-        yPositionDistribution(m_generator)
-      )
-    );
+  {
+    Eigen::Vector2d position(xPositionDistribution(m_generator), yPositionDistribution(m_generator));
+    m_creatures.emplace(position, m_generator, position);
+  }
 
   for(size_t i=0; i<CONFIG.world.initialBerryBushesCount; ++i)
-    m_berryBushes.emplace_back(Eigen::Vector2d(
-        xPositionDistribution(m_generator), 
-        yPositionDistribution(m_generator)
-      )
-    );
+  {
+    Eigen::Vector2d position(xPositionDistribution(m_generator), yPositionDistribution(m_generator));
+    m_berryBushes.emplace(position, position);
+  }
 }
 
 bool World::handleInput(sf::Event event)
@@ -91,19 +93,20 @@ bool World::handleInput(sf::Event event)
 void World::update(float dt)
 {
 #pragma omp parallel for
-  for(auto& berryBush: m_berryBushes)
-    berryBush.update(dt);
+  for(std::reference_wrapper<BerryBush> berryBush: m_berryBushes.all())
+    berryBush.get().update(dt);
 
 #pragma omp parallel for
-  for(auto& creature: m_creatures)
-    creature.preUpdate(dt, *this);
+  for(std::reference_wrapper<Creature> creature: m_creatures.all())
+    creature.get().preUpdate(dt, *this);
 
-  for(auto& creature: m_creatures)
-    creature.update(dt, *this);
+  for(std::reference_wrapper<Creature> creature: m_creatures.all())
+    creature.get().update(dt, *this);
 
-  m_creatures.erase(std::remove_if(m_creatures.begin(), m_creatures.end(), [](const auto& creature){ return creature.dead(); }), m_creatures.end());
+  m_creatures.synchronize(std::mem_fn(&Creature::position)); // Register the updated position
 
-  m_creatures.insert(m_creatures.end(), m_newborns.begin(), m_newborns.end());
+  m_creatures.remove_if(std::mem_fn(&Creature::dead));
+  m_creatures.insert(std::mem_fn(&Creature::position), m_newborns.begin(), m_newborns.end());
   m_newborns.clear();
 }
 
@@ -121,17 +124,18 @@ void World::draw(sf::RenderTarget &target, sf::RenderStates states) const
 
   target.draw(rectangleShape, states);
 
-  for(const auto& berryBush: m_berryBushes)
+  for(std::reference_wrapper<const BerryBush> berryBush: m_berryBushes.all())
     target.draw(berryBush, states);
 
-  for(const auto& creature: m_creatures)
+  for(std::reference_wrapper<const Creature> creature: m_creatures.all())
     target.draw(creature, states);
 }
 
 void World::log() const
 {
-  std::cout << "Creature count:" << m_creatures.size() << '\n';
-  std::cout << "Healthy Creature count:" << std::count_if(m_creatures.begin(), m_creatures.end(), [](const auto& creature){
-      return creature.health() == CONFIG.creature.maxHealth;
+  auto creatures = m_creatures.all();
+  std::cout << "Creature count:" << creatures.size() << '\n';
+  std::cout << "Healthy Creature count:" << std::count_if(creatures.begin(), creatures.end(), [](std::reference_wrapper<const Creature> creature){
+      return creature.get().health() == CONFIG.creature.maxHealth;
   }) << '\n';
 }

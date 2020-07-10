@@ -2,6 +2,7 @@
 
 #include "Creature.hpp"
 #include "BerryBush.hpp"
+#include "Grid.hpp"
 
 #include <vector>
 #include <random>
@@ -53,8 +54,8 @@ private:
 
 private:
   Eigen::Vector2d m_dimension;
-  std::vector<Creature> m_creatures;
-  std::vector<BerryBush> m_berryBushes;
+  Grid<Creature> m_creatures;
+  Grid<BerryBush> m_berryBushes;
 
 private:
   std::vector<Creature> m_newborns;
