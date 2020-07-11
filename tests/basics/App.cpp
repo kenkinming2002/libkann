@@ -3,9 +3,11 @@
 #include "Config.hpp"
 
 #include <iostream>
+#include <algorithm>
 
 App::App(seed_type seed) : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
-  m_world(sf::View({0.0, 0.0}, {WINDOW_WIDTH, WINDOW_HEIGHT}), seed) {}
+  m_world(sf::View({0.0, 0.0}, {WINDOW_WIDTH, WINDOW_HEIGHT}), seed),
+  m_renderTimes{0.0f} {}
 
 void App::run()
 {
@@ -73,13 +75,27 @@ void App::update()
   }
 }
 
+void App::log() const
+{
+  std::cout << "Render Time Average:" << std::accumulate(m_renderTimes.begin(), m_renderTimes.end(), 0.0f) / m_renderTimes.size();
+}
+
 void App::render() const
 {
+  sf::Clock clock;
+
   m_window.clear(sf::Color::Black);
   m_window.draw(m_world);
   m_window.display();
+  
+  std::rotate(m_renderTimes.begin(), m_renderTimes.begin()+1, m_renderTimes.end());
+  m_renderTimes.back() = clock.restart().asSeconds();
 
+  std::cout << "\033[2K\r";
+  this->log();
+  std::cout << "; ";
   m_world.log();
+  std::cout.flush();
 }
 
 void App::toggleSpeed()

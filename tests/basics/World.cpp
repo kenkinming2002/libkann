@@ -151,5 +151,6 @@ void World::log() const
   size_t healthyCreaturesCount =  std::count_if(creatures.begin(), creatures.end(), std::mem_fn(&Creature::healthy));
   size_t creaturesCount = creatures.size();
 
-  std::cout << "\033[2K\r" << "Creatures:" << healthyCreaturesCount << "/" << creaturesCount << "(Healthy/All)" << ", " << m_deathToll << "/" << m_birthCount << "(DeathToll/BirthCount)" << std::flush;
+  std::cout << "Creatures:" << healthyCreaturesCount << "/" << creaturesCount << "(Healthy/All)" << ", " 
+    << m_deathToll << "/" << m_birthCount << "(DeathToll/BirthCount)";
 }
