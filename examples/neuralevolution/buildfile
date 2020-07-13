@@ -9,4 +9,4 @@ if ($cxx.target.class == 'linux')
 if ($cxx.target.class == 'windows')
   cc.coptions += -D_USE_MATH_DEFINES
 
-exe{driver}: {hxx ixx txx cxx}{**} $libs testscript{**}
+exe{neuralevolution}: {hxx ixx txx cxx}{**} $libs testscript{**}

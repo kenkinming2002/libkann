@@ -2,4 +2,4 @@
 
 # Don't install tests.
 #
-tests/: install = false
+examples/: install = false
