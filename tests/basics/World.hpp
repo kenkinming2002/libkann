@@ -11,6 +11,8 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Window/Event.hpp>
 
+#include <SFML/System/Clock.hpp>
+
 class World : public sf::Drawable
 {
 public:
@@ -66,4 +68,8 @@ private:
 private:
   size_t m_deathToll = 0;
   size_t m_birthCount = 0;
+
+private:
+  sf::Clock m_startTime;
+  float m_worldTime = 0.0f;
 };

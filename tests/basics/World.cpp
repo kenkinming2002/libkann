@@ -4,6 +4,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 
 #include <iostream>
+#include <iomanip>
 #include <algorithm>
 
 #include "Config.hpp"
@@ -104,6 +105,8 @@ bool World::handleInput(sf::Event event)
 
 void World::update(float dt)
 {
+  m_worldTime += dt;
+
 #pragma omp parallel for
   for(std::reference_wrapper<BerryBush> berryBush: m_berryBushes.all())
     berryBush.get().update(dt);
@@ -151,6 +154,7 @@ void World::log() const
   size_t healthyCreaturesCount =  std::count_if(creatures.begin(), creatures.end(), std::mem_fn(&Creature::healthy));
   size_t creaturesCount = creatures.size();
 
-  std::cout << "Creatures:" << healthyCreaturesCount << "/" << creaturesCount << "(Healthy/All)" << ", " 
-    << m_deathToll << "/" << m_birthCount << "(DeathToll/BirthCount)";
+  float realTime = m_startTime.getElapsedTime().asSeconds();
+
+  std::cout << "Creatures:" << healthyCreaturesCount << "/" << creaturesCount << "(Healthy/All)" << ", " << m_deathToll << "/" << m_birthCount << "(DeathToll/BirthCount)" << "; " << "Time:" << realTime << "/" << m_worldTime << "/" << m_worldTime / realTime << "(Real/World/Ratio)";
 }
