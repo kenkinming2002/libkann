@@ -7,12 +7,13 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/VertexArray.hpp>
+#include <SFML/Graphics/Text.hpp>
 
 class Renderer
 {
 public:
-  Renderer(sf::RenderTarget& renderTarget, sf::View view)
-    : m_renderTarget(renderTarget), m_defaultView(view), m_view(view) {}
+  Renderer(sf::RenderTarget& renderTarget, sf::View view);
 
 public:
   static constexpr float ZOOM_SPEED = 2.0f;
@@ -31,7 +32,16 @@ public:
   void draw(const World& world);
 
 private:
+  void addCircle(sf::Vector2f position, float radius, sf::Color fillColor, sf::Color outlineColor);
+  void addLine(sf::Vector2f position, float length, float angle, float thickness, sf::Color fillColor);
+  void addText(const sf::String& str, sf::Vector2f position, unsigned characterSize);
+
+private:
   sf::RenderTarget& m_renderTarget;
+
+private:
+  sf::VertexArray m_vertexArray;
+  std::vector<sf::Text> m_texts;
 
 private:
   const sf::View m_defaultView;

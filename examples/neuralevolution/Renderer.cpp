@@ -4,7 +4,13 @@
 #include <SFML/Graphics/CircleShape.hpp>
 
 #include <SFML/Graphics/Font.hpp>
-#include <SFML/Graphics/Text.hpp>
+
+#include <cmath>
+
+static sf::Vector2f convert(Eigen::Vector2d vec)
+{
+  return {vec(0), vec(1)};
+}
 
 static sf::Color lerp(sf::Color a, sf::Color b, float t)
 {
@@ -14,6 +20,10 @@ static sf::Color lerp(sf::Color a, sf::Color b, float t)
     std::lerp(a.b, b.b, t)
   );
 }
+
+Renderer::Renderer(sf::RenderTarget& renderTarget, sf::View view)
+  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles),
+    m_defaultView(view), m_view(view) {}
 
 bool Renderer::handleInput(sf::Event event)
 {
@@ -75,93 +85,43 @@ bool Renderer::handleInput(sf::Event event)
 
 void Renderer:: begin()
 {
+  m_vertexArray.clear();
+  m_texts.clear();
+
   m_renderTarget.clear(sf::Color::Black);
   m_renderTarget.setView(m_view);
 }
 
 void Renderer:: end()
 {
+  m_renderTarget.draw(m_vertexArray);
+  for(const auto& text: m_texts)
+    m_renderTarget.draw(text);
 }
 
 void Renderer::draw(const Creature& creature)
 {
-  sf::CircleShape circleShape;
-  {
-    float radius = CONFIG.creature.radius * creature.m_health / CONFIG.creature.maxHealth;
-
-    circleShape.setRadius(radius);
-    circleShape.setOrigin({radius, radius});
-
-    circleShape.setFillColor(lerp(sf::Color::Yellow, sf::Color::Green, creature.m_energy / CONFIG.creature.maxEnergy));
-
-    circleShape.setOutlineThickness(2);
-    circleShape.setOutlineColor(sf::Color::Black);
-  }
-  circleShape.setPosition(creature.m_position(0), creature.m_position(1));
-  m_renderTarget.draw(circleShape);
+  float radius = CONFIG.creature.radius * creature.m_health / CONFIG.creature.maxHealth;
+  sf::Color color = lerp(sf::Color::Yellow, sf::Color::Green, creature.m_energy / CONFIG.creature.maxEnergy);
+  this->addCircle(convert(creature.m_position), radius, color, sf::Color::Black);
 
   if(DRAW_DEBUG)
   {
-    static constexpr float THICKNESS = 3.0f;
-
     for(const auto& eye: creature.m_eyes)
     {
-      sf::RectangleShape rectangleShape;
-      {
-        rectangleShape.setSize({static_cast<float>(eye.distance), THICKNESS});
-        rectangleShape.setOrigin(0.0f, THICKNESS/2.0f);
-
-        rectangleShape.setFillColor(sf::Color::Red);
-        rectangleShape.setRotation((creature.m_rotation+eye.angle) * 360.0 / (2*M_PI));
-      }
-      rectangleShape.setPosition(creature.m_position(0), creature.m_position(1));
-      m_renderTarget.draw(rectangleShape);
+      float angle = creature.m_rotation+eye.angle;
+      this->addLine(convert(creature.m_position), eye.distance, angle, 3.0f, sf::Color::Red);
     }
   }
 }
 
 void Renderer::draw(const BerryBush& berryBush)
 {
+  this->addCircle(convert(berryBush.m_position), CONFIG.berryBush.radius, sf::Color::Green, sf::Color::Black);
+
   // Consider using a multiplier
-  const auto TEXT_SIZE = static_cast<unsigned>(CONFIG.berryBush.radius);
-
-  sf::CircleShape circleShape;
-
-  // Draw the bush
-  circleShape.setRadius(static_cast<float>(CONFIG.berryBush.radius));
-  circleShape.setOrigin({static_cast<float>(CONFIG.berryBush.radius), static_cast<float>(CONFIG.berryBush.radius)});
-
-  circleShape.setFillColor(sf::Color::Green);
-
-  circleShape.setOutlineThickness(2);
-  circleShape.setOutlineColor(sf::Color::Black);
-
-  circleShape.setPosition(berryBush.m_position(0), berryBush.m_position(1));
-  m_renderTarget.draw(circleShape);
-
-  // TODO: Draw the berries
-  static sf::Font font = [](){
-    sf::Font font;
-    if(!font.loadFromFile("resources/fonts/arial.ttf"))
-      throw std::runtime_error("Failed to load font");
-
-    return font;
-  }();
-
-  sf::Text text;
-
-  text.setFont(font);
-  text.setCharacterSize(TEXT_SIZE);
-  text.setFillColor(sf::Color::Black);
-
-  text.setString(std::to_string(berryBush.m_berryCount));
-
-  auto textRect = text.getLocalBounds();
-  text.setOrigin(textRect.left + textRect.width/2.0f,
-                 textRect.top  + textRect.height/2.0f);
-  text.setPosition(berryBush.m_position(0), berryBush.m_position(1));
-
-  m_renderTarget.draw(text);
+  const auto textSize = static_cast<unsigned>(CONFIG.berryBush.radius);
+  this->addText(std::to_string(berryBush.m_berryCount), convert(berryBush.m_position), textSize);
 }
 
 void Renderer::draw(const World& world)
@@ -182,4 +142,77 @@ void Renderer::draw(const World& world)
   for(std::reference_wrapper<const Creature> creature: world.m_creatures.all())
     this->draw(creature);
 }
+
+void Renderer::addCircle(sf::Vector2f position, float radius, sf::Color fillColor, sf::Color outlineColor)
+{
+  static constexpr size_t POINT_COUNT = 30;
+  static auto unitVectors = [](){
+    std::array<sf::Vector2f, POINT_COUNT> result;
+    for(size_t i=0; i<POINT_COUNT; ++i)
+    {
+      float angle = (2.0f * M_PI * i) / POINT_COUNT;
+      result[i] = sf::Vector2f(std::cos(angle), std::sin(angle));
+    }
+    return result;
+  }();
+
+  sf::Vertex center;
+  sf::Vertex points[POINT_COUNT];
+
+  center = sf::Vertex(position, fillColor);
+  for(size_t i=0; i<POINT_COUNT; ++i)
+  {
+    sf::Vector2f pointPosition = position + radius * unitVectors[i];
+    points[i] = sf::Vertex(pointPosition, fillColor);
+  }
+
+  for(size_t i=0; i<POINT_COUNT; ++i)
+  {
+    m_vertexArray.append(center);
+    m_vertexArray.append(points[i]);
+    m_vertexArray.append(points[i+1 != POINT_COUNT ? i+1 : 0]);
+  }
+}
+
+void Renderer::addLine(sf::Vector2f position, float length, float angle, float thickness, sf::Color fillColor)
+{
+  sf::Vector2f forward = length * sf::Vector2f(std::cos(angle), std::sin(angle));
+  sf::Vector2f right = (thickness / 2.0f) * sf::Vector2f(-std::sin(angle), std::cos(angle));
+
+  sf::Vertex points[4];
+
+  points[0] = sf::Vertex(position           + right, fillColor);
+  points[1] = sf::Vertex(position + forward + right, fillColor);
+  points[2] = sf::Vertex(position + forward - right, fillColor);
+  points[3] = sf::Vertex(position           - right, fillColor);
+
+  m_vertexArray.append(points[0]);
+  m_vertexArray.append(points[1]);
+  m_vertexArray.append(points[2]);
+
+  m_vertexArray.append(points[2]);
+  m_vertexArray.append(points[3]);
+  m_vertexArray.append(points[0]);
+}
+
+void Renderer::addText(const sf::String& str, sf::Vector2f position, unsigned characterSize)
+{
+  // TODO: Draw the berries
+  static sf::Font font = [](){
+    sf::Font font;
+    if(!font.loadFromFile("resources/fonts/arial.ttf"))
+      throw std::runtime_error("Failed to load font");
+
+    return font;
+  }();
+
+  m_texts.emplace_back(str, font, characterSize);
+  m_texts.back().setPosition(position);
+  m_texts.back().setFillColor(sf::Color::Black);
+
+  auto textRect = m_texts.back().getLocalBounds();
+  m_texts.back().setOrigin(textRect.left + textRect.width/2.0f, textRect.top  + textRect.height/2.0f);
+}
+
+
 
