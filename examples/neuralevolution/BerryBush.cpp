@@ -1,11 +1,5 @@
 #include "BerryBush.hpp"
 
-#include <SFML/Graphics/CircleShape.hpp>
-#include <SFML/Graphics/RenderTarget.hpp>
-
-#include <SFML/Graphics/Font.hpp>
-#include <SFML/Graphics/Text.hpp>
-
 #include <iostream>
 #include <cmath>
 
@@ -23,48 +17,4 @@ void BerryBush::update(float dt)
     if(m_berryCount != CONFIG.berryBush.maxBerryCount)
       ++m_berryCount;
   }
-}
-
-void BerryBush::draw(sf::RenderTarget &target, sf::RenderStates states) const
-{
-  // Consider using a multiplier
-  const auto TEXT_SIZE = static_cast<unsigned>(CONFIG.berryBush.radius);
-
-  sf::CircleShape circleShape;
-
-  // Draw the bush
-  circleShape.setRadius(static_cast<float>(CONFIG.berryBush.radius));
-  circleShape.setOrigin({static_cast<float>(CONFIG.berryBush.radius), static_cast<float>(CONFIG.berryBush.radius)});
-
-  circleShape.setFillColor(sf::Color::Green);
-
-  circleShape.setOutlineThickness(2);
-  circleShape.setOutlineColor(sf::Color::Black);
-
-  circleShape.setPosition(m_position(0), m_position(1));
-  target.draw(circleShape, states);
-
-  // TODO: Draw the berries
-  static sf::Font font = [](){
-    sf::Font font;
-    if(!font.loadFromFile("resources/fonts/arial.ttf"))
-      throw std::runtime_error("Failed to load font");
-
-    return font;
-  }();
-
-  sf::Text text;
-
-  text.setFont(font);
-  text.setCharacterSize(TEXT_SIZE);
-  text.setFillColor(sf::Color::Black);
-
-  text.setString(std::to_string(m_berryCount));
-
-  auto textRect = text.getLocalBounds();
-  text.setOrigin(textRect.left + textRect.width/2.0f,
-                 textRect.top  + textRect.height/2.0f);
-  text.setPosition(m_position(0), m_position(1));
-
-  target.draw(text, states);
 }

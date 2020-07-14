@@ -5,7 +5,6 @@
 #include <Eigen/Eigen>
 #include <libkann/NeuralNetwork.hpp>
 
-#include <SFML/Graphics/Drawable.hpp>
 #include <ostream>
 
 #include <utility>
@@ -16,7 +15,7 @@
 
 class World;
 
-class Creature : public sf::Drawable
+class Creature
 {
 private:
   static constexpr size_t EYES_COUNT = 2;
@@ -57,8 +56,10 @@ public:
   double distance(const BerryBush& berryBush) const { return (m_position - berryBush.position()).norm(); }
 
 public:
-  void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
   friend std::ostream& operator<<(std::ostream& os, const Creature& creature);
+
+public:
+  friend class Renderer;
 
 private:
   mutable NeuralNetwork m_neuralNetwork;
@@ -91,7 +92,4 @@ private:
     std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>> target;
   };
   mutable Eye m_eyes[EYES_COUNT];
-
-public:
-  static bool DRAW_DEBUG;
 };

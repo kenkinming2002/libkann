@@ -2,13 +2,15 @@
 
 #include <Eigen/Eigen>
 
-#include <SFML/Graphics/Drawable.hpp>
 #include <ostream>
 
-class BerryBush : public sf::Drawable
+class BerryBush
 {
 public:
   BerryBush(Eigen::Vector2d position);
+
+public:
+  friend class Renderer;
 
 public:
   auto position() const { return m_position; }
@@ -17,9 +19,6 @@ public:
 
 public:
   void update(float dt);
-
-public:
-  void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 
 private:
   Eigen::Vector2d m_position;

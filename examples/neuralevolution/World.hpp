@@ -7,29 +7,22 @@
 #include <vector>
 #include <random>
 
-#include <SFML/Graphics/Drawable.hpp>
-#include <SFML/Graphics/View.hpp>
-#include <SFML/Window/Event.hpp>
-
 #include <SFML/System/Clock.hpp>
 
-class World : public sf::Drawable
+class World
 {
 public:
   using random_engine_type = std::mt19937;
   using seed_type = random_engine_type::result_type;
 
 public:
-  static constexpr float ZOOM_SPEED = 2.0f;
-  static constexpr float MOVE_SPEED = 10.0f;
+  World(seed_type seed);
 
 public:
-  World(sf::View view, seed_type seed);
+  friend class Renderer;
 
 public:
-  bool handleInput(sf::Event event);
   void update(float dt);
-  void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 
 public:
   void log() const;
@@ -48,11 +41,6 @@ public:
 
 public:
   auto& prng() { return m_generator; }
-
-private:
-  const sf::View m_defaultView;
-  sf::View m_view;
-  float m_scale = 1.0f;
 
 private:
   Eigen::Vector2d m_dimension;

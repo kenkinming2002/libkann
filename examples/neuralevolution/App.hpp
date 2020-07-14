@@ -6,6 +6,7 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/System/Clock.hpp>
 
+#include "Renderer.hpp"
 #include "World.hpp"
 
 class App
@@ -58,6 +59,7 @@ private:
 
 private:
   World m_world;
+  mutable Renderer m_renderer;
 
 private:
   static constexpr size_t RENDER_TIMES_SAMPLE_COUNT = 100;

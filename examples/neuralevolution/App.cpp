@@ -6,7 +6,8 @@
 #include <algorithm>
 
 App::App(seed_type seed) : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
-  m_world(sf::View({0.0, 0.0}, {WINDOW_WIDTH, WINDOW_HEIGHT}), seed),
+  m_world(seed),
+  m_renderer(m_window, sf::View({0.0, 0.0}, {WINDOW_WIDTH, WINDOW_HEIGHT})),
   m_renderTimes{0.0f} {}
 
 void App::run()
@@ -27,7 +28,7 @@ void App::handleInput()
   sf::Event event;
   while (m_window.pollEvent(event))
   {
-    if(m_world.handleInput(event))
+    if(m_renderer.handleInput(event))
       continue;
 
     switch(event.type)
@@ -39,7 +40,7 @@ void App::handleInput()
             this->toggleSpeed();
             break;
           case sf::Keyboard::D:
-            Creature::DRAW_DEBUG = !Creature::DRAW_DEBUG;
+            m_renderer.DRAW_DEBUG = !m_renderer.DRAW_DEBUG;
             break;
           default:
             break;
@@ -84,8 +85,10 @@ void App::render() const
 {
   sf::Clock clock;
 
-  m_window.clear(sf::Color::Black);
-  m_window.draw(m_world);
+  m_renderer.begin();
+  m_renderer.draw(m_world);
+  m_renderer.end();
+
   m_window.display();
   
   std::rotate(m_renderTimes.begin(), m_renderTimes.begin()+1, m_renderTimes.end());

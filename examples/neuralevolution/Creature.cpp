@@ -3,23 +3,9 @@
 #include "World.hpp"
 #include "Ray.hpp"
 
-#include <SFML/Graphics/CircleShape.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/Graphics/RenderTarget.hpp>
-
 #include <iostream>
 #include <cmath>
 #include <limits>
-
-static sf::Color lerp(sf::Color a, sf::Color b, float t)
-{
-  return sf::Color(
-    std::lerp(a.r, b.r, t),
-    std::lerp(a.g, b.g, t),
-    std::lerp(a.b, b.b, t)
-  );
-}
-
 
 static constexpr double ANGLE = M_PI / 12.0;
 
@@ -237,44 +223,6 @@ bool Creature::takeHealth(double amount)
     m_health=0.0;
 
   return m_health != 0.0;
-}
-
-bool Creature::DRAW_DEBUG = false;
-void Creature::draw(sf::RenderTarget& target, sf::RenderStates states) const
-{
-  sf::CircleShape circleShape;
-  {
-    float radius = CONFIG.creature.radius * m_health / CONFIG.creature.maxHealth;
-
-    circleShape.setRadius(radius);
-    circleShape.setOrigin({radius, radius});
-
-    circleShape.setFillColor(lerp(sf::Color::Yellow, sf::Color::Green, m_energy / CONFIG.creature.maxEnergy));
-
-    circleShape.setOutlineThickness(2);
-    circleShape.setOutlineColor(sf::Color::Black);
-  }
-  circleShape.setPosition(m_position(0), m_position(1));
-  target.draw(circleShape, states);
-
-  if(DRAW_DEBUG)
-  {
-    static constexpr float THICKNESS = 3.0f;
-
-    for(const auto& eye: m_eyes)
-    {
-      sf::RectangleShape rectangleShape;
-      {
-        rectangleShape.setSize({static_cast<float>(eye.distance), THICKNESS});
-        rectangleShape.setOrigin(0.0f, THICKNESS/2.0f);
-
-        rectangleShape.setFillColor(sf::Color::Red);
-        rectangleShape.setRotation((m_rotation+eye.angle) * 360.0 / (2*M_PI));
-      }
-      rectangleShape.setPosition(m_position(0), m_position(1));
-      target.draw(rectangleShape, states);
-    }
-  }
 }
 
 std::ostream& operator<<(std::ostream& os, const Creature& creature)
