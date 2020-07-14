@@ -13,11 +13,11 @@
     "MaxEnergy" : 1000.0,
     "MaxHealth" : 1000.0,
 
-    "LinearSpeed" : 2000.0,
+    "LinearSpeed" : 500.0,
     "AngularSpeed" : 0.01,
 
     "PassiveEnergyDrain" : 2.0,
-    "MovementEnergyDrainMultiplier" : 0.000005,
+    "MovementEnergyDrainMultiplier" : 0.000003,
 
     "HungerHealthDrain" : 5.0,
 
@@ -34,9 +34,9 @@
     "ViewDistance" : 1000.0
   },
   "World" : {
-    "Width" : 5000.0,
-    "Height" : 5000.0,
-    "InitialCreaturesCount" : 1000,
+    "Width" : 2000.0,
+    "Height" : 2000.0,
+    "InitialCreaturesCount" : 800,
     "InitialBerryBushesCount" : 500
   }
 }
