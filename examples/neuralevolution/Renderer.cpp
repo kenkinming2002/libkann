@@ -126,21 +126,31 @@ void Renderer::draw(const BerryBush& berryBush)
 
 void Renderer::draw(const World& world)
 {
-  sf::RectangleShape rectangleShape;
-
-  rectangleShape.setPosition(0.0f, 0.0f);
-  rectangleShape.setSize({static_cast<float>(world.m_dimension(0)), static_cast<float>(world.m_dimension(1))});
-  rectangleShape.setOrigin(world.m_dimension(0)/2.0, world.m_dimension(1)/2.0);
-
-  rectangleShape.setFillColor(sf::Color::White);
-
-  m_renderTarget.draw(rectangleShape);
+  this->addRectangle(sf::Vector2f(0.0f, 0.0f), convert(world.m_dimension), sf::Color::White);
 
   for(std::reference_wrapper<const BerryBush> berryBush: world.m_berryBushes.all())
     this->draw(berryBush);
 
   for(std::reference_wrapper<const Creature> creature: world.m_creatures.all())
     this->draw(creature);
+}
+
+void Renderer::addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::Color fillColor, sf::Color outlineColor)
+{
+  sf::Vertex points[4];
+
+  points[0] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f, -dimension.y/2.0f), fillColor);
+  points[1] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f,  dimension.y/2.0f), fillColor);
+  points[2] = sf::Vertex(position + sf::Vector2f( dimension.x/2.0f,  dimension.y/2.0f), fillColor);
+  points[3] = sf::Vertex(position + sf::Vector2f( dimension.x/2.0f, -dimension.y/2.0f), fillColor);
+
+  m_vertexArray.append(points[0]);
+  m_vertexArray.append(points[1]);
+  m_vertexArray.append(points[2]);
+
+  m_vertexArray.append(points[2]);
+  m_vertexArray.append(points[3]);
+  m_vertexArray.append(points[0]);
 }
 
 void Renderer::addCircle(sf::Vector2f position, float radius, sf::Color fillColor, sf::Color outlineColor)

@@ -32,8 +32,11 @@ public:
   void draw(const World& world);
 
 private:
-  void addCircle(sf::Vector2f position, float radius, sf::Color fillColor, sf::Color outlineColor);
+  void addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::Color fillColor, sf::Color outlineColor = sf::Color::Transparent);
+  void addCircle(sf::Vector2f position, float radius, sf::Color fillColor, sf::Color outlineColor = sf::Color::Transparent);
+
   void addLine(sf::Vector2f position, float length, float angle, float thickness, sf::Color fillColor);
+
   void addText(const sf::String& str, sf::Vector2f position, unsigned characterSize);
 
 private:
