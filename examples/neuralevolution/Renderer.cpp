@@ -103,7 +103,7 @@ void Renderer::draw(const Creature& creature)
 {
   float radius = CONFIG.creature.radius * creature.m_health / CONFIG.creature.maxHealth;
   sf::Color color = lerp(sf::Color::Yellow, sf::Color::Green, creature.m_energy / CONFIG.creature.maxEnergy);
-  this->addCircle(convert(creature.m_position), radius, color, sf::Color::Black);
+  this->addCircle(convert(creature.m_position), radius, color, OUTLINE_THICKNESS, sf::Color::Black);
 
   if(DRAW_DEBUG)
   {
@@ -120,7 +120,7 @@ void Renderer::draw(const BerryBush& berryBush)
   const float BAR_THICKNESS       = CONFIG.berryBush.radius * 0.2f;
   const float BAR_VERTICAL_OFFSET = CONFIG.berryBush.radius * 1.2f;
 
-  this->addCircle(convert(berryBush.m_position), CONFIG.berryBush.radius, sf::Color::Green, sf::Color::Black);
+  this->addCircle(convert(berryBush.m_position), CONFIG.berryBush.radius, sf::Color::Green, OUTLINE_THICKNESS, sf::Color::Black);
   this->addBar(
     convert(berryBush.m_position) + sf::Vector2f(0.0f, BAR_VERTICAL_OFFSET), 
     sf::Vector2f(2.0f * CONFIG.berryBush.radius, BAR_THICKNESS), 
@@ -140,25 +140,49 @@ void Renderer::draw(const World& world)
     this->draw(creature);
 }
 
-void Renderer::addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::Color fillColor, sf::Color outlineColor)
+void Renderer::addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::Color fillColor, float outlineThickness, sf::Color outlineColor)
 {
-  sf::Vertex points[4];
+  sf::Vector2f pointsInner[4];
+  sf::Vector2f pointsOuter[4];
 
-  points[0] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f, -dimension.y/2.0f), fillColor);
-  points[1] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f,  dimension.y/2.0f), fillColor);
-  points[2] = sf::Vertex(position + sf::Vector2f( dimension.x/2.0f,  dimension.y/2.0f), fillColor);
-  points[3] = sf::Vertex(position + sf::Vector2f( dimension.x/2.0f, -dimension.y/2.0f), fillColor);
+  pointsInner[0] = position + sf::Vector2f(-dimension.x/2.0f, -dimension.y/2.0f);
+  pointsInner[1] = position + sf::Vector2f(-dimension.x/2.0f,  dimension.y/2.0f);
+  pointsInner[2] = position + sf::Vector2f( dimension.x/2.0f,  dimension.y/2.0f);
+  pointsInner[3] = position + sf::Vector2f( dimension.x/2.0f, -dimension.y/2.0f);
 
-  m_vertexArray.append(points[0]);
-  m_vertexArray.append(points[1]);
-  m_vertexArray.append(points[2]);
+  pointsOuter[0] = position + sf::Vector2f(-dimension.x/2.0f-outlineThickness, -dimension.y/2.0f-outlineThickness);
+  pointsOuter[1] = position + sf::Vector2f(-dimension.x/2.0f-outlineThickness,  dimension.y/2.0f+outlineThickness);
+  pointsOuter[2] = position + sf::Vector2f( dimension.x/2.0f+outlineThickness,  dimension.y/2.0f+outlineThickness);
+  pointsOuter[3] = position + sf::Vector2f( dimension.x/2.0f+outlineThickness, -dimension.y/2.0f-outlineThickness);
 
-  m_vertexArray.append(points[2]);
-  m_vertexArray.append(points[3]);
-  m_vertexArray.append(points[0]);
+  if(fillColor != sf::Color::Transparent)
+  {
+    m_vertexArray.append(sf::Vertex(pointsInner[0], fillColor));
+    m_vertexArray.append(sf::Vertex(pointsInner[1], fillColor));
+    m_vertexArray.append(sf::Vertex(pointsInner[2], fillColor));
+
+    m_vertexArray.append(sf::Vertex(pointsInner[2], fillColor));
+    m_vertexArray.append(sf::Vertex(pointsInner[3], fillColor));
+    m_vertexArray.append(sf::Vertex(pointsInner[0], fillColor));
+  }
+
+  if(outlineThickness != 0.0f && outlineColor != sf::Color::Transparent)
+  {
+    // Outline
+    for(size_t i=0; i<4; ++i)
+    {
+      m_vertexArray.append(sf::Vertex(pointsInner[i], outlineColor));
+      m_vertexArray.append(sf::Vertex(pointsOuter[i], outlineColor));
+      m_vertexArray.append(sf::Vertex(pointsOuter[i+1!=4 ? i+1 : 0], outlineColor));
+
+      m_vertexArray.append(sf::Vertex(pointsOuter[i+1!=4 ? i+1 : 0], outlineColor));
+      m_vertexArray.append(sf::Vertex(pointsInner[i+1!=4 ? i+1 : 0], outlineColor));
+      m_vertexArray.append(sf::Vertex(pointsInner[i], outlineColor));
+    }
+  }
 }
 
-void Renderer::addCircle(sf::Vector2f position, float radius, sf::Color fillColor, sf::Color outlineColor)
+void Renderer::addCircle(sf::Vector2f position, float radius, sf::Color fillColor, float outlineThickness, sf::Color outlineColor)
 {
   static constexpr size_t POINT_COUNT = 30;
   static auto unitVectors = [](){
@@ -172,20 +196,33 @@ void Renderer::addCircle(sf::Vector2f position, float radius, sf::Color fillColo
   }();
 
   sf::Vertex center;
-  sf::Vertex points[POINT_COUNT];
+  sf::Vector2f pointsInner[POINT_COUNT];
+  sf::Vector2f pointsOuter[POINT_COUNT];
 
   center = sf::Vertex(position, fillColor);
   for(size_t i=0; i<POINT_COUNT; ++i)
-  {
-    sf::Vector2f pointPosition = position + radius * unitVectors[i];
-    points[i] = sf::Vertex(pointPosition, fillColor);
-  }
+    pointsInner[i] = position + radius * unitVectors[i];
+  for(size_t i=0; i<POINT_COUNT; ++i)
+    pointsOuter[i] = position + (radius+outlineThickness) * unitVectors[i];
 
+  // Innner triangle fan
   for(size_t i=0; i<POINT_COUNT; ++i)
   {
     m_vertexArray.append(center);
-    m_vertexArray.append(points[i]);
-    m_vertexArray.append(points[i+1 != POINT_COUNT ? i+1 : 0]);
+    m_vertexArray.append(sf::Vertex(pointsInner[i], fillColor));
+    m_vertexArray.append(sf::Vertex(pointsInner[i+1 != POINT_COUNT ? i+1 : 0], fillColor));
+  }
+
+  // Outline
+  for(size_t i=0; i<POINT_COUNT; ++i)
+  {
+    m_vertexArray.append(sf::Vertex(pointsInner[i], outlineColor));
+    m_vertexArray.append(sf::Vertex(pointsOuter[i], outlineColor));
+    m_vertexArray.append(sf::Vertex(pointsOuter[i+1!=POINT_COUNT ? i+1 : 0], outlineColor));
+
+    m_vertexArray.append(sf::Vertex(pointsOuter[i+1!=POINT_COUNT ? i+1 : 0], outlineColor));
+    m_vertexArray.append(sf::Vertex(pointsInner[i+1!=POINT_COUNT ? i+1 : 0], outlineColor));
+    m_vertexArray.append(sf::Vertex(pointsInner[i], outlineColor));
   }
 }
 

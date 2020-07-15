@@ -19,6 +19,8 @@ public:
   static constexpr float ZOOM_SPEED = 2.0f;
   static constexpr float MOVE_SPEED = 10.0f;
 
+  static constexpr float OUTLINE_THICKNESS = 3.0f;
+
 public:
   bool handleInput(sf::Event event);
 
@@ -32,8 +34,8 @@ public:
   void draw(const World& world);
 
 private:
-  void addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::Color fillColor, sf::Color outlineColor = sf::Color::Transparent);
-  void addCircle(sf::Vector2f position, float radius, sf::Color fillColor, sf::Color outlineColor = sf::Color::Transparent);
+  void addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::Color fillColor, float outlineThickness = 0.0f, sf::Color outlineColor = sf::Color::Transparent);
+  void addCircle(sf::Vector2f position, float radius, sf::Color fillColor, float outlineThickness = 0.0f, sf::Color outlineColor = sf::Color::Transparent);
 
   void addLine(sf::Vector2f position, float length, float angle, float thickness, sf::Color fillColor);
 
