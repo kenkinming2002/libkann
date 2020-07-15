@@ -39,6 +39,8 @@ private:
 
   void addText(const sf::String& str, sf::Vector2f position, unsigned characterSize);
 
+  void addBar(sf::Vector2f position, sf::Vector2f dimension, sf::Color color1, sf::Color color2, float ratio);
+
 private:
   sf::RenderTarget& m_renderTarget;
 

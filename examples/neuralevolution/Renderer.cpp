@@ -117,11 +117,16 @@ void Renderer::draw(const Creature& creature)
 
 void Renderer::draw(const BerryBush& berryBush)
 {
-  this->addCircle(convert(berryBush.m_position), CONFIG.berryBush.radius, sf::Color::Green, sf::Color::Black);
+  const float BAR_THICKNESS       = CONFIG.berryBush.radius * 0.2f;
+  const float BAR_VERTICAL_OFFSET = CONFIG.berryBush.radius * 1.2f;
 
-  // Consider using a multiplier
-  const auto textSize = static_cast<unsigned>(CONFIG.berryBush.radius);
-  this->addText(std::to_string(berryBush.m_berryCount), convert(berryBush.m_position), textSize);
+  this->addCircle(convert(berryBush.m_position), CONFIG.berryBush.radius, sf::Color::Green, sf::Color::Black);
+  this->addBar(
+    convert(berryBush.m_position) + sf::Vector2f(0.0f, BAR_VERTICAL_OFFSET), 
+    sf::Vector2f(2.0f * CONFIG.berryBush.radius, BAR_THICKNESS), 
+    sf::Color::Green, sf::Color::Red, 
+    static_cast<float>(berryBush.m_berryCount) / CONFIG.berryBush.maxBerryCount
+  );
 }
 
 void Renderer::draw(const World& world)
@@ -224,5 +229,37 @@ void Renderer::addText(const sf::String& str, sf::Vector2f position, unsigned ch
   m_texts.back().setOrigin(textRect.left + textRect.width/2.0f, textRect.top  + textRect.height/2.0f);
 }
 
+void Renderer::addBar(sf::Vector2f position, sf::Vector2f dimension, sf::Color color1, sf::Color color2, float ratio)
+{
+  sf::Vertex points[8];
+
+  points[0] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f, -dimension.y/2.0f), color1);
+  points[1] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f,  dimension.y/2.0f), color1);
+
+  points[2] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f + ratio*dimension.x,  dimension.y/2.0f), color1);
+  points[3] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f + ratio*dimension.x, -dimension.y/2.0f), color1);
+
+  points[4] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f + ratio*dimension.x, -dimension.y/2.0f), color2);
+  points[5] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f + ratio*dimension.x,  dimension.y/2.0f), color2);
+
+  points[6] = sf::Vertex(position + sf::Vector2f( dimension.x/2.0f,  dimension.y/2.0f), color2);
+  points[7] = sf::Vertex(position + sf::Vector2f( dimension.x/2.0f, -dimension.y/2.0f), color2);
+
+  m_vertexArray.append(points[0]);
+  m_vertexArray.append(points[1]);
+  m_vertexArray.append(points[2]);
+
+  m_vertexArray.append(points[2]);
+  m_vertexArray.append(points[3]);
+  m_vertexArray.append(points[0]);
+
+  m_vertexArray.append(points[4]);
+  m_vertexArray.append(points[5]);
+  m_vertexArray.append(points[6]);
+
+  m_vertexArray.append(points[6]);
+  m_vertexArray.append(points[7]);
+  m_vertexArray.append(points[4]);
+}
 
 
