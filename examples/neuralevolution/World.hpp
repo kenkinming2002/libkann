@@ -25,7 +25,18 @@ public:
   void update(float dt);
 
 public:
-  void log() const;
+  struct Info
+  {
+    size_t healthyCreaturesCount;
+    size_t creaturesCount;
+
+    size_t deathToll;
+    size_t birthCount;
+
+    float realTime;
+    float worldTime;
+  };
+  Info info() const;
 
 public:
   const auto& creatures() const { return m_creatures; }

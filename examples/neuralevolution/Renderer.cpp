@@ -6,78 +6,89 @@
 #include <SFML/Graphics/Font.hpp>
 
 #include <cmath>
+#include <cassert>
+#include <sstream>
+#include <iomanip>
 
-static sf::Vector2f convert(Eigen::Vector2d vec)
+const sf::Color Renderer::GUI_TEXT_COLOR = sf::Color::Red;
+
+namespace
 {
-  return {vec(0), vec(1)};
+  sf::Vector2f convert(Eigen::Vector2d vec)
+  {
+    return {vec(0), vec(1)};
+  }
+
+  sf::Color lerp(sf::Color a, sf::Color b, float t)
+  {
+    return sf::Color(
+      std::lerp(a.r, b.r, t),
+      std::lerp(a.g, b.g, t),
+      std::lerp(a.b, b.b, t)
+    );
+  }
+
+  template<typename... Args>
+  std::string concatenate(const Args&... args)
+  {
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(4);
+    (ss << ... << args);
+    return ss.str();
+  }
 }
 
-static sf::Color lerp(sf::Color a, sf::Color b, float t)
-{
-  return sf::Color(
-    std::lerp(a.r, b.r, t),
-    std::lerp(a.g, b.g, t),
-    std::lerp(a.b, b.b, t)
-  );
-}
-
-Renderer::Renderer(sf::RenderTarget& renderTarget, sf::View view)
+Renderer::Renderer(sf::RenderTarget& renderTarget)
   : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles),
-    m_defaultView(view), m_view(view) {}
+    m_renderTimes{} {}
 
 bool Renderer::handleInput(sf::Event event)
 {
-  auto zoom = [this](float amount){
-    m_view.zoom(amount);
-    m_scale *= amount;
-    return true;
-  };
-  auto move = [this](float x, float y){
-    m_view.move(x * m_scale, y * m_scale);
-    return true;
-  };
-  auto reset = [this](){
-    m_view = m_defaultView;
-    return true;
-  };
-
   switch(event.type) {
     case sf::Event::KeyPressed:
       switch(event.key.code)
       {
         // Zoom in / Zoom out
         case sf::Keyboard::Add:
-          return zoom(1.0f / ZOOM_SPEED);
+          m_camera.zoom(1.0f / ZOOM_SPEED);
+          return true;
         case sf::Keyboard::Subtract:
-          return zoom(ZOOM_SPEED);
+          m_camera.zoom(ZOOM_SPEED);
+          return true;
 
-          // Up/Down/Left/Right
+        // Up/Down/Left/Right
         case sf::Keyboard::H:
         case sf::Keyboard::Left:
-          return move(-MOVE_SPEED, 0.0f);
+          m_camera.move(-MOVE_SPEED, 0.0f);
+          return true;
         case sf::Keyboard::J:
         case sf::Keyboard::Down:
-          return move(0.0f, MOVE_SPEED);
+          m_camera.move(0.0f, MOVE_SPEED);
+          return true;
         case sf::Keyboard::K:
         case sf::Keyboard::Up:
-          return move(0.0f, -MOVE_SPEED);
+          m_camera.move(0.0f, -MOVE_SPEED);
+          return true;
         case sf::Keyboard::L:
         case sf::Keyboard::Right:
-          return move(MOVE_SPEED, 0.0f);
+          m_camera.move(MOVE_SPEED, 0.0f);
+          return true;
 
           // Reset
         case sf::Keyboard::Equal:
-          return reset();
+          m_camera.reset();
+          return true;
         default:
           return false;
       }
     // Zoom in / Zoom out
     case sf::Event::MouseWheelScrolled:
-      if(event.mouseWheelScroll.delta >= 0.0f)
-        return zoom(event.mouseWheelScroll.delta * ZOOM_SPEED);
-      else
-        return zoom(1.0f / (event.mouseWheelScroll.delta * ZOOM_SPEED));
-      break;
+    {
+      float factor = event.mouseWheelScroll.delta >= 0.0f ? event.mouseWheelScroll.delta * ZOOM_SPEED : -1.0f / (event.mouseWheelScroll.delta * ZOOM_SPEED);
+      assert(factor > 0.0f);
+      m_camera.zoom(factor);
+      return true;
+    }
     default:
       return false;
   }
@@ -85,18 +96,52 @@ bool Renderer::handleInput(sf::Event event)
 
 void Renderer:: begin()
 {
+  m_renderTimeClock.restart();
+
   m_vertexArray.clear();
-  m_texts.clear();
+  m_strs.clear();
 
   m_renderTarget.clear(sf::Color::Black);
-  m_renderTarget.setView(m_view);
 }
 
 void Renderer:: end()
 {
+  this->addGuiText(concatenate("Render Time:",
+    std::accumulate(m_renderTimes.begin(), m_renderTimes.end(), 0.0f) / m_renderTimes.size())
+  );
+
+  // VertexArray
+  m_renderTarget.setView(m_camera.view(m_renderTarget));
   m_renderTarget.draw(m_vertexArray);
-  for(const auto& text: m_texts)
+
+  // Gui text
+  m_renderTarget.setView(this->guiView());
+
+  static sf::Font font = [](){
+    sf::Font font;
+    if(!font.loadFromFile("resources/fonts/arial.ttf"))
+      throw std::runtime_error("Failed to load font");
+
+    return font;
+  }();
+
+  sf::Text text;
+  text.setFont(font);
+  text.setFillColor(GUI_TEXT_COLOR);
+  text.setCharacterSize(GUI_TEXT_SIZE);
+
+  sf::Vector2f position(0.0f, 0.0f);
+  for(const sf::String& str: m_strs)
+  {
+    text.setPosition(position);
+    text.setString(str);
     m_renderTarget.draw(text);
+    position.y += text.getLocalBounds().height;
+  }
+
+  // Render time measurement
+  std::rotate(m_renderTimes.begin(), m_renderTimes.begin()+1, m_renderTimes.end());
+  m_renderTimes.back() = m_renderTimeClock.getElapsedTime().asSeconds();
 }
 
 void Renderer::draw(const Creature& creature)
@@ -131,6 +176,13 @@ void Renderer::draw(const BerryBush& berryBush)
 
 void Renderer::draw(const World& world)
 {
+  auto info = world.info();
+
+  this->addGuiText(concatenate("Creatures:", info.healthyCreaturesCount, "/", info.creaturesCount, "(Healthy/All)"));
+  this->addGuiText(concatenate("Statistics:", info.deathToll, "/", info.birthCount, "(DeathToll/BirthCount)"));
+  this->addGuiText(concatenate("Time:", info.realTime, "/", info.worldTime, "/", info.worldTime / info.realTime, 
+        "(Real/World/Ratio)"));
+
   this->addRectangle(sf::Vector2f(0.0f, 0.0f), convert(world.m_dimension), sf::Color::White);
 
   for(std::reference_wrapper<const BerryBush> berryBush: world.m_berryBushes.all())
@@ -247,23 +299,9 @@ void Renderer::addLine(sf::Vector2f position, float length, float angle, float t
   m_vertexArray.append(points[0]);
 }
 
-void Renderer::addText(const sf::String& str, sf::Vector2f position, unsigned characterSize)
+void Renderer::addGuiText(sf::String str)
 {
-  // TODO: Draw the berries
-  static sf::Font font = [](){
-    sf::Font font;
-    if(!font.loadFromFile("resources/fonts/arial.ttf"))
-      throw std::runtime_error("Failed to load font");
-
-    return font;
-  }();
-
-  m_texts.emplace_back(str, font, characterSize);
-  m_texts.back().setPosition(position);
-  m_texts.back().setFillColor(sf::Color::Black);
-
-  auto textRect = m_texts.back().getLocalBounds();
-  m_texts.back().setOrigin(textRect.left + textRect.width/2.0f, textRect.top  + textRect.height/2.0f);
+  m_strs.push_back(std::move(str));
 }
 
 void Renderer::addBar(sf::Vector2f position, sf::Vector2f dimension, sf::Color color1, sf::Color color2, float ratio)

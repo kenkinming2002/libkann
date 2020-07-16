@@ -37,9 +37,6 @@ private:
   void render() const;
 
 private:
-  void log() const;
-
-private:
   void toggleSpeed();
 
 private:
@@ -60,8 +57,4 @@ private:
 private:
   World m_world;
   mutable Renderer m_renderer;
-
-private:
-  static constexpr size_t RENDER_TIMES_SAMPLE_COUNT = 100;
-  mutable std::array<float, RENDER_TIMES_SAMPLE_COUNT> m_renderTimes;
 };

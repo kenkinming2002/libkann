@@ -7,8 +7,7 @@
 
 App::App(seed_type seed) : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
   m_world(seed),
-  m_renderer(m_window, sf::View({0.0, 0.0}, {WINDOW_WIDTH, WINDOW_HEIGHT})),
-  m_renderTimes{0.0f} {}
+  m_renderer(m_window) {}
 
 void App::run()
 {
@@ -76,29 +75,13 @@ void App::update()
   }
 }
 
-void App::log() const
-{
-  std::cout << "Render Time Average:" << std::accumulate(m_renderTimes.begin(), m_renderTimes.end(), 0.0f) / m_renderTimes.size();
-}
-
 void App::render() const
 {
-  sf::Clock clock;
-
   m_renderer.begin();
   m_renderer.draw(m_world);
   m_renderer.end();
 
   m_window.display();
-  
-  std::rotate(m_renderTimes.begin(), m_renderTimes.begin()+1, m_renderTimes.end());
-  m_renderTimes.back() = clock.restart().asSeconds();
-
-  std::cout << "\033[2K\r";
-  this->log();
-  std::cout << "; ";
-  m_world.log();
-  std::cout.flush();
 }
 
 void App::toggleSpeed()

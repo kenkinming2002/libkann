@@ -68,14 +68,20 @@ void World::update(float dt)
   m_newborns.clear();
 }
 
-void World::log() const
+World::Info World::info() const
 {
   auto creatures = m_creatures.all();
 
-  size_t healthyCreaturesCount =  std::count_if(creatures.begin(), creatures.end(), std::mem_fn(&Creature::healthy));
-  size_t creaturesCount = creatures.size();
+  Info info;
 
-  float realTime = m_startTime.getElapsedTime().asSeconds();
+  info.healthyCreaturesCount =  std::count_if(creatures.begin(), creatures.end(), std::mem_fn(&Creature::healthy));
+  info.creaturesCount = creatures.size();
 
-  std::cout << "Creatures:" << healthyCreaturesCount << "/" << creaturesCount << "(Healthy/All)" << ", " << m_deathToll << "/" << m_birthCount << "(DeathToll/BirthCount)" << "; " << "Time:" << realTime << "/" << m_worldTime << "/" << m_worldTime / realTime << "(Real/World/Ratio)";
+  info.deathToll = m_deathToll;
+  info.birthCount = m_birthCount;
+
+  info.realTime = m_startTime.getElapsedTime().asSeconds();
+  info.worldTime = m_worldTime;
+
+  return info;
 }
