@@ -31,9 +31,6 @@ public:
   template<typename PRNG>
   LIBKANN_SYMEXPORT static NeuralNetwork cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate);
 
-public:
-  LIBKANN_SYMEXPORT friend std::ostream& operator<<(std::ostream& os, const NeuralNetwork& neuralNetwork);
-
 private:
   size_t m_memory;
 

@@ -224,11 +224,3 @@ bool Creature::takeHealth(double amount)
 
   return m_health != 0.0;
 }
-
-std::ostream& operator<<(std::ostream& os, const Creature& creature)
-{
-  os << "Position:" << creature.m_position(0) << ", " << creature.m_position(1) << '\n';
-  os << "Energy:" << creature.m_energy << '\n';
-  os << "Health:" << creature.m_health;
-  return os;
-}

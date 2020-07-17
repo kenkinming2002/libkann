@@ -12,6 +12,30 @@
 
 class Renderer
 {
+private:
+  struct Camera
+  {
+  public:
+    Camera() : center(0.0f, 0.0f), scale(1.0f) {}
+
+  public:
+    void zoom(float factor) { scale *= factor; };
+    void move(float x, float y) { center += scale * sf::Vector2f(x, y); };
+    void reset() { *this = Camera(); }
+
+  public:
+    sf::View view(const sf::RenderTarget& renderTarget) const
+    {
+      sf::View view(center, sf::Vector2f(renderTarget.getSize()));
+      view.zoom(scale);
+      return view;
+    };
+
+  public:
+    sf::Vector2f center;
+    float scale;
+  };
+
 public:
   Renderer(sf::RenderTarget& renderTarget);
 
@@ -46,6 +70,12 @@ private:
   void addBar(sf::Vector2f position, sf::Vector2f dimension, sf::Color color1, sf::Color color2, float ratio);
 
 private:
+  sf::View guiView() const;
+
+private:
+  Camera m_camera;
+
+private:
   sf::RenderTarget& m_renderTarget;
 
 private:
@@ -53,40 +83,11 @@ private:
   std::vector<sf::String> m_strs;
 
 private:
-  struct Camera
-  {
-  public:
-    Camera() : center(0.0f, 0.0f), scale(1.0f) {}
-
-  public:
-    void zoom(float factor) { scale *= factor; };
-    void move(float x, float y) { center += scale * sf::Vector2f(x, y); };
-    void reset() { *this = Camera(); }
-
-  public:
-    sf::View view(const sf::RenderTarget& renderTarget) const
-    {
-      sf::View view(center, sf::Vector2f(renderTarget.getSize()));
-      view.zoom(scale);
-      return view;
-    };
-
-  public:
-    sf::Vector2f center;
-    float scale;
-  } m_camera;
-
-  sf::View guiView() const
-  {
-    sf::Vector2f windowSize(m_renderTarget.getSize());
-    return sf::View(windowSize/2.0f, windowSize);
-  }
-
-public:
-  bool DRAW_DEBUG = false;
+  bool m_drawDebug = false;
 
 private:
   static constexpr size_t RENDER_TIMES_SAMPLE_COUNT = 100;
-  mutable std::array<float, RENDER_TIMES_SAMPLE_COUNT> m_renderTimes;
+  std::array<float, RENDER_TIMES_SAMPLE_COUNT> m_renderTimes;
   sf::Clock m_renderTimeClock;
 };
+

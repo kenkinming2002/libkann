@@ -5,9 +5,10 @@
 #include <iostream>
 #include <algorithm>
 
-App::App(seed_type seed) : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
-  m_world(seed),
-  m_renderer(m_window) {}
+App::App(seed_type seed) 
+  : m_world(seed), 
+    m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"), 
+    m_renderer(m_window) {}
 
 void App::run()
 {
@@ -37,9 +38,6 @@ void App::handleInput()
         {
           case sf::Keyboard::Space:
             this->toggleSpeed();
-            break;
-          case sf::Keyboard::D:
-            m_renderer.DRAW_DEBUG = !m_renderer.DRAW_DEBUG;
             break;
           default:
             break;

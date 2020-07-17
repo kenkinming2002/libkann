@@ -103,7 +103,7 @@ NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork
     assert(lhsWeight.size() == rhsWeight.size());
     assert(rhsWeight.size() == outputWeight.size());
 
-    for(size_t j=0; j<lhsWeight.size(); ++j)
+    for(long j=0; j<lhsWeight.size(); ++j)
     {
       if(distribution(prng) == 0)
         outputWeight.data()[j] = lhsWeight.data()[j];
@@ -120,17 +120,3 @@ NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork
 
 template NeuralNetwork NeuralNetwork::cross<std::mt19937>(const NeuralNetwork& lhs, const NeuralNetwork& rhs, std::mt19937& prng, double mutationRate);
 
-std::ostream& operator<<(std::ostream& os, const NeuralNetwork& neuralNetwork)
-{
-  for(size_t i=0; i<neuralNetwork.m_weights.size(); ++i)
-  {
-    os << neuralNetwork.m_layers[i] << '\n';
-    os << "==========\n";
-    os << neuralNetwork.m_weights[i] << '\n';
-    os << "==========\n";
-  }
-
-  os << neuralNetwork.m_layers.back();
-
-  return os;
-}

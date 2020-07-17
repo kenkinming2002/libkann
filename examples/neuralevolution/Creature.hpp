@@ -52,13 +52,6 @@ public:
   auto position() const { return m_position; }
 
 public:
-  static double distance(const Creature& lhs, const Creature& rhs) { return (lhs.m_position - rhs.m_position).norm(); }
-  double distance(const BerryBush& berryBush) const { return (m_position - berryBush.position()).norm(); }
-
-public:
-  friend std::ostream& operator<<(std::ostream& os, const Creature& creature);
-
-public:
   friend class Renderer;
 
 private:

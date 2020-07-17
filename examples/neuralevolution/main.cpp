@@ -1,6 +1,3 @@
-#include <libkann/version.hpp>
-#include <libkann/kann.hpp>
-
 #include "App.hpp"
 #include "Config.hpp"
 

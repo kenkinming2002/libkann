@@ -16,7 +16,7 @@ namespace
 {
   sf::Vector2f convert(Eigen::Vector2d vec)
   {
-    return {vec(0), vec(1)};
+    return sf::Vector2f(static_cast<float>(vec(0)), static_cast<float>(vec(1)));
   }
 
   sf::Color lerp(sf::Color a, sf::Color b, float t)
@@ -77,6 +77,10 @@ bool Renderer::handleInput(sf::Event event)
           // Reset
         case sf::Keyboard::Equal:
           m_camera.reset();
+          return true;
+
+        case sf::Keyboard::D:
+          m_drawDebug = !m_drawDebug;
           return true;
         default:
           return false;
@@ -150,7 +154,7 @@ void Renderer::draw(const Creature& creature)
   sf::Color color = lerp(sf::Color::Yellow, sf::Color::Green, creature.m_energy / CONFIG.creature.maxEnergy);
   this->addCircle(convert(creature.m_position), radius, color, OUTLINE_THICKNESS, sf::Color::Black);
 
-  if(DRAW_DEBUG)
+  if(m_drawDebug)
   {
     for(const auto& eye: creature.m_eyes)
     {
@@ -335,6 +339,12 @@ void Renderer::addBar(sf::Vector2f position, sf::Vector2f dimension, sf::Color c
   m_vertexArray.append(points[6]);
   m_vertexArray.append(points[7]);
   m_vertexArray.append(points[4]);
+}
+
+sf::View Renderer::guiView() const
+{
+  sf::Vector2f windowSize(m_renderTarget.getSize()); 
+  return sf::View(windowSize/2.0f, windowSize); 
 }
 
 

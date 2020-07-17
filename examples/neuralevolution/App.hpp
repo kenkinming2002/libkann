@@ -40,9 +40,6 @@ private:
   void toggleSpeed();
 
 private:
-  mutable sf::RenderWindow m_window;
-
-private:
   sf::Clock m_clock;
   float m_elapsedtime = 0.0f;
   enum class SpeedMode
@@ -52,9 +49,9 @@ private:
   } m_speedMode = SpeedMode::NORMAL;
 
 private:
-  float m_zoom = 1.0f;
+  World m_world;
 
 private:
-  World m_world;
+  mutable sf::RenderWindow m_window;
   mutable Renderer m_renderer;
 };
