@@ -3,6 +3,7 @@
 #include "Creature.hpp"
 #include "BerryBush.hpp"
 #include "Grid.hpp"
+#include "Timer.hpp"
 
 #include <vector>
 #include <random>
@@ -75,7 +76,5 @@ private:
   float m_worldTime = 0.0f;
 
 private:
-  static constexpr size_t UPDATE_TIMES_SAMPLE_COUNT = 100;
-  std::array<float, UPDATE_TIMES_SAMPLE_COUNT> m_updateTimes;
-  sf::Clock m_updateTimeClock;
+  Timer<> m_updateTimer;
 };

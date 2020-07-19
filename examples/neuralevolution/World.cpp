@@ -5,7 +5,6 @@
 
 #include <iostream>
 #include <iomanip>
-#include <algorithm>
 
 #include "Config.hpp"
 
@@ -27,8 +26,7 @@ World::World(seed_type seed)
   : m_dimension(CONFIG.world.width, CONFIG.world.height), 
     m_creatures(Grid<Creature>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_CREATURE()),
     m_berryBushes(Grid<BerryBush>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_BERRYBUSH()),
-    m_generator(seed),
-    m_updateTimes{}
+    m_generator(seed)
 {
   std::uniform_real_distribution<double> xPositionDistribution(-m_dimension(0)/2.0, m_dimension(0)/2.0);
   std::uniform_real_distribution<double> yPositionDistribution(-m_dimension(1)/2.0, m_dimension(1)/2.0);
@@ -48,11 +46,11 @@ World::World(seed_type seed)
 
 void World::update(float dt)
 {
-  m_updateTimeClock.restart();
+  m_updateTimer.begin();
 
   m_worldTime += dt;
 
-#pragma omp parallel for
+
   for(std::reference_wrapper<BerryBush> berryBush: m_berryBushes.all())
     berryBush.get().update(dt);
 
@@ -70,9 +68,7 @@ void World::update(float dt)
   m_creatures.insert(std::mem_fn(&Creature::position), m_newborns.begin(), m_newborns.end());
   m_newborns.clear();
 
-  // Update time measurement
-  std::rotate(m_updateTimes.begin(), m_updateTimes.begin()+1, m_updateTimes.end());
-  m_updateTimes.back() = m_updateTimeClock.getElapsedTime().asSeconds();
+  m_updateTimer.end();
 }
 
 World::Info World::info() const
@@ -90,7 +86,7 @@ World::Info World::info() const
   info.realTime = m_startTime.getElapsedTime().asSeconds();
   info.worldTime = m_worldTime;
 
-  info.averageUpdateTime = std::accumulate(m_updateTimes.begin(), m_updateTimes.end(), 0.0f) / m_updateTimes.size();
+  info.averageUpdateTime = m_updateTimer.average();
 
   return info;
 }

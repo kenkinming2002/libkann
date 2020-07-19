@@ -39,8 +39,7 @@ namespace
 }
 
 Renderer::Renderer(sf::RenderTarget& renderTarget)
-  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles),
-    m_renderTimes{} {}
+  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles) {}
 
 bool Renderer::handleInput(sf::Event event)
 {
@@ -100,7 +99,7 @@ bool Renderer::handleInput(sf::Event event)
 
 void Renderer:: begin()
 {
-  m_renderTimeClock.restart();
+  m_renderTimer.begin();
 
   m_vertexArray.clear();
   m_strs.clear();
@@ -110,11 +109,10 @@ void Renderer:: begin()
 
 void Renderer:: end()
 {
-  m_renderTarget.clear(sf::Color::Black);
+  this->addGuiText(concatenate("Render Time:", m_renderTimer.average()));
 
-  this->addGuiText(concatenate("Render Time:",
-    std::accumulate(m_renderTimes.begin(), m_renderTimes.end(), 0.0f) / m_renderTimes.size())
-  );
+  // Drawing
+  m_renderTarget.clear(sf::Color::Black);
 
   // VertexArray
   m_renderTarget.setView(m_camera.view(m_renderTarget));
@@ -145,9 +143,7 @@ void Renderer:: end()
     position.y += text.getLocalBounds().height;
   }
 
-  // Render time measurement
-  std::rotate(m_renderTimes.begin(), m_renderTimes.begin()+1, m_renderTimes.end());
-  m_renderTimes.back() = m_renderTimeClock.getElapsedTime().asSeconds();
+  m_renderTimer.end();
 }
 
 void Renderer::draw(const Creature& creature)

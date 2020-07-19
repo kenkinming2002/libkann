@@ -3,6 +3,7 @@
 #include "Creature.hpp"
 #include "BerryBush.hpp"
 #include "World.hpp"
+#include "Timer.hpp"
 
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Window/Event.hpp>
@@ -94,8 +95,6 @@ private:
   bool m_drawDebug = false;
 
 private:
-  static constexpr size_t RENDER_TIMES_SAMPLE_COUNT = 100;
-  std::array<float, RENDER_TIMES_SAMPLE_COUNT> m_renderTimes;
-  sf::Clock m_renderTimeClock;
+  Timer<> m_renderTimer;
 };
 
