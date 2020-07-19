@@ -105,11 +105,13 @@ void Renderer:: begin()
   m_vertexArray.clear();
   m_strs.clear();
 
-  m_renderTarget.clear(sf::Color::Black);
+  m_visibleRect = m_camera.visibleRect(m_renderTarget);
 }
 
 void Renderer:: end()
 {
+  m_renderTarget.clear(sf::Color::Black);
+
   this->addGuiText(concatenate("Render Time:",
     std::accumulate(m_renderTimes.begin(), m_renderTimes.end(), 0.0f) / m_renderTimes.size())
   );
@@ -240,6 +242,14 @@ void Renderer::addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::C
 
 void Renderer::addCircle(sf::Vector2f position, float radius, sf::Color fillColor, float outlineThickness, sf::Color outlineColor)
 {
+  // Occlusion culling
+  auto boundingRectCenter = position;
+  auto boundingRectHalfSize = sf::Vector2f(radius + outlineThickness, radius + outlineThickness);
+
+  auto boundingRect = sf::FloatRect(boundingRectCenter - boundingRectHalfSize, 2.0f * boundingRectHalfSize);
+  if(!m_visibleRect.intersects(boundingRect))
+    return;
+  
   static constexpr size_t POINT_COUNT = 30;
   static auto unitVectors = [](){
     std::array<sf::Vector2f, POINT_COUNT> result;
@@ -287,6 +297,13 @@ void Renderer::addLine(sf::Vector2f position, float length, float angle, float t
   sf::Vector2f forward = length * sf::Vector2f(std::cos(angle), std::sin(angle));
   sf::Vector2f right = (thickness / 2.0f) * sf::Vector2f(-std::sin(angle), std::cos(angle));
 
+  // Note: This bounding rect is actually slightly off since it disregard the
+  //       thickness of the line, but it should not matter, since it is
+  //       pointness to render tiny part if the line poking out.
+  auto boundingRect = sf::FloatRect(position, forward);
+  if(!m_visibleRect.intersects(boundingRect))
+    return;
+
   sf::Vertex points[4];
 
   points[0] = sf::Vertex(position           + right, fillColor);
@@ -310,6 +327,10 @@ void Renderer::addGuiText(sf::String str)
 
 void Renderer::addBar(sf::Vector2f position, sf::Vector2f dimension, sf::Color color1, sf::Color color2, float ratio)
 {
+  auto boundingRect = sf::FloatRect(position - dimension/2.0f, dimension);
+  if(!m_visibleRect.intersects(boundingRect))
+    return;
+
   sf::Vertex points[8];
 
   points[0] = sf::Vertex(position + sf::Vector2f(-dimension.x/2.0f, -dimension.y/2.0f), color1);

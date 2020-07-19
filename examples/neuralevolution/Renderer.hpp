@@ -31,6 +31,13 @@ private:
       return view;
     };
 
+    sf::FloatRect visibleRect(const sf::RenderTarget& renderTarget) const
+    {
+      auto view = this->view(renderTarget);
+      auto center = view.getCenter(), size = view.getSize();
+      return sf::FloatRect(center - size/2.0f, size);
+    }
+
   public:
     sf::Vector2f center;
     float scale;
@@ -74,6 +81,7 @@ private:
 
 private:
   Camera m_camera;
+  sf::FloatRect m_visibleRect;
 
 private:
   sf::RenderTarget& m_renderTarget;
