@@ -10,16 +10,16 @@
 
 #include <cmath>
 
-static constexpr double AVERAGE_COUNT_PER_CELL = 10.0;
+static constexpr double AVERAGE_COUNT_PER_CELL = 3.0;
 
 static double GRID_DIVISION_LENGTH_CREATURE()
 {
-  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (static_cast<double>(CONFIG.world.initialCreaturesCount) / 10.0));
+  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (static_cast<double>(CONFIG.world.initialCreaturesCount) / AVERAGE_COUNT_PER_CELL));
 }
 
 static double GRID_DIVISION_LENGTH_BERRYBUSH()
 {
-  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (static_cast<double>(CONFIG.world.initialBerryBushesCount) / 10.0));
+  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (static_cast<double>(CONFIG.world.initialBerryBushesCount) / AVERAGE_COUNT_PER_CELL));
 }
 
 World::World(seed_type seed) 
