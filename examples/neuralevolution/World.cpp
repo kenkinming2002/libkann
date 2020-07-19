@@ -50,9 +50,8 @@ void World::update(float dt)
 
   m_worldTime += dt;
 
-
-  for(std::reference_wrapper<BerryBush> berryBush: m_berryBushes.all())
-    berryBush.get().update(dt);
+  auto all = m_berryBushes.all();
+  BerryBush::batchUpdate(all.begin(), all.end(), dt);
 
 #pragma omp parallel for
   for(std::reference_wrapper<Creature> creature: m_creatures.all())

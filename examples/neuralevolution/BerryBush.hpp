@@ -1,7 +1,10 @@
 #pragma once
 
+#include "Config.hpp"
+
 #include <Eigen/Eigen>
 
+#include <algorithm>
 #include <ostream>
 
 class BerryBush
@@ -18,10 +21,25 @@ public:
   void take(size_t count=1) { m_berryCount -= count; }
 
 public:
+  template<typename InputIterator>
+  static void batchUpdate(InputIterator first, InputIterator last, float dt);
   void update(float dt);
 
 private:
   Eigen::Vector2d m_position;
   size_t m_berryCount;
-  float m_growth;
+
+private:
+  static float m_growth;
 };
+
+template<typename InputIterator>
+void BerryBush::batchUpdate(InputIterator first, InputIterator last, float dt)
+{
+  m_growth += dt * CONFIG.berryBush.growthRate;
+  if(m_growth>=1.0f)
+  {
+    m_growth-=1.0f;
+    std::for_each(first, last, [&](BerryBush& berryBush){ berryBush.m_berryCount = std::min(CONFIG.berryBush.maxBerryCount, berryBush.m_berryCount+1);} );
+  }
+}
