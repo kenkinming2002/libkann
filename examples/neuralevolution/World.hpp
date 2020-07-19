@@ -35,6 +35,8 @@ public:
 
     float realTime;
     float worldTime;
+
+    float averageUpdateTime;
   };
   Info info() const;
 
@@ -71,4 +73,9 @@ private:
 private:
   sf::Clock m_startTime;
   float m_worldTime = 0.0f;
+
+private:
+  static constexpr size_t UPDATE_TIMES_SAMPLE_COUNT = 100;
+  std::array<float, UPDATE_TIMES_SAMPLE_COUNT> m_updateTimes;
+  sf::Clock m_updateTimeClock;
 };

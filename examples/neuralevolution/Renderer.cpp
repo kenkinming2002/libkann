@@ -188,6 +188,7 @@ void Renderer::draw(const World& world)
   this->addGuiText(concatenate("Statistics:", info.deathToll, "/", info.birthCount, "(DeathToll/BirthCount)"));
   this->addGuiText(concatenate("Time:", info.realTime, "/", info.worldTime, "/", info.worldTime / info.realTime, 
         "(Real/World/Ratio)"));
+  this->addGuiText(concatenate("Update Time:", info.averageUpdateTime));
 
   this->addRectangle(sf::Vector2f(0.0f, 0.0f), convert(world.m_dimension), sf::Color::White);
 
