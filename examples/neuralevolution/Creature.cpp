@@ -86,6 +86,19 @@ void Creature::preUpdate(float /*dt*/, World& world) const
   m_neuralNetwork.feedForward();
 }
 
+namespace
+{
+  template<class T>
+  constexpr T wrap(const T& v, const T& lo, const T& hi )
+  {
+    T gap = hi - lo;
+    int n = std::floor((v-lo) / gap);
+    T result =  v - n * gap;
+    assert(result>=lo && result<=hi);
+    return result;
+  }
+}
+
 void Creature::update(float dt, World& world)
 {
   // Parse output
@@ -100,8 +113,8 @@ void Creature::update(float dt, World& world)
   m_rotation += angularSpeed;
   m_position += (Eigen::Rotation2Dd(m_rotation) * Eigen::Vector2d(linearSpeed, 0.0)) * dt;
 
-  m_position(0) = std::clamp(m_position(0), -world.dimension()(0)/2.0, world.dimension()(0)/2.0);
-  m_position(1) = std::clamp(m_position(1), -world.dimension()(1)/2.0, world.dimension()(1)/2.0);
+  m_position(0) = wrap(m_position(0), -world.dimension()(0)/2.0, world.dimension()(0)/2.0);
+  m_position(1) = wrap(m_position(1), -world.dimension()(1)/2.0, world.dimension()(1)/2.0);
 
   // 3: Energy, health and suvival
   double energyDrain = (CONFIG.creature.passiveEnergyDrain + CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed) * dt;
