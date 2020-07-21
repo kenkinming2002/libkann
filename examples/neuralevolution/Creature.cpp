@@ -101,25 +101,10 @@ namespace
 
 void Creature::update(float dt, World& world)
 {
-  // Parse output
-  auto output = m_neuralNetwork.output();
+  auto movementEnergyDrain = updateMovement(dt, world);
+  auto survivalEnergyDrain = updateSurvival(dt);
 
-  double linearSpeed = output[0] >= 0.0 ? output[0] * CONFIG.creature.forwardLinearSpeed : output[0] * CONFIG.creature.backwardLinearSpeed;
-  double angularSpeed = output[1] * CONFIG.creature.angularSpeed;
-  m_eatingDesire = output[2];
-  m_matingDesire = output[3];
-
-  // 2: Movement
-  m_rotation += angularSpeed;
-  m_position += (Eigen::Rotation2Dd(m_rotation) * Eigen::Vector2d(linearSpeed, 0.0)) * dt;
-
-  m_position(0) = wrap(m_position(0), -world.dimension()(0)/2.0, world.dimension()(0)/2.0);
-  m_position(1) = wrap(m_position(1), -world.dimension()(1)/2.0, world.dimension()(1)/2.0);
-
-  // 3: Energy, health and suvival
-  double energyDrain = (CONFIG.creature.passiveEnergyDrain + CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed) * dt;
-
-  if(!takeEnergy(energyDrain))
+  if(!takeEnergy(movementEnergyDrain + survivalEnergyDrain))
     takeHealth(CONFIG.creature.hungerHealthDrain * dt);
 
   if(m_energy >= CONFIG.creature.maxEnergy * CONFIG.creature.healingThreshold)
@@ -129,6 +114,37 @@ void Creature::update(float dt, World& world)
     m_energy -= amount;
   }
 
+  updateCooldown(dt);
+  updateEating();
+  updateMating(world);
+}
+
+double Creature::updateMovement(float dt, World& world)
+{
+  auto linearSpeedFactor = m_neuralNetwork.output(Output::LINEAR_SPEED_FACTOR);
+  auto linearSpeed = linearSpeedFactor * 
+    (linearSpeedFactor >= 0.0 ?  CONFIG.creature.forwardLinearSpeed : CONFIG.creature.backwardLinearSpeed);
+
+  auto angularSpeedFactor = m_neuralNetwork.output(Output::ANGULAR_SPEED_FACTOR);
+  double angularSpeed = angularSpeedFactor * CONFIG.creature.angularSpeed;
+
+  m_rotation += angularSpeed;
+  m_position += (Eigen::Rotation2Dd(m_rotation) * Eigen::Vector2d(linearSpeed, 0.0)) * dt;
+
+  m_position(0) = wrap(m_position(0), -world.dimension()(0)/2.0, world.dimension()(0)/2.0);
+  m_position(1) = wrap(m_position(1), -world.dimension()(1)/2.0, world.dimension()(1)/2.0);
+
+  // Energy
+  return CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed * dt;
+}
+
+double Creature::updateSurvival(float dt)
+{
+  return CONFIG.creature.passiveEnergyDrain * dt;
+}
+
+void Creature::updateCooldown(float dt)
+{
   m_eatingCooldown -= dt;
   if(m_eatingCooldown<0.0f)
     m_eatingCooldown=0.0f;
@@ -136,9 +152,6 @@ void Creature::update(float dt, World& world)
   m_matingCooldown -= dt;
   if(m_matingCooldown<0.0f)
     m_matingCooldown=0.0f;
-
-  updateEating();
-  updateMating(world);
 }
 
 void Creature::updateEating()
@@ -146,7 +159,7 @@ void Creature::updateEating()
   static constexpr double EATING_ENERGY_COST = 5.0f;
   const double EATING_DISTANCE = CONFIG.creature.radius * 1.5 + CONFIG.berryBush.radius;
 
-  if(m_eatingDesire<0.0)
+  if(m_neuralNetwork.output(Output::EATING_DESIRE)<0.0)
     return; // Don't want to eat
 
   if(m_eatingCooldown!=0.0)
@@ -193,7 +206,7 @@ void Creature::updateMating(World& world)
 
     auto& otherCreature = std::get<std::reference_wrapper<Creature>>(eye.target).get();
 
-    if(m_matingDesire<0.0 || otherCreature.m_matingDesire<0.0)
+    if(m_neuralNetwork.output(Output::MATING_DESIRE)<0.0 || otherCreature.m_neuralNetwork.output(Output::MATING_DESIRE)<0.0)
       return; // Don't want to mate
 
     if(m_matingCooldown!=0.0 || otherCreature.m_matingCooldown != 0.0)

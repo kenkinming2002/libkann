@@ -24,6 +24,13 @@ private:
   static constexpr size_t NUM_INPUT = 4; // Energy, health, Sight
   static constexpr size_t NUM_OUTPUT = 4; // Linear, angular speed, eating and mating desire
 
+  enum class Output {
+    LINEAR_SPEED_FACTOR = 0,
+    ANGULAR_SPEED_FACTOR = 1,
+    EATING_DESIRE = 2,
+    MATING_DESIRE = 3
+  };
+
 public:
   template<typename PRNG>
   Creature(PRNG& prng, Eigen::Vector2d position);
@@ -36,6 +43,12 @@ public:
 
 public:
   void updateSight(World& world) const;
+
+private:
+  double updateMovement(float dt, World& world);
+  double updateSurvival(float dt);
+
+  void updateCooldown(float dt);
   void updateEating();
   void updateMating(World& world);
 
@@ -65,9 +78,6 @@ private:
   double m_energy, m_health;
 
 private:
-  double m_eatingDesire;
-  double m_matingDesire;
-
   float m_eatingCooldown = 0.0f;
   float m_matingCooldown = 0.0f;
 

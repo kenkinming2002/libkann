@@ -27,6 +27,8 @@ NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory)
   for(size_t size: m_topology)
     m_layers.emplace_back(size);
 
+  m_output = Eigen::VectorXd(m_topology.back());
+
   for(size_t i=0; i<m_topology.size()-1; i++)
   {
     size_t a = m_topology[i], b = m_topology[i+1];
@@ -43,6 +45,8 @@ NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng, si
   // Layers
   for(size_t size: m_topology)
     m_layers.emplace_back(size);
+
+  m_output = Eigen::VectorXd(m_topology.back());
 
   std::uniform_real_distribution<double> distribution(-1.0, 1.0);
 
@@ -66,15 +70,23 @@ void NeuralNetwork::input(std::vector<double> input)
   m_layers.front().input(convert(input));
 }
 
+double NeuralNetwork::output(size_t i) const
+{
+  // TODO: cache this
+  return m_output(i);
+}
+
 std::vector<double> NeuralNetwork::output() const
 {
-  return convert(m_layers.back().output());
+  return convert(m_output);
 }
 
 void NeuralNetwork::feedForward()
 {
   for(size_t i=0; i<m_weights.size(); ++i)
     m_layers[i+1].input(m_weights[i] * m_layers[i].output());
+
+  m_output = m_layers.back().output();
 }
 
 template<typename PRNG>

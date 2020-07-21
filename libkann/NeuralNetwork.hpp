@@ -9,6 +9,7 @@
 #include <ostream>
 #include <vector>
 #include <random>
+#include <type_traits>
 
 class NeuralNetwork
 {
@@ -21,6 +22,22 @@ public:
 public:
   // TODO: Consider optimizing this
   LIBKANN_SYMEXPORT void input(std::vector<double> input);
+
+  /*
+   * Returning an entire std::vector is inefficient as memory allocation is
+   * invovled to convert the underlying Eigen vector to std vector, so if the
+   * index is known, and only a few value is needed, the first version can be
+   * used instead. A templated version taking enum class is also provided for
+   * convenience.
+   */
+  template<typename T>
+  LIBKANN_SYMEXPORT double output(T i) const
+  {
+    static_assert(std::is_enum_v<T>, "Only enum is supported");
+    return this->output(static_cast<size_t>(i));
+  }
+
+  LIBKANN_SYMEXPORT double output(size_t i) const;
   LIBKANN_SYMEXPORT std::vector<double> output() const;
 
 public:
@@ -38,4 +55,6 @@ public:
   std::vector<size_t> m_topology;
   std::vector<Layer> m_layers;
   std::vector<Eigen::MatrixXd> m_weights;
+
+  Eigen::VectorXd m_output;
 };
