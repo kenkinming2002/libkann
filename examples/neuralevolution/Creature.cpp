@@ -40,15 +40,8 @@ void Creature::updateSight(World& world) const
     eye.distance = CONFIG.creature.viewDistance;
     Ray ray{m_position, m_rotation + eye.angle};
 
-    Eigen::Vector2d halfDimensionCreature(CONFIG.creature.viewDistance + CONFIG.creature.radius, 
-        CONFIG.creature.viewDistance + CONFIG.creature.radius);
-    Eigen::Vector2d halfDimensionBerryBush(CONFIG.creature.viewDistance + CONFIG.berryBush.radius, 
-        CONFIG.creature.viewDistance + CONFIG.berryBush.radius);
-
-    Box queryBoxCreature(m_position - halfDimensionCreature, 2.0 * halfDimensionCreature);
-    Box queryBoxBerryBush(m_position - halfDimensionBerryBush, 2.0 * halfDimensionBerryBush);
-
-    for(std::reference_wrapper<Creature> creature: world.creatures().query(queryBoxCreature))
+    for(std::reference_wrapper<Creature> creature: 
+        world.creatures().query(m_position, CONFIG.creature.viewDistance + CONFIG.creature.radius))
     {
       if(&creature.get() == this)
         continue;
@@ -61,7 +54,8 @@ void Creature::updateSight(World& world) const
       }
     }
 
-    for(std::reference_wrapper<BerryBush> berryBush: world.berryBushes().query(queryBoxBerryBush))
+    for(std::reference_wrapper<BerryBush> berryBush: 
+        world.berryBushes().query(m_position, CONFIG.creature.viewDistance + CONFIG.berryBush.radius))
     {
       CircleCollider circleCollider{berryBush.get().position(), CONFIG.berryBush.radius};
       if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)

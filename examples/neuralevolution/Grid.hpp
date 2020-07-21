@@ -8,6 +8,17 @@
 
 #include <iostream>
 
+namespace
+{
+  auto clamp(Eigen::Vector2d v, Eigen::Vector2d lo, Eigen::Vector2d hi) 
+  {
+    return Eigen::Vector2d(
+      std::clamp(v(0), lo(0), hi(0)),
+      std::clamp(v(1), lo(1), hi(1))
+    );
+  };
+}
+
 struct Box
 {
 public:
@@ -16,6 +27,17 @@ public:
 public:
   auto position() const { return m_position; }
   auto dimension() const { return m_dimension; }
+
+  double distance(Eigen::Vector2d point) const 
+  {
+    return (point - clamp(point, m_position, m_position + m_dimension)).norm();
+  }
+
+  double squaredDistance(Eigen::Vector2d point) const 
+  {
+    return (point - clamp(point, m_position, m_position + m_dimension)).squaredNorm();
+  }
+
 
 private:
   Eigen::Vector2d m_position, m_dimension;
@@ -43,17 +65,16 @@ public:
 public:
   std::pair<std::pair<size_t, size_t>, std::pair<size_t, size_t>> indices(Box box) const
   {
-    auto clamp = [this](Eigen::Vector2d v){
-      return Eigen::Vector2d(
-        std::clamp(v(0), position()(0), position()(0) + dimension()(0)),
-        std::clamp(v(1), position()(1), position()(1) + dimension()(1))
-      );
-    };
-
-    auto topLeft = indices(clamp(box.position()));
-    auto bottomRight = indices(clamp(box.position() + box.dimension()));
+    auto topLeft     = indices(clamp(box.position()                  , this->position(), this->position() + this->dimension()));
+    auto bottomRight = indices(clamp(box.position() + box.dimension(), this->position(), this->position() + this->dimension()));
 
     return std::make_pair(topLeft, bottomRight);
+  }
+
+  Box box(size_t x, size_t y) const
+  {
+    return Box(Eigen::Vector2d(x * m_divisionLength, y * m_divisionLength) + this->position(), 
+        Eigen::Vector2d(m_divisionLength, m_divisionLength));
   }
 
 private:
@@ -165,6 +186,23 @@ public:
     return result;
   }
 
+  /*
+   * The following 4 functions are const and non const overload of 2 types of
+   * query function, one which return all entities that possibly lie in a box
+   * while the other a circle. Notice the word possibly as it it not a guarantee
+   * and you'll have to check for yourself.
+   *
+   * Currently, only the circle version are used as it replaced the usage of the
+   * box version and return less spurious result and will reduce the number of
+   * further testing we have to do(raycast in particular) as a circle is always
+   * contained in a box. However, there is one major flaw and that is the
+   * presence of a branch in the circle version, and its unpreditable nature. As
+   * branch misprediction is costly, the performance benefit of less testing to
+   * is outweighted and the performace gain is negligible. Anyway, the circle
+   * version is easy enough to implement that it does not matter. However, it
+   * may be an idea to switch to the branchless box version. Only time will
+   * tell.
+   */
   auto query(Box box)
   {
     auto [topLeft, bottomRight] = m_dividedBox.indices(box);
@@ -193,6 +231,56 @@ public:
       for(size_t x=topLeftX; x<=bottomRightX; ++x)
         for(const auto& t: cell(x, y))
           result.push_back(std::cref(t));
+
+    return result;
+  }
+
+  auto query(Eigen::Vector2d position, double radius) const
+  {
+    auto halfDimension = Eigen::Vector2d(radius, radius);
+    auto box = Box(position - halfDimension, 2.0 * halfDimension);
+
+    auto [topLeft, bottomRight] = m_dividedBox.indices(box);
+
+    auto [topLeftX, topLeftY] = topLeft;
+    auto [bottomRightX, bottomRightY] = bottomRight;
+
+    std::vector<std::reference_wrapper<const T>> result;
+    result.reserve((bottomRightY-topLeftY) * (bottomRightX-topLeftX));
+
+    for(size_t y=topLeftY; y<=bottomRightY; ++y)
+      for(size_t x=topLeftX; x<=bottomRightX; ++x)
+      {
+        auto subBox = m_dividedBox.box(x, y);
+        if(subBox.squaredDistance(position) <= radius * radius)
+          for(const auto& t: cell(x, y))
+            result.push_back(std::cref(t));
+      }
+
+    return result;
+  }
+
+  auto query(Eigen::Vector2d position, double radius)
+  {
+    auto halfDimension = Eigen::Vector2d(radius, radius);
+    auto box = Box(position - halfDimension, 2.0 * halfDimension);
+
+    auto [topLeft, bottomRight] = m_dividedBox.indices(box);
+
+    auto [topLeftX, topLeftY] = topLeft;
+    auto [bottomRightX, bottomRightY] = bottomRight;
+
+    std::vector<std::reference_wrapper<T>> result;
+    result.reserve((bottomRightY-topLeftY) * (bottomRightX-topLeftX));
+
+    for(size_t y=topLeftY; y<=bottomRightY; ++y)
+      for(size_t x=topLeftX; x<=bottomRightX; ++x)
+      {
+        auto subBox = m_dividedBox.box(x, y);
+        if(subBox.squaredDistance(position) <= radius * radius)
+          for(auto& t: cell(x, y))
+            result.push_back(std::ref(t));
+      }
 
     return result;
   }
@@ -255,5 +343,3 @@ public:
   DividedBox m_dividedBox;
   std::vector<cell_type> m_cells;
 };
-
-template class Grid<int>;
