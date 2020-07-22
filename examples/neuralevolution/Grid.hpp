@@ -4,7 +4,6 @@
 
 #include <vector>
 #include <type_traits>
-#include <list>
 
 #include <iostream>
 
@@ -86,7 +85,7 @@ template<typename T>
 class Grid
 {
 public:
-  using cell_type = std::list<T>;
+  using cell_type = std::vector<T>;
   using iterator = typename cell_type::iterator;
   using const_iterator = typename cell_type::const_iterator;
 
@@ -294,7 +293,7 @@ public:
     for(auto& cell: m_cells)
     {
       size_t oldSize = cell.size();
-      cell.remove_if(predicate);
+      cell.erase(std::remove_if(cell.begin(), cell.end(), predicate), cell.end());
       size_t newSize = cell.size();
 
       count += oldSize - newSize;
@@ -316,27 +315,20 @@ public:
     cell_type orphans;
     for(auto& cell: m_cells)
     {
-      auto it = cell.begin();
-      while(it != cell.end())
-      {
-        auto& newCell = this->cell(positionFunc(*it));
-        if(&cell != &newCell)
-        {
-          auto itCopy = it++;
-          orphans.splice(orphans.end(), cell, itCopy);
-        }
-        else
-          ++it;
-      }
+      auto it = std::partition(cell.begin(), cell.end(), [&](const auto& t){
+          auto& newCell = this->cell(positionFunc(t));
+          return &cell == &newCell;
+      });
+      std::move(it, cell.end(), std::back_inserter(orphans));
+      cell.erase(it, cell.end());
     }
 
-    auto it = orphans.begin();
-    while(it != orphans.end())
+    for(auto& t: orphans)
     {
-      auto& newCell = this->cell(positionFunc(*it));
-      auto itCopy = it++;
-      newCell.splice(newCell.end(), orphans, itCopy);
+      auto& newCell = this->cell(positionFunc(t));
+      newCell.push_back(std::move(t));
     }
+    orphans.clear();
   }
 
 public:
