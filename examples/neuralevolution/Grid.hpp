@@ -281,7 +281,6 @@ public:
   size_t remove_if(Predicate predicate)
   {
     size_t count = 0;
-    std::vector<std::reference_wrapper<const T>> result;
     for(auto& cell: m_cells)
     {
       size_t oldSize = cell.size();

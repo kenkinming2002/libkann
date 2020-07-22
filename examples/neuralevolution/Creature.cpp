@@ -79,8 +79,6 @@ void Creature::preUpdate(float /*dt*/, World& world) const
   // 1: Neural network
   // Prepare input
   m_neuralNetwork.input({m_energy, m_health, m_eyes[0].distance, m_eyes[1].distance});
-  //m_neuralNetwork.input({m_energy, m_health, 0.0, 0.0});
-
   // Feed Forwrad
   m_neuralNetwork.feedForward();
 }
