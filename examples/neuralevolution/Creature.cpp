@@ -24,6 +24,9 @@ Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double
 
 void Creature::updateSight(World& world) const
 {
+  auto creatures   = world.creatures().query(m_position, CONFIG.creature.viewDistance + CONFIG.creature.radius);
+  auto berryBushes = world.berryBushes().query(m_position, CONFIG.creature.viewDistance + CONFIG.berryBush.radius);
+
   for(Eye& eye: m_eyes)
   {
     // MEMORIAL: The following line costs hours of debugging to add
@@ -40,13 +43,12 @@ void Creature::updateSight(World& world) const
     eye.distance = CONFIG.creature.viewDistance;
     Ray ray{m_position, m_rotation + eye.angle};
 
-    for(std::reference_wrapper<Creature> creature: 
-        world.creatures().query(m_position, CONFIG.creature.viewDistance + CONFIG.creature.radius))
+    for(Creature& creature: creatures)
     {
-      if(&creature.get() == this)
+      if(&creature == this)
         continue;
 
-      CircleCollider circleCollider{creature.get().m_position, CONFIG.creature.radius};
+      CircleCollider circleCollider{creature.m_position, CONFIG.creature.radius};
       if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)
       {
         eye.distance = distance;
@@ -54,10 +56,9 @@ void Creature::updateSight(World& world) const
       }
     }
 
-    for(std::reference_wrapper<BerryBush> berryBush: 
-        world.berryBushes().query(m_position, CONFIG.creature.viewDistance + CONFIG.berryBush.radius))
+    for(BerryBush& berryBush: berryBushes)
     {
-      CircleCollider circleCollider{berryBush.get().position(), CONFIG.berryBush.radius};
+      CircleCollider circleCollider{berryBush.position(), CONFIG.berryBush.radius};
       if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)
       {
         eye.distance = distance;
