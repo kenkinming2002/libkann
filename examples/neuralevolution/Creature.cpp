@@ -24,9 +24,6 @@ Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double
 
 void Creature::updateSight(World& world) const
 {
-  auto creatures   = world.creatures().query(m_position, CONFIG.creature.viewDistance + CONFIG.creature.radius);
-  auto berryBushes = world.berryBushes().query(m_position, CONFIG.creature.viewDistance + CONFIG.berryBush.radius);
-
   for(Eye& eye: m_eyes)
   {
     // MEMORIAL: The following line costs hours of debugging to add
@@ -38,15 +35,19 @@ void Creature::updateSight(World& world) const
     // in front of us), the previous result will be used which may well be
     // freed. This manifest itself into errors in mating process.
     //
+    //
+    // Reset eye from last update
     eye.target = std::monostate{};
-
     eye.distance = CONFIG.creature.viewDistance;
-    Ray ray{m_position, m_rotation + eye.angle};
+  }
 
-    for(Creature& creature: creatures)
+  world.creatures().query(m_position, CONFIG.creature.viewDistance + CONFIG.creature.radius, [this](Creature& creature){
+    for(Eye& eye: m_eyes)
     {
+      Ray ray{m_position, m_rotation + eye.angle};
+
       if(&creature == this)
-        continue;
+        return;
 
       CircleCollider circleCollider{creature.m_position, CONFIG.creature.radius};
       if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)
@@ -55,9 +56,12 @@ void Creature::updateSight(World& world) const
         eye.target = std::ref(creature);
       }
     }
-
-    for(BerryBush& berryBush: berryBushes)
+  });
+  world.berryBushes().query(m_position, CONFIG.creature.viewDistance + CONFIG.berryBush.radius, [this](BerryBush& berryBush){
+    for(Eye& eye: m_eyes)
     {
+      Ray ray{m_position, m_rotation + eye.angle};
+
       CircleCollider circleCollider{berryBush.position(), CONFIG.berryBush.radius};
       if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)
       {
@@ -65,7 +69,7 @@ void Creature::updateSight(World& world) const
         eye.target = std::ref(berryBush);
       }
     }
-  }
+  });
 }
 
 void Creature::preUpdate(float /*dt*/, World& world) const

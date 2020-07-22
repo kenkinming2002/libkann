@@ -234,7 +234,8 @@ public:
     return result;
   }
 
-  auto query(Eigen::Vector2d position, double radius) const
+  template<typename Callback>
+  void query(Eigen::Vector2d position, double radius, Callback callback) const
   {
     auto halfDimension = Eigen::Vector2d(radius, radius);
     auto box = Box(position - halfDimension, 2.0 * halfDimension);
@@ -243,9 +244,6 @@ public:
 
     auto [topLeftX, topLeftY] = topLeft;
     auto [bottomRightX, bottomRightY] = bottomRight;
-
-    std::vector<std::reference_wrapper<const T>> result;
-    result.reserve((bottomRightY-topLeftY) * (bottomRightX-topLeftX));
 
     for(size_t y=topLeftY; y<=bottomRightY; ++y)
       for(size_t x=topLeftX; x<=bottomRightX; ++x)
@@ -253,13 +251,12 @@ public:
         auto subBox = m_dividedBox.box(x, y);
         if(subBox.squaredDistance(position) <= radius * radius)
           for(const auto& t: cell(x, y))
-            result.push_back(std::cref(t));
+            callback(t);
       }
-
-    return result;
   }
 
-  auto query(Eigen::Vector2d position, double radius)
+  template<typename Callback>
+  void query(Eigen::Vector2d position, double radius, Callback callback)
   {
     auto halfDimension = Eigen::Vector2d(radius, radius);
     auto box = Box(position - halfDimension, 2.0 * halfDimension);
@@ -269,19 +266,14 @@ public:
     auto [topLeftX, topLeftY] = topLeft;
     auto [bottomRightX, bottomRightY] = bottomRight;
 
-    std::vector<std::reference_wrapper<T>> result;
-    result.reserve((bottomRightY-topLeftY) * (bottomRightX-topLeftX));
-
     for(size_t y=topLeftY; y<=bottomRightY; ++y)
       for(size_t x=topLeftX; x<=bottomRightX; ++x)
       {
         auto subBox = m_dividedBox.box(x, y);
         if(subBox.squaredDistance(position) <= radius * radius)
           for(auto& t: cell(x, y))
-            result.push_back(std::ref(t));
+            callback(t);
       }
-
-    return result;
   }
 
 public:
