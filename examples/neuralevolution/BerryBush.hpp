@@ -2,12 +2,14 @@
 
 #include "Config.hpp"
 
+#include "Selectable.hpp"
+
 #include <Eigen/Eigen>
 
 #include <algorithm>
 #include <ostream>
 
-class BerryBush
+class BerryBush : public Selectable
 {
 public:
   BerryBush(Eigen::Vector2d position);

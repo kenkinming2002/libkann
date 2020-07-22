@@ -202,36 +202,32 @@ public:
    * may be an idea to switch to the branchless box version. Only time will
    * tell.
    */
-  auto query(Box box)
+  template<typename Callback>
+  void query(Box box, Callback callback)
   {
     auto [topLeft, bottomRight] = m_dividedBox.indices(box);
 
     auto [topLeftX, topLeftY] = topLeft;
     auto [bottomRightX, bottomRightY] = bottomRight;
 
-    std::vector<std::reference_wrapper<T>> result;
     for(size_t y=topLeftY; y<=bottomRightY; ++y)
       for(size_t x=topLeftX; x<=bottomRightX; ++x)
         for(auto& t: cell(x, y))
-          result.push_back(std::ref(t));
-
-    return result;
+          callback(t);
   }
 
-  auto query(Box box) const
+  template<typename Callback>
+  void query(Box box, Callback callback) const
   {
     auto [topLeft, bottomRight] = m_dividedBox.indices(box);
 
     auto [topLeftX, topLeftY] = topLeft;
     auto [bottomRightX, bottomRightY] = bottomRight;
 
-    std::vector<std::reference_wrapper<const T>> result;
     for(size_t y=topLeftY; y<=bottomRightY; ++y)
       for(size_t x=topLeftX; x<=bottomRightX; ++x)
         for(const auto& t: cell(x, y))
-          result.push_back(std::cref(t));
-
-    return result;
+          callback(t);
   }
 
   template<typename Callback>

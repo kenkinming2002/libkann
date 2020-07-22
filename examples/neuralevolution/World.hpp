@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <random>
+#include <variant>
 
 #include <SFML/System/Clock.hpp>
 
@@ -40,6 +41,10 @@ public:
     float averageUpdateTime;
   };
   Info info() const;
+
+public:
+  using result_variant = std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>>;
+  result_variant find(Eigen::Vector2d position);
 
 public:
   const auto& creatures() const { return m_creatures; }

@@ -19,6 +19,11 @@ namespace
     return sf::Vector2f(static_cast<float>(vec(0)), static_cast<float>(vec(1)));
   }
 
+  Eigen::Vector2d convert(sf::Vector2f vec)
+  {
+    return Eigen::Vector2d(vec.x, vec.y);
+  }
+
   sf::Color lerp(sf::Color a, sf::Color b, float t)
   {
     return sf::Color(
@@ -41,7 +46,7 @@ namespace
 Renderer::Renderer(sf::RenderTarget& renderTarget)
   : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles) {}
 
-bool Renderer::handleInput(sf::Event event)
+bool Renderer::handleInput(sf::Event event, World& world)
 {
   switch(event.type) {
     case sf::Event::KeyPressed:
@@ -84,6 +89,28 @@ bool Renderer::handleInput(sf::Event event)
         default:
           return false;
       }
+    case sf::Event::MouseButtonPressed:
+    {
+      if(!sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) && !sf::Keyboard::isKeyPressed(sf::Keyboard::RShift))
+      {
+        for(Creature& creature: world.creatures().all())
+          creature.deselect();
+
+        for(BerryBush& berryBush: world.berryBushes().all())
+          berryBush.deselect();
+      }
+
+      auto point = sf::Vector2i(event.mouseButton.x, event.mouseButton.y);
+      auto worldCoords = m_renderTarget.mapPixelToCoords(point, m_camera.view(m_renderTarget));
+      auto result = world.find(convert(worldCoords));
+
+      if(std::holds_alternative<std::reference_wrapper<Creature>>(result))
+        std::get<std::reference_wrapper<Creature>>(result).get().select();
+      else if(std::holds_alternative<std::reference_wrapper<BerryBush>>(result))
+        std::get<std::reference_wrapper<BerryBush>>(result).get().select();
+
+      return true;
+    }
     // Zoom in / Zoom out
     case sf::Event::MouseWheelScrolled:
     {
@@ -150,7 +177,7 @@ void Renderer::draw(const Creature& creature)
 {
   float radius = CONFIG.creature.radius * creature.m_health / CONFIG.creature.maxHealth;
   sf::Color color = lerp(sf::Color::Yellow, sf::Color::Green, creature.m_energy / CONFIG.creature.maxEnergy);
-  this->addCircle(convert(creature.m_position), radius, color, OUTLINE_THICKNESS, sf::Color::Black);
+  this->addCircle(convert(creature.m_position), radius, color, OUTLINE_THICKNESS, creature.selected ? sf::Color::Red : sf::Color::Black);
 
   if(m_drawDebug)
   {
@@ -167,7 +194,7 @@ void Renderer::draw(const BerryBush& berryBush)
   const float BAR_THICKNESS       = CONFIG.berryBush.radius * 0.2f;
   const float BAR_VERTICAL_OFFSET = CONFIG.berryBush.radius * 1.2f;
 
-  this->addCircle(convert(berryBush.m_position), CONFIG.berryBush.radius, sf::Color::Green, OUTLINE_THICKNESS, sf::Color::Black);
+  this->addCircle(convert(berryBush.m_position), CONFIG.berryBush.radius, sf::Color::Green, OUTLINE_THICKNESS, berryBush.selected ? sf::Color::Red : sf::Color::Black);
   this->addBar(
     convert(berryBush.m_position) + sf::Vector2f(0.0f, BAR_VERTICAL_OFFSET), 
     sf::Vector2f(2.0f * CONFIG.berryBush.radius, BAR_THICKNESS), 

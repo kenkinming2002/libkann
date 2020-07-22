@@ -2,6 +2,9 @@
 
 #include "Config.hpp"
 
+#include "BerryBush.hpp"
+#include "Selectable.hpp"
+
 #include <Eigen/Eigen>
 #include <libkann/NeuralNetwork.hpp>
 
@@ -11,11 +14,9 @@
 #include <optional>
 #include <variant>
 
-#include "BerryBush.hpp"
-
 class World;
 
-class Creature
+class Creature : public Selectable
 {
 private:
   static constexpr size_t EYES_COUNT = 2;

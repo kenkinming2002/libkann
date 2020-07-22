@@ -56,7 +56,7 @@ public:
   static constexpr unsigned GUI_TEXT_SIZE = 30;
 
 public:
-  bool handleInput(sf::Event event);
+  bool handleInput(sf::Event event, World& world);
 
 public:
   void begin();

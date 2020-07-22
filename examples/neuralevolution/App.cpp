@@ -28,7 +28,7 @@ void App::handleInput()
   sf::Event event;
   while (m_window.pollEvent(event))
   {
-    if(m_renderer.handleInput(event))
+    if(m_renderer.handleInput(event, m_world))
       continue;
 
     switch(event.type)

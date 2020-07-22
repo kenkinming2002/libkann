@@ -1,7 +1,6 @@
 #include "World.hpp"
 
 #include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
 
 #include <iostream>
 #include <iomanip>
@@ -88,4 +87,20 @@ World::Info World::info() const
   info.averageUpdateTime = m_updateTimer.average();
 
   return info;
+}
+
+World::result_variant World::find(Eigen::Vector2d position)
+{
+  std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>> result = std::monostate{};
+  Box queryBox(position, Eigen::Vector2d(0.0f, 0.0f));
+
+  this->creatures().query(queryBox, [&](auto& creature){
+    if((creature.position() - position).squaredNorm() < CONFIG.creature.radius * CONFIG.creature.radius)
+      result = std::ref(creature);
+  });
+  this->berryBushes().query(queryBox, [&](auto& berryBush){
+    if((berryBush.position() - position).squaredNorm() < CONFIG.berryBush.radius * CONFIG.berryBush.radius)
+      result = std::ref(berryBush);
+  });
+  return result;
 }
