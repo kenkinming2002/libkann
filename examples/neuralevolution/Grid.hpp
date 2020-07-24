@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/utilities/dynarray.hpp>
+
 #include <Eigen/Eigen>
 
 #include <vector>
@@ -36,7 +38,6 @@ public:
   {
     return (point - clamp(point, m_position, m_position + m_dimension)).squaredNorm();
   }
-
 
 private:
   Eigen::Vector2d m_position, m_dimension;
@@ -320,5 +321,5 @@ public:
 
 public:
   DividedBox m_dividedBox;
-  std::vector<cell_type> m_cells;
+  dynarray<cell_type> m_cells;
 };
