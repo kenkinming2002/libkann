@@ -2,6 +2,7 @@
 
 #include <libkann/export.hpp>
 
+#include <libkann/utilities/dynarray.hpp>
 #include <libkann/Layer.hpp>
 
 #include <Eigen/Eigen>
@@ -53,9 +54,9 @@ private:
   size_t m_memory;
 
 public:
-  std::vector<size_t> m_topology;
-  std::vector<Layer> m_layers;
-  std::vector<Eigen::MatrixXd> m_weights;
+  dynarray<size_t> m_topology;
+  dynarray<Layer> m_layers;
+  dynarray<Eigen::MatrixXd> m_weights;
 
   Eigen::VectorXd m_output;
 };

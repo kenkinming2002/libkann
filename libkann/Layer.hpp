@@ -7,6 +7,7 @@
 class Layer
 {
 public:
+  Layer() = default;
   Layer(size_t size) : m_input(size) {}
 
 public:

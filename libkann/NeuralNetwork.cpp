@@ -5,45 +5,51 @@
 #include <cassert>
 #include <iostream>
 
-NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory) : m_memory(memory), m_topology(topology)
+NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory) 
+  : m_memory(memory), 
+    m_topology(topology.size()), m_layers(topology.size()), m_weights(topology.size()-1)
 {
+  for(size_t i = 0; i<m_topology.size(); ++i)
+    m_topology[i] = topology[i];
+
   m_topology.front() += memory;
   m_topology.back() += memory;
 
-  // Layers
-  for(size_t size: m_topology)
-    m_layers.emplace_back(size);
-
-  m_output = Eigen::VectorXd(m_topology.back());
+  for(size_t i = 0; i<m_layers.size(); ++i)
+    m_layers[i] = m_topology[i];
 
   for(size_t i=0; i<m_topology.size()-1; i++)
   {
-    size_t a = m_topology[i], b = m_topology[i+1];
-    m_weights.emplace_back(Eigen::MatrixXd(b, a));
+    size_t previousLayerSize = m_topology[i], nextLayerSize = m_topology[i+1];
+    m_weights[i] = Eigen::MatrixXd(nextLayerSize, previousLayerSize);
   }
+
+  m_output = Eigen::VectorXd(m_topology.back());
 }
 
 template<typename PRNG>
-NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng, size_t memory) : m_memory(memory), m_topology(topology)
+NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng, size_t memory) 
+  : m_memory(memory), m_topology(topology.size()), m_layers(topology.size()), m_weights(topology.size()-1)
 {
+  for(size_t i = 0; i<m_topology.size(); ++i)
+    m_topology[i] = topology[i];
+
   m_topology.front() += memory;
   m_topology.back() += memory;
 
-  // Layers
-  for(size_t size: m_topology)
-    m_layers.emplace_back(size);
-
-  m_output = Eigen::VectorXd(m_topology.back());
+  for(size_t i = 0; i<m_layers.size(); ++i)
+    m_layers[i] = m_topology[i];
 
   std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-
   for(size_t i=0; i<m_topology.size()-1; i++)
   {
-    size_t a = m_topology[i], b = m_topology[i+1];
-    m_weights.emplace_back(Eigen::MatrixXd::NullaryExpr(b, a,[&](){
+    size_t previousLayerSize = m_topology[i], nextLayerSize = m_topology[i+1];
+    m_weights[i] = Eigen::MatrixXd::NullaryExpr(nextLayerSize, previousLayerSize,[&](){
       return distribution(prng);
-    }));
+    });
   }
+
+  m_output = Eigen::VectorXd(m_topology.back());
 }
 
 template NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, std::mt19937& prng, size_t memory);
