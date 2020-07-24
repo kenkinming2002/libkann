@@ -150,7 +150,7 @@ void Renderer::end()
 
   static sf::Font font = [](){
     sf::Font font;
-    if(!font.loadFromFile("resources/fonts/arial.ttf"))
+    if(!font.loadFromFile("resources/fonts/NotoSansMono-Regular.ttf"))
       throw std::runtime_error("Failed to load font");
 
     return font;
