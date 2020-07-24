@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include <cstddef>
 #include <iterator>
 #include <memory>
@@ -64,6 +66,14 @@ public:
     m_size = other.m_size;
     m_data = std::make_unique<T[]>(m_size);
     std::copy(other.begin(), other.end(), this->begin());
+    return *this;
+  }
+
+  dynarray(dynarray&& other) : m_size(std::exchange(other.m_size, 0)), m_data(std::move(other.m_data)) {}
+  dynarray& operator=(dynarray&& other)
+  {
+    m_size = std::exchange(other.m_size, 0);
+    m_data = std::move(other.m_data);
     return *this;
   }
 
