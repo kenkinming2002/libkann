@@ -10,7 +10,9 @@ public:
   Layer(size_t size) : m_input(size) {}
 
 public:
-  LIBKANN_SYMEXPORT void input(Eigen::VectorXd input);
+  LIBKANN_SYMEXPORT Eigen::VectorXd& input() { return m_input; }
+  LIBKANN_SYMEXPORT const Eigen::VectorXd& input() const { return m_input; }
+
   LIBKANN_SYMEXPORT Eigen::VectorXd output() const;
 
 private:

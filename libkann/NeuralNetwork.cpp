@@ -5,19 +5,6 @@
 #include <cassert>
 #include <iostream>
 
-//static Eigen::VectorXd convert(const std::vector<double>& input)
-//{
-//  Eigen::VectorXd output(input.size());
-//  for(size_t i=0; i<input.size(); ++i)
-//    output(i) = input[i];
-//  return output;
-//}
-//
-//static std::vector<double> convert(Eigen::VectorXd input)
-//{
-//  return std::vector<double>(input.data(), input.data() + input.size());
-//}
-
 NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory) : m_memory(memory), m_topology(topology)
 {
   m_topology.front() += memory;
@@ -63,14 +50,11 @@ template NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, std::
 
 void NeuralNetwork::input(std::initializer_list<double> input)
 {
-  Eigen::VectorXd realInput(input.size() + m_memory);
   for(size_t i=0; i<input.size(); ++i)
-    realInput(i) = *(input.begin() + i);
+    m_layers.front().input()(i) = *(input.begin() + i);
 
   for(size_t i=input.size(); i<input.size()+m_memory; ++i)
-    realInput(i) = output(i);
-
-  m_layers.front().input(std::move(realInput));
+    m_layers.front().input()(i) = output(i);
 }
 
 double NeuralNetwork::output(size_t i) const
@@ -86,7 +70,7 @@ const Eigen::VectorXd& NeuralNetwork::output() const
 void NeuralNetwork::feedForward()
 {
   for(size_t i=0; i<m_weights.size(); ++i)
-    m_layers[i+1].input(m_weights[i] * m_layers[i].output());
+    m_layers[i+1].input() = m_weights[i] * m_layers[i].output();
 
   m_output = m_layers.back().output();
 }
