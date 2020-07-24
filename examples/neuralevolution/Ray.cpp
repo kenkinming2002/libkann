@@ -5,18 +5,32 @@
 
 #include <iostream>
 
+namespace
+{
+  std::pair<Eigen::Vector2d, Eigen::Vector2d> unitVectors(double angle)
+  {
+    double sin = std::sin(angle);
+    double cos = std::cos(angle);
+    return std::make_pair(Eigen::Vector2d(cos, sin), Eigen::Vector2d(-sin, cos));
+  }
+}
+
+Ray::Ray(Eigen::Vector2d position, double angle) 
+  : position(position), angle(angle) 
+{
+  std::tie(tangent, normal) = unitVectors(angle);
+}
+
 double Ray::cast(CircleCollider circle) const
 {
   Eigen::Vector2d offset = circle.position - position;
 
-  Eigen::Vector2d rayTangent = Eigen::Rotation2Dd(angle) * Eigen::Vector2d(1.0, 0.0);
-  Eigen::Vector2d rayNormal = Eigen::Vector2d(-rayTangent(1), rayTangent(0));
-
-  double tangentProjectionLength = offset.dot(rayTangent);
-  double normalProjectionLength = offset.dot(rayNormal);
+  double tangentProjectionLength = offset.dot(this->tangent);
+  double normalProjectionLength = offset.dot(this->normal);
 
   if(normalProjectionLength >= circle.radius)
     return std::numeric_limits<double>::infinity(); // We did not hit
 
-  return tangentProjectionLength - std::sqrt(circle.radius * circle.radius - normalProjectionLength * normalProjectionLength);
+  return tangentProjectionLength - 
+    std::sqrt(circle.radius * circle.radius - normalProjectionLength * normalProjectionLength);
 }

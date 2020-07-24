@@ -24,8 +24,12 @@ Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double
 
 void Creature::updateSight(World& world) const
 {
-  for(Eye& eye: m_eyes)
+  Ray rays[EYES_COUNT];
+  for(size_t i=0; i<EYES_COUNT; ++i)
   {
+    auto& eye = m_eyes[i];
+    auto& ray = rays[i];
+
     // MEMORIAL: The following line costs hours of debugging to add
     // 
     // Thanks: gcc asan
@@ -39,13 +43,14 @@ void Creature::updateSight(World& world) const
     // Reset eye from last update
     eye.target = std::monostate{};
     eye.distance = CONFIG.creature.viewDistance;
+    ray = Ray(m_position, m_rotation + eye.angle);
   }
 
-  world.creatures().query(m_position, CONFIG.creature.viewDistance + CONFIG.creature.radius, [this](Creature& creature){
-    for(Eye& eye: m_eyes)
+  world.creatures().query(m_position, CONFIG.creature.viewDistance + CONFIG.creature.radius, [&](Creature& creature){
+    for(size_t i=0; i<EYES_COUNT; ++i)
     {
-      Ray ray{m_position, m_rotation + eye.angle};
-
+      auto& eye = m_eyes[i];
+      auto& ray = rays[i];
       if(&creature == this)
         return;
 
@@ -57,10 +62,11 @@ void Creature::updateSight(World& world) const
       }
     }
   });
-  world.berryBushes().query(m_position, CONFIG.creature.viewDistance + CONFIG.berryBush.radius, [this](BerryBush& berryBush){
-    for(Eye& eye: m_eyes)
+  world.berryBushes().query(m_position, CONFIG.creature.viewDistance + CONFIG.berryBush.radius, [&](BerryBush& berryBush){
+    for(size_t i=0; i<EYES_COUNT; ++i)
     {
-      Ray ray{m_position, m_rotation + eye.angle};
+      auto& eye = m_eyes[i];
+      auto& ray = rays[i];
 
       CircleCollider circleCollider{berryBush.position(), CONFIG.berryBush.radius};
       if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)
@@ -126,7 +132,7 @@ double Creature::updateMovement(float dt, World& world)
   double angularSpeed = angularSpeedFactor * CONFIG.creature.angularSpeed;
 
   m_rotation += angularSpeed;
-  m_position += (Eigen::Rotation2Dd(m_rotation) * Eigen::Vector2d(linearSpeed, 0.0)) * dt;
+  m_position += linearSpeed * Eigen::Vector2d(std::cos(m_rotation), std::sin(m_rotation)) * dt;
 
   m_position(0) = wrap(m_position(0), -world.dimension()(0)/2.0, world.dimension()(0)/2.0);
   m_position(1) = wrap(m_position(1), -world.dimension()(1)/2.0, world.dimension()(1)/2.0);
