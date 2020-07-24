@@ -46,6 +46,7 @@ Config::Config(const char* fileName)
 
   this->creature.radius = creatureConfig.at("Radius").get<double>();
 
+  this->creature.hiddenLayers = creatureConfig.at("HiddenLayers").get<std::vector<size_t>>();
   this->creature.memory = creatureConfig.at("Memory").get<size_t>();
   
   this->creature.viewDistance = creatureConfig.at("ViewDistance").get<double>();

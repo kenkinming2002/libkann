@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <optional>
+#include <vector>
 
 extern struct Config
 {
@@ -48,6 +49,7 @@ public:
 
     double radius;
 
+    std::vector<size_t> hiddenLayers;
     size_t memory;
 
     double viewDistance;

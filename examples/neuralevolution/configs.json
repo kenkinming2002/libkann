@@ -29,6 +29,7 @@
 
     "Radius" : 10.0,
 
+    "HiddenLayers" : [10, 10, 10, 10],
     "Memory": 100,
 
     "ViewDistance" : 1000.0

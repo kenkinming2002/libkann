@@ -3,15 +3,29 @@
 #include "World.hpp"
 #include "Ray.hpp"
 
-#include <iostream>
 #include <cmath>
 #include <limits>
 
 static constexpr double ANGLE = M_PI / 12.0;
 
+const std::vector<size_t>& Creature::topology()
+{
+  static std::vector<size_t> topology = [](){
+    std::vector<size_t> topology;
+
+    topology.reserve(CONFIG.creature.hiddenLayers.size() + 2);
+    topology.push_back(Creature::NUM_INPUT);
+    topology.insert(topology.end(), CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end());
+    topology.push_back(Creature::NUM_OUTPUT);
+
+    return topology;
+  }();
+  return topology;
+}
+
 template<typename PRNG>
 Creature::Creature(PRNG& prng, Eigen::Vector2d position) 
-  : m_neuralNetwork({NUM_INPUT, 50, 50, 50, 50, 50, 50, NUM_OUTPUT}, prng, CONFIG.creature.memory), 
+  : m_neuralNetwork(topology(), prng, CONFIG.creature.memory), 
     m_position(position), m_energy(CONFIG.creature.maxEnergy), m_health(CONFIG.creature.maxHealth),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 

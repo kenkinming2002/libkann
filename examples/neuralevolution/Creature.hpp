@@ -32,6 +32,9 @@ private:
     MATING_DESIRE = 3
   };
 
+private:
+  static const std::vector<size_t>& topology();
+
 public:
   template<typename PRNG>
   Creature(PRNG& prng, Eigen::Vector2d position);
