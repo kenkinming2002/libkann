@@ -41,12 +41,13 @@ public:
   Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy);
 
 public:
-  void preUpdate(float dt, World& world) const;
+  void preUpdate(float dt, World& world);
   // Modify externally visible data
   void update(float dt, World& world);
 
 public:
-  void updateSight(World& world) const;
+  void updateSight(World& world);
+  void updateStatistics(float dt);
 
 private:
   double updateMovement(float dt, World& world);
@@ -67,12 +68,13 @@ private:
 public:
   double health() const { return m_health; }
   auto position() const { return m_position; }
+  auto statistics() const { return m_statistics; }
 
 public:
   friend class Renderer;
 
 private:
-  mutable NeuralNetwork m_neuralNetwork;
+  NeuralNetwork m_neuralNetwork;
 
 private:
   Eigen::Vector2d m_position;
@@ -98,5 +100,12 @@ private:
   public:
     std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>> target;
   };
-  mutable Eye m_eyes[EYES_COUNT];
+  Eye m_eyes[EYES_COUNT];
+
+private:
+  struct Statistics
+  {
+    float lifetime = 0.0f; //< How long has this creature survived
+    size_t matingCount = 0;
+  } m_statistics;
 };

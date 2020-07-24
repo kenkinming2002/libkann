@@ -75,6 +75,14 @@ World::Info World::info() const
 
   Info info;
 
+  info.ageStatistics = Statistics<float, float>(creatures.begin(), creatures.end(), [](const Creature& creature){
+      return creature.statistics().lifetime;
+  });
+
+  info.matingCountStatistics = Statistics<float, size_t>(creatures.begin(), creatures.end(), [](const Creature& creature){
+      return creature.statistics().matingCount;
+  });
+
   info.healthyCreaturesCount =  std::count_if(creatures.begin(), creatures.end(), std::mem_fn(&Creature::healthy));
   info.creaturesCount = creatures.size();
 

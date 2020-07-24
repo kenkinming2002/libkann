@@ -36,7 +36,7 @@ Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double
     m_position(position), m_energy(energy), m_health(CONFIG.creature.maxHealth),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
-void Creature::updateSight(World& world) const
+void Creature::updateSight(World& world)
 {
   Ray rays[EYES_COUNT];
   for(size_t i=0; i<EYES_COUNT; ++i)
@@ -92,7 +92,12 @@ void Creature::updateSight(World& world) const
   });
 }
 
-void Creature::preUpdate(float /*dt*/, World& world) const
+void Creature::updateStatistics(float dt)
+{
+  m_statistics.lifetime += dt;
+}
+
+void Creature::preUpdate(float dt, World& world)
 {
   updateSight(world);
 
@@ -101,6 +106,8 @@ void Creature::preUpdate(float /*dt*/, World& world) const
   m_neuralNetwork.input({m_energy, m_health, m_eyes[0].distance, m_eyes[1].distance});
   // Feed Forwrad
   m_neuralNetwork.feedForward();
+  
+  updateStatistics(dt);
 }
 
 namespace
@@ -245,6 +252,8 @@ void Creature::updateMating(World& world)
     Eigen::Vector2d position = (m_position + otherCreature.m_position) / 2.0;
 
     world.addCreature(Creature(std::move(neuralNetwork), position, 0.3 * CONFIG.creature.maxEnergy));
+    ++m_statistics.matingCount;
+    ++otherCreature.m_statistics.matingCount;
 
     return;
   }

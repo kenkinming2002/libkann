@@ -134,7 +134,7 @@ void Renderer:: begin()
   m_visibleRect = m_camera.visibleRect(m_renderTarget);
 }
 
-void Renderer:: end()
+void Renderer::end()
 {
   this->addGuiText(concatenate("Render Time:", m_renderTimer.average()));
 
@@ -209,8 +209,11 @@ void Renderer::draw(const World& world)
 
   this->addGuiText(concatenate("Creatures:", info.healthyCreaturesCount, "/", info.creaturesCount, "(Healthy/All)"));
   this->addGuiText(concatenate("Statistics:", info.deathToll, "/", info.birthCount, "(DeathToll/BirthCount)"));
-  this->addGuiText(concatenate("Time:", info.realTime, "/", info.worldTime, "/", info.worldTime / info.realTime, 
-        "(Real/World/Ratio)"));
+
+  this->addGuiText(concatenate("Age:", info.ageStatistics.toString()));
+  this->addGuiText(concatenate("Mating Count:", info.matingCountStatistics.toString()));
+
+  this->addGuiText(concatenate("Time:", info.realTime, "/", info.worldTime, "/", info.worldTime / info.realTime, "(Real/World/Ratio)"));
   this->addGuiText(concatenate("Update Time:", info.averageUpdateTime));
 
   this->addRectangle(sf::Vector2f(0.0f, 0.0f), convert(world.m_dimension), sf::Color::White);

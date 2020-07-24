@@ -4,6 +4,7 @@
 #include "BerryBush.hpp"
 #include "Grid.hpp"
 #include "Timer.hpp"
+#include "Statistics.hpp"
 
 #include <vector>
 #include <random>
@@ -29,6 +30,9 @@ public:
 public:
   struct Info
   {
+    Statistics<float, float> ageStatistics;
+    Statistics<float, size_t> matingCountStatistics;
+
     size_t healthyCreaturesCount;
     size_t creaturesCount;
 
