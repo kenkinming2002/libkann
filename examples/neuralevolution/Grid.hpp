@@ -300,7 +300,7 @@ public:
   template<typename PositionFunc>
   void synchronize(PositionFunc positionFunc)
   {
-    cell_type orphans;
+    static cell_type orphans;
     for(auto& cell: m_cells)
     {
       auto it = std::partition(cell.begin(), cell.end(), [&](const auto& t){
