@@ -5,18 +5,18 @@
 #include <cassert>
 #include <iostream>
 
-static Eigen::VectorXd convert(const std::vector<double>& input)
-{
-  Eigen::VectorXd output(input.size());
-  for(size_t i=0; i<input.size(); ++i)
-    output(i) = input[i];
-  return output;
-}
-
-static std::vector<double> convert(Eigen::VectorXd input)
-{
-  return std::vector<double>(input.data(), input.data() + input.size());
-}
+//static Eigen::VectorXd convert(const std::vector<double>& input)
+//{
+//  Eigen::VectorXd output(input.size());
+//  for(size_t i=0; i<input.size(); ++i)
+//    output(i) = input[i];
+//  return output;
+//}
+//
+//static std::vector<double> convert(Eigen::VectorXd input)
+//{
+//  return std::vector<double>(input.data(), input.data() + input.size());
+//}
 
 NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory) : m_memory(memory), m_topology(topology)
 {
@@ -61,24 +61,26 @@ NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, PRNG& prng, si
 
 template NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, std::mt19937& prng, size_t memory);
 
-void NeuralNetwork::input(std::vector<double> input)
+void NeuralNetwork::input(std::initializer_list<double> input)
 {
-  auto output = this->output();
-  for(size_t i=0; i<m_memory; ++i)
-    input.push_back(output[output.size() - m_memory + i]);
+  Eigen::VectorXd realInput(input.size() + m_memory);
+  for(size_t i=0; i<input.size(); ++i)
+    realInput(i) = *(input.begin() + i);
 
-  m_layers.front().input(convert(input));
+  for(size_t i=input.size(); i<input.size()+m_memory; ++i)
+    realInput(i) = output(i);
+
+  m_layers.front().input(std::move(realInput));
 }
 
 double NeuralNetwork::output(size_t i) const
 {
-  // TODO: cache this
   return m_output(i);
 }
 
-std::vector<double> NeuralNetwork::output() const
+const Eigen::VectorXd& NeuralNetwork::output() const
 {
-  return convert(m_output);
+  return m_output;
 }
 
 void NeuralNetwork::feedForward()

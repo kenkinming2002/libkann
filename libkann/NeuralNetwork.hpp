@@ -10,6 +10,7 @@
 #include <vector>
 #include <random>
 #include <type_traits>
+#include <initializer_list>
 
 class NeuralNetwork
 {
@@ -21,7 +22,7 @@ public:
 
 public:
   // TODO: Consider optimizing this
-  LIBKANN_SYMEXPORT void input(std::vector<double> input);
+  LIBKANN_SYMEXPORT void input(std::initializer_list<double> input);
 
   /*
    * Returning an entire std::vector is inefficient as memory allocation is
@@ -38,7 +39,7 @@ public:
   }
 
   LIBKANN_SYMEXPORT double output(size_t i) const;
-  LIBKANN_SYMEXPORT std::vector<double> output() const;
+  LIBKANN_SYMEXPORT const Eigen::VectorXd& output() const;
 
 public:
   LIBKANN_SYMEXPORT void feedForward();
