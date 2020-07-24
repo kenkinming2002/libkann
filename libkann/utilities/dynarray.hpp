@@ -78,14 +78,14 @@ public:
   }
 
 public:
-  iterator begin() { return &m_data[0]; }
-  iterator end() { return &m_data[m_size]; }
+  iterator begin() { return m_data.get(); }
+  iterator end() { return m_data.get() + m_size; }
 
-  const_iterator begin() const { return &m_data[0]; }
-  const_iterator end() const { return &m_data[m_size]; }
+  const_iterator begin() const { return m_data.get(); }
+  const_iterator end() const { return m_data.get() + m_size; }
 
-  const_iterator cbegin() const { return &m_data[0]; }
-  const_iterator cend() const { return &m_data[m_size]; }
+  const_iterator cbegin() const { return m_data.get(); }
+  const_iterator cend() const { return m_data.get() + m_size; }
 
   reverse_iterator rbegin() { return reverse_iterator(end()); }
   reverse_iterator rend() { return reverse_iterator(begin()); }
