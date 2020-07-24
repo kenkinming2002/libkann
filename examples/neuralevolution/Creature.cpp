@@ -178,8 +178,8 @@ void Creature::updateEating()
 
     auto& berryBush = std::get<std::reference_wrapper<BerryBush>>(eye.target).get();
 
-    if(auto distance = (m_position - berryBush.position()).norm();
-        distance >= EATING_DISTANCE)
+    if(auto squaredDistance = (m_position - berryBush.position()).squaredNorm();
+        squaredDistance >= EATING_DISTANCE * EATING_DISTANCE)
       continue;
 
     if(berryBush.count() == 0)
@@ -220,8 +220,8 @@ void Creature::updateMating(World& world)
     m_matingCooldown = CONFIG.creature.matingCooldown;
     otherCreature.m_matingCooldown = CONFIG.creature.matingCooldown;
 
-    if(auto distance = (m_position - otherCreature.m_position).norm();
-        distance >= MATING_DISTANCE)
+    if(auto squaredDistance = (m_position - otherCreature.m_position).squaredNorm();
+        squaredDistance >= MATING_DISTANCE * MATING_DISTANCE)
       continue; // Too far away
 
     if(!takeEnergy(CONFIG.creature.maxEnergy * 0.2) || !otherCreature.takeEnergy(CONFIG.creature.maxEnergy * 0.2))
