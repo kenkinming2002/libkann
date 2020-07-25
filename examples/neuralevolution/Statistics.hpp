@@ -6,6 +6,7 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
+#include <tuple>
 
 template<typename Result, typename T>
 struct Statistics
@@ -26,8 +27,33 @@ public:
 public:
   Result mean;
   Result standardDeviation; 
-  T minimum, median, maximum;
+  T minimum, lowerQuartile, median, upperQuartile, maximum;
 };
+
+namespace details
+{
+  template<typename Iterator>
+  using Range = std::pair<Iterator, Iterator>;
+
+  template<typename RandomAccessIterator>
+  auto median(RandomAccessIterator first, RandomAccessIterator last) 
+    -> std::tuple<Range<RandomAccessIterator>, Range<RandomAccessIterator>, typename std::iterator_traits<RandomAccessIterator>::value_type> 
+  {
+    size_t n = std::distance(first, last);
+    if(n % 2 == 0)
+    {
+      auto middleFirst = std::next(first, n/2-1);
+      auto middleLast  = std::next(first, n/2);
+      return {{first, middleLast}, {middleLast, last}, (*middleFirst + *middleLast) / 2};
+    }
+    else
+    {
+      auto middle = std::next(first, (n-1)/2);
+      return {{first, std::next(middle)}, {middle, last}, *middle};
+    }
+  }
+}
+
 
 template<typename Result, typename T>
 template<typename InputIterator, typename UnaryOperation>
@@ -43,14 +69,18 @@ Statistics<Result, T>::Statistics(InputIterator first, InputIterator last, Unary
   });
   this->standardDeviation = std::sqrt(static_cast<Result>(totalVariance) / m_buffer.size());
 
-  std::sort(m_buffer.begin(), m_buffer.end());
-  this->minimum = m_buffer.front();
+  if(!m_buffer.empty())
+  {
+    std::sort(m_buffer.begin(), m_buffer.end());
+    this->minimum = m_buffer.front();
 
-  this->median = (m_buffer.size() % 2) == 0 
-    ? (m_buffer[m_buffer.size()/2-1] + m_buffer[m_buffer.size()/2]) / 2
-    : m_buffer[(m_buffer.size()-1)/2];
+    auto [lowerRange, upperRange, median] = details::median(m_buffer.begin(), m_buffer.end());
+    this->median = median;
+    std::tie(std::ignore, std::ignore,this->lowerQuartile) = details::median(lowerRange.first, lowerRange.second);
+    std::tie(std::ignore, std::ignore,this->upperQuartile) = details::median(upperRange.first, upperRange.second);
 
-  this->maximum = m_buffer.back();
+    this->maximum = m_buffer.back();
+  }
 
   m_buffer.clear();
 }
@@ -60,9 +90,9 @@ std::string Statistics<Result, T>::toString() const
 {
   std::stringstream ss;
   ss << std::fixed << std::setprecision(4);
-  ss << mean << "/" << standardDeviation << "/";
-  ss << minimum << "/" << median << "/" << maximum;
-  ss << "(Mean/StandardDeviation/Minimum/Median/Maximum)";
+
+  ss << mean << "/" << standardDeviation << "(Mean/StandardDeviation);";
+  ss << minimum << "/" << lowerQuartile << "/" << median << "/" << upperQuartile << "/" << maximum << "(Minimum/LQ/Median/UQ/Maximum)";
   return ss.str();
 }
 
