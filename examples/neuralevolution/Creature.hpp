@@ -1,17 +1,14 @@
 #pragma once
 
 #include "Config.hpp"
-
 #include "BerryBush.hpp"
 #include "Selectable.hpp"
 
-#include <Eigen/Eigen>
 #include <libkann/NeuralNetwork.hpp>
 
-#include <ostream>
+#include <Eigen/Eigen>
 
-#include <utility>
-#include <optional>
+#include <functional>
 #include <variant>
 
 class World;
@@ -41,29 +38,50 @@ public:
   Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy);
 
 public:
+  /*
+   * MT-Safe
+   *
+   * Even though a non-const reference to world is passed, it is not allowed to
+   * modify content of world, but only store reference to variable in world for
+   * later modification.
+   *
+   * This updates attributes of creatures that does not requires neurological
+   * thinking and also feed the neural brain.
+   */
   void preUpdate(float dt, World& world);
-  // Modify externally visible data
+
+  /*
+   * MT-Unsafe
+   *
+   * Mostly not rhread safe. Some thread safe component can probaly be mvoed to
+   * postUpdate but the gain is questionable.
+   */
   void update(float dt, World& world);
 
 public:
+  /*
+   * The following functions are called in preUpdate
+   */
   void updateSight(World& world);
+  void updateCooldown(float dt);
+  void updateSurvival(float dt);
   void updateStatistics(float dt);
 
 private:
-  double updateMovement(float dt, World& world);
-  double updateSurvival(float dt);
-
-  void updateCooldown(float dt);
+  /*
+   * The following functions are called in update
+   */
+  void updateMovement(float dt, World& world);
   void updateEating();
   void updateMating(World& world);
+
+private:
+  inline bool takeEnergy(double amount);
+  inline bool takeHealth(double amount);
 
 public:
   bool dead() const { return m_health == 0.0; }
   bool healthy() const { return m_health == CONFIG.creature.maxHealth; }
-
-private:
-  bool takeEnergy(double amount);
-  bool takeHealth(double amount);
 
 public:
   double health() const { return m_health; }

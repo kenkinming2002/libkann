@@ -3,8 +3,21 @@
 #include "World.hpp"
 #include "Ray.hpp"
 
+#include <cassert>
 #include <cmath>
-#include <limits>
+
+namespace
+{
+  template<class T>
+  constexpr T wrap(const T& v, const T& lo, const T& hi )
+  {
+    T gap = hi - lo;
+    int n = std::floor((v-lo) / gap);
+    T result =  v - n * gap;
+    assert(result>=lo && result<=hi);
+    return result;
+  }
+}
 
 static constexpr double ANGLE = M_PI / 12.0;
 
@@ -35,6 +48,41 @@ Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double
   : m_neuralNetwork(neuralNetwork),
     m_position(position), m_energy(energy), m_health(CONFIG.creature.maxHealth),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
+
+void Creature::preUpdate(float dt, World& world)
+{
+  updateSight(world);
+
+  // 1: Neural network
+  m_neuralNetwork.input({m_energy, m_health, m_eyes[0].distance, m_eyes[1].distance});
+  m_neuralNetwork.feedForward();
+
+  updateCooldown(dt);
+  updateSurvival(dt);
+  updateStatistics(dt);
+
+}
+
+void Creature::update(float dt, World& world)
+{
+  updateMovement(dt, world);
+
+  updateEating();
+  updateMating(world);
+
+  // Take health
+  if(m_energy == 0.0f)
+    takeHealth(CONFIG.creature.hungerHealthDrain * dt);
+
+  // Healing
+  if(m_energy >= CONFIG.creature.maxEnergy * CONFIG.creature.healingThreshold)
+  {
+    double amount = std::min(CONFIG.creature.maxHealth - m_health, m_energy);
+    m_health += amount;
+    m_energy -= amount;
+  }
+
+}
 
 void Creature::updateSight(World& world)
 {
@@ -92,58 +140,28 @@ void Creature::updateSight(World& world)
   });
 }
 
+void Creature::updateCooldown(float dt)
+{
+  m_eatingCooldown -= dt;
+  if(m_eatingCooldown<0.0f)
+    m_eatingCooldown=0.0f;
+
+  m_matingCooldown -= dt;
+  if(m_matingCooldown<0.0f)
+    m_matingCooldown=0.0f;
+}
+
+void Creature::updateSurvival(float dt)
+{
+  this->takeEnergy(CONFIG.creature.passiveEnergyDrain * dt);
+}
+
 void Creature::updateStatistics(float dt)
 {
   m_statistics.lifetime += dt;
 }
 
-void Creature::preUpdate(float dt, World& world)
-{
-  updateSight(world);
-
-  // 1: Neural network
-  // Prepare input
-  m_neuralNetwork.input({m_energy, m_health, m_eyes[0].distance, m_eyes[1].distance});
-  // Feed Forwrad
-  m_neuralNetwork.feedForward();
-  
-  updateStatistics(dt);
-}
-
-namespace
-{
-  template<class T>
-  constexpr T wrap(const T& v, const T& lo, const T& hi )
-  {
-    T gap = hi - lo;
-    int n = std::floor((v-lo) / gap);
-    T result =  v - n * gap;
-    assert(result>=lo && result<=hi);
-    return result;
-  }
-}
-
-void Creature::update(float dt, World& world)
-{
-  auto movementEnergyDrain = updateMovement(dt, world);
-  auto survivalEnergyDrain = updateSurvival(dt);
-
-  if(!takeEnergy(movementEnergyDrain + survivalEnergyDrain))
-    takeHealth(CONFIG.creature.hungerHealthDrain * dt);
-
-  if(m_energy >= CONFIG.creature.maxEnergy * CONFIG.creature.healingThreshold)
-  {
-    double amount = std::min(CONFIG.creature.maxHealth - m_health, m_energy);
-    m_health += amount;
-    m_energy -= amount;
-  }
-
-  updateCooldown(dt);
-  updateEating();
-  updateMating(world);
-}
-
-double Creature::updateMovement(float dt, World& world)
+void Creature::updateMovement(float dt, World& world)
 {
   auto linearSpeedFactor = m_neuralNetwork.output(Output::LINEAR_SPEED_FACTOR);
   auto linearSpeed = linearSpeedFactor * 
@@ -159,23 +177,7 @@ double Creature::updateMovement(float dt, World& world)
   m_position(1) = wrap(m_position(1), -world.dimension()(1)/2.0, world.dimension()(1)/2.0);
 
   // Energy
-  return CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed * dt;
-}
-
-double Creature::updateSurvival(float dt)
-{
-  return CONFIG.creature.passiveEnergyDrain * dt;
-}
-
-void Creature::updateCooldown(float dt)
-{
-  m_eatingCooldown -= dt;
-  if(m_eatingCooldown<0.0f)
-    m_eatingCooldown=0.0f;
-
-  m_matingCooldown -= dt;
-  if(m_matingCooldown<0.0f)
-    m_matingCooldown=0.0f;
+  this->takeEnergy(CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed * dt);
 }
 
 void Creature::updateEating()
@@ -261,18 +263,12 @@ void Creature::updateMating(World& world)
 
 bool Creature::takeEnergy(double amount)
 {
-  m_energy -= amount;
-  if(m_energy<0.0)
-    m_energy=0.0;
-
+  m_energy = std::max(m_energy-amount, 0.0);
   return m_energy != 0.0;
 }
 
 bool Creature::takeHealth(double amount)
 {
-  m_health -= amount;
-  if(m_health<0.0)
-    m_health=0.0;
-
+  m_health = std::max(m_health - amount, 0.0);
   return m_health != 0.0;
 }

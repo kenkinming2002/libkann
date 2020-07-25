@@ -1,13 +1,11 @@
 #pragma once
 
 #include "Config.hpp"
-
 #include "Selectable.hpp"
 
 #include <Eigen/Eigen>
 
 #include <algorithm>
-#include <ostream>
 
 class BerryBush : public Selectable
 {

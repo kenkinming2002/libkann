@@ -4,14 +4,15 @@
 
 #include <Eigen/Eigen>
 
+#include <iterator>
 #include <vector>
-#include <type_traits>
+#include <utility>
+#include <functional>
+#include <cstddef>
 
-#include <iostream>
-
-namespace
+namespace details
 {
-  auto clamp(Eigen::Vector2d v, Eigen::Vector2d lo, Eigen::Vector2d hi) 
+  inline auto clamp(Eigen::Vector2d v, Eigen::Vector2d lo, Eigen::Vector2d hi) 
   {
     return Eigen::Vector2d(
       std::clamp(v(0), lo(0), hi(0)),
@@ -31,12 +32,12 @@ public:
 
   double distance(Eigen::Vector2d point) const 
   {
-    return (point - clamp(point, m_position, m_position + m_dimension)).norm();
+    return (point - details::clamp(point, m_position, m_position + m_dimension)).norm();
   }
 
   double squaredDistance(Eigen::Vector2d point) const 
   {
-    return (point - clamp(point, m_position, m_position + m_dimension)).squaredNorm();
+    return (point - details::clamp(point, m_position, m_position + m_dimension)).squaredNorm();
   }
 
 private:
@@ -65,8 +66,8 @@ public:
 public:
   std::pair<std::pair<size_t, size_t>, std::pair<size_t, size_t>> indices(Box box) const
   {
-    auto topLeft     = indices(clamp(box.position()                  , this->position(), this->position() + this->dimension()));
-    auto bottomRight = indices(clamp(box.position() + box.dimension(), this->position(), this->position() + this->dimension()));
+    auto topLeft     = indices(details::clamp(box.position()                  , this->position(), this->position() + this->dimension()));
+    auto bottomRight = indices(details::clamp(box.position() + box.dimension(), this->position(), this->position() + this->dimension()));
 
     return std::make_pair(topLeft, bottomRight);
   }

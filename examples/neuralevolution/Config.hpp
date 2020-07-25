@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stddef.h>
-#include <optional>
 #include <vector>
 
 extern struct Config

@@ -1,12 +1,11 @@
 #include "World.hpp"
 
+#include "Config.hpp"
+
 #include <SFML/Graphics/RenderTarget.hpp>
 
 #include <iostream>
 #include <iomanip>
-
-#include "Config.hpp"
-
 #include <cmath>
 
 static constexpr double AVERAGE_COUNT_PER_CELL = 3.0;

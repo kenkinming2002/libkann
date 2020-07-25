@@ -2,8 +2,7 @@
 
 #include "Config.hpp"
 
-#include <iostream>
-#include <algorithm>
+#include <SFML/Window/Event.hpp>
 
 App::App(seed_type seed) 
   : m_world(seed), 

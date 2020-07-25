@@ -1,8 +1,9 @@
 #include "Ray.hpp"
 
+#include <tuple>
+#include <utility>
 #include <cmath>
 #include <limits>
-
 #include <iostream>
 
 namespace

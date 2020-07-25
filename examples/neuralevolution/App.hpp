@@ -1,13 +1,10 @@
 #pragma once
 
-#include <array>
+#include "World.hpp"
+#include "Renderer.hpp"
 
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Window/Event.hpp>
 #include <SFML/System/Clock.hpp>
-
-#include "Renderer.hpp"
-#include "World.hpp"
 
 class App
 {
