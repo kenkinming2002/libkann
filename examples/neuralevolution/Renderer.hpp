@@ -11,6 +11,8 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
 
+#include <fstream>
+
 class Renderer
 {
 private:
@@ -65,6 +67,7 @@ public:
 public:
   void draw(const Creature& creature);
   void draw(const BerryBush& berryBush);
+  void draw(const World::Info& info);
   void draw(const World& world);
 
 private:
@@ -93,6 +96,9 @@ private:
 
 private:
   bool m_drawDebug = false;
+
+private:
+  std::ofstream m_csvFile;
 
 private:
   Timer<> m_renderTimer;

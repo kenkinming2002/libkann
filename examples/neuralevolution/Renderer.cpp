@@ -5,6 +5,7 @@
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Font.hpp>
 
+#include <stdexcept>
 #include <cmath>
 #include <cassert>
 #include <sstream>
@@ -44,7 +45,24 @@ namespace
 }
 
 Renderer::Renderer(sf::RenderTarget& renderTarget)
-  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles) {}
+  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles), m_csvFile("statistics.csv") 
+{
+  if(!m_csvFile)
+    throw std::runtime_error("Failed to open statisti.csv for writing");
+
+  auto write = [this](const char* name)
+  {
+    m_csvFile << name << " - Mean"          << ',' << name << " - StandardDeviation" << ',' ;
+    m_csvFile << name << " - Minimum"       << ',' << name << " - LowerQuartile" << ','; 
+    m_csvFile << name << " - Median"        << ',' ;
+    m_csvFile << name << " - UpperQuartile" << ',' << name << " - Maximum"; 
+  };
+  m_csvFile << "Time,";
+  write("Age");
+  m_csvFile << ',';
+  write("Mating Count");
+  m_csvFile << '\n';
+}
 
 bool Renderer::handleInput(sf::Event event, World& world)
 {
@@ -203,10 +221,8 @@ void Renderer::draw(const BerryBush& berryBush)
   );
 }
 
-void Renderer::draw(const World& world)
+void Renderer::draw(const World::Info& info)
 {
-  auto info = world.info();
-
   this->addGuiText(concatenate("Creatures:", info.healthyCreaturesCount, "/", info.creaturesCount, "(Healthy/All)"));
   this->addGuiText(concatenate("Statistics:", info.deathToll, "/", info.birthCount, "(DeathToll/BirthCount)"));
 
@@ -216,6 +232,25 @@ void Renderer::draw(const World& world)
   this->addGuiText(concatenate("Time:", info.realTime, "/", info.worldTime, "/", info.worldTime / info.realTime, "(Real/World/Ratio)"));
   this->addGuiText(concatenate("Update Time:", info.averageUpdateTime));
 
+  // Write to a csv file
+  auto write = [this](const auto& statistics)
+  {
+    m_csvFile << statistics.mean << ',' << statistics.standardDeviation << ',' ;
+    m_csvFile << statistics.minimum << ',' << statistics.lowerQuartile << ','; 
+    m_csvFile << statistics.median << ',' ;
+    m_csvFile << statistics.upperQuartile << ',' << statistics.maximum; 
+  };
+
+  m_csvFile << info.worldTime << ',';
+  write(info.ageStatistics);
+  m_csvFile << ',';
+  write(info.matingCountStatistics);
+  m_csvFile << '\n';
+}
+
+void Renderer::draw(const World& world)
+{
+  this->draw(world.info());
   this->addRectangle(sf::Vector2f(0.0f, 0.0f), convert(world.m_dimension), sf::Color::White);
 
   for(std::reference_wrapper<const BerryBush> berryBush: world.m_berryBushes.all())
