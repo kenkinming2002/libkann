@@ -45,23 +45,19 @@ namespace
 }
 
 Renderer::Renderer(sf::RenderTarget& renderTarget)
-  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles), m_csvFile("statistics.csv") 
+  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles), m_csvFile("statistics.csv")
 {
-  if(!m_csvFile)
-    throw std::runtime_error("Failed to open statisti.csv for writing");
-
-  auto write = [this](const char* name)
-  {
-    m_csvFile << name << " - Mean"          << ',' << name << " - StandardDeviation" << ',' ;
-    m_csvFile << name << " - Minimum"       << ',' << name << " - LowerQuartile" << ','; 
-    m_csvFile << name << " - Median"        << ',' ;
-    m_csvFile << name << " - UpperQuartile" << ',' << name << " - Maximum"; 
-  };
-  m_csvFile << "Time,";
-  write("Age");
-  m_csvFile << ',';
-  write("Mating Count");
-  m_csvFile << '\n';
+  m_csvFile.write(
+    "Time",
+    "Age - Mean", "Age - StandardDeviation",
+    "Age - Minimum", "Age - LowerQuartile",
+    "Age - Median",
+    "Age - UpperQuartile", "Age - Maximum" ,
+    "Mating Count - Mean", "Mating Count - StandardDeviation",
+    "Mating Count - Minimum", "Mating Count - LowerQuartile",
+    "Mating Count - Median",
+    "Mating Count - UpperQuartile", "Mating Count - Maximum"
+  );
 }
 
 bool Renderer::handleInput(sf::Event event, World& world)
@@ -214,9 +210,9 @@ void Renderer::draw(const BerryBush& berryBush)
 
   this->addCircle(convert(berryBush.m_position), CONFIG.berryBush.radius, sf::Color::Green, OUTLINE_THICKNESS, berryBush.selected ? sf::Color::Red : sf::Color::Black);
   this->addBar(
-    convert(berryBush.m_position) + sf::Vector2f(0.0f, BAR_VERTICAL_OFFSET), 
-    sf::Vector2f(2.0f * CONFIG.berryBush.radius, BAR_THICKNESS), 
-    sf::Color::Green, sf::Color::Red, 
+    convert(berryBush.m_position) + sf::Vector2f(0.0f, BAR_VERTICAL_OFFSET),
+    sf::Vector2f(2.0f * CONFIG.berryBush.radius, BAR_THICKNESS),
+    sf::Color::Green, sf::Color::Red,
     static_cast<float>(berryBush.m_berryCount) / CONFIG.berryBush.maxBerryCount
   );
 }
@@ -232,20 +228,19 @@ void Renderer::draw(const World::Info& info)
   this->addGuiText(concatenate("Time:", info.realTime, "/", info.worldTime, "/", info.worldTime / info.realTime, "(Real/World/Ratio)"));
   this->addGuiText(concatenate("Update Time:", info.averageUpdateTime));
 
-  // Write to a csv file
-  auto write = [this](const auto& statistics)
-  {
-    m_csvFile << statistics.mean << ',' << statistics.standardDeviation << ',' ;
-    m_csvFile << statistics.minimum << ',' << statistics.lowerQuartile << ','; 
-    m_csvFile << statistics.median << ',' ;
-    m_csvFile << statistics.upperQuartile << ',' << statistics.maximum; 
-  };
+  m_csvFile.write(
+    info.worldTime,
 
-  m_csvFile << info.worldTime << ',';
-  write(info.ageStatistics);
-  m_csvFile << ',';
-  write(info.matingCountStatistics);
-  m_csvFile << '\n';
+    info.ageStatistics.mean, info.ageStatistics.standardDeviation,
+    info.ageStatistics.minimum, info.ageStatistics.lowerQuartile,
+    info.ageStatistics.median,
+    info.ageStatistics.upperQuartile, info.ageStatistics.maximum ,
+
+    info.matingCountStatistics.mean, info.matingCountStatistics.standardDeviation,
+    info.matingCountStatistics.minimum, info.matingCountStatistics.lowerQuartile,
+    info.matingCountStatistics.median,
+    info.matingCountStatistics.upperQuartile, info.matingCountStatistics.maximum
+  );
 }
 
 void Renderer::draw(const World& world)
@@ -311,7 +306,7 @@ void Renderer::addCircle(sf::Vector2f position, float radius, sf::Color fillColo
   auto boundingRect = sf::FloatRect(boundingRectCenter - boundingRectHalfSize, 2.0f * boundingRectHalfSize);
   if(!m_visibleRect.intersects(boundingRect))
     return;
-  
+
   static constexpr size_t POINT_COUNT = 30;
   static auto unitVectors = [](){
     std::array<sf::Vector2f, POINT_COUNT> result;
@@ -426,8 +421,8 @@ void Renderer::addBar(sf::Vector2f position, sf::Vector2f dimension, sf::Color c
 
 sf::View Renderer::guiView() const
 {
-  sf::Vector2f windowSize(m_renderTarget.getSize()); 
-  return sf::View(windowSize/2.0f, windowSize); 
+  sf::Vector2f windowSize(m_renderTarget.getSize());
+  return sf::View(windowSize/2.0f, windowSize);
 }
 
 

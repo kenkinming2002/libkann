@@ -4,14 +4,13 @@
 #include "BerryBush.hpp"
 #include "World.hpp"
 #include "Timer.hpp"
+#include "CSVFile.hpp"
 
 #include <SFML/System/String.hpp>
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
-
-#include <fstream>
 
 class Renderer
 {
@@ -98,7 +97,7 @@ private:
   bool m_drawDebug = false;
 
 private:
-  std::ofstream m_csvFile;
+  CSVFile m_csvFile;
 
 private:
   Timer<> m_renderTimer;
