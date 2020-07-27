@@ -35,3 +35,13 @@ double Ray::cast(CircleCollider circle) const
   return tangentProjectionLength - 
     std::sqrt(circle.radius * circle.radius - normalProjectionLength * normalProjectionLength);
 }
+
+double Ray::cast(const StaticBody& staticBody) const
+{
+  return this->cast(CircleCollider(staticBody.position(), staticBody.radius()));
+}
+
+double Ray::cast(const PhantomBody& phantomBody) const
+{
+  return this->cast(CircleCollider(phantomBody.position(), phantomBody.radius()));
+}

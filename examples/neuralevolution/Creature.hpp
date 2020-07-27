@@ -3,6 +3,7 @@
 #include "Config.hpp"
 #include "BerryBush.hpp"
 #include "Selectable.hpp"
+#include "PhantomBody.hpp"
 
 #include <libkann/NeuralNetwork.hpp>
 
@@ -13,7 +14,7 @@
 
 class World;
 
-class Creature : public Selectable
+class Creature : public PhantomBody, public Selectable
 {
 private:
   static constexpr size_t EYES_COUNT = 2;
@@ -85,7 +86,12 @@ public:
 
 public:
   double health() const { return m_health; }
-  auto position() const { return m_position; }
+  void health(double health) 
+  { 
+    m_health = health; 
+    this->radius() = CONFIG.creature.radius * m_health / CONFIG.creature.maxHealth;
+  }
+
   auto statistics() const { return m_statistics; }
 
 public:
@@ -93,10 +99,6 @@ public:
 
 private:
   NeuralNetwork m_neuralNetwork;
-
-private:
-  Eigen::Vector2d m_position;
-  double m_rotation;
 
 private:
   double m_energy, m_health;

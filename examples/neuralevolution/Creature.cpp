@@ -38,15 +38,17 @@ const std::vector<size_t>& Creature::topology()
 
 template<typename PRNG>
 Creature::Creature(PRNG& prng, Eigen::Vector2d position) 
-  : m_neuralNetwork(topology(), prng, CONFIG.creature.memory), 
-    m_position(position), m_energy(CONFIG.creature.maxEnergy), m_health(CONFIG.creature.maxHealth),
+  : PhantomBody(position, CONFIG.creature.radius), 
+    m_neuralNetwork(topology(), prng, CONFIG.creature.memory), 
+    m_energy(CONFIG.creature.maxEnergy), m_health(CONFIG.creature.maxHealth),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
 template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);
 
 Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy) 
-  : m_neuralNetwork(neuralNetwork),
-    m_position(position), m_energy(energy), m_health(CONFIG.creature.maxHealth),
+  : PhantomBody(position, CONFIG.creature.radius), 
+    m_neuralNetwork(neuralNetwork),
+    m_energy(energy), m_health(CONFIG.creature.maxHealth),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
 void Creature::preUpdate(float dt, World& world)
@@ -54,7 +56,7 @@ void Creature::preUpdate(float dt, World& world)
   updateSight(world);
 
   // 1: Neural network
-  m_neuralNetwork.input({m_energy, m_health, m_eyes[0].distance, m_eyes[1].distance});
+  m_neuralNetwork.input({m_energy, this->health(), m_eyes[0].distance, m_eyes[1].distance});
   m_neuralNetwork.feedForward();
 
   updateCooldown(dt);
@@ -77,8 +79,8 @@ void Creature::update(float dt, World& world)
   // Healing
   if(m_energy >= CONFIG.creature.maxEnergy * CONFIG.creature.healingThreshold)
   {
-    double amount = std::min(CONFIG.creature.maxHealth - m_health, m_energy);
-    m_health += amount;
+    double amount = std::min(CONFIG.creature.maxHealth - this->health(), m_energy);
+    this->health(this->health()+amount);
     m_energy -= amount;
   }
 
@@ -105,10 +107,10 @@ void Creature::updateSight(World& world)
     // Reset eye from last update
     eye.target = std::monostate{};
     eye.distance = CONFIG.creature.viewDistance;
-    ray = Ray(m_position, m_rotation + eye.angle);
+    ray = Ray(this->position(), this->direction() + eye.angle);
   }
 
-  world.creatures().query(m_position, CONFIG.creature.viewDistance + CONFIG.creature.radius, [&](Creature& creature){
+  world.creatures().query(this->position(), CONFIG.creature.viewDistance + CONFIG.creature.radius, [&](Creature& creature){
     for(size_t i=0; i<EYES_COUNT; ++i)
     {
       auto& eye = m_eyes[i];
@@ -116,22 +118,19 @@ void Creature::updateSight(World& world)
       if(&creature == this)
         return;
 
-      CircleCollider circleCollider{creature.m_position, CONFIG.creature.radius};
-      if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)
+      if(double distance = ray.cast(creature); distance < eye.distance && distance > 0.0)
       {
         eye.distance = distance;
         eye.target = std::ref(creature);
       }
     }
   });
-  world.berryBushes().query(m_position, CONFIG.creature.viewDistance + CONFIG.berryBush.radius, [&](BerryBush& berryBush){
+  world.berryBushes().query(this->position(), CONFIG.creature.viewDistance + CONFIG.berryBush.radius, [&](BerryBush& berryBush){
     for(size_t i=0; i<EYES_COUNT; ++i)
     {
       auto& eye = m_eyes[i];
       auto& ray = rays[i];
-
-      CircleCollider circleCollider{berryBush.position(), CONFIG.berryBush.radius};
-      if(double distance = ray.cast(circleCollider); distance < eye.distance && distance > 0.0)
+      if(double distance = ray.cast(berryBush); distance < eye.distance && distance > 0.0)
       {
         eye.distance = distance;
         eye.target = std::ref(berryBush);
@@ -164,20 +163,15 @@ void Creature::updateStatistics(float dt)
 void Creature::updateMovement(float dt, World& world)
 {
   auto linearSpeedFactor = m_neuralNetwork.output(Output::LINEAR_SPEED_FACTOR);
-  auto linearSpeed = linearSpeedFactor * 
-    (linearSpeedFactor >= 0.0 ?  CONFIG.creature.forwardLinearSpeed : CONFIG.creature.backwardLinearSpeed);
+  auto linearSpeedMultiplier = linearSpeedFactor >= 0.0 ?  CONFIG.creature.forwardLinearSpeed : CONFIG.creature.backwardLinearSpeed;
+  auto linearSpeed = linearSpeedFactor * linearSpeedMultiplier;
 
-  auto angularSpeedFactor = m_neuralNetwork.output(Output::ANGULAR_SPEED_FACTOR);
-  double angularSpeed = angularSpeedFactor * CONFIG.creature.angularSpeed;
+  auto angularDirection = m_neuralNetwork.output(Output::ANGULAR_SPEED_FACTOR) * M_PI; // Map from (-1, 1) to (-PI, PI)
 
-  m_rotation += angularSpeed;
-  m_position += linearSpeed * Eigen::Vector2d(std::cos(m_rotation), std::sin(m_rotation)) * dt;
-
-  m_position(0) = wrap(m_position(0), -world.dimension()(0)/2.0, world.dimension()(0)/2.0);
-  m_position(1) = wrap(m_position(1), -world.dimension()(1)/2.0, world.dimension()(1)/2.0);
-
-  // Energy
+  this->applyImpulse(linearSpeed, angularDirection);
   this->takeEnergy(CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed * dt);
+
+  PhantomBody::update(dt, world);
 }
 
 void Creature::updateEating()
@@ -201,7 +195,7 @@ void Creature::updateEating()
 
     auto& berryBush = std::get<std::reference_wrapper<BerryBush>>(eye.target).get();
 
-    if(auto squaredDistance = (m_position - berryBush.position()).squaredNorm();
+    if(auto squaredDistance = (this->position() - berryBush.position()).squaredNorm();
         squaredDistance >= EATING_DISTANCE * EATING_DISTANCE)
       continue;
 
@@ -243,7 +237,7 @@ void Creature::updateMating(World& world)
     m_matingCooldown = CONFIG.creature.matingCooldown;
     otherCreature.m_matingCooldown = CONFIG.creature.matingCooldown;
 
-    if(auto squaredDistance = (m_position - otherCreature.m_position).squaredNorm();
+    if(auto squaredDistance = (this->position() - otherCreature.position()).squaredNorm();
         squaredDistance >= MATING_DISTANCE * MATING_DISTANCE)
       continue; // Too far away
 
@@ -251,7 +245,7 @@ void Creature::updateMating(World& world)
       continue;
 
     auto neuralNetwork = NeuralNetwork::cross(m_neuralNetwork, otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
-    Eigen::Vector2d position = (m_position + otherCreature.m_position) / 2.0;
+    Eigen::Vector2d position = (this->position() + otherCreature.position()) / 2.0;
 
     world.addCreature(Creature(std::move(neuralNetwork), position, 0.3 * CONFIG.creature.maxEnergy));
     ++m_statistics.matingCount;
@@ -269,6 +263,6 @@ bool Creature::takeEnergy(double amount)
 
 bool Creature::takeHealth(double amount)
 {
-  m_health = std::max(m_health - amount, 0.0);
-  return m_health != 0.0;
+  this->health(std::max(this->health() - amount, 0.0));
+  return this->health() == 0.0;
 }

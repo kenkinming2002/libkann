@@ -2,6 +2,9 @@
 
 #include <Eigen/Eigen>
 
+#include "StaticBody.hpp"
+#include "PhantomBody.hpp"
+
 struct CircleCollider
 {
 public:
@@ -22,6 +25,8 @@ public:
 
 public:
   double cast(CircleCollider circle) const;
+  double cast(const StaticBody& staticBody) const;
+  double cast(const PhantomBody& phantomBody) const;
 
 public:
   Eigen::Vector2d position;

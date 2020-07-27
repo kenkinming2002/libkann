@@ -189,16 +189,16 @@ void Renderer::end()
 
 void Renderer::draw(const Creature& creature)
 {
-  float radius = CONFIG.creature.radius * creature.m_health / CONFIG.creature.maxHealth;
+  float radius = creature.radius();
   sf::Color color = lerp(sf::Color::Yellow, sf::Color::Green, creature.m_energy / CONFIG.creature.maxEnergy);
-  this->addCircle(convert(creature.m_position), radius, color, OUTLINE_THICKNESS, creature.selected ? sf::Color::Red : sf::Color::Black);
+  this->addCircle(convert(creature.position()), radius, color, OUTLINE_THICKNESS, creature.selected ? sf::Color::Red : sf::Color::Black);
 
   if(m_drawDebug)
   {
     for(const auto& eye: creature.m_eyes)
     {
-      float angle = creature.m_rotation+eye.angle;
-      this->addLine(convert(creature.m_position), eye.distance, angle, 3.0f, sf::Color::Red);
+      float angle = creature.direction() + eye.angle;
+      this->addLine(convert(creature.position()), eye.distance, angle, 3.0f, sf::Color::Red);
     }
   }
 }
@@ -208,9 +208,9 @@ void Renderer::draw(const BerryBush& berryBush)
   const float BAR_THICKNESS       = CONFIG.berryBush.radius * 0.2f;
   const float BAR_VERTICAL_OFFSET = CONFIG.berryBush.radius * 1.2f;
 
-  this->addCircle(convert(berryBush.m_position), CONFIG.berryBush.radius, sf::Color::Green, OUTLINE_THICKNESS, berryBush.selected ? sf::Color::Red : sf::Color::Black);
+  this->addCircle(convert(berryBush.position()), berryBush.radius(), sf::Color::Green, OUTLINE_THICKNESS, berryBush.selected ? sf::Color::Red : sf::Color::Black);
   this->addBar(
-    convert(berryBush.m_position) + sf::Vector2f(0.0f, BAR_VERTICAL_OFFSET),
+    convert(berryBush.position()) + sf::Vector2f(0.0f, BAR_VERTICAL_OFFSET),
     sf::Vector2f(2.0f * CONFIG.berryBush.radius, BAR_THICKNESS),
     sf::Color::Green, sf::Color::Red,
     static_cast<float>(berryBush.m_berryCount) / CONFIG.berryBush.maxBerryCount
