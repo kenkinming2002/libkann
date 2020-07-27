@@ -1,5 +1,7 @@
 #pragma once
 
+#include "StaticBody.hpp"
+
 #include <Eigen/Eigen>
 
 class World;
@@ -12,19 +14,13 @@ class World;
  *
  * This may change if we wanna investigate collision avoidance behavior.
  */
-class PhantomBody
+class PhantomBody : public StaticBody
 {
 public:
   PhantomBody(Eigen::Vector2d position, double radius);
 
 public:
-  Eigen::Vector2d position() const { return m_position; }
-  const double& radius() const { return m_radius; }
-  double& radius() { return m_radius; }
-
-public:
   double direction() const { return m_direction; }
-
 
 public:
   void applyImpulse(double magnitude, double direction);
@@ -33,10 +29,6 @@ public:
 
 public:
   void update(float dt, const World& world);
-
-private:
-  Eigen::Vector2d m_position;
-  double m_radius;
 
 private:
   Eigen::Vector2d m_velocity;

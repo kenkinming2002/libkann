@@ -5,7 +5,7 @@
   "BerryBush" : {
     "EnergyPerBerry" : 300.0,
     "MaxBerryCount" : 10,
-    "GrowthRate" : 0.02,
+    "GrowthRate" : 0.05,
 
     "Radius" : 30.0
   },
@@ -38,6 +38,8 @@
     "Width" : 2000.0,
     "Height" : 2000.0,
     "InitialCreaturesCount" : 800,
-    "InitialBerryBushesCount" : 500
+    "InitialBerryBushesClusterSizeMin" : 5,
+    "InitialBerryBushesClusterSizeMax" : 10,
+    "InitialBerryBushesClusterCount" : 20
   }
 }

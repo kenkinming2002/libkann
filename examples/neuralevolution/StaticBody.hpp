@@ -7,9 +7,11 @@ class StaticBody
 public:
   StaticBody(Eigen::Vector2d position, double radius);
 
+public:
+  const Eigen::Vector2d& position() const { return m_position; }
+  Eigen::Vector2d& position() { return m_position; }
 
 public:
-  Eigen::Vector2d position() const { return m_position; }
   const double& radius() const { return m_radius; }
   double& radius() { return m_radius; }
 

@@ -92,7 +92,7 @@ public:
   using const_iterator = typename cell_type::const_iterator;
 
 public:
-  static constexpr struct CenteredTag{} centerd_tag = {};
+  static constexpr struct CenteredTag{} centered_tag = {};
 
 public:
   Grid(Eigen::Vector2d position, Eigen::Vector2d dimension, double divisionLength)
@@ -100,6 +100,10 @@ public:
 
   Grid(CenteredTag /*tag*/, Eigen::Vector2d position, Eigen::Vector2d dimension, double divisionLength)
     : m_dividedBox(position - dimension/2.0, dimension, divisionLength), m_cells(m_dividedBox.width() * m_dividedBox.height()) {}
+
+public:
+  Eigen::Vector2d position() const { return m_dividedBox.position(); }
+  Eigen::Vector2d dimension() const { return m_dividedBox.dimension(); }
 
 public:
   cell_type& cell(size_t x, size_t y)

@@ -60,7 +60,9 @@ public:
     double width;
     double height;
     size_t initialCreaturesCount;
-    size_t initialBerryBushesCount;
+    size_t initialBerryBushesClusterSizeMin;
+    size_t initialBerryBushesClusterSizeMax;
+    size_t initialBerryBushesClusterCount;
   };
   World world;
 } CONFIG;

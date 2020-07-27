@@ -1,6 +1,7 @@
 #include "World.hpp"
 
 #include "Config.hpp"
+#include "Generator.hpp"
 
 #include <SFML/Graphics/RenderTarget.hpp>
 
@@ -17,29 +18,24 @@ static double GRID_DIVISION_LENGTH_CREATURE()
 
 static double GRID_DIVISION_LENGTH_BERRYBUSH()
 {
-  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (static_cast<double>(CONFIG.world.initialBerryBushesCount) / AVERAGE_COUNT_PER_CELL));
+  double initialBerryBushesCount = static_cast<double>(CONFIG.world.initialBerryBushesClusterCount) * static_cast<double>(CONFIG.world.initialBerryBushesClusterSizeMin+CONFIG.world.initialBerryBushesClusterSizeMin) / 2.0;
+  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (initialBerryBushesCount / AVERAGE_COUNT_PER_CELL));
 }
 
 World::World(seed_type seed) 
   : m_dimension(CONFIG.world.width, CONFIG.world.height), 
-    m_creatures(Grid<Creature>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_CREATURE()),
-    m_berryBushes(Grid<BerryBush>::centerd_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_BERRYBUSH()),
+    m_creatures(Grid<Creature>::centered_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_CREATURE()),
+    m_berryBushes(Grid<BerryBush>::centered_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_BERRYBUSH()),
     m_generator(seed)
 {
-  std::uniform_real_distribution<double> xPositionDistribution(-m_dimension(0)/2.0, m_dimension(0)/2.0);
-  std::uniform_real_distribution<double> yPositionDistribution(-m_dimension(1)/2.0, m_dimension(1)/2.0);
+  generateClusters(m_berryBushes, m_generator, CONFIG.berryBush.radius, CONFIG.world.initialBerryBushesClusterCount, CONFIG.world.initialBerryBushesClusterSizeMin, CONFIG.world.initialBerryBushesClusterSizeMax, [this](StaticBody staticBody){
+      m_berryBushes.emplace(staticBody.position(), staticBody.position());
+  });
 
-  for(size_t i=0; i<CONFIG.world.initialCreaturesCount; ++i)
-  {
-    Eigen::Vector2d position(xPositionDistribution(m_generator), yPositionDistribution(m_generator));
-    m_creatures.emplace(position, m_generator, position);
-  }
+  generateNormal(m_creatures, m_generator, CONFIG.creature.radius, CONFIG.world.initialCreaturesCount, [this](StaticBody staticBody){
+      m_creatures.emplace(staticBody.position(), m_generator, staticBody.position());
+  });
 
-  for(size_t i=0; i<CONFIG.world.initialBerryBushesCount; ++i)
-  {
-    Eigen::Vector2d position(xPositionDistribution(m_generator), yPositionDistribution(m_generator));
-    m_berryBushes.emplace(position, position);
-  }
 }
 
 void World::update(float dt)
@@ -58,11 +54,13 @@ void World::update(float dt)
   for(std::reference_wrapper<Creature> creature: m_creatures.all())
     creature.get().update(dt, *this);
 
-  m_creatures.synchronize(std::mem_fn(&Creature::position)); // Register the updated position
+  static constexpr auto positionFunc = [](const Creature& creature) { return creature.position(); };
+
+  m_creatures.synchronize(positionFunc); // Register the updated position
 
   m_birthCount += m_newborns.size();
   m_deathToll += m_creatures.remove_if(std::mem_fn(&Creature::dead));
-  m_creatures.insert(std::mem_fn(&Creature::position), m_newborns.begin(), m_newborns.end());
+  m_creatures.insert(positionFunc, m_newborns.begin(), m_newborns.end());
   m_newborns.clear();
 
   m_updateTimer.end();

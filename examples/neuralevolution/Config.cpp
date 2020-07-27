@@ -55,7 +55,9 @@ Config::Config(const char* fileName)
   this->world.width = worldConfig.at("Width").get<double>();
   this->world.height = worldConfig.at("Height").get<double>();
   this->world.initialCreaturesCount = worldConfig.at("InitialCreaturesCount").get<size_t>();
-  this->world.initialBerryBushesCount = worldConfig.at("InitialBerryBushesCount").get<size_t>();
+  this->world.initialBerryBushesClusterSizeMin = worldConfig.at("InitialBerryBushesClusterSizeMin").get<size_t>();
+  this->world.initialBerryBushesClusterSizeMax = worldConfig.at("InitialBerryBushesClusterSizeMax").get<size_t>();
+  this->world.initialBerryBushesClusterCount = worldConfig.at("InitialBerryBushesClusterCount").get<size_t>();
 }
 
 Config CONFIG;

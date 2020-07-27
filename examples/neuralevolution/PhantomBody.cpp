@@ -21,7 +21,7 @@ namespace
 }
 
 PhantomBody::PhantomBody(Eigen::Vector2d position, double radius)
-  : m_position(position), m_radius(radius), m_velocity(0.0, 0.0), m_direction(0.0) {}
+  : StaticBody(position, radius), m_velocity(0.0, 0.0), m_direction(0.0) {}
 
 void PhantomBody::applyImpulse(double magnitude, double direction)
 {
@@ -54,9 +54,9 @@ void PhantomBody::update(float dt, const World& world)
     double newMagnitude = std::max(norm - drag - friction, 0.0);
     m_velocity = normalizedVelocity * newMagnitude;
 
-    m_position += dt * m_velocity;
+    this->position() += dt * m_velocity;
   }
 
   Eigen::Vector2d halfWorldDimension = world.dimension() / 2.0;
-  m_position = wrap(m_position, -halfWorldDimension, halfWorldDimension);
+  this->position() = wrap(this->position(), -halfWorldDimension, halfWorldDimension);
 }
