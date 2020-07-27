@@ -27,9 +27,10 @@ const std::vector<size_t>& Creature::topology()
     std::vector<size_t> topology;
 
     topology.reserve(CONFIG.creature.hiddenLayers.size() + 2);
+
     topology.push_back(Creature::NUM_INPUT);
     topology.insert(topology.end(), CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end());
-    topology.push_back(Creature::NUM_OUTPUT);
+    topology.push_back(static_cast<size_t>(Creature::Output::COUNT));
 
     return topology;
   }();
@@ -162,11 +163,11 @@ void Creature::updateStatistics(float dt)
 
 void Creature::updateMovement(float dt, World& world)
 {
-  auto linearSpeedFactor = m_neuralNetwork.output(Output::LINEAR_SPEED_FACTOR);
+  auto linearSpeedFactor = m_neuralNetwork.output(Output::ACCELERATION_FACTOR);
   auto linearSpeedMultiplier = linearSpeedFactor >= 0.0 ?  CONFIG.creature.forwardLinearSpeed : CONFIG.creature.backwardLinearSpeed;
   auto linearSpeed = linearSpeedFactor * linearSpeedMultiplier;
 
-  auto angularDirection = m_neuralNetwork.output(Output::ANGULAR_SPEED_FACTOR) * M_PI; // Map from (-1, 1) to (-PI, PI)
+  auto angularDirection = m_neuralNetwork.output(Output::RELATIVE_DIRECTION) * M_PI; // Map from (-1, 1) to (-PI, PI)
 
   this->applyImpulse(linearSpeed, angularDirection);
   this->takeEnergy(CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed * dt);

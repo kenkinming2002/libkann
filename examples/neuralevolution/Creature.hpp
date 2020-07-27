@@ -21,13 +21,12 @@ private:
 
 private:
   static constexpr size_t NUM_INPUT = 4; // Energy, health, Sight
-  static constexpr size_t NUM_OUTPUT = 4; // Linear, angular speed, eating and mating desire
-
   enum class Output {
-    LINEAR_SPEED_FACTOR = 0,
-    ANGULAR_SPEED_FACTOR = 1,
+    ACCELERATION_FACTOR = 0,
+    RELATIVE_DIRECTION = 1,
     EATING_DESIRE = 2,
-    MATING_DESIRE = 3
+    MATING_DESIRE = 3,
+    COUNT
   };
 
 private:
