@@ -197,6 +197,9 @@ void Renderer::draw(const Creature& creature)
   {
     for(const auto& eye: creature.m_eyes)
     {
+      if(eye.distance == CONFIG.creature.viewDistance)
+        continue;
+
       float angle = creature.direction() + eye.angle;
       this->addLine(convert(creature.position()), eye.distance, angle, 3.0f, sf::Color::Red);
     }
