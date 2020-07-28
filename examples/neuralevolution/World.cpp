@@ -44,15 +44,10 @@ void World::update(float dt)
 
   m_worldTime += dt;
 
-  auto all = m_berryBushes.all();
-  BerryBush::batchUpdate(all.begin(), all.end(), dt);
-
-#pragma omp parallel for
-  for(std::reference_wrapper<Creature> creature: m_creatures.all())
-    creature.get().preUpdate(dt, *this);
-
-  for(std::reference_wrapper<Creature> creature: m_creatures.all())
-    creature.get().update(dt, *this);
+  auto berryBushes = m_berryBushes.all();
+  BerryBush::batchUpdate(berryBushes.begin(), berryBushes.end(), dt);
+  auto creatures = m_creatures.all();
+  Creature::batchUpdate(creatures.begin(), creatures.end(), dt, *this);
 
   static constexpr auto positionFunc = [](const Creature& creature) { return creature.position(); };
 

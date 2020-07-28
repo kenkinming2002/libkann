@@ -33,52 +33,28 @@ private:
   static const std::vector<size_t>& topology();
 
 public:
-  Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy = CONFIG.creature.maxEnergy, 
-      double health = CONFIG.creature.maxHealth);
+  Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy = CONFIG.creature.maxEnergy, double health = CONFIG.creature.maxHealth);
   template<typename PRNG>
   Creature(PRNG& prng, Eigen::Vector2d position);
 
 public:
-  /*
-   * MT-Safe
-   *
-   * Even though a non-const reference to world is passed, it is not allowed to
-   * modify content of world, but only store reference to variable in world for
-   * later modification.
-   *
-   * This updates attributes of creatures that does not requires neurological
-   * thinking and also feed the neural brain.
-   */
-  void preUpdate(float dt, World& world);
+  template<typename InputIterator>
+  static void batchUpdate(InputIterator first, InputIterator last, float dt, World& world);
 
-  /*
-   * MT-Unsafe
-   *
-   * Mostly not rhread safe. Some thread safe component can probaly be mvoed to
-   * postUpdate but the gain is questionable.
-   */
-  void update(float dt, World& world);
-
-public:
-  /*
-   * The following functions are called in preUpdate
-   */
+private:
   void updateSight(World& world);
+  void updateNeuralNetwork();
   void updateCooldown(float dt);
   void updateSurvival(float dt);
   void updateStatistics(float dt);
-
-private:
-  /*
-   * The following functions are called in update
-   */
-  void updateMovement(float dt, World& world);
+  void updateMovement(float dt, const World& world);
   void updateEating();
   void updateMating(World& world);
+  void updateHealth(float dt);
 
 private:
-  inline bool takeEnergy(double amount);
-  inline bool takeHealth(double amount);
+  bool takeEnergy(double amount);
+  bool takeHealth(double amount);
 
 public:
   bool dead() const { return m_health == 0.0; }
@@ -86,11 +62,7 @@ public:
 
 public:
   double health() const { return m_health; }
-  void health(double health) 
-  { 
-    m_health = health; 
-    this->radius() = CONFIG.creature.radius * m_health / CONFIG.creature.maxHealth;
-  }
+  void health(double health) { m_health = health; this->radius() = CONFIG.creature.radius * m_health / CONFIG.creature.maxHealth; }
 
   auto statistics() const { return m_statistics; }
 
@@ -129,3 +101,52 @@ private:
     size_t matingCount = 0;
   } m_statistics;
 };
+
+template<typename InputIterator>
+void Creature::batchUpdate(InputIterator first, InputIterator last, float dt, World& world)
+{
+#pragma omp parallel
+  {
+#pragma omp for
+    for(auto it = first; it != last; ++it)
+    {
+      Creature& creature = *it;
+      creature.updateSight(world);
+      creature.updateNeuralNetwork();
+    }
+
+    // NOTE: updateMovement() need to be called after all updateSight() and
+    //       updateNeuralNetwork() complete, and there are 2 reasons.
+    //
+    //       1. updateSight() depends on the position of *ALL* creatures. However,
+    //          updateMovement() updates the position of creatures.
+    //
+    //       2. updateMovement() depends on result from updateNeuralNetwork()
+    //          which depends onn updateSight()
+#pragma omp for
+    for(auto it = first; it != last; ++it)
+    {
+      Creature& creature = *it;
+      creature.updateCooldown(dt);
+      creature.updateSurvival(dt);
+      creature.updateStatistics(dt);
+      creature.updateMovement(dt, world);
+    }
+
+#pragma omp single
+    // Note: updateEating() and updateMating() must be ran in serial.
+    for(auto it = first; it != last; ++it)
+    {
+      Creature& creature = *it;
+      creature.updateEating();
+      creature.updateMating(world);
+    }
+
+#pragma omp for
+    for(auto it = first; it != last; ++it)
+    {
+      Creature& creature = *it;
+      creature.updateHealth(dt);
+    }
+  }
+}

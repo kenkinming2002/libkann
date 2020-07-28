@@ -34,42 +34,6 @@ Creature::Creature(PRNG& prng, Eigen::Vector2d position)
 
 template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);
 
-
-void Creature::preUpdate(float dt, World& world)
-{
-  updateSight(world);
-
-  // 1: Neural network
-  m_neuralNetwork.input({m_energy, this->health(), m_eyes[0].distance, m_eyes[1].distance});
-  m_neuralNetwork.feedForward();
-
-  updateCooldown(dt);
-  updateSurvival(dt);
-  updateStatistics(dt);
-
-}
-
-void Creature::update(float dt, World& world)
-{
-  updateMovement(dt, world);
-
-  updateEating();
-  updateMating(world);
-
-  // Take health
-  if(m_energy == 0.0f)
-    takeHealth(CONFIG.creature.hungerHealthDrain * dt);
-
-  // Healing
-  if(m_energy >= CONFIG.creature.maxEnergy * CONFIG.creature.healingThreshold)
-  {
-    double amount = std::min(CONFIG.creature.maxHealth - this->health(), m_energy);
-    this->health(this->health()+amount);
-    m_energy -= amount;
-  }
-
-}
-
 void Creature::updateSight(World& world)
 {
   Ray rays[EYES_COUNT];
@@ -123,6 +87,13 @@ void Creature::updateSight(World& world)
   });
 }
 
+void Creature::updateNeuralNetwork()
+{
+  // 1: Neural network
+  m_neuralNetwork.input({m_energy, this->health(), m_eyes[0].distance, m_eyes[1].distance});
+  m_neuralNetwork.feedForward();
+}
+
 void Creature::updateCooldown(float dt)
 {
   m_eatingCooldown -= dt;
@@ -144,7 +115,7 @@ void Creature::updateStatistics(float dt)
   m_statistics.lifetime += dt;
 }
 
-void Creature::updateMovement(float dt, World& world)
+void Creature::updateMovement(float dt, const World& world)
 {
   auto linearSpeedFactor = m_neuralNetwork.output(Output::ACCELERATION_FACTOR);
   auto linearSpeedMultiplier = linearSpeedFactor >= 0.0 ?  CONFIG.creature.forwardLinearSpeed : CONFIG.creature.backwardLinearSpeed;
@@ -236,6 +207,21 @@ void Creature::updateMating(World& world)
     ++otherCreature.m_statistics.matingCount;
 
     return;
+  }
+}
+
+void Creature::updateHealth(float dt)
+{
+  // Take health
+  if(m_energy == 0.0f)
+    takeHealth(CONFIG.creature.hungerHealthDrain * dt);
+
+  // Healing
+  if(m_energy >= CONFIG.creature.maxEnergy * CONFIG.creature.healingThreshold)
+  {
+    double amount = std::min(CONFIG.creature.maxHealth - this->health(), m_energy);
+    this->health(this->health()+amount);
+    m_energy -= amount;
   }
 }
 
