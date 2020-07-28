@@ -23,5 +23,5 @@ public:
   }
 
 private:
-  std::fstream m_file;
+  std::ofstream m_file;
 };
