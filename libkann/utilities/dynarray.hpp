@@ -54,7 +54,10 @@ public:
   dynarray(size_type n) : m_size(n), m_data(std::make_unique<T[]>(n)) {}
 
   template<typename InputIterator>
-  dynarray(InputIterator first, InputIterator last) : m_size(std::distance(first, last)), m_data(std::make_unique<T[]>(m_size)) {}
+  dynarray(InputIterator first, InputIterator last) : m_size(std::distance(first, last)), m_data(std::make_unique<T[]>(m_size)) 
+  {
+    std::copy(first, last, m_data.get());
+  }
 
 public:
   dynarray(const dynarray& other) : m_size(other.m_size), m_data(std::make_unique<T[]>(m_size))

@@ -33,9 +33,10 @@ private:
   static const std::vector<size_t>& topology();
 
 public:
+  Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy = CONFIG.creature.maxEnergy, 
+      double health = CONFIG.creature.maxHealth);
   template<typename PRNG>
   Creature(PRNG& prng, Eigen::Vector2d position);
-  Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy);
 
 public:
   /*

@@ -6,19 +6,6 @@
 #include <cassert>
 #include <cmath>
 
-namespace
-{
-  template<class T>
-  constexpr T wrap(const T& v, const T& lo, const T& hi )
-  {
-    T gap = hi - lo;
-    int n = std::floor((v-lo) / gap);
-    T result =  v - n * gap;
-    assert(result>=lo && result<=hi);
-    return result;
-  }
-}
-
 static constexpr double ANGLE = M_PI / 12.0;
 
 const std::vector<size_t>& Creature::topology()
@@ -37,20 +24,16 @@ const std::vector<size_t>& Creature::topology()
   return topology;
 }
 
+Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy, double health) 
+  : PhantomBody(position, CONFIG.creature.radius), m_neuralNetwork(neuralNetwork),
+    m_energy(energy), m_health(health), m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
+
 template<typename PRNG>
 Creature::Creature(PRNG& prng, Eigen::Vector2d position) 
-  : PhantomBody(position, CONFIG.creature.radius), 
-    m_neuralNetwork(topology(), prng, CONFIG.creature.memory), 
-    m_energy(CONFIG.creature.maxEnergy), m_health(CONFIG.creature.maxHealth),
-    m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
+  : Creature(NeuralNetwork(topology(), CONFIG.creature.memory, prng), position) {}
 
 template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);
 
-Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy) 
-  : PhantomBody(position, CONFIG.creature.radius), 
-    m_neuralNetwork(neuralNetwork),
-    m_energy(energy), m_health(CONFIG.creature.maxHealth),
-    m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
 void Creature::preUpdate(float dt, World& world)
 {
