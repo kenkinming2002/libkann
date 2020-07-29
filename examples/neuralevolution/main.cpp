@@ -6,6 +6,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
+#include <random>
+#include <chrono>
 
 [[gnu::noreturn]] void usage()
 {
@@ -31,8 +33,21 @@ int main (int argc, const char* argv[])
   }
   else
   {
-    seed = std::random_device()();
-    std::clog << "No seed provided - using random seed " << seed << '\n';
+    std::clog << "No seed provided, generating random seed from ";
+
+    std::random_device rd;
+    if(rd.entropy() != 0.0)
+    {
+      std::clog << "std::random_device...\n";
+      seed = rd();
+    }
+    else
+    {
+      std::clog << "current time...\n";
+      seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    }
+
+    std::clog << "Seed is " << seed << '\n';
   }
 
   App(seed).run();
