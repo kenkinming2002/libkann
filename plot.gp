@@ -1,9 +1,13 @@
 set datafile separator comma
 set style data lines
 
-set multiplot layout 1,2
+set multiplot layout 1,3
 
 set xlabel "Time"
+
+set title "Creatures Count"
+plot 'statistics.csv' using (column("Time")):(column("Creatures Count - Healthy")) title "Healthy", \
+     'statistics.csv' using (column("Time")):(column("Creatures Count - All")) title "All"
 
 set title "Age"
 plot 'statistics.csv' using (column("Time")):(column("Age - LowerQuartile")) title "LowerQuartile", \

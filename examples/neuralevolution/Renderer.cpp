@@ -49,6 +49,8 @@ Renderer::Renderer(sf::RenderTarget& renderTarget)
 {
   m_csvFile.write(
     "Time",
+    "Creatures Count - Healthy",
+    "Creatures Count - All",
     "Age - Mean", "Age - StandardDeviation",
     "Age - Minimum", "Age - LowerQuartile",
     "Age - Median",
@@ -233,6 +235,9 @@ void Renderer::draw(const World::Info& info)
 
   m_csvFile.write(
     info.worldTime,
+
+    info.healthyCreaturesCount,
+    info.creaturesCount,
 
     info.ageStatistics.mean, info.ageStatistics.standardDeviation,
     info.ageStatistics.minimum, info.ageStatistics.lowerQuartile,
