@@ -21,25 +21,22 @@ public:
   LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology, size_t memory, PRNG& prng);
 
 public:
-  // TODO: Consider optimizing this
-  LIBKANN_SYMEXPORT void input(std::initializer_list<double> input);
+  template<typename T>
+  LIBKANN_SYMEXPORT void input(T i, double v)
+  {
+    static_assert(std::is_enum_v<T>, "Only enum is supported");
+    return this->input(static_cast<size_t>(i), v);
+  }
+  LIBKANN_SYMEXPORT void input(size_t i, double v);
 
-  /*
-   * Returning an entire std::vector is inefficient as memory allocation is
-   * invovled to convert the underlying Eigen vector to std vector, so if the
-   * index is known, and only a few value is needed, the first version can be
-   * used instead. A templated version taking enum class is also provided for
-   * convenience.
-   */
+public:
   template<typename T>
   LIBKANN_SYMEXPORT double output(T i) const
   {
     static_assert(std::is_enum_v<T>, "Only enum is supported");
     return this->output(static_cast<size_t>(i));
   }
-
   LIBKANN_SYMEXPORT double output(size_t i) const;
-  LIBKANN_SYMEXPORT const Eigen::VectorXd& output() const;
 
 public:
   LIBKANN_SYMEXPORT void feedForward();

@@ -20,7 +20,15 @@ private:
   static constexpr size_t EYES_COUNT = 2;
 
 private:
-  static constexpr size_t NUM_INPUT = 4; // Energy, health, Sight
+  //static constexpr size_t NUM_INPUT = 4; // Energy, health, Sight
+  enum class Input {
+    ENERGY = 0,
+    HEALTH = 1,
+    VIEW_DISTANCE_0 = 2,
+    VIEW_DISTANCE_1 = 3,
+    COUNT
+  };
+
   enum class Output {
     ACCELERATION_FACTOR = 0,
     RELATIVE_DIRECTION = 1,

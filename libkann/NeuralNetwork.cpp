@@ -32,13 +32,9 @@ NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory,
 
 template NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory, std::mt19937& prng);
 
-void NeuralNetwork::input(std::initializer_list<double> input)
+void NeuralNetwork::input(size_t i, double v)
 {
-  for(size_t i=0; i<input.size(); ++i)
-    m_layers.front().input()(i) = *(input.begin() + i);
-
-  for(size_t i=input.size(); i<input.size()+m_memory; ++i)
-    m_layers.front().input()(i) = output(i);
+  m_layers.front().input()(i) = v;
 }
 
 double NeuralNetwork::output(size_t i) const
@@ -46,13 +42,13 @@ double NeuralNetwork::output(size_t i) const
   return m_output(i);
 }
 
-const Eigen::VectorXd& NeuralNetwork::output() const
-{
-  return m_output;
-}
-
 void NeuralNetwork::feedForward()
 {
+  size_t inputSize = m_topology.front();
+  size_t outputSize = m_topology.front();
+  for(size_t i=0; i<m_memory; ++i)
+    this->input(inputSize - m_memory + i, this->output(outputSize - m_memory + i));
+
   for(size_t i=0; i<m_weights.size(); ++i)
     m_layers[i+1].input() = m_weights[i] * m_layers[i].output();
 

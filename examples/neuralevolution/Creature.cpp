@@ -15,7 +15,7 @@ const std::vector<size_t>& Creature::topology()
 
     topology.reserve(CONFIG.creature.hiddenLayers.size() + 2);
 
-    topology.push_back(Creature::NUM_INPUT);
+    topology.push_back(static_cast<size_t>(Creature::Input::COUNT));
     topology.insert(topology.end(), CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end());
     topology.push_back(static_cast<size_t>(Creature::Output::COUNT));
 
@@ -90,7 +90,11 @@ void Creature::updateSight(World& world)
 void Creature::updateNeuralNetwork()
 {
   // 1: Neural network
-  m_neuralNetwork.input({m_energy, this->health(), m_eyes[0].distance, m_eyes[1].distance});
+  m_neuralNetwork.input(Input::ENERGY, m_energy);
+  m_neuralNetwork.input(Input::HEALTH, m_health);
+  m_neuralNetwork.input(Input::VIEW_DISTANCE_0, m_eyes[0].distance);
+  m_neuralNetwork.input(Input::VIEW_DISTANCE_1, m_eyes[1].distance);
+
   m_neuralNetwork.feedForward();
 }
 
