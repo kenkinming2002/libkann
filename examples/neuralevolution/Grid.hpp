@@ -153,7 +153,10 @@ public:
   }
 
   template<typename... Args>
-  void emplace(Eigen::Vector2d position, Args&&... args) { cell(position).emplace_back(std::forward<Args>(args)...); }
+  void emplace(Eigen::Vector2d position, Args&&... args) 
+  { 
+    cell(position).emplace_back(std::forward<Args>(args)...); 
+  }
 
   void erase(Eigen::Vector2d position, const_iterator it) { cell(position).erase(it); }
 

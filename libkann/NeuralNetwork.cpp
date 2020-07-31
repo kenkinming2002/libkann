@@ -6,12 +6,9 @@
 #include <iostream>
 #include <algorithm>
 
-NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory) 
-  : m_memory(memory), m_topology(topology.begin(), topology.end()), m_layers(topology.size()), m_weights(topology.size()-1)
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology) 
+  : m_topology(std::move(topology)), m_layers(m_topology.size()), m_weights(m_topology.size()-1)
 {
-  m_topology.front() += memory;
-  m_topology.back() += memory;
-
   for(size_t i = 0; i<m_layers.size(); ++i)
     m_layers[i] = Layer(m_topology[i]);
 
@@ -22,15 +19,13 @@ NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory)
 }
 
 template<typename PRNG>
-NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory, PRNG& prng) 
-  : NeuralNetwork(topology, memory)
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng) : NeuralNetwork(std::move(topology))
 {
   std::uniform_real_distribution<double> distribution(-1.0, 1.0);
   for(auto& weight : m_weights)
     weight = Eigen::MatrixXd::NullaryExpr(weight.rows(), weight.cols(),[&](){ return distribution(prng); });
 }
-
-template NeuralNetwork::NeuralNetwork(const std::vector<size_t>& topology, size_t memory, std::mt19937& prng);
+template NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, std::mt19937& prng);
 
 void NeuralNetwork::input(size_t i, double v)
 {
@@ -44,11 +39,6 @@ double NeuralNetwork::output(size_t i) const
 
 void NeuralNetwork::feedForward()
 {
-  size_t inputSize = m_topology.front();
-  size_t outputSize = m_topology.front();
-  for(size_t i=0; i<m_memory; ++i)
-    this->input(inputSize - m_memory + i, this->output(outputSize - m_memory + i));
-
   for(size_t i=0; i<m_weights.size(); ++i)
     m_layers[i+1].input() = m_weights[i] * m_layers[i].output();
 

@@ -16,9 +16,9 @@
 class NeuralNetwork
 {
 public:
-  LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology, size_t memory);
+  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology);
   template<typename PRNG>
-  LIBKANN_SYMEXPORT NeuralNetwork(const std::vector<size_t>& topology, size_t memory, PRNG& prng);
+  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, PRNG& prng);
 
 public:
   template<typename T>
@@ -39,15 +39,15 @@ public:
   LIBKANN_SYMEXPORT double output(size_t i) const;
 
 public:
+  LIBKANN_SYMEXPORT const auto& topology() const { return m_topology; }
+
+public:
   LIBKANN_SYMEXPORT void feedForward();
   LIBKANN_SYMEXPORT void backPropagate(const std::vector<double>& input);
 
 public:
   template<typename PRNG>
   LIBKANN_SYMEXPORT static NeuralNetwork cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate);
-
-private:
-  size_t m_memory;
 
 public:
   dynarray<size_t> m_topology;

@@ -27,7 +27,7 @@ int main()
 
   for(double minimumError = std::numeric_limits<double>::infinity();;)
   {
-    NeuralNetwork nn({1, 5, 5, 1}, 0, generator);
+    NeuralNetwork nn({1, 5, 5, 1}, generator);
     nn.input(static_cast<size_t>(0), input);
     nn.feedForward();
     auto output = nn.output(static_cast<size_t>(0));

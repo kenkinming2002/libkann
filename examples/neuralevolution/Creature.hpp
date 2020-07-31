@@ -5,7 +5,7 @@
 #include "Selectable.hpp"
 #include "PhantomBody.hpp"
 
-#include <libkann/NeuralNetwork.hpp>
+#include <libkann/RecurrentNeuralNetwork.hpp>
 
 #include <Eigen/Eigen>
 
@@ -38,10 +38,11 @@ private:
   };
 
 private:
-  static const std::vector<size_t>& topology();
+  static dynarray<size_t> topology();
 
 public:
-  Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy = CONFIG.creature.maxEnergy, double health = CONFIG.creature.maxHealth);
+  Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position, 
+      double energy = CONFIG.creature.maxEnergy, double health = CONFIG.creature.maxHealth);
   template<typename PRNG>
   Creature(PRNG& prng, Eigen::Vector2d position);
 
@@ -78,7 +79,7 @@ public:
   friend class Renderer;
 
 private:
-  NeuralNetwork m_neuralNetwork;
+  RecurrentNeuralNetwork m_neuralNetwork;
 
 private:
   double m_energy, m_health;

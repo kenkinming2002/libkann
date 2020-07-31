@@ -59,6 +59,8 @@ public:
     std::copy(first, last, m_data.get());
   }
 
+  dynarray(std::initializer_list<T> initializer_list) : dynarray(initializer_list.begin(), initializer_list.end()) {}
+
 public:
   dynarray(const dynarray& other) : m_size(other.m_size), m_data(std::make_unique<T[]>(m_size))
   {

@@ -8,29 +8,27 @@
 
 static constexpr double ANGLE = M_PI / 12.0;
 
-const std::vector<size_t>& Creature::topology()
+dynarray<size_t> Creature::topology()
 {
-  static std::vector<size_t> topology = [](){
-    std::vector<size_t> topology;
+  //static dynarray<size_t> topology = [](){
+    dynarray<size_t> topology(CONFIG.creature.hiddenLayers.size() + 2);
 
-    topology.reserve(CONFIG.creature.hiddenLayers.size() + 2);
+    topology.front() = static_cast<size_t>(Creature::Input::COUNT);
+    std::copy(CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end(), std::next(topology.begin()));
+    topology.back() = static_cast<size_t>(Creature::Output::COUNT);
 
-    topology.push_back(static_cast<size_t>(Creature::Input::COUNT));
-    topology.insert(topology.end(), CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end());
-    topology.push_back(static_cast<size_t>(Creature::Output::COUNT));
-
-    return topology;
-  }();
-  return topology;
+    return std::move(topology);
+  //}();
+  //return topology;
 }
 
-Creature::Creature(NeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy, double health) 
+Creature::Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy, double health) 
   : PhantomBody(position, CONFIG.creature.radius), m_neuralNetwork(neuralNetwork),
     m_energy(energy), m_health(health), m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
 template<typename PRNG>
 Creature::Creature(PRNG& prng, Eigen::Vector2d position) 
-  : Creature(NeuralNetwork(topology(), CONFIG.creature.memory, prng), position) {}
+  : Creature(RecurrentNeuralNetwork(topology(), CONFIG.creature.memory, prng), position) {}
 
 template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);
 
@@ -203,7 +201,7 @@ void Creature::updateMating(World& world)
     if(!takeEnergy(CONFIG.creature.maxEnergy * 0.2) || !otherCreature.takeEnergy(CONFIG.creature.maxEnergy * 0.2))
       continue;
 
-    auto neuralNetwork = NeuralNetwork::cross(m_neuralNetwork, otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
+    auto neuralNetwork = RecurrentNeuralNetwork::cross(m_neuralNetwork, otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
     Eigen::Vector2d position = (this->position() + otherCreature.position()) / 2.0;
 
     world.addCreature(Creature(std::move(neuralNetwork), position, 0.3 * CONFIG.creature.maxEnergy));
