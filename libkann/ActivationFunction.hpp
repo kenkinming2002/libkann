@@ -1,7 +1,15 @@
 #pragma once
 
-namespace activation_function
+namespace activation
 {
-  double sigmoid(double val);
-  double tanh(double val);
+  namespace function
+  {
+    double sigmoid(double val);
+    double tanh(double val);
+  }
+
+  namespace derivative
+  {
+    double tanh(double val);
+  }
 }

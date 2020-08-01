@@ -44,6 +44,29 @@ void NeuralNetwork::feedForward()
   m_output = m_layers.back().output();
 }
 
+void NeuralNetwork::backPropagate(const Eigen::VectorXd& expectedOutput)
+{
+  Eigen::VectorXd outputGradient = 2.0 * (m_output - expectedOutput); 
+
+  for(size_t i=m_layers.size()-1; i>0; --i)
+  {
+    Layer& outputLayer = m_layers[i];
+    Layer& inputLayer  = m_layers[i-1];
+    Connection& connection  = m_connections[i-1];
+
+    Eigen::VectorXd outputLayerInputGradient = outputLayer.backPropagate(outputGradient);
+    Eigen::VectorXd inputLayerOutputGradient = connection.backPropagate(inputLayer.output(), outputLayerInputGradient);
+
+    outputGradient = inputLayerOutputGradient;
+  }
+}
+
+void NeuralNetwork::train(double learningRate)
+{
+  for(auto& connection: m_connections)
+    connection.train(learningRate);
+}
+
 template<typename PRNG>
 NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate)
 {

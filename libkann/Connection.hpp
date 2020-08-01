@@ -18,6 +18,8 @@ public:
 
 public:
   void feedForward(const Layer& prevLayer, Layer& nextLayer);
+  Eigen::VectorXd backPropagate(const Eigen::VectorXd& input, const Eigen::VectorXd& outputGradient);
+  void train(double learningRate);
 
 public:
   template<typename PRNG>
@@ -25,4 +27,5 @@ public:
 
 private:
   Eigen::MatrixXd m_weight;
+  Eigen::MatrixXd m_weightGradient;
 };

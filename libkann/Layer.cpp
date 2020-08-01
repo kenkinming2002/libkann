@@ -5,6 +5,11 @@
 Eigen::VectorXd Layer::output() const
 {
   // TODO: allow switching activation function
-  return m_input.unaryExpr(&activation_function::tanh);
+  return m_input.unaryExpr(&activation::function::tanh);
+}
+
+Eigen::VectorXd Layer::backPropagate(Eigen::VectorXd outputGradient) const
+{
+  return m_input.unaryExpr(&activation::derivative::tanh).cwiseProduct(outputGradient);
 }
 

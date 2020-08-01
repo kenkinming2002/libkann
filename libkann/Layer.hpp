@@ -16,6 +16,12 @@ public:
 
   LIBKANN_SYMEXPORT Eigen::VectorXd output() const;
 
+public:
+  /*
+   */
+  LIBKANN_SYMEXPORT Eigen::VectorXd backPropagate(Eigen::VectorXd outputGradient) const;
+
+
 private:
   Eigen::VectorXd m_input;
 };

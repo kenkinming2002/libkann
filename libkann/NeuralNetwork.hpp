@@ -44,7 +44,8 @@ public:
 
 public:
   LIBKANN_SYMEXPORT void feedForward();
-  LIBKANN_SYMEXPORT void backPropagate(const std::vector<double>& input);
+  LIBKANN_SYMEXPORT void backPropagate(const Eigen::VectorXd& expectedOutput);
+  LIBKANN_SYMEXPORT void train(double learningRate);
 
 public:
   template<typename PRNG>

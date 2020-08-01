@@ -1,9 +1,10 @@
 #include "Connection.hpp"
 
 #include <random>
+#include <iostream>
 
 Connection::Connection(size_t prevLayerSize, size_t nextLayerSize)
-  : m_weight(nextLayerSize, prevLayerSize) {}
+  : m_weight(nextLayerSize, prevLayerSize), m_weightGradient(Eigen::MatrixXd::Zero(nextLayerSize, prevLayerSize)) {}
 
 template<typename PRNG>
 void Connection::randomize(PRNG& prng)
@@ -16,6 +17,25 @@ template void Connection::randomize(std::mt19937& prng);
 void Connection::feedForward(const Layer& prevLayer, Layer& nextLayer)
 {
   nextLayer.input() = m_weight * prevLayer.output();
+}
+
+Eigen::VectorXd Connection::backPropagate(const Eigen::VectorXd& input, const Eigen::VectorXd& outputGradient)
+{
+  Eigen::MatrixXd weightGradient(m_weightGradient.rows(), m_weightGradient.cols());
+  for(size_t y=0; y<weightGradient.rows(); ++y)
+    for(size_t x=0; x<weightGradient.cols(); ++x)
+      weightGradient(y, x) = input(x) * outputGradient(y);
+
+  m_weightGradient += weightGradient;
+
+  Eigen::VectorXd inputGradient = m_weight.transpose() * outputGradient;
+  return inputGradient;
+}
+
+void Connection::train(double learningRate)
+{
+  m_weight -= learningRate * m_weightGradient;
+  m_weightGradient = Eigen::MatrixXd::Zero(m_weightGradient.rows(), m_weightGradient.cols());
 }
 
 template<typename PRNG>
