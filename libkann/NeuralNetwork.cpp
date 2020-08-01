@@ -7,13 +7,13 @@
 #include <algorithm>
 
 NeuralNetwork::NeuralNetwork(dynarray<size_t> topology) 
-  : m_topology(std::move(topology)), m_layers(m_topology.size()), m_weights(m_topology.size()-1)
+  : m_topology(std::move(topology)), m_layers(m_topology.size()), m_connections(m_topology.size()-1)
 {
   for(size_t i = 0; i<m_layers.size(); ++i)
     m_layers[i] = Layer(m_topology[i]);
 
   for(size_t i=0; i<m_topology.size()-1; i++)
-    m_weights[i] = Eigen::MatrixXd(m_topology[i+1], m_topology[i]);
+    m_connections[i] = Connection(m_topology[i], m_topology[i+1]);
 
   m_output = Eigen::VectorXd(m_topology.back());
 }
@@ -22,8 +22,7 @@ template<typename PRNG>
 NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng) : NeuralNetwork(std::move(topology))
 {
   std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-  for(auto& weight : m_weights)
-    weight = Eigen::MatrixXd::NullaryExpr(weight.rows(), weight.cols(),[&](){ return distribution(prng); });
+  std::for_each(m_connections.begin(), m_connections.end(), std::bind(&Connection::randomize<PRNG>, std::placeholders::_1, prng));
 }
 template NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, std::mt19937& prng);
 
@@ -39,8 +38,8 @@ double NeuralNetwork::output(size_t i) const
 
 void NeuralNetwork::feedForward()
 {
-  for(size_t i=0; i<m_weights.size(); ++i)
-    m_layers[i+1].input() = m_weights[i] * m_layers[i].output();
+  for(size_t i=0; i<m_connections.size(); ++i)
+    m_connections[i].feedForward(m_layers[i], m_layers[i+1]);
 
   m_output = m_layers.back().output();
 }
@@ -48,42 +47,10 @@ void NeuralNetwork::feedForward()
 template<typename PRNG>
 NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate)
 {
-  std::uniform_int_distribution<> distribution(0, 1);
-
-  std::uniform_real_distribution<double> mutationDistribution(0.0, 1.0);
-  std::uniform_real_distribution<double> weightDistribution(-1.0, 1.0);
-
-  // Note: assertion somtimes failed bug
-  if(lhs.m_weights.size() != rhs.m_weights.size())
-  {
-    std::cerr << lhs.m_weights.size() << " " << rhs.m_weights.size() << std::endl;
-    assert(lhs.m_weights.size() == rhs.m_weights.size());
-  }
-
-  NeuralNetwork output = lhs;
-  for(size_t i=0; i<lhs.m_weights.size(); ++i)
-  {
-    auto& lhsWeight = lhs.m_weights[i];
-    auto& rhsWeight = rhs.m_weights[i]; 
-    auto& outputWeight = output.m_weights[i];
-
-    assert(lhsWeight.size() != 0);
-    assert(lhsWeight.size() == rhsWeight.size());
-    assert(rhsWeight.size() == outputWeight.size());
-
-    for(long j=0; j<lhsWeight.size(); ++j)
-    {
-      if(distribution(prng) == 0)
-        outputWeight.data()[j] = lhsWeight.data()[j];
-      else
-        outputWeight.data()[j] = rhsWeight.data()[j];
-
-      if(mutationDistribution(prng) < mutationRate)
-        outputWeight.data()[j] = weightDistribution(prng);
-    }
-  }
-
-  return output;
+  NeuralNetwork result = lhs;
+  for(size_t i=0; i<lhs.m_connections.size(); ++i)
+    result.m_connections[i] = Connection::cross(lhs.m_connections[i], rhs.m_connections[i], prng, mutationRate);
+  return result;
 }
 
 template NeuralNetwork NeuralNetwork::cross<std::mt19937>(const NeuralNetwork& lhs, const NeuralNetwork& rhs, std::mt19937& prng, double mutationRate);

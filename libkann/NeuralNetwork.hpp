@@ -4,6 +4,7 @@
 
 #include <libkann/utilities/dynarray.hpp>
 #include <libkann/Layer.hpp>
+#include <libkann/Connection.hpp>
 
 #include <Eigen/Eigen>
 
@@ -52,7 +53,7 @@ public:
 public:
   dynarray<size_t> m_topology;
   dynarray<Layer> m_layers;
-  dynarray<Eigen::MatrixXd> m_weights;
+  dynarray<Connection> m_connections;
 
   Eigen::VectorXd m_output;
 };
