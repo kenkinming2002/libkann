@@ -8,20 +8,19 @@ class Layer
 {
 public:
   Layer() = default;
-  Layer(size_t size) : m_input(size) {}
+  Layer(size_t size) : m_input(size), m_output(size) {}
 
 public:
-  LIBKANN_SYMEXPORT Eigen::VectorXd& input() { return m_input; }
-  LIBKANN_SYMEXPORT const Eigen::VectorXd& input() const { return m_input; }
-
-  LIBKANN_SYMEXPORT Eigen::VectorXd output() const;
+  Eigen::VectorXd& input() { return m_input; }
+  const Eigen::VectorXd& input() const { return m_input; }
+  const Eigen::VectorXd& output() const { return m_output; }
 
 public:
-  /*
-   */
-  LIBKANN_SYMEXPORT Eigen::VectorXd backPropagate(Eigen::VectorXd outputGradient) const;
+  void feedForward();
+  Eigen::VectorXd backPropagate(const Eigen::VectorXd& outputGradient) const;
 
 
 private:
   Eigen::VectorXd m_input;
+  Eigen::VectorXd m_output;
 };

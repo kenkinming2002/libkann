@@ -26,21 +26,18 @@ NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng) : NeuralNetw
 }
 template NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, std::mt19937& prng);
 
-void NeuralNetwork::input(size_t i, double v)
-{
-  m_layers.front().input()(i) = v;
-}
-
-double NeuralNetwork::output(size_t i) const
-{
-  return m_output(i);
-}
-
 void NeuralNetwork::feedForward()
 {
   for(size_t i=0; i<m_connections.size(); ++i)
-    m_connections[i].feedForward(m_layers[i], m_layers[i+1]);
+  {
+    Layer& inputLayer  = m_layers[i];
+    Layer& outputLayer = m_layers[i+1];
+    Connection& connection  = m_connections[i];
 
+    inputLayer.feedForward();
+    connection.feedForward(inputLayer, outputLayer);
+  }
+  m_layers.back().feedForward();
   m_output = m_layers.back().output();
 }
 

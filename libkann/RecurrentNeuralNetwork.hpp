@@ -21,8 +21,7 @@ public:
 
 public:
   template<typename PRNG>
-  LIBKANN_SYMEXPORT static RecurrentNeuralNetwork cross(const RecurrentNeuralNetwork& lhs, const RecurrentNeuralNetwork& rhs, 
-      PRNG& prng, double mutationRate);
+  LIBKANN_SYMEXPORT static RecurrentNeuralNetwork cross(const RecurrentNeuralNetwork& lhs, const RecurrentNeuralNetwork& rhs, PRNG& prng, double mutationRate);
 
 private:
   size_t m_memory;

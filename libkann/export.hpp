@@ -16,13 +16,13 @@
 #  ifdef _WIN32
 #    define LIBKANN_SYMEXPORT __declspec(dllimport)
 #  else
-#    define LIBKANN_SYMEXPORT
+#    define LIBKANN_SYMEXPORT __attribute__((visibility("default")))
 #  endif
 #elif defined(LIBKANN_SHARED_BUILD) // Building shared.
 #  ifdef _WIN32
 #    define LIBKANN_SYMEXPORT __declspec(dllexport)
 #  else
-#    define LIBKANN_SYMEXPORT
+#    define LIBKANN_SYMEXPORT __attribute__((visibility("default")))
 #  endif
 #else
 // If none of the above macros are defined, then we assume we are being used

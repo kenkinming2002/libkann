@@ -21,14 +21,10 @@ void Connection::feedForward(const Layer& prevLayer, Layer& nextLayer)
 
 Eigen::VectorXd Connection::backPropagate(const Eigen::VectorXd& input, const Eigen::VectorXd& outputGradient)
 {
-  Eigen::MatrixXd weightGradient(m_weightGradient.rows(), m_weightGradient.cols());
-  for(size_t y=0; y<weightGradient.rows(); ++y)
-    for(size_t x=0; x<weightGradient.cols(); ++x)
-      weightGradient(y, x) = input(x) * outputGradient(y);
+  auto weightGradient = outputGradient * input.transpose();
+  auto inputGradient = m_weight.transpose() * outputGradient;
 
   m_weightGradient += weightGradient;
-
-  Eigen::VectorXd inputGradient = m_weight.transpose() * outputGradient;
   return inputGradient;
 }
 

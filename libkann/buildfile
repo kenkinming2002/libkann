@@ -21,6 +21,7 @@ cxx.poptions =+ "-I$out_root" "-I$src_root"
 
 obja{*}: cxx.poptions += -DLIBKANN_STATIC_BUILD
 objs{*}: cxx.poptions += -DLIBKANN_SHARED_BUILD
+objs{*}: cxx.coptions += -fvisibility=hidden
 
 # Export options.
 #

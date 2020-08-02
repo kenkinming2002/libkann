@@ -2,13 +2,12 @@
 
 #include <libkann/ActivationFunction.hpp>
 
-Eigen::VectorXd Layer::output() const
+void Layer::feedForward()
 {
-  // TODO: allow switching activation function
-  return m_input.unaryExpr(&activation::function::tanh);
+  m_output = m_input.unaryExpr(&activation::function::tanh);
 }
 
-Eigen::VectorXd Layer::backPropagate(Eigen::VectorXd outputGradient) const
+Eigen::VectorXd Layer::backPropagate(const Eigen::VectorXd& outputGradient) const
 {
   return m_input.unaryExpr(&activation::derivative::tanh).cwiseProduct(outputGradient);
 }
