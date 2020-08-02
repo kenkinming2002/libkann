@@ -9,6 +9,9 @@ DataSet::DataSet(const char* imageFileName, const char* labelFileName)
 {
   IDXFile imageFile(imageFileName), labelFile(labelFileName);
 
+  assert(imageFile.type() == IDXFile::Type::UNSIGNED_BYTE);
+  assert(labelFile.type() == IDXFile::Type::UNSIGNED_BYTE);
+
   assert(imageFile.dimensionCount() == 3);
   assert(labelFile.dimensionCount() == 1);
 
