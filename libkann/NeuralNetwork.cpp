@@ -6,8 +6,9 @@
 #include <iostream>
 #include <algorithm>
 
-NeuralNetwork::NeuralNetwork(dynarray<size_t> topology) 
-  : m_topology(std::move(topology)), m_layers(m_topology.size()), m_connections(m_topology.size()-1)
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction) 
+  : m_topology(std::move(topology)), m_layers(m_topology.size()), m_connections(m_topology.size()-1),
+    m_activationFunction(activationFunction)
 {
   for(size_t i = 0; i<m_layers.size(); ++i)
     m_layers[i] = Layer(m_topology[i]);
@@ -19,12 +20,13 @@ NeuralNetwork::NeuralNetwork(dynarray<size_t> topology)
 }
 
 template<typename PRNG>
-NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng) : NeuralNetwork(std::move(topology))
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFunction activationFunction) 
+  : NeuralNetwork(std::move(topology), activationFunction)
 {
   std::uniform_real_distribution<double> distribution(-1.0, 1.0);
   std::for_each(m_connections.begin(), m_connections.end(), std::bind(&Connection::randomize<PRNG>, std::placeholders::_1, prng));
 }
-template NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, std::mt19937& prng);
+template NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, std::mt19937& prng, ActivationFunction activationFunction);
 
 void NeuralNetwork::feedForward()
 {
@@ -34,10 +36,10 @@ void NeuralNetwork::feedForward()
     Layer& outputLayer = m_layers[i+1];
     Connection& connection  = m_connections[i];
 
-    inputLayer.feedForward();
+    inputLayer.feedForward(m_activationFunction);
     connection.feedForward(inputLayer, outputLayer);
   }
-  m_layers.back().feedForward();
+  m_layers.back().feedForward(m_activationFunction);
   m_output = m_layers.back().output();
 }
 
@@ -51,7 +53,7 @@ void NeuralNetwork::backPropagate(const Eigen::VectorXd& expectedOutput)
     Layer& inputLayer  = m_layers[i-1];
     Connection& connection  = m_connections[i-1];
 
-    Eigen::VectorXd outputLayerInputGradient = outputLayer.backPropagate(outputGradient);
+    Eigen::VectorXd outputLayerInputGradient = outputLayer.backPropagate(outputGradient, m_activationFunction);
     Eigen::VectorXd inputLayerOutputGradient = connection.backPropagate(inputLayer.output(), outputLayerInputGradient);
 
     outputGradient = inputLayerOutputGradient;

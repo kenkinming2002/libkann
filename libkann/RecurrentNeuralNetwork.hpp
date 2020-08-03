@@ -8,9 +8,9 @@ public:
   LIBKANN_SYMEXPORT RecurrentNeuralNetwork(NeuralNetwork&& neuralNetwork, size_t memory);
 
 public:
-  LIBKANN_SYMEXPORT RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory);
+  LIBKANN_SYMEXPORT RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, ActivationFunction activationFunction);
   template<typename PRNG>
-  LIBKANN_SYMEXPORT RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, PRNG& prng);
+  LIBKANN_SYMEXPORT RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, PRNG& prng, ActivationFunction activationFunction);
 
 public:
   using NeuralNetwork::input;

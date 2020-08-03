@@ -15,14 +15,14 @@ namespace
 RecurrentNeuralNetwork::RecurrentNeuralNetwork(NeuralNetwork&& neuralNetwork, size_t memory)
   : NeuralNetwork(std::move(neuralNetwork)), m_memory(memory) {}
 
-RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory)
-  : NeuralNetwork(makeTopology(std::move(topology), memory)), m_memory(memory) {}
+RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, ActivationFunction activationFunction)
+  : NeuralNetwork(makeTopology(std::move(topology), memory), activationFunction), m_memory(memory) {}
 
 template<typename PRNG>
-RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, PRNG& prng)
-  : NeuralNetwork(makeTopology(std::move(topology), memory), prng), m_memory(memory) {}
+RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, PRNG& prng, ActivationFunction activationFunction)
+  : NeuralNetwork(makeTopology(std::move(topology), memory), prng, activationFunction), m_memory(memory) {}
 
-template RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, std::mt19937& prng);
+template RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, std::mt19937& prng, ActivationFunction activationFunction);
 
 void RecurrentNeuralNetwork::feedForward()
 {

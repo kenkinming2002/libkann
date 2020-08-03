@@ -17,9 +17,9 @@
 class NeuralNetwork
 {
 public:
-  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology);
+  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction);
   template<typename PRNG>
-  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, PRNG& prng);
+  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFunction activationFunction);
 
 public:
   template<typename T>
@@ -43,10 +43,14 @@ public:
   template<typename PRNG>
   LIBKANN_SYMEXPORT static NeuralNetwork cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate);
 
-public:
+private:
   dynarray<size_t> m_topology;
   dynarray<Layer> m_layers;
   dynarray<Connection> m_connections;
 
+private:
+  ActivationFunction m_activationFunction;
+
+private:
   Eigen::VectorXd m_output;
 };

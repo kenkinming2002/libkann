@@ -1,6 +1,7 @@
 #pragma once
 
 #include <libkann/export.hpp>
+#include <libkann/ActivationFunction.hpp>
 
 #include <Eigen/Eigen>
 
@@ -16,8 +17,8 @@ public:
   const Eigen::VectorXd& output() const { return m_output; }
 
 public:
-  void feedForward();
-  Eigen::VectorXd backPropagate(const Eigen::VectorXd& outputGradient) const;
+  void feedForward(const ActivationFunction& activationFunction);
+  Eigen::VectorXd backPropagate(const Eigen::VectorXd& outputGradient, const ActivationFunction& activationFunction) const;
 
 
 private:

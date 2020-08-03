@@ -1,15 +1,23 @@
 #pragma once
 
-namespace activation
-{
-  namespace function
-  {
-    double sigmoid(double val);
-    double tanh(double val);
-  }
+#include <libkann/export.hpp>
 
-  namespace derivative
-  {
-    double tanh(double val);
-  }
+struct ActivationFunction
+{
+public:
+  typedef double (*function_t)(double);
+
+public:
+  constexpr ActivationFunction(function_t normal, function_t derivative) 
+    : normal(normal), derivative(derivative) {}
+
+public:
+  function_t normal;
+  function_t derivative;
+};
+
+namespace activation_function
+{
+  LIBKANN_SYMEXPORT extern ActivationFunction sigmoid;
+  LIBKANN_SYMEXPORT extern ActivationFunction tanh;
 }
