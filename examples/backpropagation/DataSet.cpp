@@ -30,13 +30,14 @@ DataSet::DataSet(const char* imageFileName, const char* labelFileName)
 
 void DataSet::train(NeuralNetwork& nn, float learningRate)
 {
+  Eigen::VectorXd expectedOutput(10);
   for(const auto& data: m_data)
   {
     for(size_t i=0; i<data.image.size(); ++i)
       nn.input(i, static_cast<double>(data.image[i])/255);
     nn.feedForward();
 
-    Eigen::VectorXd expectedOutput = Eigen::VectorXd::Zero(10);
+    expectedOutput = Eigen::VectorXd::Zero(10);
     expectedOutput(data.label) = 1.0;
 
     nn.backPropagate(expectedOutput);
