@@ -18,6 +18,7 @@ public:
 
 namespace activation_function
 {
+  LIBKANN_SYMEXPORT extern ActivationFunction identity; /* kinda added just for fun sake */
   LIBKANN_SYMEXPORT extern ActivationFunction sigmoid;
   LIBKANN_SYMEXPORT extern ActivationFunction tanh;
 }

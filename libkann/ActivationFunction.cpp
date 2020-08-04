@@ -4,6 +4,16 @@
 
 namespace
 {
+  double identity(double val) 
+  { 
+    return val; 
+  }
+
+  double identityDerivative(double val) 
+  { 
+    return 1.0;
+  }
+
   double sigmoid(double val)
   { 
     return 1.0 /  (1.0 + std::exp(-val)); 
@@ -29,6 +39,7 @@ namespace
 
 namespace activation_function
 {
+  ActivationFunction identity(::identity, ::identityDerivative);
   ActivationFunction sigmoid(::sigmoid, ::sigmoidDerivative);
   ActivationFunction tanh(::tanh, ::tanhDerivative);
 }
