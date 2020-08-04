@@ -29,6 +29,17 @@ public:
     bool operator==(const Position& other) const = default;
   };
 
+  struct Offset { int8_t x, y; };
+  friend std::optional<Position> operator+(const Position& position, const Offset& offset)
+  {
+    auto x = static_cast<int>(position.x) + static_cast<int>(offset.x);
+    auto y = static_cast<int>(position.y) + static_cast<int>(offset.y);
+    if(x>=0 && x<WIDTH && y>=0 && y<HEIGHT)
+      return Position{static_cast<uint8_t>(x), static_cast<uint8_t>(y)};
+    else
+      return std::nullopt;
+  }
+
   struct Move 
   { 
   public:
@@ -78,22 +89,14 @@ public:
   bool validateMove(Move move) const;
   State performMove(Move move);
 
-private:
-  struct Offset { int8_t x, y; };
-  friend std::optional<Position> operator+(const Position& position, const Offset& offset)
-  {
-    auto x = static_cast<int>(position.x) + static_cast<int>(offset.x);
-    auto y = static_cast<int>(position.y) + static_cast<int>(offset.y);
-    if(x>=0 && x<WIDTH && y>=0 && y<HEIGHT)
-      return Position{static_cast<uint8_t>(x), static_cast<uint8_t>(y)};
-    else
-      return std::nullopt;
-  }
-
+public:
   std::optional<Move> getMove(Position srcPosition, Offset dstOffset, Offset obstacleOffset) const;
   std::optional<Move> getMove(Position srcPosition, Offset dstOffset) const;
   static bool inSquare(Position position, Cell::Color color);
   static bool acrossRiver(Position position, Cell::Color color);
+
+public:
+  std::pair<double, double> estimateScore() const;
 
 public:
   // Temporary only

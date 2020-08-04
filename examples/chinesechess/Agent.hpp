@@ -17,6 +17,14 @@ public:
 public:
   Board::State performMove(Board& board, Board::Cell::Color color);
 
+public:
+  static void match(Agent& lhs, Agent& rhs, size_t turnLimit = 100000);
+
+public:
+  auto score() const { return m_score; }
+
 private:
   NeuralNetwork m_neuralNetwork;
+  double m_score = 0.0;
 };
+

@@ -319,6 +319,7 @@ Board::State Board::performMove(Move move)
 {
   auto result = State::UNKNOWN;
 
+  assert(move.src.x != move.dst.x || move.src.y != move.dst.y);
   auto& srcCell = cell(move.src);
   auto& dstCell = cell(move.dst);
 
@@ -385,6 +386,42 @@ bool Board::acrossRiver(Position position, Cell::Color color)
   default:
     throw std::runtime_error("I don't know WTH happened");
   }
+}
+
+std::pair<double, double> Board::estimateScore() const
+{
+  double redScore = 0.0, blackScore = 0.0;
+  for(const auto& row: m_cells)
+    for(const auto& cell: row)
+    {
+      auto score = [&](){
+        switch(cell.type)
+        {
+        case Cell::Type::EMPTY:    return 0.0;
+        case Cell::Type::CHARIOT:  return 2.0;
+        case Cell::Type::KNIGHT:   return 1.0;
+        case Cell::Type::ELEPHANT: return 1.0;
+        case Cell::Type::ADVISOR:  return 1.0;
+        case Cell::Type::GENERAL:  return 0.0;
+        case Cell::Type::CANNON:   return 1.0;
+        case Cell::Type::SOLDIER:  return 0.5;
+        default: throw std::runtime_error("I don't know WTH happened");
+        }
+      };
+      switch(cell.color)
+      {
+      case Cell::Color::RED: 
+        redScore += score();
+        break;
+      case Cell::Color::BLACK: 
+        blackScore += score(); 
+        break;
+      default:
+        break;
+      }
+    }
+  
+  return std::make_pair(redScore, blackScore);
 }
 
 namespace

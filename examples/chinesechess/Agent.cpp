@@ -24,7 +24,6 @@ Board::State Agent::performMove(Board& board, Board::Cell::Color color)
   for(size_t i=0; i<possibleMoves.size(); ++i)
   {
     const auto& move = possibleMoves[i];
-    auto& score = scores[i];
 
     m_neuralNetwork.input(Board::WIDTH * Board::HEIGHT * 2 + 0, static_cast<double>(move.src.x) / Board::WIDTH);
     m_neuralNetwork.input(Board::WIDTH * Board::HEIGHT * 2 + 1, static_cast<double>(move.src.y) / Board::HEIGHT);
@@ -33,7 +32,7 @@ Board::State Agent::performMove(Board& board, Board::Cell::Color color)
 
     m_neuralNetwork.feedForward();
 
-    score = m_neuralNetwork.output(0);
+    scores[i] = m_neuralNetwork.output(0);
   }
 
   auto index = std::distance(scores.begin(), std::max_element(scores.begin(), scores.end()));
@@ -41,3 +40,101 @@ Board::State Agent::performMove(Board& board, Board::Cell::Color color)
 
   return board.performMove(move);
 }
+
+
+void Agent::match(Agent& lhs, Agent& rhs, size_t turnLimit)
+{
+  static constexpr double WINNING_SCORE = 100.0;
+  static constexpr double LOSING_SCORE  = -100.0;
+  {
+    auto winningColor = Board::Cell::Color::NONE;
+    Board board;
+    for(size_t i=0; i<turnLimit; ++i)
+    {
+      if(auto state = lhs.performMove(board, Board::Cell::Color::RED); state != Board::State::UNKNOWN)
+      {
+        if(state == Board::State::WON)
+          winningColor = Board::Cell::Color::RED;
+        else
+          winningColor = Board::Cell::Color::BLACK;
+
+        break;
+      }
+      if(auto state = rhs.performMove(board, Board::Cell::Color::BLACK); state != Board::State::UNKNOWN)
+      {
+        if(state == Board::State::WON)
+          winningColor = Board::Cell::Color::BLACK;
+        else
+          winningColor = Board::Cell::Color::RED;
+
+        break;
+      }
+    }
+
+    switch(winningColor)
+    {
+    case Board::Cell::Color::RED:
+      lhs.m_score += WINNING_SCORE;
+      rhs.m_score += LOSING_SCORE;
+      break;
+    case Board::Cell::Color::BLACK:
+      lhs.m_score += LOSING_SCORE;
+      rhs.m_score += WINNING_SCORE;
+      break;
+    case Board::Cell::Color::NONE:
+      auto [redScore, blackScore] = board.estimateScore();
+      std::cout << redScore << "," << blackScore << '\n';
+      lhs.m_score += redScore;
+      rhs.m_score += blackScore;
+      break;
+    }
+    std::cout << board << "=========\n";
+  }
+
+  {
+    auto winningColor = Board::Cell::Color::NONE;
+    Board board;
+    for(size_t i=0; i<turnLimit; ++i)
+    {
+      if(auto state = rhs.performMove(board, Board::Cell::Color::RED); state != Board::State::UNKNOWN)
+      {
+        if(state == Board::State::WON)
+          winningColor = Board::Cell::Color::RED;
+        else
+          winningColor = Board::Cell::Color::BLACK;
+
+        break;
+      }
+      if(auto state = lhs.performMove(board, Board::Cell::Color::BLACK); state != Board::State::UNKNOWN)
+      {
+        if(state == Board::State::WON)
+          winningColor = Board::Cell::Color::BLACK;
+        else
+          winningColor = Board::Cell::Color::RED;
+
+        break;
+      }
+    }
+
+    switch(winningColor)
+    {
+    case Board::Cell::Color::RED:
+      rhs.m_score += WINNING_SCORE;
+      lhs.m_score += LOSING_SCORE;
+      break;
+    case Board::Cell::Color::BLACK:
+      rhs.m_score += LOSING_SCORE;
+      lhs.m_score += WINNING_SCORE;
+      break;
+    case Board::Cell::Color::NONE:
+      auto [redScore, blackScore] = board.estimateScore();
+      std::cout << redScore << "," << blackScore << '\n';
+      rhs.m_score += redScore;
+      lhs.m_score += blackScore;
+      break;
+    }
+    std::cout << board << "=========\n";
+  }
+}
+
+
