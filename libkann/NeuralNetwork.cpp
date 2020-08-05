@@ -5,6 +5,7 @@
 #include <cassert>
 #include <iostream>
 #include <algorithm>
+#include <functional>
 
 NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction) 
   : m_topology(std::move(topology)), m_layers(m_topology.size()), m_connections(m_topology.size()-1),
@@ -24,7 +25,7 @@ NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFu
   : NeuralNetwork(std::move(topology), activationFunction)
 {
   std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-  std::for_each(m_connections.begin(), m_connections.end(), std::bind(&Connection::randomize<PRNG>, std::placeholders::_1, prng));
+  std::for_each(m_connections.begin(), m_connections.end(), std::bind(&Connection::randomize<PRNG>, std::placeholders::_1, std::ref(prng)));
 }
 template NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, std::mt19937& prng, ActivationFunction activationFunction);
 
