@@ -8,16 +8,15 @@
 #include <functional>
 
 NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction) 
-  : m_topology(std::move(topology)), m_layers(m_topology.size()), m_connections(m_topology.size()-1),
-    m_activationFunction(activationFunction)
+  : m_layers(topology.size()), m_connections(topology.size()-1), m_activationFunction(activationFunction)
 {
   for(size_t i = 0; i<m_layers.size(); ++i)
-    m_layers[i] = Layer(m_topology[i]);
+    m_layers[i] = Layer(topology[i]);
 
-  for(size_t i=0; i<m_topology.size()-1; i++)
-    m_connections[i] = Connection(m_topology[i], m_topology[i+1]);
+  for(size_t i=0; i<topology.size()-1; i++)
+    m_connections[i] = Connection(topology[i], topology[i+1]);
 
-  m_output = Eigen::VectorXd(m_topology.back());
+  m_output = Eigen::VectorXd(topology.back());
 }
 
 template<typename PRNG>

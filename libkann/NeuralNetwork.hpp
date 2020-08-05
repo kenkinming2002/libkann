@@ -22,17 +22,18 @@ public:
   LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFunction activationFunction);
 
 public:
+  LIBKANN_SYMEXPORT size_t inputSize() const { return m_layers.front().size(); }
+
   template<typename T>
   LIBKANN_SYMEXPORT void input(T i, double v) { return this->input(static_cast<size_t>(i), v); }
   LIBKANN_SYMEXPORT void input(size_t i, double v) { m_layers.front().input()(i) = v; }
 
 public:
+  LIBKANN_SYMEXPORT size_t outputSize() const { return m_layers.back().size(); }
+
   template<typename T>
   LIBKANN_SYMEXPORT double output(T i) const { return this->output(static_cast<size_t>(i)); }
   LIBKANN_SYMEXPORT double output(size_t i) const { return m_output(i); }
-
-public:
-  LIBKANN_SYMEXPORT const auto& topology() const { return m_topology; }
 
 public:
   LIBKANN_SYMEXPORT void feedForward();
@@ -44,7 +45,6 @@ public:
   LIBKANN_SYMEXPORT static NeuralNetwork cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate);
 
 private:
-  dynarray<size_t> m_topology;
   dynarray<Layer> m_layers;
   dynarray<Connection> m_connections;
 

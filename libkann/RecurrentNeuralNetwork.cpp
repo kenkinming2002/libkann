@@ -26,8 +26,8 @@ template RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topolog
 
 void RecurrentNeuralNetwork::feedForward()
 {
-  size_t inputSize  = this->topology().front();
-  size_t outputSize = this->topology().back();
+  size_t inputSize  = this->inputSize();
+  size_t outputSize = this->outputSize();
   for(size_t i=0; i<m_memory; ++i)
     this->input(inputSize - m_memory + i, this->output(outputSize - m_memory + i));
 
