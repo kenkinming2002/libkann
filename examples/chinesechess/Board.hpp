@@ -30,15 +30,6 @@ public:
   };
 
   struct Offset { int8_t x, y; };
-  friend std::optional<Position> operator+(const Position& position, const Offset& offset)
-  {
-    auto x = static_cast<int>(position.x) + static_cast<int>(offset.x);
-    auto y = static_cast<int>(position.y) + static_cast<int>(offset.y);
-    if(x>=0 && x<WIDTH && y>=0 && y<HEIGHT)
-      return Position{static_cast<uint8_t>(x), static_cast<uint8_t>(y)};
-    else
-      return std::nullopt;
-  }
 
   struct Move 
   { 
@@ -62,17 +53,6 @@ public:
     constexpr Cell(Type type = Type::EMPTY, Color color = Color::NONE) : type(type), color(color) {}
   };
 
-  /*
-   * This class will not look ahead to see if you would loss.
-   * Only after your general were taken will you be declared loss.
-   */
-  enum class State
-  {
-    WON,
-    LOST,
-    UNKNOWN
-  };
-
 public:
   using Row = std::array<Cell, WIDTH>;
   using Cells = std::array<Row, HEIGHT>;
@@ -87,7 +67,11 @@ public:
 public:
   std::vector<Move> enumerateMove(Cell::Color color) const;
   bool validateMove(Move move) const;
-  State performMove(Move move);
+
+  /*
+   * @return which color won
+   */
+  Cell::Color performMove(Move move, Cell::Color color);
 
 public:
   std::optional<Move> getMove(Position srcPosition, Offset dstOffset, Offset obstacleOffset) const;
@@ -106,3 +90,4 @@ private:
   Cells m_cells;
 };
 
+std::optional<Board::Position> operator+(const Board::Position& position, const Board::Offset& offset);

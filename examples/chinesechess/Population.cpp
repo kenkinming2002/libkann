@@ -26,8 +26,14 @@ void Population::select()
     {
       auto& agent1 = m_agents[j+0];
       auto& agent2 = m_agents[j+1];
-      Agent::match(agent1, agent2, 1000);
+      auto result = Agent::match(agent1, agent2, 1000);
       std::cout << "Match " << (j/2)+1 << '\n';
+
+      std::cout << result.board1;
+      std::cout << "=========\n";
+
+      std::cout << result.board2;
+      std::cout << "=========\n";
     }
     std::cout << "Iteration " << i+1 << '\n';
   }

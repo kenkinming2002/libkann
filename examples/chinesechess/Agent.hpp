@@ -15,10 +15,25 @@ public:
   Agent(NeuralNetwork neuralNetwork);
 
 public:
-  Board::State performMove(Board& board, Board::Cell::Color color);
+  enum class MoveResult { WON, LOST, NONE };
+  Board::Cell::Color performMove(Board& board, Board::Cell::Color color);
 
 public:
-  static void match(Agent& lhs, Agent& rhs, size_t turnLimit = 100000);
+  enum class AgentID { NONE, _1, _2};
+  struct MatchSingleResult
+  {
+    AgentID winningAgent;
+    Board board;
+  };
+  static MatchSingleResult matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit = 100000);
+
+  struct MatchResult
+  {
+    AgentID winningAgent;
+    Board board1;
+    Board board2;
+  };
+  static MatchResult match(Agent& lhs, Agent& rhs, size_t turnLimit = 100000);
 
   template<typename PRNG>
   static Agent cross(const Agent& lhs, const Agent& rhs, PRNG& prng, double mutationRate);

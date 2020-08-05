@@ -2,7 +2,7 @@
 
 Agent::Agent(NeuralNetwork neuralNetwork) : m_neuralNetwork(std::move(neuralNetwork)) {}
 
-Board::State Agent::performMove(Board& board, Board::Cell::Color color)
+Board::Cell::Color Agent::performMove(Board& board, Board::Cell::Color color)
 {
   for(uint8_t y=0; y<Board::HEIGHT; ++y)
     for(uint8_t x=0; x<Board::WIDTH; ++x)
@@ -17,7 +17,7 @@ Board::State Agent::performMove(Board& board, Board::Cell::Color color)
 
   auto possibleMoves = board.enumerateMove(color);
   if(possibleMoves.empty())
-    return Board::State::LOST;
+    return color == Board::Cell::Color::RED ? Board::Cell::Color::BLACK : Board::Cell::Color::RED;
 
   auto scores = std::vector<double>(possibleMoves.size());
 
@@ -38,99 +38,73 @@ Board::State Agent::performMove(Board& board, Board::Cell::Color color)
   auto index = std::distance(scores.begin(), std::max_element(scores.begin(), scores.end()));
   auto move = possibleMoves[index];
 
-  return board.performMove(move);
+  return board.performMove(move, color);
 }
 
-
-void Agent::match(Agent& lhs, Agent& rhs, size_t turnLimit)
+Agent::MatchSingleResult Agent::matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit)
 {
   static constexpr double WINNING_SCORE = 100.0;
   static constexpr double LOSING_SCORE  = -100.0;
+
+  Board board;
+  auto winningColor = [&]()
   {
-    auto winningColor = Board::Cell::Color::NONE;
-    Board board;
     for(size_t i=0; i<turnLimit; ++i)
     {
-      if(auto state = lhs.performMove(board, Board::Cell::Color::RED); state != Board::State::UNKNOWN)
-      {
-        if(state == Board::State::WON)
-          winningColor = Board::Cell::Color::RED;
-        else
-          winningColor = Board::Cell::Color::BLACK;
+      if(auto color = lhs.performMove(board, Board::Cell::Color::RED);
+          color != Board::Cell::Color::NONE)
+        return color;
 
-        break;
-      }
-      if(auto state = rhs.performMove(board, Board::Cell::Color::BLACK); state != Board::State::UNKNOWN)
-      {
-        if(state == Board::State::WON)
-          winningColor = Board::Cell::Color::BLACK;
-        else
-          winningColor = Board::Cell::Color::RED;
-
-        break;
-      }
+      if(auto color = rhs.performMove(board, Board::Cell::Color::BLACK);
+          color != Board::Cell::Color::NONE)
+        return color;
     }
+    return Board::Cell::Color::NONE;
+  }();
 
-    switch(winningColor)
-    {
-    case Board::Cell::Color::RED:
-      lhs.m_score += WINNING_SCORE;
-      rhs.m_score += LOSING_SCORE;
-      break;
-    case Board::Cell::Color::BLACK:
-      lhs.m_score += LOSING_SCORE;
-      rhs.m_score += WINNING_SCORE;
-      break;
-    case Board::Cell::Color::NONE:
-      auto [redScore, blackScore] = board.estimateScore();
-      lhs.m_score += redScore;
-      rhs.m_score += blackScore;
-      break;
-    }
-  }
-
+  switch(winningColor)
   {
-    auto winningColor = Board::Cell::Color::NONE;
-    Board board;
-    for(size_t i=0; i<turnLimit; ++i)
-    {
-      if(auto state = rhs.performMove(board, Board::Cell::Color::RED); state != Board::State::UNKNOWN)
-      {
-        if(state == Board::State::WON)
-          winningColor = Board::Cell::Color::RED;
-        else
-          winningColor = Board::Cell::Color::BLACK;
-
-        break;
-      }
-      if(auto state = lhs.performMove(board, Board::Cell::Color::BLACK); state != Board::State::UNKNOWN)
-      {
-        if(state == Board::State::WON)
-          winningColor = Board::Cell::Color::BLACK;
-        else
-          winningColor = Board::Cell::Color::RED;
-
-        break;
-      }
-    }
-
-    switch(winningColor)
-    {
-    case Board::Cell::Color::RED:
-      rhs.m_score += WINNING_SCORE;
-      lhs.m_score += LOSING_SCORE;
-      break;
-    case Board::Cell::Color::BLACK:
-      rhs.m_score += LOSING_SCORE;
-      lhs.m_score += WINNING_SCORE;
-      break;
-    case Board::Cell::Color::NONE:
-      auto [redScore, blackScore] = board.estimateScore();
-      rhs.m_score += redScore;
-      lhs.m_score += blackScore;
-      break;
-    }
+  case Board::Cell::Color::RED:
+    lhs.m_score += WINNING_SCORE;
+    rhs.m_score += LOSING_SCORE;
+    return MatchSingleResult{AgentID::_1, board};
+  case Board::Cell::Color::BLACK:
+    lhs.m_score += LOSING_SCORE;
+    rhs.m_score += WINNING_SCORE;
+    return MatchSingleResult{AgentID::_2, board};
+  case Board::Cell::Color::NONE:
+  {
+    auto [redScore, blackScore] = board.estimateScore();
+    lhs.m_score += redScore;
+    rhs.m_score += blackScore;
+    auto winningAgent = [&](){
+      if(lhs.score() > rhs.score())
+        return AgentID::_1;
+      if(lhs.score() < rhs.score())
+        return AgentID::_2;
+      return AgentID::NONE;
+    }();
+    return MatchSingleResult{winningAgent, board};
   }
+  default:
+    throw std::runtime_error("I don't know WTH happened");
+  }
+}
+
+Agent::MatchResult Agent::match(Agent& lhs, Agent& rhs, size_t turnLimit)
+{
+  auto result1 = matchSingle(lhs, rhs, turnLimit);
+  auto result2 = matchSingle(rhs, lhs, turnLimit);
+
+  auto winningAgent = [&]() {
+    if(lhs.score() > rhs.score())
+      return AgentID::_1;
+    if(lhs.score() < rhs.score())
+      return AgentID::_2;
+    return AgentID::NONE;
+  }();
+
+  return MatchResult{winningAgent, result1.board, result2.board};
 }
 
 template<typename PRNG>

@@ -315,9 +315,9 @@ bool Board::validateMove(Move move) const
   return std::find(moves.begin(), moves.end(), move) != moves.end();
 }
 
-Board::State Board::performMove(Move move)
+Board::Cell::Color Board::performMove(Move move, Cell::Color color)
 {
-  auto result = State::UNKNOWN;
+  auto result = Cell::Color::NONE;
 
   assert(move.src.x != move.dst.x || move.src.y != move.dst.y);
   auto& srcCell = cell(move.src);
@@ -328,7 +328,7 @@ Board::State Board::performMove(Move move)
   assert(srcCell.color != dstCell.color);
 
   if(dstCell.type == Cell::Type::GENERAL)
-    result = State::WON;
+    result = color;
 
   dstCell = srcCell;
   srcCell = Cell();
@@ -456,4 +456,14 @@ std::ostream& operator<<(std::ostream& os, const Board& board)
     os << '\n';
   }
   return os;
+}
+
+std::optional<Board::Position> operator+(const Board::Position& position, const Board::Offset& offset)
+{
+  auto x = static_cast<int>(position.x) + static_cast<int>(offset.x);
+  auto y = static_cast<int>(position.y) + static_cast<int>(offset.y);
+  if(x>=0 && x<Board::WIDTH && y>=0 && y<Board::HEIGHT)
+    return Board::Position{static_cast<uint8_t>(x), static_cast<uint8_t>(y)};
+  else
+    return std::nullopt;
 }
