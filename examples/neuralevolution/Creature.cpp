@@ -28,7 +28,7 @@ Creature::Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d positio
 
 template<typename PRNG>
 Creature::Creature(PRNG& prng, Eigen::Vector2d position) 
-  : Creature(RecurrentNeuralNetwork(topology(), CONFIG.creature.memory, prng, activation_function::tanh), position) {}
+  : Creature(RecurrentNeuralNetwork(topology(), CONFIG.creature.memory, prng, ActivationFunction(ActivationFunction::Type::TANH)), position) {}
 
 template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);
 

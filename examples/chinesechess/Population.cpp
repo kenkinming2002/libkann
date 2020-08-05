@@ -6,7 +6,7 @@ Population::Population(seed_type seed, size_t size) : m_generator(seed)
   m_agents.reserve(size);
   std::generate_n(std::back_inserter(m_agents), size, [this](){
     auto topology = dynarray<size_t>{Agent::INPUT_LAYER_SIZE, 31, 31, 37, Agent::OUTPUT_LAYER_SIZE};
-    auto neuralNetwork = NeuralNetwork(std::move(topology), m_generator, activation_function::sigmoid);
+    auto neuralNetwork = NeuralNetwork(std::move(topology), m_generator, ActivationFunction(ActivationFunction::Type::SIGMOID));
     return Agent(std::move(neuralNetwork));
   });
 }

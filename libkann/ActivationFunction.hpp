@@ -1,24 +1,26 @@
 #pragma once
 
+#include <cstdint>
+
 #include <libkann/export.hpp>
 
 struct ActivationFunction
 {
 public:
-  typedef double (*function_t)(double);
+  enum class Type : uint8_t
+  {
+    IDENTITY,
+    SIGMOID,
+    TANH
+  };
 
 public:
-  constexpr ActivationFunction(function_t normal, function_t derivative) 
-    : normal(normal), derivative(derivative) {}
+  ActivationFunction(Type type) : type(type) {}
 
 public:
-  function_t normal;
-  function_t derivative;
+  double normal(double val) const;
+  double derivative(double val) const;
+
+public:
+  Type type;
 };
-
-namespace activation_function
-{
-  LIBKANN_SYMEXPORT extern ActivationFunction identity; /* kinda added just for fun sake */
-  LIBKANN_SYMEXPORT extern ActivationFunction sigmoid;
-  LIBKANN_SYMEXPORT extern ActivationFunction tanh;
-}

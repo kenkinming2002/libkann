@@ -4,11 +4,11 @@
 
 void Layer::feedForward(const ActivationFunction& activationFunction)
 {
-  m_output = m_input.unaryExpr(activationFunction.normal);
+  m_output = m_input.unaryExpr([&](double val) { return activationFunction.normal(val); });
 }
 
 Eigen::VectorXd Layer::backPropagate(const Eigen::VectorXd& outputGradient, const ActivationFunction& activationFunction) const
 {
-  return m_input.unaryExpr(activationFunction.derivative).cwiseProduct(outputGradient);
+  return m_input.unaryExpr([&](double val) { return activationFunction.derivative(val); }).cwiseProduct(outputGradient);
 }
 
