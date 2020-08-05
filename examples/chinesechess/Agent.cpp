@@ -83,12 +83,10 @@ void Agent::match(Agent& lhs, Agent& rhs, size_t turnLimit)
       break;
     case Board::Cell::Color::NONE:
       auto [redScore, blackScore] = board.estimateScore();
-      std::cout << redScore << "," << blackScore << '\n';
       lhs.m_score += redScore;
       rhs.m_score += blackScore;
       break;
     }
-    std::cout << board << "=========\n";
   }
 
   {
@@ -128,13 +126,17 @@ void Agent::match(Agent& lhs, Agent& rhs, size_t turnLimit)
       break;
     case Board::Cell::Color::NONE:
       auto [redScore, blackScore] = board.estimateScore();
-      std::cout << redScore << "," << blackScore << '\n';
       rhs.m_score += redScore;
       lhs.m_score += blackScore;
       break;
     }
-    std::cout << board << "=========\n";
   }
 }
 
+template<typename PRNG>
+Agent Agent::cross(const Agent& lhs, const Agent& rhs, PRNG& prng, double mutationRate)
+{
+  return Agent(NeuralNetwork::cross(lhs.m_neuralNetwork, rhs.m_neuralNetwork, prng, mutationRate));
+}
 
+template Agent Agent::cross(const Agent& lhs, const Agent& rhs, std::mt19937& prng, double mutationRate);

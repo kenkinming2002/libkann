@@ -20,7 +20,11 @@ public:
 public:
   static void match(Agent& lhs, Agent& rhs, size_t turnLimit = 100000);
 
+  template<typename PRNG>
+  static Agent cross(const Agent& lhs, const Agent& rhs, PRNG& prng, double mutationRate);
+
 public:
+  auto clearScore() { m_score = 0.0; }
   auto score() const { return m_score; }
 
 private:
