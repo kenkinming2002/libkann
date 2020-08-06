@@ -2,6 +2,7 @@
 
 #include <libkann/export.hpp>
 
+#include <libkann/serialization/Eigen.hpp>
 #include <libkann/utilities/dynarray.hpp>
 #include <libkann/Layer.hpp>
 #include <libkann/Connection.hpp>
@@ -17,7 +18,11 @@
 class NeuralNetwork
 {
 public:
+  NeuralNetwork() = default;
+
+public:
   LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction);
+  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, dynarray<Eigen::MatrixXd> weights, ActivationFunction activationFunction);
   template<typename PRNG>
   LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFunction activationFunction);
 
@@ -53,4 +58,42 @@ private:
 
 private:
   Eigen::VectorXd m_output;
+
+public:
+  template<typename Archive>
+  void save(Archive& archive) const
+  {
+    // topology
+    dynarray<size_t> topology(m_layers.size());
+    std::transform(m_layers.begin(), m_layers.end(), topology.begin(), [](const auto& layer){ return layer.size(); });
+    archive(topology);
+
+    // weights
+    dynarray<Eigen::MatrixXd> weights(m_connections.size());
+    std::transform(m_connections.begin(), m_connections.end(), weights.begin(), [](const auto& connection){ return connection.weight(); });
+    archive(weights);
+
+    // activation function
+    archive(m_activationFunction.type);
+
+  }
+
+  template<typename Archive>
+  void load(Archive& archive)
+  {
+    // topology
+    dynarray<size_t> topology;
+    archive(topology);
+
+    // weights
+    dynarray<Eigen::MatrixXd> weights;
+    archive(weights);
+
+    // activation function
+    ActivationFunction::Type type;
+    archive(type);
+
+    *this = NeuralNetwork(std::move(topology), std::move(weights), ActivationFunction(type));
+
+  }
 };

@@ -12,7 +12,12 @@ public:
   static constexpr size_t OUTPUT_LAYER_SIZE = 1; /* score of the move */
 
 public:
+  Agent() = default;
   Agent(NeuralNetwork neuralNetwork);
+
+public:
+  auto& neuralNetwork() { return m_neuralNetwork; }
+  const auto& neuralNetwork() const { return m_neuralNetwork; }
 
 public:
   enum class MoveResult { WON, LOST, NONE };
@@ -41,6 +46,13 @@ public:
 public:
   auto clearScore() { m_score = 0.0; }
   auto score() const { return m_score; }
+
+public:
+  template<typename Archive>
+  void serialize(Archive& archive)
+  {
+    archive(m_neuralNetwork);
+  }
 
 private:
   NeuralNetwork m_neuralNetwork;

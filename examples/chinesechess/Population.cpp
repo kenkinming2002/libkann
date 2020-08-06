@@ -1,5 +1,9 @@
 #include "Population.hpp"
 
+#include <cereal/archives/json.hpp>
+
+#include <fstream>
+
 Population::Population(seed_type seed, size_t size) : m_generator(seed)
 {
   assert(size % 2 == 0 && "population size must be even");
@@ -16,7 +20,7 @@ void Population::select()
   constexpr static double MUTATION_RATE = 0.05;
   constexpr static size_t NUM_ITERATIONS = 2;
 
-  const size_t size = m_agents.size() / 2;
+  const size_t size = m_agents.size();
 
   // Score
   for(size_t i=0; i<NUM_ITERATIONS; ++i)
@@ -27,15 +31,7 @@ void Population::select()
       auto& agent1 = m_agents[j+0];
       auto& agent2 = m_agents[j+1];
       auto result = Agent::match(agent1, agent2, 1000);
-      std::cout << "Match " << (j/2)+1 << '\n';
-
-      std::cout << result.board1;
-      std::cout << "=========\n";
-
-      std::cout << result.board2;
-      std::cout << "=========\n";
     }
-    std::cout << "Iteration " << i+1 << '\n';
   }
 
   // Eliminate
@@ -56,4 +52,22 @@ void Population::select()
   });
 
   assert(m_agents.size() == size);
+}
+
+
+void Population::writeTo(const std::filesystem::path& directoryPath) const
+{
+  std::filesystem::create_directories(directoryPath);
+  for(size_t i=0; i<m_agents.size(); ++i)
+  {
+    const auto& agent = m_agents[i];
+    auto filePath = directoryPath / (std::string("agent")+std::to_string(i));
+
+    std::ofstream outputFile;
+    outputFile.exceptions(std::ofstream::failbit | std::ofstream::badbit | std::ofstream::eofbit);
+    outputFile.open(filePath.c_str());
+
+    cereal::JSONOutputArchive outputArchive(outputFile);
+    outputArchive(agent);
+  }
 }

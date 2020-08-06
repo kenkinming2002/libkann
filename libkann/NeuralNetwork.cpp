@@ -19,6 +19,14 @@ NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, ActivationFunction activ
   m_output = Eigen::VectorXd(topology.back());
 }
 
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, dynarray<Eigen::MatrixXd> weights, ActivationFunction activationFunction)
+  : NeuralNetwork(topology, activationFunction)
+{
+  // TODO: optimize this to prevent redundant allocation
+  for(size_t i=0; i<m_connections.size(); ++i)
+    m_connections[i] = Connection(std::move(weights[i]));
+}
+
 template<typename PRNG>
 NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFunction activationFunction) 
   : NeuralNetwork(std::move(topology), activationFunction)

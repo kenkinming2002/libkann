@@ -11,3 +11,4 @@ depends: * bpkg >= 0.12.0
 depends: nlohmann-json
 requires: sfml >= 2.5 ; version 2.5.1 was tested to work
 requires: eigen >= 3.3 ; version 3.3.7 was tested to work
+requires: cereal

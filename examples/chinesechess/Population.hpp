@@ -5,6 +5,8 @@
 #include <random>
 #include <vector>
 
+#include <filesystem>
+
 class Population
 {
 public:
@@ -16,6 +18,9 @@ public:
 
 public:
   void select();
+
+public:
+  void writeTo(const std::filesystem::path& directoryPath) const;
 
 private:
   std::vector<Agent> m_agents;

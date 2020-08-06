@@ -11,6 +11,11 @@ class Connection
 public:
   Connection() = default;
   Connection(size_t prevLayerSize, size_t nextLayerSize);
+  Connection(Eigen::MatrixXd weight);
+
+public:
+  auto& weight() { return m_weight; }
+  const auto& weight() const { return m_weight; }
 
 public:
   template<typename PRNG>

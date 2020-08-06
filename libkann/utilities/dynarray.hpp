@@ -6,6 +6,8 @@
 #include <iterator>
 #include <memory>
 
+#include <cereal/cereal.hpp>
+
 /* 
  * Partial implementation of dynarray, which has been proposed for c++14,
  * subsequently moved to Array TS, and discontinued now.
@@ -51,6 +53,7 @@ public:
   using size_type              = std::size_t;
 
 public:
+  dynarray() : m_size(0), m_data() {}
   dynarray(size_type n) : m_size(n), m_data(std::make_unique<T[]>(n)) {}
 
   template<typename InputIterator>
@@ -119,4 +122,24 @@ public:
 private:
   size_type m_size;
   std::unique_ptr<T[]> m_data;
+
+public:
+  template<typename Archive>
+  void save(Archive& archive) const
+  {
+    archive(cereal::make_size_tag(m_size));
+    for(auto& t: *this)
+      archive(t);
+  }
+
+  template<typename Archive>
+  void load(Archive& archive)
+  {
+    cereal::size_type size;
+    archive(cereal::make_size_tag(size));
+    *this = dynarray(size);
+
+    for(auto& t: *this)
+      archive(t);
+  }
 };

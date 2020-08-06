@@ -15,7 +15,8 @@ public:
   };
 
 public:
-  ActivationFunction(Type type) : type(type) {}
+  ActivationFunction() = default;
+  explicit ActivationFunction(Type type) : type(type) {}
 
 public:
   double normal(double val) const;

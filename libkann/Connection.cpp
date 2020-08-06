@@ -6,6 +6,8 @@
 Connection::Connection(size_t prevLayerSize, size_t nextLayerSize)
   : m_weight(nextLayerSize, prevLayerSize), m_weightGradient(Eigen::MatrixXd::Zero(nextLayerSize, prevLayerSize)) {}
 
+Connection::Connection(Eigen::MatrixXd weight) : m_weight(std::move(weight)) {}
+
 template<typename PRNG>
 void Connection::randomize(PRNG& prng)
 {
