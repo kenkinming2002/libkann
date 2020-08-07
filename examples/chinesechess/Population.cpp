@@ -30,7 +30,7 @@ void Population::select()
     {
       auto& agent1 = m_agents[j+0];
       auto& agent2 = m_agents[j+1];
-      auto result = Agent::match(agent1, agent2, 1000);
+      Agent::match(agent1, agent2, 1000);
     }
   }
 
@@ -64,8 +64,9 @@ void Population::writeTo(const std::filesystem::path& directoryPath) const
     auto filePath = directoryPath / (std::string("agent")+std::to_string(i));
 
     std::ofstream outputFile;
-    outputFile.exceptions(std::ofstream::failbit | std::ofstream::badbit | std::ofstream::eofbit);
     outputFile.open(filePath.c_str());
+    if(!outputFile)
+      throw std::runtime_error(std::string("Failed to open file ") + filePath.c_str());
 
     cereal::JSONOutputArchive outputArchive(outputFile);
     outputArchive(agent);

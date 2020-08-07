@@ -9,28 +9,37 @@
 
 [[gnu::noreturn]] void usage()
 {
-  std::clog << "Usage: chinesechess OUTPUT_DIRECTORY [SEED]\n";
+  std::clog << 
+    "Usage: chinesechess COMMANDS\n"
+    "       chinesechess generate-populations OUTPUT_DIRECTORY [SEED]\n"
+    "       chinesechess match AGENT1 [AGENT2]\n"
+    "\n"
+    "COMMANDS:\n"
+    "  generate-populations    Generate populations and write to OUTPUT_DIRECTORY\n"
+    "  match                   Play a match between agent1 and agent2 or player if agent2 is not specified\n"
+    "\n";
+
   std::exit(EXIT_FAILURE);
 }
 
-App::seed_type generateSeed()
+AppGeneratePopulations::seed_type generateSeed()
 {
   std::random_device rd;
   if(rd.entropy() != 0.0)
   {
-    std::clog << "No seed provided, generating random seed from std::random_device...\n";
+    std::clog << "Generating random seed from std::random_device...\n";
     return rd();
   }
   else
   {
-    std::clog << "No seed provided, generating random seed from current time...\n";
+    std::clog << "Generating random seed from current time...\n";
     return std::chrono::high_resolution_clock::now().time_since_epoch().count();
   }
 }
 
-App::seed_type toSeed(const char* str)
+AppGeneratePopulations::seed_type toSeed(const char* str)
 {
-  App::seed_type seed;
+  AppGeneratePopulations::seed_type seed;
 
   std::stringstream ss;
   ss << str;
@@ -43,13 +52,22 @@ App::seed_type toSeed(const char* str)
 
 int main(int argc, const char* argv[])
 {
-  if(argc < 2 || argc > 3)
+  if(argc < 3 || argc > 4)
     usage();
 
-  auto outputDirectory = std::filesystem::path(argv[1]);
-  auto seed = argc == 3 ? toSeed(argv[2]) : generateSeed();
-
-  std::clog << "Running with seed " << seed << '\n';
-
-  App(std::move(outputDirectory), seed).run();
+  if(strcmp("generate-populations", argv[1]) == 0)
+  {
+    auto outputDirectory = argv[2];
+    auto seed = argc == 3 ? generateSeed() : toSeed(argv[3]);
+    AppGeneratePopulations(outputDirectory, seed).run();
+  }
+  else if(strcmp("match", argv[1]) == 0)
+  {
+    if(argc == 3)
+      AppMatchAgentPlayer(argv[2]).run();
+    else
+      AppMatchAgents(argv[2], argv[3]).run();
+  }
+  else
+    usage();
 }
