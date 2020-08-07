@@ -12,8 +12,8 @@
 class Board
 {
 public:
-  static constexpr size_t WIDTH = 9;
-  static constexpr size_t HEIGHT = 10;
+  static constexpr uint8_t WIDTH = 9;
+  static constexpr uint8_t HEIGHT = 10;
 
 public:
   /* 

@@ -16,7 +16,7 @@ namespace cereal
   {
     archive(make_size_tag(matrix.size()), matrix.rows(), matrix.cols());
 
-    for(size_t i=0; i<matrix.size(); ++i)
+    for(Eigen::Index i=0; i<matrix.size(); ++i)
       archive(matrix.data()[i]);
   }
 
@@ -28,7 +28,7 @@ namespace cereal
     archive(make_size_tag(size), rows, cols);
 
     matrix.resize(rows, cols);
-    for(size_t i=0; i<matrix.size(); ++i)
+    for(Eigen::Index i=0; i<matrix.size(); ++i)
       archive(matrix.data()[i]);
   }
 }

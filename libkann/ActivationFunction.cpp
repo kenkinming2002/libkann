@@ -30,7 +30,7 @@ double ActivationFunction::normal(double val) const
 
 double ActivationFunction::derivative(double val) const
 {
-  auto identityDerivative = [](double val) { 
+  auto identityDerivative = [](double /*val*/) { 
     return 1.0;
   };
   auto sigmoidDerivative = [](double val) { 

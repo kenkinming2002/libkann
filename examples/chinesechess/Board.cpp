@@ -31,7 +31,7 @@ namespace
     return {EMPTY_CELL, CELL(CANNON), EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, CELL(CANNON), EMPTY_CELL};
   }
 
-  constexpr Board::Row makeEmptyRow(Board::Cell::Color color)
+  constexpr Board::Row makeEmptyRow(Board::Cell::Color /*color*/)
   {
     return {EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL};
   }

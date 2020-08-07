@@ -10,16 +10,13 @@ static constexpr double ANGLE = M_PI / 12.0;
 
 dynarray<size_t> Creature::topology()
 {
-  //static dynarray<size_t> topology = [](){
-    dynarray<size_t> topology(CONFIG.creature.hiddenLayers.size() + 2);
+  dynarray<size_t> topology(CONFIG.creature.hiddenLayers.size() + 2);
 
-    topology.front() = static_cast<size_t>(Creature::Input::COUNT);
-    std::copy(CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end(), std::next(topology.begin()));
-    topology.back() = static_cast<size_t>(Creature::Output::COUNT);
+  topology.front() = static_cast<size_t>(Creature::Input::COUNT);
+  std::copy(CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end(), std::next(topology.begin()));
+  topology.back() = static_cast<size_t>(Creature::Output::COUNT);
 
-    return std::move(topology);
-  //}();
-  //return topology;
+  return topology;
 }
 
 Creature::Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy, double health) 

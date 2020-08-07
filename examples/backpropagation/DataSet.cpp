@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <limits>
 
 DataSet::DataSet(const char* imageFileName, const char* labelFileName)
 {
@@ -55,7 +56,7 @@ void DataSet::test(NeuralNetwork& nn)
 
     nn.feedForward();
 
-    uint8_t label;
+    uint8_t label = std::numeric_limits<uint8_t>::max();;
     double record = -std::numeric_limits<double>::infinity();
     for(size_t i=0; i<OUTPUT_LAYER_SIZE; ++i)
       if(auto output = nn.output(i); output>record)
