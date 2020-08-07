@@ -1,5 +1,7 @@
 #include "Population.hpp"
 
+#include "Match.hpp"
+
 #include <cereal/archives/json.hpp>
 
 #include <fstream>
@@ -30,7 +32,7 @@ void Population::select()
     {
       auto& agent1 = m_agents[j+0];
       auto& agent2 = m_agents[j+1];
-      Agent::match(agent1, agent2, 1000);
+      match(agent1, agent2, 1000);
     }
   }
 

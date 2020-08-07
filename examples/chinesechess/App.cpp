@@ -1,5 +1,7 @@
 #include "App.hpp"
 
+#include "Match.hpp"
+
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
@@ -42,20 +44,20 @@ AppMatchAgents::AppMatchAgents(const char* agent1FilePath, const char* agent2Fil
 
 void AppMatchAgents::run()
 {
-  auto result = Agent::match(m_agent1, m_agent2, 1000);
+  auto result = match(m_agent1, m_agent2, 1000);
   std::cout << "End result of first game\n";
   std::cout << result.board1;
   std::cout << "End result of second game\n";
   std::cout << result.board2;
   switch(result.winningAgent)
   {
-  case Agent::AgentID::NONE:
+  case AgentID::NONE:
     std::cout << "Draw\n";
     break;
-  case Agent::AgentID::_1:
+  case AgentID::_1:
     std::cout << "First agent won\n";
     break;
-  case Agent::AgentID::_2:
+  case AgentID::_2:
     std::cout << "Second agent won\n";
     break;
   }

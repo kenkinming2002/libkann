@@ -1,9 +1,9 @@
-#pragma ocne
+#pragma once
 
 #include "Board.hpp"
 
 #include <libkann/NeuralNetwork.hpp>
-
+#include <optional>
 
 class Agent
 {
@@ -20,31 +20,17 @@ public:
   const auto& neuralNetwork() const { return m_neuralNetwork; }
 
 public:
-  enum class MoveResult { WON, LOST, NONE };
-  Board::Cell::Color performMove(Board& board, Board::Cell::Color color);
+  std::optional<Board::Move> selectMove(const Board& board, Board::Cell::Color color);
 
 public:
-  enum class AgentID { NONE, _1, _2};
-  struct MatchSingleResult
-  {
-    AgentID winningAgent;
-    Board board;
-  };
-  static MatchSingleResult matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit = 100000);
-
-  struct MatchResult
-  {
-    AgentID winningAgent;
-    Board board1;
-    Board board2;
-  };
-  static MatchResult match(Agent& lhs, Agent& rhs, size_t turnLimit = 100000);
-
   template<typename PRNG>
   static Agent cross(const Agent& lhs, const Agent& rhs, PRNG& prng, double mutationRate);
 
 public:
+  void addScore(double value) { m_score += value; }
   auto clearScore() { m_score = 0.0; }
+
+public:
   auto score() const { return m_score; }
 
 public:
