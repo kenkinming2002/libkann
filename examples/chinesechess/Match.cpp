@@ -73,25 +73,25 @@ MatchResult match(Agent& lhs, Agent& rhs, size_t turnLimit)
   return MatchResult{winningAgent, result1.board, result2.board};
 }
 
-void match(Agent& agent, Human& human)
-{
-  Board board;
-  for(;;)
-  {
-    {
-      auto move = agent.selectMove(board, Board::Cell::Color::RED);
-      if(!move)
-        return;
-      if(auto color = board.performMove(*move, Board::Cell::Color::RED); color != Board::Cell::Color::NONE)
-        return;
-    }
-    {
-      auto move = human.selectMove(board, Board::Cell::Color::BLACK);
-      if(!move)
-        return;
-      if(auto color = board.performMove(*move, Board::Cell::Color::BLACK); color != Board::Cell::Color::NONE)
-        return;
-    }
-  }
-}
-
+//void match(Agent& agent, Human& human)
+//{
+//  Board board;
+//  for(;;)
+//  {
+//    {
+//      auto move = agent.selectMove(board, Board::Cell::Color::RED);
+//      if(!move)
+//        return;
+//      if(auto color = board.performMove(*move, Board::Cell::Color::RED); color != Board::Cell::Color::NONE)
+//        return;
+//    }
+//    {
+//      auto move = human.selectMove(board, Board::Cell::Color::BLACK);
+//      if(!move)
+//        return;
+//      if(auto color = board.performMove(*move, Board::Cell::Color::BLACK); color != Board::Cell::Color::NONE)
+//        return;
+//    }
+//  }
+//}
+//

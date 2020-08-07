@@ -2,10 +2,15 @@
 
 #include "Match.hpp"
 
+#include <SFML/Window/Event.hpp>
+
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
 #include <cereal/archives/json.hpp>
+
+static constexpr unsigned WINDOW_WIDTH = 1000;
+static constexpr unsigned WINDOW_HEIGHT = 1000;
 
 AppGeneratePopulations::AppGeneratePopulations(const char* outputDirectory, seed_type seed) 
   : m_outputDirectory(outputDirectory), m_population(seed, 100) 
@@ -65,10 +70,72 @@ void AppMatchAgents::run()
   }
 }
 
-AppMatchAgentPlayer::AppMatchAgentPlayer(const char* agentFilePath)
-  : m_agent(loadAgent(agentFilePath)) {}
+AppMatchAgentPlayer::AppMatchAgentPlayer(const char* agentFilePath) 
+  : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
+    m_renderer(m_window),
+    m_agent(loadAgent(agentFilePath)) {}
 
 void AppMatchAgentPlayer::run()
 {
-  match(m_agent, m_human);
+  while(this->loop());
+}
+
+bool AppMatchAgentPlayer::loop()
+{
+  this->handleInput();
+  this->update();
+  this->render();
+  return m_window.isOpen();
+}
+
+void AppMatchAgentPlayer::handleInput()
+{
+  sf::Event event;
+  while (m_window.pollEvent(event))
+  {
+    if(m_human.handleInput(m_renderer, event))
+      continue;
+
+    if(event.type == sf::Event::Closed)
+      m_window.close();
+  }
+}
+
+void AppMatchAgentPlayer::update()
+{
+  if(m_matchEnded)
+    return;
+
+  {
+    auto move = m_human.pollMove(m_board, Board::Cell::Color::RED);
+    if(!move)
+      return;
+
+    if(auto color = m_board.performMove(*move, Board::Cell::Color::RED); color != Board::Cell::Color::NONE)
+    {
+      m_matchEnded = true;
+      return;
+    }
+  }
+
+  {
+    auto move = m_agent.selectMove(m_board, Board::Cell::Color::BLACK);
+    if(!move)
+    {
+      m_matchEnded = true;
+      return;
+    }
+
+    if(auto color = m_board.performMove(*move, Board::Cell::Color::RED); color != Board::Cell::Color::NONE)
+    {
+      m_matchEnded = true;
+      return;
+    }
+  }
+}
+
+void AppMatchAgentPlayer::render()
+{
+  m_renderer.draw(m_board);
+  m_window.display();
 }
