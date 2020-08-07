@@ -1,13 +1,16 @@
 #pragma once
 
 #include "Agent.hpp"
+#include "Human.hpp"
 #include "Board.hpp"
 
-enum class AgentID { NONE, _1, _2 };
+enum class PlayerID { NONE, AGENT1, AGENT2, HUMAN};
 
-struct MatchSingleResult { AgentID winningAgent; Board board; };
+struct MatchSingleResult { PlayerID winningAgent; Board board; };
+struct MatchResult { PlayerID winningAgent; Board board1; Board board2; };
+
 MatchSingleResult matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit = 100000);
-
-struct MatchResult { AgentID winningAgent; Board board1; Board board2; };
 MatchResult match(Agent& lhs, Agent& rhs, size_t turnLimit = 100000);
+
+void match(Agent& agent, Human& human);
 

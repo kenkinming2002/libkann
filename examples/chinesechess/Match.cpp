@@ -33,11 +33,11 @@ MatchSingleResult matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit)
   case Board::Cell::Color::RED:
     lhs.addScore(WINNING_SCORE);
     rhs.addScore(LOSING_SCORE);
-    return MatchSingleResult{AgentID::_1, board};
+    return MatchSingleResult{PlayerID::AGENT1, board};
   case Board::Cell::Color::BLACK:
     lhs.addScore(LOSING_SCORE);
     rhs.addScore(WINNING_SCORE);
-    return MatchSingleResult{AgentID::_2, board};
+    return MatchSingleResult{PlayerID::AGENT2, board};
   case Board::Cell::Color::NONE:
   {
     auto [redScore, blackScore] = board.estimateScore();
@@ -45,10 +45,10 @@ MatchSingleResult matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit)
     rhs.addScore(blackScore);
     auto winningAgent = [&](){
       if(lhs.score() > rhs.score())
-        return AgentID::_1;
+        return PlayerID::AGENT1;
       if(lhs.score() < rhs.score())
-        return AgentID::_2;
-      return AgentID::NONE;
+        return PlayerID::AGENT2;
+      return PlayerID::NONE;
     }();
     return MatchSingleResult{winningAgent, board};
   }
@@ -64,13 +64,34 @@ MatchResult match(Agent& lhs, Agent& rhs, size_t turnLimit)
 
   auto winningAgent = [&]() {
     if(lhs.score() > rhs.score())
-      return AgentID::_1;
+      return PlayerID::AGENT1;
     if(lhs.score() < rhs.score())
-      return AgentID::_2;
-    return AgentID::NONE;
+      return PlayerID::AGENT2;
+    return PlayerID::NONE;
   }();
 
   return MatchResult{winningAgent, result1.board, result2.board};
 }
 
+void match(Agent& agent, Human& human)
+{
+  Board board;
+  for(;;)
+  {
+    {
+      auto move = agent.selectMove(board, Board::Cell::Color::RED);
+      if(!move)
+        return;
+      if(auto color = board.performMove(*move, Board::Cell::Color::RED); color != Board::Cell::Color::NONE)
+        return;
+    }
+    {
+      auto move = human.selectMove(board, Board::Cell::Color::BLACK);
+      if(!move)
+        return;
+      if(auto color = board.performMove(*move, Board::Cell::Color::BLACK); color != Board::Cell::Color::NONE)
+        return;
+    }
+  }
+}
 

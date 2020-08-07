@@ -51,15 +51,17 @@ void AppMatchAgents::run()
   std::cout << result.board2;
   switch(result.winningAgent)
   {
-  case AgentID::NONE:
+  case PlayerID::NONE:
     std::cout << "Draw\n";
     break;
-  case AgentID::_1:
+  case PlayerID::AGENT1:
     std::cout << "First agent won\n";
     break;
-  case AgentID::_2:
+  case PlayerID::AGENT2:
     std::cout << "Second agent won\n";
     break;
+  default:
+    throw std::runtime_error("WTH has happend!");
   }
 }
 
@@ -68,4 +70,5 @@ AppMatchAgentPlayer::AppMatchAgentPlayer(const char* agentFilePath)
 
 void AppMatchAgentPlayer::run()
 {
+  match(m_agent, m_human);
 }

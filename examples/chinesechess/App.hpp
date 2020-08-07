@@ -3,6 +3,9 @@
 #include <filesystem>
 #include "Population.hpp"
 
+#include "Agent.hpp"
+#include "Human.hpp"
+
 class AppGeneratePopulations
 {
 public:
@@ -42,4 +45,5 @@ public:
 
 private:
   Agent m_agent;
+  Human m_human;
 };
