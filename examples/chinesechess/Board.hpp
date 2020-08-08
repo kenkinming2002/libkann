@@ -66,7 +66,7 @@ public:
 
 public:
   std::vector<Move> enumerateMove(Cell::Color color) const;
-  bool validateMove(Move move) const;
+  bool validateMove(Move move, Cell::Color color) const;
 
   /*
    * @return which color won

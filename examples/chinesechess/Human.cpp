@@ -29,8 +29,7 @@ std::optional<Board::Move> Human::pollMove(const Board& board, Board::Cell::Colo
 {
   if(m_move)
   {
-    // FIXME: to use correct color
-    if(board.validateMove(*m_move))
+    if(board.validateMove(*m_move, color))
     {
       return m_move;
     }

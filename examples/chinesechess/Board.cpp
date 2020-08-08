@@ -305,12 +305,9 @@ std::vector<Board::Move> Board::enumerateMove(Cell::Color color) const
   return moves;
 }
 
-bool Board::validateMove(Move move) const
+bool Board::validateMove(Move move, Cell::Color color) const
 {
-  /* 
-   * Whatever. Makes it work first optimize later.
-   */
-  auto color = this->cell(move.src).color;
+  // Whatever. Makes it work first optimize later.
   auto moves = this->enumerateMove(color);
   return std::find(moves.begin(), moves.end(), move) != moves.end();
 }
