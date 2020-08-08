@@ -45,10 +45,13 @@ public:
     enum class Color : uint8_t { RED, BLACK, NONE } color;
 
   public:
-    bool operator==(const Cell& other) const = default;
+    constexpr Cell(Type type = Type::EMPTY, Color color = Color::NONE) : type(type), color(color) {}
 
   public:
-    constexpr Cell(Type type = Type::EMPTY, Color color = Color::NONE) : type(type), color(color) {}
+    constexpr bool empty() const { return type == Type::EMPTY || color == Color::NONE; }
+
+  public:
+    bool operator==(const Cell& other) const = default;
   };
 
 public:

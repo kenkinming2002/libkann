@@ -30,7 +30,7 @@ namespace App
     sf::Event event;
     while (m_window.pollEvent(event))
     {
-      if(m_human.handleInput(m_renderer, event))
+      if(m_human.handleInput(m_renderer, m_board, Board::Cell::Color::RED, event))
         continue;
 
       if(event.type == sf::Event::Closed)
@@ -63,7 +63,7 @@ namespace App
         return;
       }
 
-      if(auto color = m_board.performMove(*move, Board::Cell::Color::RED); color != Board::Cell::Color::NONE)
+      if(auto color = m_board.performMove(*move, Board::Cell::Color::BLACK); color != Board::Cell::Color::NONE)
       {
         m_matchEnded = true;
         return;
