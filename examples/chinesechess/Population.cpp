@@ -11,7 +11,7 @@ Population::Population(seed_type seed, size_t size) : m_generator(seed)
   assert(size % 2 == 0 && "population size must be even");
   m_agents.reserve(size);
   std::generate_n(std::back_inserter(m_agents), size, [this](){
-    auto topology = dynarray<size_t>{Agent::INPUT_LAYER_SIZE, 31, 31, 37, Agent::OUTPUT_LAYER_SIZE};
+    auto topology = dynarray<size_t>{Agent::INPUT_LAYER_SIZE, 30, 30, 30, 30, Agent::OUTPUT_LAYER_SIZE};
     auto neuralNetwork = NeuralNetwork(std::move(topology), m_generator, ActivationFunction(ActivationFunction::Type::SIGMOID));
     return Agent(std::move(neuralNetwork));
   });
@@ -28,6 +28,8 @@ void Population::select()
   for(size_t i=0; i<NUM_ITERATIONS; ++i)
   {
     std::shuffle(m_agents.begin(), m_agents.end(), m_generator);
+
+#pragma omp parallel for
     for(size_t j=0; j<m_agents.size(); j+=2)
     {
       auto& agent1 = m_agents[j+0];
