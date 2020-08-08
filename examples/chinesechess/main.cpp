@@ -22,7 +22,7 @@
   std::exit(EXIT_FAILURE);
 }
 
-AppGeneratePopulations::seed_type generateSeed()
+App::GeneratePopulations::seed_type generateSeed()
 {
   std::random_device rd;
   if(rd.entropy() != 0.0)
@@ -37,9 +37,9 @@ AppGeneratePopulations::seed_type generateSeed()
   }
 }
 
-AppGeneratePopulations::seed_type toSeed(const char* str)
+auto toSeed(const char* str)
 {
-  AppGeneratePopulations::seed_type seed;
+  App::GeneratePopulations::seed_type seed;
 
   std::stringstream ss;
   ss << str;
@@ -59,14 +59,14 @@ int main(int argc, const char* argv[])
   {
     auto outputDirectory = argv[2];
     auto seed = argc == 3 ? generateSeed() : toSeed(argv[3]);
-    AppGeneratePopulations(outputDirectory, seed).run();
+    App::GeneratePopulations(outputDirectory, seed).run();
   }
   else if(strcmp("match", argv[1]) == 0)
   {
     if(argc == 3)
-      AppMatchAgentPlayer(argv[2]).run();
+      App::MatchAgentPlayer(argv[2]).run();
     else
-      AppMatchAgents(argv[2], argv[3]).run();
+      App::MatchAgents(argv[2], argv[3]).run();
   }
   else
     usage();

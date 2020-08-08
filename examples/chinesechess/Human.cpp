@@ -7,9 +7,6 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
 
-static constexpr unsigned WINDOW_WIDTH = 1000;
-static constexpr unsigned WINDOW_HEIGHT = 1000;
-
 bool Human::handleInput(const Renderer& renderer, sf::Event event)
 {
   if(event.type == sf::Event::MouseButtonPressed)
@@ -19,7 +16,7 @@ bool Human::handleInput(const Renderer& renderer, sf::Event event)
       if(!m_src)
         m_src = boardCoords;
       else
-        m_move = Board::Move(*m_src, *boardCoords);
+        m_move = Board::Move{*m_src, *boardCoords};
     }
     return true;
   }
