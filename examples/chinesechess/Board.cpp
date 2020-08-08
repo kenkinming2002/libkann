@@ -2,7 +2,6 @@
 
 #include <stdexcept>
 #include <cassert>
-#include <iostream>
 
 /* 
  * I know, I know. You people are screaming here that macros a evil, but would

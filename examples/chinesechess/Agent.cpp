@@ -1,7 +1,6 @@
 #include "Agent.hpp"
 
 #include <stdexcept>
-#include <iostream>
 #include <fstream>
 #include <cereal/archives/json.hpp>
 

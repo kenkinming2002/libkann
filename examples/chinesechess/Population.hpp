@@ -20,7 +20,7 @@ public:
   void select();
 
 public:
-  void writeTo(const std::filesystem::path& directoryPath) const;
+  void writeTo(const std::filesystem::path& directory) const;
 
 private:
   std::vector<Agent> m_agents;

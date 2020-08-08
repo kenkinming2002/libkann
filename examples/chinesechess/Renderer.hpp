@@ -4,8 +4,8 @@
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Texture.hpp>
-
 #include <SFML/System/Vector2.hpp>
+
 #include <optional>
 
 class Renderer

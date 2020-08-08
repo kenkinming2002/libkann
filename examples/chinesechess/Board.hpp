@@ -1,13 +1,11 @@
 #pragma once
 
 #include <stdint.h>
-#include <stddef.h>
 
 #include <ostream>
 #include <array>
 #include <vector>
 #include <optional>
-#include <tuple>
 
 class Board
 {

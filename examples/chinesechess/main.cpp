@@ -1,11 +1,9 @@
 #include "App.hpp"
 
-#include <filesystem>
 #include <sstream>
 #include <iostream>
 #include <random>
 #include <chrono>
-#include <optional>
 
 [[gnu::noreturn]] void usage()
 {

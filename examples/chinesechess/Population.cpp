@@ -57,13 +57,14 @@ void Population::select()
 }
 
 
-void Population::writeTo(const std::filesystem::path& directoryPath) const
+void Population::writeTo(const std::filesystem::path& directory) const
 {
-  std::filesystem::create_directories(directoryPath);
+  std::filesystem::create_directories(directory);
   for(size_t i=0; i<m_agents.size(); ++i)
   {
     const auto& agent = m_agents[i];
-    auto filePath = directoryPath / (std::string("agent")+std::to_string(i));
+    auto fileName = "agent"+std::to_string(i);
+    auto filePath = directory / fileName;
 
     std::ofstream outputFile;
     outputFile.open(filePath.c_str());

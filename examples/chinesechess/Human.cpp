@@ -1,10 +1,5 @@
 #include "Human.hpp"
 
-#include <stdexcept>
-#include <iostream>
-
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
 
 bool Human::handleInput(const Renderer& renderer, sf::Event event)

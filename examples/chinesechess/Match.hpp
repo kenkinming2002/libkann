@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Agent.hpp"
-#include "Human.hpp"
 #include "Board.hpp"
 
 enum class PlayerID { NONE, AGENT1, AGENT2};
