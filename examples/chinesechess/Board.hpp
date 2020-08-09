@@ -72,7 +72,8 @@ public:
   /*
    * @return which color won
    */
-  Cell::Color performMove(Move move, Cell::Color color);
+  Cell performMove(Move move);
+  void undoMove(Move move, Cell cell);
 
 public:
   std::optional<Move> getMove(Position srcPosition, Offset dstOffset, Offset obstacleOffset) const;

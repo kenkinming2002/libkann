@@ -311,25 +311,31 @@ bool Board::validateMove(Move move, Cell::Color color) const
   return std::find(moves.begin(), moves.end(), move) != moves.end();
 }
 
-Board::Cell::Color Board::performMove(Move move, Cell::Color color)
+Board::Cell Board::performMove(Move move)
 {
-  auto result = Cell::Color::NONE;
-
-  assert(move.src.x != move.dst.x || move.src.y != move.dst.y);
   auto& srcCell = cell(move.src);
   auto& dstCell = cell(move.dst);
 
   // Basic perliminary sanity check
+  assert(move.src.x != move.dst.x || move.src.y != move.dst.y);
   assert(srcCell.color != Cell::Color::NONE);
   assert(srcCell.color != dstCell.color);
 
-  if(dstCell.type == Cell::Type::GENERAL)
-    result = color;
+  auto result = dstCell;
 
   dstCell = srcCell;
   srcCell = Cell();
 
   return result;
+}
+
+void Board::undoMove(Move move, Cell cell)
+{
+  auto& srcCell = this->cell(move.src);
+  auto& dstCell = this->cell(move.dst);
+
+  srcCell = dstCell;
+  dstCell = cell;
 }
 
 std::optional<Board::Move> Board::getMove(Position srcPosition, Offset dstOffset, Offset obstacleOffset) const

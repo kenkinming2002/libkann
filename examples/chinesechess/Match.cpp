@@ -14,15 +14,15 @@ MatchSingleResult matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit)
         auto move = lhs.selectMove(board, Board::Cell::Color::RED);
         if(!move)
           return Board::Cell::Color::BLACK;
-        if(auto color = board.performMove(*move, Board::Cell::Color::RED); color != Board::Cell::Color::NONE)
-          return color;
+        if(board.performMove(*move).type == Board::Cell::Type::GENERAL)
+          return Board::Cell::Color::RED;
       }
       {
         auto move = rhs.selectMove(board, Board::Cell::Color::BLACK);
         if(!move)
           return Board::Cell::Color::RED;
-        if(auto color = board.performMove(*move, Board::Cell::Color::BLACK); color != Board::Cell::Color::NONE)
-          return color;
+        if(board.performMove(*move).type == Board::Cell::Type::GENERAL)
+          return Board::Cell::Color::BLACK;
       }
     }
     return Board::Cell::Color::NONE;

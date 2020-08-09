@@ -1,6 +1,7 @@
 #include "MatchAgentPlayer.hpp"
 
 #include <SFML/Window/Event.hpp>
+#include <SFML/Window/Keyboard.hpp>
 
 static constexpr unsigned WINDOW_WIDTH = 1000;
 static constexpr unsigned WINDOW_HEIGHT = 1000;
@@ -30,8 +31,14 @@ namespace App
     sf::Event event;
     while (m_window.pollEvent(event))
     {
-      if(m_human.handleInput(m_renderer, m_board, Board::Cell::Color::RED, event))
+      if(m_human.handleInput(m_renderer, m_game.board(), Board::Cell::Color::RED, event))
         continue;
+
+      if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::U)
+      {
+        m_game.undoMove();
+        m_game.undoMove();
+      }
 
       if(event.type == sf::Event::Closed)
         m_window.close();
@@ -40,40 +47,35 @@ namespace App
 
   void MatchAgentPlayer::update()
   {
-    if(m_matchEnded)
+    // Check
+    if(m_game.ended())
       return;
 
-    {
-      auto move = m_human.pollMove(m_board, Board::Cell::Color::RED);
-      if(!move)
-        return;
+    // Human
+    if(auto move = m_human.pollMove(m_game.board(), Board::Cell::Color::RED))
+      m_game.performMove(*move);
+    else
+      return;
 
-      if(auto color = m_board.performMove(*move, Board::Cell::Color::RED); color != Board::Cell::Color::NONE)
-      {
-        m_matchEnded = true;
-        return;
-      }
+    // Check
+    if(m_game.ended())
+      return;
+
+    // Agent
+    if(auto move = m_agent.selectMove(m_game.board(), Board::Cell::Color::BLACK))
+    {
+      m_game.performMove(*move);
     }
-
+    else
     {
-      auto move = m_agent.selectMove(m_board, Board::Cell::Color::BLACK);
-      if(!move)
-      {
-        m_matchEnded = true;
-        return;
-      }
-
-      if(auto color = m_board.performMove(*move, Board::Cell::Color::BLACK); color != Board::Cell::Color::NONE)
-      {
-        m_matchEnded = true;
-        return;
-      }
+      m_game.end();
+      return;
     }
   }
 
   void MatchAgentPlayer::render()
   {
-    m_renderer.draw(m_board);
+    m_renderer.draw(m_game.board());
     m_window.display();
   }
 }

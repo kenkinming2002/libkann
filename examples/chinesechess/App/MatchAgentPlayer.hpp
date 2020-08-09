@@ -2,6 +2,7 @@
 
 #include <SFML/Graphics/RenderWindow.hpp>
 
+#include "../Game.hpp"
 #include "../Renderer.hpp"
 #include "../Agent.hpp"
 #include "../Human.hpp"
@@ -27,9 +28,7 @@ namespace App
     Renderer m_renderer;
 
   private:
-    bool m_matchEnded = false;
-
-    Board m_board;
+    Game m_game;
     Agent m_agent;
     Human m_human;
   };
