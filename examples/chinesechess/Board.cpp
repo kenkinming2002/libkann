@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <cassert>
+#include <iostream>
 
 /* 
  * I know, I know. You people are screaming here that macros a evil, but would
@@ -55,6 +56,7 @@ Board::Board()
 
 std::vector<Board::Move> Board::enumerateMove(Cell::Color color) const
 {
+  assert(color != Cell::Color::NONE);
   std::vector<Board::Move> moves;
   for(uint8_t y=0; y<HEIGHT; ++y)
     for(uint8_t x=0; x<WIDTH; ++x)
@@ -79,7 +81,7 @@ std::vector<Board::Move> Board::enumerateMove(Cell::Color color) const
               if(dstCell.color != Cell::Color::NONE)
                 break;
             }
-            for(int dstX = static_cast<int>(x)+1; dstX<WIDTH; ++dstX)
+            for(int dstX = static_cast<int>(x)+1; dstX<static_cast<int>(WIDTH); ++dstX)
             {
               const auto dstPosition = Position{static_cast<uint8_t>(dstX), y};
               const auto& dstCell = cell(dstPosition);
@@ -101,7 +103,7 @@ std::vector<Board::Move> Board::enumerateMove(Cell::Color color) const
                 break;
             }
 
-            for(int dstY = static_cast<int>(y)+1; dstY<HEIGHT; ++dstY)
+            for(int dstY = static_cast<int>(y)+1; dstY<static_cast<int>(HEIGHT); ++dstY)
             {
               const auto dstPosition = Position{x, static_cast<uint8_t>(dstY)};
               const auto& dstCell = cell(dstPosition);
@@ -171,6 +173,40 @@ std::vector<Board::Move> Board::enumerateMove(Cell::Color color) const
               if(auto move = getMove(srcPosition, dstOffset))
                 if(inSquare(move->dst, color))
                   moves.push_back(*move);
+
+            switch(color)
+            {
+            case Cell::Color::RED:
+              for(int dstY=static_cast<int>(y)+1; dstY<static_cast<int>(HEIGHT); ++dstY)
+              {
+                const auto dstPosition = Position{x, static_cast<uint8_t>(dstY)};
+                const auto& dstCell = cell(dstPosition);
+                if(!dstCell.empty())
+                {
+                  if(dstCell.type == Cell::Type::GENERAL)
+                    moves.push_back(Move{srcPosition, dstPosition});
+
+                  break;
+                }
+              }
+              break;
+            case Cell::Color::BLACK:
+              for(int dstY=static_cast<int>(y)-1; dstY>=0; --dstY)
+              {
+                const auto dstPosition = Position{x, static_cast<uint8_t>(dstY)};
+                const auto& dstCell = cell(dstPosition);
+                if(!dstCell.empty())
+                {
+                  if(dstCell.type == Cell::Type::GENERAL)
+                    moves.push_back(Move{srcPosition, dstPosition});
+
+                  break;
+                }
+              }
+              break;
+            default:
+              break;
+            }
             break;
           }
           case Board::Cell::Type::CANNON:
@@ -286,11 +322,11 @@ std::vector<Board::Move> Board::enumerateMove(Cell::Color color) const
 
             if(acrossRiver(srcPosition, color))
             {
+              std::cout << "Hey\n";
               static constexpr Offset offsets[] = {Offset{-1,  0}, Offset{1,  0}};
               for(const auto& dstOffset : offsets)
                 if(auto move = getMove(srcPosition, dstOffset))
-                  if(inSquare(move->dst, color))
-                    moves.push_back(*move);
+                  moves.push_back(*move);
               break;
             }
             break;
