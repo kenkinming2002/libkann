@@ -12,12 +12,9 @@ namespace App
   {
     for(size_t i=0;;++i)
     {
-      auto directoryName = "population" + std::to_string(i);
-      auto directory = m_outputDirectory / directoryName;
-
+      auto directory = m_outputDirectory / ("population" + std::to_string(i));
       m_population.writeTo(directory);
       std::cout << "Population " << i << " generated\n";
-
       m_population.select();
     }
   }

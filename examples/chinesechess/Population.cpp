@@ -2,9 +2,11 @@
 
 #include "Match.hpp"
 
-#include <cereal/archives/json.hpp>
+#include <cereal/archives/binary.hpp>
 
+#include <cereal/details/helpers.hpp>
 #include <fstream>
+#include <string>
 
 Population::Population(seed_type seed, size_t size) : m_generator(seed)
 {
@@ -65,15 +67,6 @@ void Population::writeTo(const std::filesystem::path& directory) const
   for(size_t i=0; i<m_agents.size(); ++i)
   {
     const auto& agent = m_agents[i];
-    auto fileName = "agent"+std::to_string(i);
-    auto filePath = directory / fileName;
-
-    std::ofstream outputFile;
-    outputFile.open(filePath.c_str());
-    if(!outputFile)
-      throw std::runtime_error(std::string("Failed to open file ") + filePath.c_str());
-
-    cereal::JSONOutputArchive outputArchive(outputFile);
-    outputArchive(agent);
+    agent.saveToFile((directory / ("agent"+std::to_string(i))).c_str());
   }
 }

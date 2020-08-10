@@ -1,22 +1,32 @@
 #include "Agent.hpp"
 
+#include <cereal/details/helpers.hpp>
 #include <stdexcept>
 #include <fstream>
-#include <cereal/archives/json.hpp>
+#include <cereal/archives/binary.hpp>
 
 Agent::Agent(NeuralNetwork neuralNetwork) : m_neuralNetwork(std::move(neuralNetwork)) {}
 
-Agent Agent::loadFromFile(const char* fileName)
+void Agent::loadFromFile(const char* fileName)
 {
   std::ifstream inputFile;
-  inputFile.open(fileName);
+  inputFile.open(fileName, std::ifstream::binary);
   if(!inputFile)
     throw std::runtime_error(std::string("Failed to open file ") + fileName);
 
-  cereal::JSONInputArchive inputArchive(inputFile);
-  Agent agent;
-  inputArchive(agent);
-  return agent;
+  cereal::BinaryInputArchive inputArchive(inputFile);
+  inputArchive(*this);
+}
+
+void Agent::saveToFile(const char* fileName) const
+{
+  std::ofstream outputFile;
+  outputFile.open(fileName, std::ofstream::binary);
+  if(!outputFile)
+    throw std::runtime_error(std::string("Failed to open file ") + fileName);
+
+  cereal::BinaryOutputArchive outputArchive(outputFile);
+  outputArchive(*this);
 }
 
 std::optional<Board::Move> Agent::selectMove(const Board& board, Board::Cell::Color color)

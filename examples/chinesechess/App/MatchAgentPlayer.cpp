@@ -8,10 +8,12 @@ static constexpr unsigned WINDOW_HEIGHT = 1000;
 
 namespace App
 {
-  MatchAgentPlayer::MatchAgentPlayer(const char* agentFilePath) 
+  MatchAgentPlayer::MatchAgentPlayer(const char* agentFileName) 
     : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), ""),
-      m_renderer(m_window),
-      m_agent(Agent::loadFromFile(agentFilePath)) {}
+      m_renderer(m_window)
+  {
+    m_agent.loadFromFile(agentFileName);
+  }
 
   void MatchAgentPlayer::run()
   {

@@ -12,7 +12,7 @@ namespace App
   class MatchAgentPlayer
   {
   public:
-    MatchAgentPlayer(const char* agentFilePath);
+    MatchAgentPlayer(const char* agentFileName);
 
   public:
     void run();

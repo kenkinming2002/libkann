@@ -8,10 +8,12 @@ static constexpr unsigned WINDOW_HEIGHT = 1000;
 
 namespace App
 {
-  MatchAgents::MatchAgents(const char* agent1FilePath, const char* agent2FilePath) 
-    : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), ""),
-      m_renderer(m_window),
-      m_agent1(Agent::loadFromFile(agent1FilePath)), m_agent2(Agent::loadFromFile(agent2FilePath)) {}
+  MatchAgents::MatchAgents(const char* agent1FileName, const char* agent2FileName) 
+    : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), ""), m_renderer(m_window)
+  {
+    m_agent1.loadFromFile(agent1FileName);
+    m_agent2.loadFromFile(agent2FileName);
+  }
 
   void MatchAgents::run()
   {

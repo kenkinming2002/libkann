@@ -16,7 +16,8 @@ public:
   Agent(NeuralNetwork neuralNetwork);
 
 public:
-  static Agent loadFromFile(const char* fileName);
+  void loadFromFile(const char* fileName);
+  void saveToFile(const char* fileName) const;
 
 public:
   auto& neuralNetwork() { return m_neuralNetwork; }

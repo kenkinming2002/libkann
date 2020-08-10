@@ -11,7 +11,7 @@ namespace App
   class MatchAgents
   {
   public:
-    MatchAgents(const char* agent1FilePath, const char* agent2FilePath);
+    MatchAgents(const char* agent1FileName, const char* agent2FileName);
 
   public:
     void run();
