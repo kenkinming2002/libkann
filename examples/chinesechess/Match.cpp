@@ -34,13 +34,12 @@ MatchResult matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit)
   case Board::Cell::Color::BLACK:
     return MatchResult{LOSING_SCORE, WINNING_SCORE};
   case Board::Cell::Color::NONE:
-  {
     auto [redScore, blackScore] = game.board().estimateScore();
     return MatchResult{redScore, blackScore};
   }
-  default:
-    throw std::runtime_error("I don't know WTH happened");
-  }
+
+  assert(false);
+  __builtin_unreachable();
 }
 
 MatchResult match(Agent& lhs, Agent& rhs, size_t turnLimit)

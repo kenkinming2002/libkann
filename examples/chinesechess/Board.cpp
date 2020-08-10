@@ -322,7 +322,6 @@ std::vector<Board::Move> Board::enumerateMove(Cell::Color color) const
 
             if(acrossRiver(srcPosition, color))
             {
-              std::cout << "Hey\n";
               static constexpr Offset offsets[] = {Offset{-1,  0}, Offset{1,  0}};
               for(const auto& dstOffset : offsets)
                 if(auto move = getMove(srcPosition, dstOffset))
@@ -331,8 +330,6 @@ std::vector<Board::Move> Board::enumerateMove(Cell::Color color) const
             }
             break;
           }
-          default: 
-            throw std::runtime_error("I don't know WTH happened");
         }
       }
     }
@@ -404,12 +401,14 @@ bool Board::inSquare(Position position, Cell::Color color)
   {
   case Cell::Color::RED:
     return position.y<3;
-    break;
   case Cell::Color::BLACK:
     return position.y>=7;
   default:
-    throw std::runtime_error("I don't know WTH happened");
+    break;
   }
+
+  assert(false);
+  __builtin_unreachable();
 }
 
 bool Board::acrossRiver(Position position, Cell::Color color)
@@ -422,8 +421,11 @@ bool Board::acrossRiver(Position position, Cell::Color color)
   case Cell::Color::BLACK:
     return position.y<5;
   default:
-    throw std::runtime_error("I don't know WTH happened");
+    break;
   }
+
+  assert(false);
+  __builtin_unreachable();
 }
 
 std::pair<double, double> Board::estimateScore() const
@@ -443,8 +445,10 @@ std::pair<double, double> Board::estimateScore() const
         case Cell::Type::GENERAL:  return 0.0;
         case Cell::Type::CANNON:   return 1.0;
         case Cell::Type::SOLDIER:  return 0.5;
-        default: throw std::runtime_error("I don't know WTH happened");
         }
+
+        assert(false);
+        __builtin_unreachable();
       };
       switch(cell.color)
       {
