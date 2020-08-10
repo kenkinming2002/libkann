@@ -1,5 +1,9 @@
 #pragma once
 
+#include <SFML/Graphics/RenderWindow.hpp>
+
+#include "../Game.hpp"
+#include "../Renderer.hpp"
 #include "../Agent.hpp"
 
 namespace App
@@ -12,8 +16,26 @@ namespace App
   public:
     void run();
 
+  public:
+    bool loop();
+    void handleInput();
+    void update();
+    void render();
+
   private:
+    sf::RenderWindow m_window;
+    Renderer m_renderer;
+
+  private:
+    Game m_game;
     Agent m_agent1, m_agent2;
+
+  private:
+    enum class AgentID
+    {
+      _1,
+      _2
+    } m_currentAgent = AgentID::_1;
   };
 
 }

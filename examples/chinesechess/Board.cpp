@@ -426,40 +426,6 @@ std::pair<double, double> Board::estimateScore() const
   return std::make_pair(redScore, blackScore);
 }
 
-namespace
-{
-  char convert(Board::Cell::Type type)
-  {
-    switch(type)
-    {
-    case Board::Cell::Type::EMPTY:    return ' ';
-    case Board::Cell::Type::CHARIOT:  return 'C';
-    case Board::Cell::Type::KNIGHT:   return 'K';
-    case Board::Cell::Type::ELEPHANT: return 'E';
-    case Board::Cell::Type::ADVISOR:  return 'A';
-    case Board::Cell::Type::GENERAL:  return 'G';
-    case Board::Cell::Type::CANNON:   return 'C';
-    case Board::Cell::Type::SOLDIER:  return 'S';
-    default: throw std::runtime_error("I don't know WTH happened");
-    }
-  }
-}
-
-std::ostream& operator<<(std::ostream& os, const Board& board)
-{
-  for(const auto& row: board.m_cells)
-  {
-    for(const auto& cell: row)
-    {
-      os << (cell.color == Board::Cell::Color::RED ? "\033[31m" : "\033[32m");
-      os << convert(cell.type);
-      os << "\033[0m";
-    }
-    os << '\n';
-  }
-  return os;
-}
-
 std::optional<Board::Position> operator+(const Board::Position& position, const Board::Offset& offset)
 {
   auto x = static_cast<int>(position.x) + static_cast<int>(offset.x);

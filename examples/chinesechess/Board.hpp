@@ -84,10 +84,6 @@ public:
 public:
   std::pair<double, double> estimateScore() const;
 
-public:
-  // Temporary only
-  friend std::ostream& operator<<(std::ostream& os, const Board& board);
-
 private:
   Cells m_cells;
 };
