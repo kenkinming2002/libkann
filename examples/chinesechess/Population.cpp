@@ -36,7 +36,9 @@ void Population::select()
     {
       auto& agent1 = m_agents[j+0];
       auto& agent2 = m_agents[j+1];
-      match(agent1, agent2, 1000);
+      auto result = match(agent1, agent2, 1000);
+      agent1.addScore(result.score1);
+      agent2.addScore(result.score2);
     }
   }
 
@@ -45,6 +47,9 @@ void Population::select()
       return lhs.score() > rhs.score();
   });
   m_agents.erase(std::next(m_agents.begin(), size/2), m_agents.end());
+
+
+  std::cout << "DEBUG: max score - " << m_agents.front().score() << '\n';
 
   // Clear score
   std::for_each(m_agents.begin(), m_agents.end(), std::mem_fn(&Agent::clearScore));

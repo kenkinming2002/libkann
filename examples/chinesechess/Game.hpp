@@ -2,7 +2,7 @@
 
 #include "Board.hpp"
 
-#include <stack>
+#include <vector>
 
 class Game
 {
@@ -12,11 +12,15 @@ public:
 
 public:
   /*
-   * Declare that the specififc color is unable to make any move, and set the
+   * Declare that the specific color is unable to make any move, and set the
    * winning color correspondingly.
    */
   void moveExhausted(Board::Cell::Color color);
   bool ended() const { return m_winningColor != Board::Cell::Color::NONE; }
+  Board::Cell::Color winningColor() const { return m_winningColor; }
+
+public:
+  bool draw() const;
 
 public:
   const auto& board() { return m_board; }
@@ -26,5 +30,5 @@ private:
 
 private:
   Board::Cell::Color m_winningColor = Board::Cell::Color::NONE;
-  std::stack<std::pair<Board::Move, Board::Cell>> m_history;
+  std::vector<std::pair<Board::Move, Board::Cell>> m_history;
 };

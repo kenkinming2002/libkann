@@ -1,56 +1,42 @@
 #include "Match.hpp"
 
-MatchSingleResult matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit)
+#include "Game.hpp"
+
+MatchResult matchSingle(Agent& lhs, Agent& rhs, size_t turnLimit)
 {
   static constexpr double WINNING_SCORE = 100.0;
   static constexpr double LOSING_SCORE  = -100.0;
 
-  Board board;
-  auto winningColor = [&]()
+  Game game;
+  for(size_t i=0; i<turnLimit; ++i)
   {
-    for(size_t i=0; i<turnLimit; ++i)
-    {
-      {
-        auto move = lhs.selectMove(board, Board::Cell::Color::RED);
-        if(!move)
-          return Board::Cell::Color::BLACK;
-        if(board.performMove(*move).type == Board::Cell::Type::GENERAL)
-          return Board::Cell::Color::RED;
-      }
-      {
-        auto move = rhs.selectMove(board, Board::Cell::Color::BLACK);
-        if(!move)
-          return Board::Cell::Color::RED;
-        if(board.performMove(*move).type == Board::Cell::Type::GENERAL)
-          return Board::Cell::Color::BLACK;
-      }
-    }
-    return Board::Cell::Color::NONE;
-  }();
+    if(auto move = lhs.selectMove(game.board(), Board::Cell::Color::RED))
+      game.performMove(*move, Board::Cell::Color::RED);
+    else
+      game.moveExhausted(Board::Cell::Color::RED);
 
-  switch(winningColor)
+    if(game.ended() || game.draw())
+      break;
+
+    if(auto move = rhs.selectMove(game.board(), Board::Cell::Color::BLACK))
+      game.performMove(*move, Board::Cell::Color::BLACK);
+    else
+      game.moveExhausted(Board::Cell::Color::BLACK);
+
+    if(game.ended() || game.draw())
+      break;
+  }
+
+  switch(game.winningColor())
   {
   case Board::Cell::Color::RED:
-    lhs.addScore(WINNING_SCORE);
-    rhs.addScore(LOSING_SCORE);
-    return MatchSingleResult{PlayerID::AGENT1, board};
+    return MatchResult{WINNING_SCORE, LOSING_SCORE};
   case Board::Cell::Color::BLACK:
-    lhs.addScore(LOSING_SCORE);
-    rhs.addScore(WINNING_SCORE);
-    return MatchSingleResult{PlayerID::AGENT2, board};
+    return MatchResult{LOSING_SCORE, WINNING_SCORE};
   case Board::Cell::Color::NONE:
   {
-    auto [redScore, blackScore] = board.estimateScore();
-    lhs.addScore(redScore);
-    rhs.addScore(blackScore);
-    auto winningAgent = [&](){
-      if(lhs.score() > rhs.score())
-        return PlayerID::AGENT1;
-      if(lhs.score() < rhs.score())
-        return PlayerID::AGENT2;
-      return PlayerID::NONE;
-    }();
-    return MatchSingleResult{winningAgent, board};
+    auto [redScore, blackScore] = game.board().estimateScore();
+    return MatchResult{redScore, blackScore};
   }
   default:
     throw std::runtime_error("I don't know WTH happened");
@@ -61,14 +47,5 @@ MatchResult match(Agent& lhs, Agent& rhs, size_t turnLimit)
 {
   auto result1 = matchSingle(lhs, rhs, turnLimit);
   auto result2 = matchSingle(rhs, lhs, turnLimit);
-
-  auto winningAgent = [&]() {
-    if(lhs.score() > rhs.score())
-      return PlayerID::AGENT1;
-    if(lhs.score() < rhs.score())
-      return PlayerID::AGENT2;
-    return PlayerID::NONE;
-  }();
-
-  return MatchResult{winningAgent, result1.board, result2.board};
+  return MatchResult{result1.score1 + result2.score2, result1.score2 + result2.score1};
 }
