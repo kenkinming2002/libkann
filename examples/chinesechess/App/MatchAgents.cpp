@@ -42,22 +42,26 @@ namespace App
           m_currentAgent = m_currentAgent == AgentID::_1 ? AgentID::_2 : AgentID::_1;
           break;
         case sf::Keyboard::Right:
+          if(m_game.ended())
+            break;
+
           switch(m_currentAgent)
           {
             case AgentID::_1:
               if(auto move = m_agent1.selectMove(m_game.board(), Board::Cell::Color::RED))
-                m_game.performMove(*move);
+                m_game.performMove(*move, Board::Cell::Color::RED);
               else
-                m_game.end();
+                m_game.moveExhausted(Board::Cell::Color::RED);
               break;
             case AgentID::_2:
               if(auto move = m_agent2.selectMove(m_game.board(), Board::Cell::Color::BLACK))
-                m_game.performMove(*move);
+                m_game.performMove(*move, Board::Cell::Color::BLACK);
               else
-                m_game.end();
+                m_game.moveExhausted(Board::Cell::Color::BLACK);
               break;
           }
           m_currentAgent = m_currentAgent == AgentID::_1 ? AgentID::_2 : AgentID::_1;
+          break;
         default:
           break;
         }

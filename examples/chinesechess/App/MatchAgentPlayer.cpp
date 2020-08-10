@@ -55,7 +55,7 @@ namespace App
 
     // Human
     if(auto move = m_human.pollMove(m_game.board(), Board::Cell::Color::RED))
-      m_game.performMove(*move);
+      m_game.performMove(*move, Board::Cell::Color::RED);
     else
       return;
 
@@ -65,14 +65,9 @@ namespace App
 
     // Agent
     if(auto move = m_agent.selectMove(m_game.board(), Board::Cell::Color::BLACK))
-    {
-      m_game.performMove(*move);
-    }
+      m_game.performMove(*move, Board::Cell::Color::BLACK);
     else
-    {
-      m_game.end();
-      return;
-    }
+      m_game.moveExhausted(Board::Cell::Color::BLACK);
   }
 
   void MatchAgentPlayer::render()
