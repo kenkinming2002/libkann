@@ -18,7 +18,7 @@ template void Connection::randomize(std::mt19937& prng);
 
 void Connection::feedForward(const Layer& prevLayer, Layer& nextLayer)
 {
-  nextLayer.input() = m_weight * prevLayer.output();
+  nextLayer.input().noalias() = m_weight * prevLayer.output();
 }
 
 Eigen::VectorXd Connection::backPropagate(const Eigen::VectorXd& input, const Eigen::VectorXd& outputGradient)
