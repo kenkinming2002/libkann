@@ -14,10 +14,10 @@ public:
   using seed_type = random_engine_type::result_type;
 
 public:
-  Population(seed_type seed, size_t size);
+  Population(seed_type seed, size_t size, const std::vector<size_t>& hiddenLayers);
 
 public:
-  void select();
+  void select(size_t iterations, double mutationRate = 0.05);
 
 public:
   void writeTo(const std::filesystem::path& directory) const;
