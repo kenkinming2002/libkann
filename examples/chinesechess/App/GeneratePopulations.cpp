@@ -1,5 +1,7 @@
 #include "GeneratePopulations.hpp"
 
+#include <iostream>
+
 namespace App
 {
   GeneratePopulations::GeneratePopulations(const char* outputDirectory, seed_type seed) 
@@ -10,12 +12,19 @@ namespace App
 
   void GeneratePopulations::run()
   {
-    for(size_t i=0;;++i)
-    {
+    // Initial
+    auto write = [this](size_t i) {
       auto directory = m_outputDirectory / ("population" + std::to_string(i));
       m_population.writeTo(directory);
-      std::cout << "Population " << i << " generated\n";
+    };
+
+    write(0);
+    for(size_t i=1;;++i)
+    {
+      std::clog << "Generating population " << i << "...\n";
       m_population.select(SELECTION_ITERATIONS);
+      write(i);
+      std::clog << "Population " << i << " generated\n";
     }
   }
 }

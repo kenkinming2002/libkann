@@ -29,42 +29,49 @@ void Population::select(size_t iterations, double mutationRate)
   const size_t size = m_agents.size();
 
   // Score
-  for(size_t i=0; i<iterations; ++i)
+  std::clog << "Scoring individual agents..." << std::flush;
   {
-    std::shuffle(m_agents.begin(), m_agents.end(), m_generator);
+    for(size_t i=0; i<iterations; ++i)
+    {
+      std::shuffle(m_agents.begin(), m_agents.end(), m_generator);
 
 #pragma omp parallel for
-    for(size_t j=0; j<m_agents.size(); j+=2)
-    {
-      auto& agent1 = m_agents[j+0];
-      auto& agent2 = m_agents[j+1];
-      auto result = match(agent1, agent2, 1000);
-      agent1.addScore(result.score1);
-      agent2.addScore(result.score2);
+      for(size_t j=0; j<m_agents.size(); j+=2)
+      {
+        auto& agent1 = m_agents[j+0];
+        auto& agent2 = m_agents[j+1];
+        auto result = match(agent1, agent2, 1000);
+        agent1.addScore(result.score1);
+        agent2.addScore(result.score2);
+      }
     }
   }
+  std::clog << "Done\n";
 
   // Eliminate
-  std::sort(m_agents.begin(), m_agents.end(), [](const Agent& lhs, const Agent& rhs){
-      return lhs.score() > rhs.score();
-  });
-  m_agents.erase(std::next(m_agents.begin(), size/2), m_agents.end());
+  std::clog << "Eliminating incompetent agents..." << std::flush;
+  {
+    std::sort(m_agents.begin(), m_agents.end(), [](const Agent& lhs, const Agent& rhs){
+        return lhs.score() > rhs.score();
+    });
+    m_agents.erase(std::next(m_agents.begin(), size/2), m_agents.end());
 
-
-  std::cout << "DEBUG: max score - " << m_agents.front().score() << '\n';
-
-  // Clear score
-  std::for_each(m_agents.begin(), m_agents.end(), std::mem_fn(&Agent::clearScore));
+    // Clear score
+    std::for_each(m_agents.begin(), m_agents.end(), std::mem_fn(&Agent::clearScore));
+  }
+  std::clog << "Done\n";
 
   // Cross
-  std::generate_n(std::back_inserter(m_agents), size/2, [&](){
-      std::uniform_int_distribution<size_t> indexDistribution(0, size/2-1);
-      const Agent& agent1 = m_agents[indexDistribution(m_generator)];
-      const Agent& agent2 = m_agents[indexDistribution(m_generator)];
-      return Agent::cross(agent1, agent2, m_generator, mutationRate);
-  });
-
-  assert(m_agents.size() == size);
+  std::clog << "Generating new agents from survivor..." << std::flush;
+  {
+    std::generate_n(std::back_inserter(m_agents), size/2, [&](){
+        std::uniform_int_distribution<size_t> indexDistribution(0, size/2-1);
+        const Agent& agent1 = m_agents[indexDistribution(m_generator)];
+        const Agent& agent2 = m_agents[indexDistribution(m_generator)];
+        return Agent::cross(agent1, agent2, m_generator, mutationRate);
+    });
+  }
+  std::clog << "Done\n";
 }
 
 
