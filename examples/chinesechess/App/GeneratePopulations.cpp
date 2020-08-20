@@ -4,10 +4,10 @@
 
 namespace App
 {
-  GeneratePopulations::GeneratePopulations(const char* outputDirectory, seed_type seed) 
-    : m_outputDirectory(outputDirectory), m_population(seed, POPULATION_SIZE, HIDDEN_LAYERS) 
+  GeneratePopulations::GeneratePopulations(const char* outputDirectory, seed_type populationSeed, size_t populationSize, const std::vector<size_t>& agentsHiddenLayers, size_t selectionIterationsCount) 
+    : m_outputDirectory(outputDirectory), m_population(populationSeed, populationSize, agentsHiddenLayers), m_selectionIterations(selectionIterationsCount)
   {
-    std::clog << "Running with seed " << seed << '\n';
+    std::clog << "Running with seed " << populationSeed << '\n';
   }
 
   void GeneratePopulations::run()
@@ -23,7 +23,7 @@ namespace App
     for(size_t i=1;;++i)
     {
       std::clog << "Generating population " << i << "...\n";
-      m_population.select(SELECTION_ITERATIONS);
+      m_population.select(m_selectionIterations);
       write(i);
       std::clog << "Population " << i << " generated\n";
     }

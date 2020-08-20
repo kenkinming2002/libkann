@@ -8,12 +8,12 @@
 #include <fstream>
 #include <string>
 
-Population::Population(seed_type seed, size_t size, const std::vector<size_t>& hiddenLayers) : m_generator(seed)
+Population::Population(seed_type seed, size_t size, const std::vector<size_t>& agentsHiddenLayers) : m_generator(seed)
 {
-  dynarray<size_t> topology(hiddenLayers.size() + 2);
+  dynarray<size_t> topology(agentsHiddenLayers.size() + 2);
 
   topology.front() = Agent::INPUT_LAYER_SIZE;
-  std::copy(hiddenLayers.begin(), hiddenLayers.end(), std::next(topology.begin()));
+  std::copy(agentsHiddenLayers.begin(), agentsHiddenLayers.end(), std::next(topology.begin()));
   topology.back() = Agent::OUTPUT_LAYER_SIZE;
 
   assert(size % 2 == 0 && "population size must be even");
