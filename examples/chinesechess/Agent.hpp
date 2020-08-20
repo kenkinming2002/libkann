@@ -4,6 +4,7 @@
 
 #include <libkann/NeuralNetwork.hpp>
 #include <optional>
+#include <filesystem>
 
 class Agent
 {
@@ -16,8 +17,8 @@ public:
   Agent(NeuralNetwork neuralNetwork);
 
 public:
-  void loadFromFile(const char* fileName);
-  void saveToFile(const char* fileName) const;
+  void loadFromFile(std::filesystem::path filePath);
+  void saveToFile(std::filesystem::path filePath) const;
 
 public:
   auto& neuralNetwork() { return m_neuralNetwork; }
@@ -47,5 +48,8 @@ public:
 private:
   NeuralNetwork m_neuralNetwork;
   double m_score = 0.0;
+
+private:
+  mutable std::filesystem::path m_filePath;
 };
 

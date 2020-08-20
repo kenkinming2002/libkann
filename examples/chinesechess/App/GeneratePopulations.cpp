@@ -14,8 +14,9 @@ namespace App
   {
     // Initial
     auto write = [this](size_t i) {
-      auto directory = m_outputDirectory / ("population" + std::to_string(i));
-      m_population.writeTo(directory);
+      std::cout << "Writing population " << i << "..." << std::flush;
+      m_population.writeTo(m_outputDirectory / ("population" + std::to_string(i)));
+      std::cout << "Done\n";
     };
 
     write(0);

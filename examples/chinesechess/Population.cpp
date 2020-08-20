@@ -79,8 +79,5 @@ void Population::writeTo(const std::filesystem::path& directory) const
 {
   std::filesystem::create_directories(directory);
   for(size_t i=0; i<m_agents.size(); ++i)
-  {
-    const auto& agent = m_agents[i];
-    agent.saveToFile((directory / ("agent"+std::to_string(i))).c_str());
-  }
+    m_agents[i].saveToFile(directory/("agent"+std::to_string(i)));
 }

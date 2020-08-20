@@ -1,32 +1,44 @@
 #include "Agent.hpp"
 
 #include <cereal/details/helpers.hpp>
+#include <cereal/archives/binary.hpp>
+
 #include <stdexcept>
 #include <fstream>
-#include <cereal/archives/binary.hpp>
+#include <filesystem>
 
 Agent::Agent(NeuralNetwork neuralNetwork) : m_neuralNetwork(std::move(neuralNetwork)) {}
 
-void Agent::loadFromFile(const char* fileName)
+void Agent::loadFromFile(std::filesystem::path filePath)
 {
   std::ifstream inputFile;
-  inputFile.open(fileName, std::ifstream::binary);
+  inputFile.open(filePath.c_str(), std::ifstream::binary);
   if(!inputFile)
-    throw std::runtime_error(std::string("Failed to open file ") + fileName);
+    throw std::runtime_error(std::string("Failed to open file ") + filePath.c_str());
 
   cereal::BinaryInputArchive inputArchive(inputFile);
   inputArchive(*this);
+
+  m_filePath = std::filesystem::read_symlink(filePath);
 }
 
-void Agent::saveToFile(const char* fileName) const
+void Agent::saveToFile(std::filesystem::path filePath) const
 {
+  if(!m_filePath.empty())
+  {
+    std::filesystem::create_symlink(m_filePath, filePath);
+    return;
+  }
+
   std::ofstream outputFile;
-  outputFile.open(fileName, std::ofstream::binary);
+  outputFile.open(filePath.c_str(), std::ofstream::binary);
   if(!outputFile)
-    throw std::runtime_error(std::string("Failed to open file ") + fileName);
+    throw std::runtime_error(std::string("Failed to open file ") + filePath.c_str());
 
   cereal::BinaryOutputArchive outputArchive(outputFile);
   outputArchive(*this);
+
+  m_filePath = std::move(filePath);
 }
 
 std::optional<Board::Move> Agent::selectMove(const Board& board, Board::Cell::Color color)
