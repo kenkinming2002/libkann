@@ -80,6 +80,45 @@ double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
   return m_neuralNetwork.output(0);
 }
 
+void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
+{
+  auto otherColor = color == Board::Cell::Color::RED ? Board::Cell::Color::BLACK : Board::Cell::Color::RED;
+  {
+    this->evaluateBoard(board, color);
+
+    Eigen::VectorXd expectedOutput(1);
+    expectedOutput << (good ? 1.0 : 0.0);
+    m_neuralNetwork.backPropagate(expectedOutput);
+  }
+  {
+    this->evaluateBoard(board.flipped(), otherColor);
+
+    Eigen::VectorXd expectedOutput(1);
+    expectedOutput << (good ? 1.0 : 0.0);
+    m_neuralNetwork.backPropagate(expectedOutput);
+  }
+}
+
+void Agent::learnFrom(Game& game, double learningRate)
+{
+  if(game.winningColor() == Board::Cell::Color::NONE)
+    return;
+
+  auto winningColor = game.winningColor();
+  auto losingColor   = winningColor == Board::Cell::Color::RED ? Board::Cell::Color::BLACK : Board::Cell::Color::RED;
+  for(;;)
+  {
+    learnFrom(game.board(), winningColor, true);
+    if(!game.undoMove())
+      break;
+
+    learnFrom(game.board(), losingColor, false);
+    if(!game.undoMove())
+      break;
+  }
+  m_neuralNetwork.train(learningRate);
+}
+
 template<typename PRNG>
 Agent Agent::cross(const Agent& lhs, const Agent& rhs, PRNG& prng, double mutationRate)
 {

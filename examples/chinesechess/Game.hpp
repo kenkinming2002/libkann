@@ -8,7 +8,7 @@ class Game
 {
 public:
   void performMove(Board::Move move, Board::Cell::Color color);
-  void undoMove();
+  bool undoMove();
 
 public:
   /*

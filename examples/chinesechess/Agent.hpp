@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Board.hpp"
+#include "Game.hpp"
 
 #include <libkann/NeuralNetwork.hpp>
 #include <optional>
@@ -27,6 +28,10 @@ public:
 public:
   std::optional<Board::Move> selectMove(Board board, Board::Cell::Color color);
   double evaluateBoard(const Board& board, Board::Cell::Color color);
+
+public:
+  void learnFrom(const Board& board, Board::Cell::Color color, bool good);
+  void learnFrom(Game& game, double learnigRate);
 
 public:
   template<typename PRNG>

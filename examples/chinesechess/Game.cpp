@@ -15,7 +15,7 @@ void Game::performMove(Board::Move move, Board::Cell::Color color)
     m_winningColor = color;
 }
 
-void Game::undoMove()
+bool Game::undoMove()
 {
   if(!m_history.empty())
   {
@@ -24,7 +24,11 @@ void Game::undoMove()
     m_history.pop_back();
     if(cell.type == Board::Cell::Type::GENERAL)
       m_winningColor = Board::Cell::Color::NONE;
+
+    return true;
   }
+  else
+    return false;
 }
 
 void Game::moveExhausted(Board::Cell::Color color)

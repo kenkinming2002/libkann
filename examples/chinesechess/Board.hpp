@@ -69,11 +69,17 @@ public:
   std::vector<Move> enumerateMove(Cell::Color color) const;
   bool validateMove(Move move, Cell::Color color) const;
 
-  /*
-   * @return which color won
-   */
   Cell performMove(Move move);
   void undoMove(Move move, Cell cell);
+
+public:
+  void flipInplace();
+  Board flipped() const
+  {
+    Board copy = *this;
+    copy.flipInplace();
+    return copy;
+  }
 
 public:
   std::optional<Move> getMove(Position srcPosition, Offset dstOffset, Offset obstacleOffset) const;

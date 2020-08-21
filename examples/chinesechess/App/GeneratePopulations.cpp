@@ -1,27 +1,11 @@
 #include "GeneratePopulations.hpp"
 
+#include "../utilities/lexical_cast.hpp"
+
 #include <libkann/utilities/random.hpp>
 
-#include <sstream>
 #include <iostream>
 #include <getopt.h>
-
-namespace
-{
-  template<typename Int>
-  Int lexical_cast(const char* str)
-  {
-    Int i;
-
-    std::stringstream ss;
-    ss << str;
-    ss >> i;
-    if(ss.fail() || !ss.eof())
-      throw std::runtime_error(std::string("Invalid argument ") + str);
-
-    return i;
-  }
-}
 
 namespace App
 {
@@ -55,7 +39,7 @@ namespace App
   {
     // Program options
     const char* outputDirectory = nullptr;
-    std::optional<App::GeneratePopulations::seed_type> populationSeed;
+    std::optional<seed_type> populationSeed;
     std::optional<size_t> populationSize;
     std::vector<size_t> agentsHiddenLayers;
     std::optional<size_t> selectionIterationsCount;
@@ -88,7 +72,7 @@ namespace App
         outputDirectory = optarg;
         break;
       case POPULATION_SEED:
-        populationSeed = lexical_cast<App::GeneratePopulations::seed_type>(optarg);
+        populationSeed = lexical_cast<seed_type>(optarg);
         break;
       case POPULATION_SIZE:
         populationSize = lexical_cast<size_t>(optarg);
@@ -121,7 +105,7 @@ namespace App
     usage(); 
     return EXIT_FAILURE; 
   }
-  if(!populationSeed) populationSeed = random<App::GeneratePopulations::seed_type>();
+  if(!populationSeed) populationSeed = random<seed_type>();
   if(!populationSize) populationSize = 5000;
   if(agentsHiddenLayers.empty()) agentsHiddenLayers = {32, 32, 32, 32};
   if(!selectionIterationsCount) selectionIterationsCount = 10;

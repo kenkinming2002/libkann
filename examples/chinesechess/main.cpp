@@ -11,6 +11,7 @@ void usage()
   std::clog << "Commands:\n";
   std::clog << "  generate-populations    Generate populations\n";
   std::clog << "  match                   Play a match between 2 agents or with an agent.\n";
+  std::clog << "  hell                    Play agaist an agent whose sole purpose is to beat you and will learn from you.\n";
   std::clog << "\n";
 
   std::clog << "Options:\n";
@@ -28,6 +29,9 @@ int main(int argc, char* argv[])
 
     if(strcmp("match", argv[1]) == 0)
       return App::Match::main(argc-1, argv+1);
+
+    if(strcmp("hell", argv[1]) == 0)
+      return App::Hell::main(argc-1, argv+1);
   }
 
   // Parse for help argument

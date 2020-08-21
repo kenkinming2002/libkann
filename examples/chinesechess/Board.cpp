@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <cassert>
 #include <iostream>
+#include <algorithm>
 
 /* 
  * I know, I know. You people are screaming here that macros a evil, but would
@@ -369,6 +370,24 @@ void Board::undoMove(Move move, Cell cell)
 
   srcCell = dstCell;
   dstCell = cell;
+}
+
+void Board::flipInplace()
+{
+  std::reverse(m_cells.begin(), m_cells.end());
+  for(Row& row : m_cells)
+    for(Cell& cell : row)
+      switch(cell.color)
+      {
+      case Cell::Color::RED:
+        cell.color = Cell::Color::BLACK;
+        break;
+      case Cell::Color::BLACK:
+        cell.color = Cell::Color::RED;
+        break;
+      case Cell::Color::NONE:
+        break;
+      }
 }
 
 std::optional<Board::Move> Board::getMove(Position srcPosition, Offset dstOffset, Offset obstacleOffset) const
