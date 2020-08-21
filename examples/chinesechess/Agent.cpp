@@ -19,7 +19,7 @@ void Agent::loadFromFile(std::filesystem::path filePath)
   cereal::BinaryInputArchive inputArchive(inputFile);
   inputArchive(*this);
 
-  m_filePath = std::filesystem::read_symlink(filePath);
+  m_filePath = std::filesystem::is_symlink(filePath) ? std::filesystem::read_symlink(filePath) : filePath;
 }
 
 void Agent::saveToFile(std::filesystem::path filePath) const
