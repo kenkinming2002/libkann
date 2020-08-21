@@ -1,4 +1,4 @@
-#include "MatchAgents.hpp"
+#include "Agents.hpp"
 
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
@@ -8,19 +8,19 @@ static constexpr unsigned WINDOW_HEIGHT = 1000;
 
 namespace App
 {
-  MatchAgents::MatchAgents(const char* agent1FileName, const char* agent2FileName) 
+  Match::Agents::Agents(const char* agent1FileName, const char* agent2FileName) 
     : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), ""), m_renderer(m_window)
   {
     m_agent1.loadFromFile(agent1FileName);
     m_agent2.loadFromFile(agent2FileName);
   }
 
-  void MatchAgents::run()
+  void Match::Agents::run()
   {
     while(this->loop());
   }
 
-  bool MatchAgents::loop()
+  bool Match::Agents::loop()
   {
     this->handleInput();
     this->update();
@@ -28,7 +28,7 @@ namespace App
     return m_window.isOpen();
   }
 
-  void MatchAgents::handleInput()
+  void Match::Agents::handleInput()
   {
     sf::Event event;
     while (m_window.pollEvent(event))
@@ -72,12 +72,12 @@ namespace App
     }
   }
 
-  void MatchAgents::update()
+  void Match::Agents::update()
   {
     // we don't do any update here
   }
 
-  void MatchAgents::render()
+  void Match::Agents::render()
   {
     m_renderer.draw(m_game.board());
     m_window.display();

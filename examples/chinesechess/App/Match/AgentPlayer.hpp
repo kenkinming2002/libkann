@@ -2,17 +2,19 @@
 
 #include <SFML/Graphics/RenderWindow.hpp>
 
-#include "../Game.hpp"
-#include "../Renderer.hpp"
-#include "../Agent.hpp"
-#include "../Human.hpp"
+#include "../../Game.hpp"
+#include "../../Renderer.hpp"
+#include "../../Agent.hpp"
+#include "../../Human.hpp"
+
+#include "../Match.hpp"
 
 namespace App
 {
-  class MatchAgentPlayer
+  class Match::AgentPlayer
   {
   public:
-    MatchAgentPlayer(const char* agentFileName);
+    AgentPlayer(const char* agentFileName);
 
   public:
     void run();

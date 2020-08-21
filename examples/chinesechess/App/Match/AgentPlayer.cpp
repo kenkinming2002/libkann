@@ -1,4 +1,4 @@
-#include "MatchAgentPlayer.hpp"
+#include "AgentPlayer.hpp"
 
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
@@ -8,19 +8,19 @@ static constexpr unsigned WINDOW_HEIGHT = 1000;
 
 namespace App
 {
-  MatchAgentPlayer::MatchAgentPlayer(const char* agentFileName) 
+  Match::AgentPlayer::AgentPlayer(const char* agentFileName) 
     : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), ""),
       m_renderer(m_window)
   {
     m_agent.loadFromFile(agentFileName);
   }
 
-  void MatchAgentPlayer::run()
+  void Match::AgentPlayer::run()
   {
     while(this->loop());
   }
 
-  bool MatchAgentPlayer::loop()
+  bool Match::AgentPlayer::loop()
   {
     this->handleInput();
     this->update();
@@ -28,7 +28,7 @@ namespace App
     return m_window.isOpen();
   }
 
-  void MatchAgentPlayer::handleInput()
+  void Match::AgentPlayer::handleInput()
   {
     sf::Event event;
     while (m_window.pollEvent(event))
@@ -47,7 +47,7 @@ namespace App
     }
   }
 
-  void MatchAgentPlayer::update()
+  void Match::AgentPlayer::update()
   {
     // Check
     if(m_game.ended())
@@ -70,7 +70,7 @@ namespace App
       m_game.moveExhausted(Board::Cell::Color::BLACK);
   }
 
-  void MatchAgentPlayer::render()
+  void Match::AgentPlayer::render()
   {
     m_renderer.draw(m_game.board());
     m_window.display();

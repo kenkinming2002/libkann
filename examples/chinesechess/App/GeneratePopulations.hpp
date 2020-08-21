@@ -9,6 +9,10 @@ namespace App
   class GeneratePopulations
   {
   public:
+    static void usage();
+    static int main(int argc, char* argv[]);
+
+  public:
     using seed_type = Population::seed_type;
     GeneratePopulations(const char* outputDirectory, seed_type populationSeed, size_t populationSize, const std::vector<size_t>& agentsHiddenLayers, size_t selectionIterationsCount);
 
