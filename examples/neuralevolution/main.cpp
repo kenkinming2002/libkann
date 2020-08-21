@@ -3,11 +3,11 @@
 
 #include "Grid.hpp"
 
+#include <libkann/utilities/random.hpp>
+
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
-#include <random>
-#include <chrono>
 
 [[gnu::noreturn]] void usage()
 {
@@ -32,23 +32,8 @@ int main (int argc, const char* argv[])
       usage();
   }
   else
-  {
-    std::clog << "No seed provided, generating random seed from ";
+    seed = random<App::seed_type>();
 
-    std::random_device rd;
-    if(rd.entropy() != 0.0)
-    {
-      std::clog << "std::random_device...\n";
-      seed = rd();
-    }
-    else
-    {
-      std::clog << "current time...\n";
-      seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    }
-
-    std::clog << "Seed is " << seed << '\n';
-  }
-
+  std::clog << "Seed is " << seed << '\n';
   App(seed).run();
 }

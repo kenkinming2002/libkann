@@ -1,27 +1,12 @@
 #include "App.hpp"
 
+#include <libkann/utilities/random.hpp>
+
 #include <sstream>
 #include <iostream>
-#include <random>
-#include <chrono>
 #include <optional>
 
 #include <getopt.h>
-
-App::GeneratePopulations::seed_type generateSeed()
-{
-  std::random_device rd;
-  if(rd.entropy() != 0.0)
-  {
-    std::clog << "Generating random seed from std::random_device...\n";
-    return rd();
-  }
-  else
-  {
-    std::clog << "Generating random seed from current time...\n";
-    return std::chrono::high_resolution_clock::now().time_since_epoch().count();
-  }
-}
 
 template<typename Int>
 Int lexical_cast(const char* str)
@@ -133,7 +118,7 @@ int mainGeneratePopulations(int argc, char* argv[])
     usageGeneratePopulations(); 
     return EXIT_FAILURE; 
   }
-  if(!populationSeed) populationSeed = generateSeed();
+  if(!populationSeed) populationSeed = random<App::GeneratePopulations::seed_type>();
   if(!populationSize) populationSize = 5000;
   if(agentsHiddenLayers.empty()) agentsHiddenLayers = {32, 32, 32, 32};
   if(!selectionIterationsCount) selectionIterationsCount = 10;

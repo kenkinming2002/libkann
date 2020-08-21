@@ -1,5 +1,6 @@
 #include "DataSet.hpp"
 
+#include <libkann/utilities/random.hpp>
 #include <libkann/NeuralNetwork.hpp>
 
 #include <random>
@@ -9,7 +10,7 @@ static constexpr double LEARNING_RATE = 0.05;
 
 int main()
 {
-  std::mt19937 generator(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  std::mt19937 generator(random<std::mt19937::result_type>());
   NeuralNetwork nn({DataSet::INPUT_LAYER_SIZE, 30, 30, 30, DataSet::OUTPUT_LAYER_SIZE}, generator, ActivationFunction(ActivationFunction::Type::SIGMOID));
 
   DataSet testingDataSet(
