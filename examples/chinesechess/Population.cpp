@@ -41,8 +41,8 @@ void Population::select(size_t iterations, double mutationRate)
         auto& agent1 = m_agents[j+0];
         auto& agent2 = m_agents[j+1];
         auto result = match(agent1, agent2, 1000);
-        agent1.addScore(result.score1);
-        agent2.addScore(result.score2);
+        agent1.addScore(result.score1 - result.score2);
+        agent2.addScore(result.score2 - result.score1);
       }
     }
   }
