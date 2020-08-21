@@ -41,19 +41,8 @@ void Agent::saveToFile(std::filesystem::path filePath) const
   m_filePath = std::move(filePath);
 }
 
-std::optional<Board::Move> Agent::selectMove(const Board& board, Board::Cell::Color color)
+std::optional<Board::Move> Agent::selectMove(Board board, Board::Cell::Color color)
 {
-  for(uint8_t y=0; y<Board::HEIGHT; ++y)
-    for(uint8_t x=0; x<Board::WIDTH; ++x)
-    {
-      auto position = Board::Position{x, y};
-      auto cell = board.cell(position);
-      auto index = (y * Board::WIDTH + x) * 2;
-
-      m_neuralNetwork.input(index+0, static_cast<double>(cell.type));
-      m_neuralNetwork.input(index+1, static_cast<double>(cell.color));
-    }
-
   auto possibleMoves = board.enumerateMove(color);
   if(possibleMoves.empty())
     return std::nullopt;
@@ -64,18 +53,31 @@ std::optional<Board::Move> Agent::selectMove(const Board& board, Board::Cell::Co
   {
     const auto& move = possibleMoves[i];
 
-    m_neuralNetwork.input(Board::WIDTH * Board::HEIGHT * 2 + 0, static_cast<double>(move.src.x) / Board::WIDTH);
-    m_neuralNetwork.input(Board::WIDTH * Board::HEIGHT * 2 + 1, static_cast<double>(move.src.y) / Board::HEIGHT);
-    m_neuralNetwork.input(Board::WIDTH * Board::HEIGHT * 2 + 2, static_cast<double>(move.dst.x) / Board::WIDTH);
-    m_neuralNetwork.input(Board::WIDTH * Board::HEIGHT * 2 + 3, static_cast<double>(move.dst.y) / Board::HEIGHT);
-
-    m_neuralNetwork.feedForward();
-
-    scores[i] = m_neuralNetwork.output(0);
+    auto cell = board.performMove(move);
+    scores[i] = this->evaluateBoard(board, color);
+    board.undoMove(move, cell);
   }
 
   auto index = std::distance(scores.begin(), std::max_element(scores.begin(), scores.end()));
   return possibleMoves[index];
+}
+
+double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
+{
+  // TODO: optimize this tight loop
+  for(uint8_t y=0; y<Board::HEIGHT; ++y)
+    for(uint8_t x=0; x<Board::WIDTH; ++x)
+    {
+      auto position = Board::Position{x, y};
+      auto cell = board.cell(position);
+      auto index = (y * Board::WIDTH + x) * 2;
+
+      m_neuralNetwork.input(index+0, static_cast<double>(cell.type));
+      m_neuralNetwork.input(index+1, cell.color == color ? 1.0 : cell.color == Board::Cell::Color::NONE ? 0.0 : -1.0);
+    }
+
+  m_neuralNetwork.feedForward();
+  return m_neuralNetwork.output(0);
 }
 
 template<typename PRNG>

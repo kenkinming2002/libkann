@@ -9,8 +9,8 @@
 class Agent
 {
 public:
-  static constexpr size_t INPUT_LAYER_SIZE = Board::WIDTH * Board::HEIGHT * 2 + 4; /* board states and the move*/
-  static constexpr size_t OUTPUT_LAYER_SIZE = 1; /* score of the move */
+  static constexpr size_t INPUT_LAYER_SIZE = Board::WIDTH * Board::HEIGHT * 2; /* board states */
+  static constexpr size_t OUTPUT_LAYER_SIZE = 1; /* score of the boatd */
 
 public:
   Agent() = default;
@@ -25,7 +25,8 @@ public:
   const auto& neuralNetwork() const { return m_neuralNetwork; }
 
 public:
-  std::optional<Board::Move> selectMove(const Board& board, Board::Cell::Color color);
+  std::optional<Board::Move> selectMove(Board board, Board::Cell::Color color);
+  double evaluateBoard(const Board& board, Board::Cell::Color color);
 
 public:
   template<typename PRNG>
