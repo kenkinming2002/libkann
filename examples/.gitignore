@@ -1,6 +1,8 @@
 # Test executables.
 #
-driver
+backpropagation/backpropagation
+chinesechess/chinesechess
+neuralevolution/neuralevolution
 
 # Testscript output directories (can be symlinks).
 #
