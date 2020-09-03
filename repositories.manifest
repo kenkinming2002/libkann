@@ -1,6 +1,0 @@
-: 1
-summary: libkann project repository
-
-:
-role: prerequisite
-location: https://pkg.cppget.org/1/stable
