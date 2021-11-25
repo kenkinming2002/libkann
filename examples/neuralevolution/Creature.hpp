@@ -21,27 +21,27 @@ private:
 
 private:
   //static constexpr size_t NUM_INPUT = 4; // Energy, health, Sight
-  enum class Input {
-    ENERGY = 0,
-    HEALTH = 1,
-    VIEW_DISTANCE_0 = 2,
-    VIEW_DISTANCE_1 = 3,
-    COUNT
+  enum Input {
+    INPUT_ENERGY = 0,
+    INPUT_HEALTH = 1,
+    INPUT_VIEW_DISTANCE_0 = 2,
+    INPUT_VIEW_DISTANCE_1 = 3,
+    INPUT_COUNT
   };
 
-  enum class Output {
-    ACCELERATION_FACTOR = 0,
-    RELATIVE_DIRECTION = 1,
-    EATING_DESIRE = 2,
-    MATING_DESIRE = 3,
-    COUNT
+  enum Output {
+    OUTPUT_ACCELERATION_FACTOR = 0,
+    OUTPUT_RELATIVE_DIRECTION = 1,
+    OUTPUT_EATING_DESIRE = 2,
+    OUTPUT_MATING_DESIRE = 3,
+    OUTPUT_COUNT
   };
 
 private:
   static dynarray<size_t> topology();
 
 public:
-  Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position, 
+  Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position,
       double energy = CONFIG.creature.maxEnergy, double health = CONFIG.creature.maxHealth);
   template<typename PRNG>
   Creature(PRNG& prng, Eigen::Vector2d position);

@@ -7,79 +7,80 @@
 #include <algorithm>
 #include <functional>
 
-NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction)
-  : m_layers(topology.size()), m_connections(topology.size()-1), m_activationFunction(activationFunction)
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology)
 {
-  for(size_t i = 0; i<m_layers.size(); ++i)
-    m_layers[i] = Layer(topology[i]);
-
-  for(size_t i=0; i<topology.size()-1; i++)
-    m_connections[i] = Connection(topology[i], topology[i+1]);
-
+  m_layers = dynarray<Layer>(topology.size()-1);
+  for(size_t i=0; i<topology.size()-1; ++i)
+  {
+    size_t inputSize  = topology[i];
+    size_t outputSize = topology[i+1];
+    auto weightLayer     = WeightLayer(inputSize, outputSize);
+    auto activationLayer = ActivationLayer(outputSize);
+    m_layers[i] = Layer(std::move(weightLayer), std::move(activationLayer));
+  }
   m_output = Eigen::VectorXd(topology.back());
 }
 
-NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, dynarray<Eigen::MatrixXd> weights, ActivationFunction activationFunction)
-  : NeuralNetwork(topology, activationFunction)
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction)
+  : NeuralNetwork(std::move(topology))
 {
-  // TODO: optimize this to prevent redundant allocation
-  for(size_t i=0; i<m_connections.size(); ++i)
-    m_connections[i] = Connection(std::move(weights[i]));
+  for(auto& layer : m_layers)
+    layer.layer2().activationFunction(activationFunction);
 }
 
 template<typename PRNG>
 NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFunction activationFunction)
   : NeuralNetwork(std::move(topology), activationFunction)
 {
-  std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-  std::for_each(m_connections.begin(), m_connections.end(), std::bind(&Connection::randomize<PRNG>, std::placeholders::_1, std::ref(prng)));
+  for(auto& layer : m_layers)
+    layer.layer1().randomize(prng);
 }
 template NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, std::mt19937& prng, ActivationFunction activationFunction);
 
-void NeuralNetwork::feedForward()
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, dynarray<Eigen::MatrixXd> weights, dynarray<ActivationFunction> activationFunctions)
+  : NeuralNetwork(topology)
 {
-  for(size_t i=0; i<m_connections.size(); ++i)
+  for(size_t i=0; i<m_layers.size(); ++i)
   {
-    Layer& inputLayer  = m_layers[i];
-    Layer& outputLayer = m_layers[i+1];
-    Connection& connection  = m_connections[i];
-
-    inputLayer.feedForward(m_activationFunction);
-    connection.feedForward(inputLayer, outputLayer);
+    m_layers[i].layer1().weight(std::move(weights[i]));
+    m_layers[i].layer2().activationFunction(activationFunctions[i]);
   }
-  m_layers.back().feedForward(m_activationFunction);
-  m_output = m_layers.back().output();
+}
+
+void NeuralNetwork::feedForward(Eigen::VectorXd input)
+{
+  for(auto& layer : m_layers)
+    input = layer.feedForward(input);
+
+  m_output = input;
 }
 
 void NeuralNetwork::backPropagate(const Eigen::VectorXd& expectedOutput)
 {
   Eigen::VectorXd outputGradient = 2.0 * (m_output - expectedOutput);
-
-  for(size_t i=m_layers.size()-1; i>0; --i)
+  for(auto it = m_layers.rbegin(); it != m_layers.rend(); ++it)
   {
-    Layer& outputLayer = m_layers[i];
-    Layer& inputLayer  = m_layers[i-1];
-    Connection& connection  = m_connections[i-1];
-
-    Eigen::VectorXd outputLayerInputGradient = outputLayer.backPropagate(outputGradient, m_activationFunction);
-    Eigen::VectorXd inputLayerOutputGradient = connection.backPropagate(inputLayer.output(), outputLayerInputGradient);
-
-    outputGradient = inputLayerOutputGradient;
+    auto& layer = *it;
+    outputGradient = layer.backPropagate(outputGradient);
   }
 }
 
 void NeuralNetwork::train(double learningRate)
 {
-  for(auto& connection: m_connections)
-    connection.train(learningRate);
+  for(auto& layer: m_layers)
+    layer.layer1().train(learningRate);
 }
 
 template<typename PRNG>
 NeuralNetwork NeuralNetwork::cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate)
 {
   NeuralNetwork result = lhs;
-  for(size_t i=0; i<lhs.m_connections.size(); ++i)
-    result.m_connections[i] = Connection::cross(lhs.m_connections[i], rhs.m_connections[i], prng, mutationRate);
+  for(size_t i=0; i<result.m_layers.size(); ++i)
+    result.m_layers[i].layer1() = WeightLayer::cross(
+      lhs.m_layers[i].layer1(),
+      rhs.m_layers[i].layer1(),
+      prng, mutationRate
+    );
   return result;
 }
 

@@ -5,25 +5,14 @@
 
 #include <Eigen/Eigen>
 
-class Layer
-{
-public:
-  Layer() = default;
-  Layer(size_t size) : m_input(size), m_output(size) {}
+#include <utility>
+#include <concepts>
 
-public:
-  size_t size() const { return m_input.size(); }
+template<typename T>
+concept isLayer = requires(T t, Eigen::VectorXd input, Eigen::RowVectorXd outputGradient) {
+  { t.feedForward(input)            } -> std::same_as<Eigen::VectorXd>;
+  { t.backPropagate(outputGradient) } -> std::same_as<Eigen::RowVectorXd>;
 
-public:
-  Eigen::VectorXd& input() { return m_input; }
-  const Eigen::VectorXd& input() const { return m_input; }
-  const Eigen::VectorXd& output() const { return m_output; }
-
-public:
-  void feedForward(const ActivationFunction& activationFunction);
-  Eigen::VectorXd backPropagate(const Eigen::VectorXd& outputGradient, const ActivationFunction& activationFunction) const;
-
-private:
-  Eigen::VectorXd m_input;
-  Eigen::VectorXd m_output;
+  { std::as_const(t).inputSize()  } -> std::same_as<size_t>;
+  { std::as_const(t).outputSize() } -> std::same_as<size_t>;
 };

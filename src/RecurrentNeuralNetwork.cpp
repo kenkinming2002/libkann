@@ -24,14 +24,11 @@ RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t
 
 template RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, std::mt19937& prng, ActivationFunction activationFunction);
 
-void RecurrentNeuralNetwork::feedForward()
+void RecurrentNeuralNetwork::feedForward(Eigen::VectorXd input)
 {
-  size_t inputSize  = this->inputSize();
-  size_t outputSize = this->outputSize();
-  for(size_t i=0; i<m_memory; ++i)
-    this->input(inputSize - m_memory + i, this->output(outputSize - m_memory + i));
-
-  NeuralNetwork::feedForward();
+  Eigen::VectorXd realInput(this->inputSize());
+  realInput << input, this->output().tail(m_memory);
+  NeuralNetwork::feedForward(realInput);
 }
 
 template<typename PRNG>

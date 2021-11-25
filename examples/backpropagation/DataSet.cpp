@@ -34,9 +34,11 @@ void DataSet::train(NeuralNetwork& nn, float learningRate)
   Eigen::VectorXd expectedOutput(10);
   for(const auto& data: m_data)
   {
+    Eigen::VectorXd input(data.image.size());
     for(size_t i=0; i<data.image.size(); ++i)
-      nn.input(i, static_cast<double>(data.image[i])/255);
-    nn.feedForward();
+      input(i) = static_cast<double>(data.image[i])/255;
+
+    nn.feedForward(std::move(input));
 
     expectedOutput = Eigen::VectorXd::Zero(10);
     expectedOutput(data.label) = 1.0;
@@ -51,18 +53,21 @@ void DataSet::test(NeuralNetwork& nn)
   size_t correct = 0;
   for(const auto& data: m_data)
   {
-    for(size_t i=0; i<INPUT_LAYER_SIZE; ++i)
-      nn.input(i, static_cast<double>(data.image[i])/255);
+    Eigen::VectorXd input(data.image.size());
+    for(size_t i=0; i<data.image.size(); ++i)
+      input(i) = static_cast<double>(data.image[i])/255;
 
-    nn.feedForward();
+    nn.feedForward(std::move(input));
 
     uint8_t label = std::numeric_limits<uint8_t>::max();;
     double record = -std::numeric_limits<double>::infinity();
+
+    const auto& output = nn.output();
     for(size_t i=0; i<OUTPUT_LAYER_SIZE; ++i)
-      if(auto output = nn.output(i); output>record)
+      if(output(i)>record)
       {
         label = i;
-        record = output;
+        record = output(i);
       }
 
     if(label == data.label)

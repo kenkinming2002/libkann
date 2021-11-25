@@ -12,19 +12,19 @@ dynarray<size_t> Creature::topology()
 {
   dynarray<size_t> topology(CONFIG.creature.hiddenLayers.size() + 2);
 
-  topology.front() = static_cast<size_t>(Creature::Input::COUNT);
+  topology.front() = INPUT_COUNT;
   std::copy(CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end(), std::next(topology.begin()));
-  topology.back() = static_cast<size_t>(Creature::Output::COUNT);
+  topology.back()  = OUTPUT_COUNT;
 
   return topology;
 }
 
-Creature::Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy, double health) 
+Creature::Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy, double health)
   : PhantomBody(position, CONFIG.creature.radius), m_neuralNetwork(neuralNetwork),
     m_energy(energy), m_health(health), m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
 template<typename PRNG>
-Creature::Creature(PRNG& prng, Eigen::Vector2d position) 
+Creature::Creature(PRNG& prng, Eigen::Vector2d position)
   : Creature(RecurrentNeuralNetwork(topology(), CONFIG.creature.memory, prng, ActivationFunction(ActivationFunction::Type::TANH)), position) {}
 
 template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);
@@ -38,7 +38,7 @@ void Creature::updateSight(World& world)
     auto& ray = rays[i];
 
     // MEMORIAL: The following line costs hours of debugging to add
-    // 
+    //
     // Thanks: gcc asan
     //
     // This following line of code has cost hours of debugging to add
@@ -85,12 +85,12 @@ void Creature::updateSight(World& world)
 void Creature::updateNeuralNetwork()
 {
   // 1: Neural network
-  m_neuralNetwork.input(Input::ENERGY, m_energy);
-  m_neuralNetwork.input(Input::HEALTH, m_health);
-  m_neuralNetwork.input(Input::VIEW_DISTANCE_0, m_eyes[0].distance);
-  m_neuralNetwork.input(Input::VIEW_DISTANCE_1, m_eyes[1].distance);
-
-  m_neuralNetwork.feedForward();
+  Eigen::VectorXd input(INPUT_COUNT);
+  input(INPUT_ENERGY)          = m_energy;
+  input(INPUT_HEALTH)          = m_health;
+  input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance;
+  input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance;
+  m_neuralNetwork.feedForward(std::move(input));
 }
 
 void Creature::updateCooldown(float dt)
@@ -116,11 +116,13 @@ void Creature::updateStatistics(float dt)
 
 void Creature::updateMovement(float dt, const World& world)
 {
-  auto linearSpeedFactor = m_neuralNetwork.output(Output::ACCELERATION_FACTOR);
+  const auto& output = m_neuralNetwork.output();
+
+  auto linearSpeedFactor = output(OUTPUT_ACCELERATION_FACTOR);
   auto linearSpeedMultiplier = linearSpeedFactor >= 0.0 ?  CONFIG.creature.forwardLinearSpeed : CONFIG.creature.backwardLinearSpeed;
   auto linearSpeed = linearSpeedFactor * linearSpeedMultiplier;
 
-  auto angularDirection = m_neuralNetwork.output(Output::RELATIVE_DIRECTION) * M_PI; // Map from (-1, 1) to (-PI, PI)
+  auto angularDirection = output(OUTPUT_RELATIVE_DIRECTION) * M_PI; // Map from (-1, 1) to (-PI, PI)
 
   this->applyImpulse(linearSpeed, angularDirection);
   this->takeEnergy(CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed * dt);
@@ -133,12 +135,13 @@ void Creature::updateEating()
   static constexpr double EATING_ENERGY_COST = 5.0f;
   const double EATING_DISTANCE = CONFIG.creature.radius * 1.5 + CONFIG.berryBush.radius;
 
-  if(m_neuralNetwork.output(Output::EATING_DESIRE)<0.0)
+  const auto& output = m_neuralNetwork.output();
+  if(output(OUTPUT_EATING_DESIRE)<0.0)
     return; // Don't want to eat
 
   if(m_eatingCooldown!=0.0)
     return; // Cooldown
-  
+
   this->takeEnergy(EATING_ENERGY_COST);
   m_eatingCooldown = CONFIG.creature.eatingCooldown;
 
@@ -180,7 +183,10 @@ void Creature::updateMating(World& world)
 
     auto& otherCreature = std::get<std::reference_wrapper<Creature>>(eye.target).get();
 
-    if(m_neuralNetwork.output(Output::MATING_DESIRE)<0.0 || otherCreature.m_neuralNetwork.output(Output::MATING_DESIRE)<0.0)
+    const auto& output      = m_neuralNetwork.output();
+    const auto& otherOutput = otherCreature.m_neuralNetwork.output();
+
+    if(output(OUTPUT_MATING_DESIRE)<0.0 || otherOutput(OUTPUT_MATING_DESIRE)<0.0)
       return; // Don't want to mate
 
     if(m_matingCooldown!=0.0 || otherCreature.m_matingCooldown != 0.0)

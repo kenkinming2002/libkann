@@ -4,8 +4,10 @@
 
 #include <libkann/serialization/Eigen.hpp>
 #include <libkann/utilities/dynarray.hpp>
-#include <libkann/Layer.hpp>
-#include <libkann/Connection.hpp>
+
+#include <libkann/WeightLayer.hpp>
+#include <libkann/ActivationLayer.hpp>
+#include <libkann/CompositeLayer.hpp>
 
 #include <Eigen/Eigen>
 
@@ -21,27 +23,23 @@ public:
   NeuralNetwork() = default;
 
 public:
+  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology);
   LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction);
-  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, dynarray<Eigen::MatrixXd> weights, ActivationFunction activationFunction);
   template<typename PRNG>
   LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFunction activationFunction);
 
 public:
-  LIBKANN_SYMEXPORT size_t inputSize() const { return m_layers.front().size(); }
-
-  template<typename T>
-  LIBKANN_SYMEXPORT void input(T i, double v) { return this->input(static_cast<size_t>(i), v); }
-  LIBKANN_SYMEXPORT void input(size_t i, double v) { m_layers.front().input()(i) = v; }
+  LIBKANN_SYMEXPORT NeuralNetwork(dynarray<size_t> topology, dynarray<Eigen::MatrixXd> weights, dynarray<ActivationFunction> activationFunctions);
 
 public:
-  LIBKANN_SYMEXPORT size_t outputSize() const { return m_layers.back().size(); }
-
-  template<typename T>
-  LIBKANN_SYMEXPORT double output(T i) const { return this->output(static_cast<size_t>(i)); }
-  LIBKANN_SYMEXPORT double output(size_t i) const { return m_output(i); }
+  LIBKANN_SYMEXPORT size_t inputSize() const  { return m_layers.front().inputSize(); }
+  LIBKANN_SYMEXPORT size_t outputSize() const { return m_layers.back().outputSize(); }
 
 public:
-  LIBKANN_SYMEXPORT void feedForward();
+  const Eigen::VectorXd& output() const { return m_output; }
+
+public:
+  LIBKANN_SYMEXPORT void feedForward(Eigen::VectorXd input);
   LIBKANN_SYMEXPORT void backPropagate(const Eigen::VectorXd& expectedOutput);
   LIBKANN_SYMEXPORT void train(double learningRate);
 
@@ -50,11 +48,8 @@ public:
   LIBKANN_SYMEXPORT static NeuralNetwork cross(const NeuralNetwork& lhs, const NeuralNetwork& rhs, PRNG& prng, double mutationRate);
 
 private:
+  using Layer = CompositeLayer<WeightLayer, ActivationLayer>;
   dynarray<Layer> m_layers;
-  dynarray<Connection> m_connections;
-
-private:
-  ActivationFunction m_activationFunction;
 
 private:
   Eigen::VectorXd m_output;
@@ -64,36 +59,44 @@ public:
   void save(Archive& archive) const
   {
     // topology
-    dynarray<size_t> topology(m_layers.size());
-    std::transform(m_layers.begin(), m_layers.end(), topology.begin(), [](const auto& layer){ return layer.size(); });
-    archive(topology);
+    {
+      dynarray<size_t> topology(m_layers.size()+1);
+      for(size_t i=0; i<m_layers.size(); ++i)
+        topology[i] = m_layers[i].inputSize();
+      topology.back() = m_output.size();
+      archive(topology);
+    }
 
-    // weights
-    dynarray<Eigen::MatrixXd> weights(m_connections.size());
-    std::transform(m_connections.begin(), m_connections.end(), weights.begin(), [](const auto& connection){ return connection.weight(); });
-    archive(weights);
-
-    // activation function
-    archive(m_activationFunction.type);
-
+    // weights and activation functions
+    {
+      dynarray<Eigen::MatrixXd>          weights(m_layers.size());
+      dynarray<ActivationFunction::Type> activationFunctionTypes(m_layers.size());
+      for(size_t i=0; i<m_layers.size(); ++i)
+      {
+        weights[i]                 = m_layers[i].layer1().weight();
+        activationFunctionTypes[i] = m_layers[i].layer2().activationFunction().type;
+      }
+      archive(weights);
+      archive(activationFunctionTypes);
+    }
   }
 
   template<typename Archive>
   void load(Archive& archive)
   {
     // topology
-    dynarray<size_t> topology;
+    dynarray<size_t>                   topology;
+    dynarray<Eigen::MatrixXd>          weights;
+    dynarray<ActivationFunction::Type> activationFunctionTypes;
+
     archive(topology);
-
-    // weights
-    dynarray<Eigen::MatrixXd> weights;
     archive(weights);
+    archive(activationFunctionTypes);
 
-    // activation function
-    ActivationFunction::Type type;
-    archive(type);
+    dynarray<ActivationFunction> activationFunctions(activationFunctionTypes.size());
+    for(size_t i=0; i<activationFunctionTypes.size(); ++i)
+      activationFunctions[i] = ActivationFunction(activationFunctionTypes[i]);
 
-    *this = NeuralNetwork(std::move(topology), std::move(weights), ActivationFunction(type));
-
+    *this = NeuralNetwork(std::move(topology), std::move(weights), std::move(activationFunctions));
   }
 };

@@ -13,11 +13,7 @@ public:
   LIBKANN_SYMEXPORT RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, PRNG& prng, ActivationFunction activationFunction);
 
 public:
-  using NeuralNetwork::input;
-  using NeuralNetwork::output;
-
-public:
-  LIBKANN_SYMEXPORT void feedForward();
+  LIBKANN_SYMEXPORT void feedForward(Eigen::VectorXd input);
 
 public:
   template<typename PRNG>

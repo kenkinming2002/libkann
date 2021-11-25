@@ -65,19 +65,19 @@ std::optional<Board::Move> Agent::selectMove(Board board, Board::Cell::Color col
 double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
 {
   // TODO: optimize this tight loop
+  Eigen::VectorXd input(INPUT_LAYER_SIZE);
   for(uint8_t y=0; y<Board::HEIGHT; ++y)
     for(uint8_t x=0; x<Board::WIDTH; ++x)
     {
       auto position = Board::Position{x, y};
       auto cell = board.cell(position);
       auto index = (y * Board::WIDTH + x) * 2;
-
-      m_neuralNetwork.input(index+0, static_cast<double>(cell.type));
-      m_neuralNetwork.input(index+1, cell.color == color ? 1.0 : cell.color == Board::Cell::Color::NONE ? 0.0 : -1.0);
+      input(index)   = static_cast<double>(cell.type);
+      input(index+1) = cell.color == color ? 1.0 : cell.color == Board::Cell::Color::NONE ? 0.0 : -1.0;
     }
 
-  m_neuralNetwork.feedForward();
-  return m_neuralNetwork.output(0);
+  m_neuralNetwork.feedForward(std::move(input));
+  return m_neuralNetwork.output()(0);
 }
 
 void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
