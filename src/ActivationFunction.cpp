@@ -1,15 +1,15 @@
-#include "ActivationFunction.hpp"
+#include <libkann/ActivationFunction.hpp>
 
 #include <cmath>
 #include <stdexcept>
 
 double ActivationFunction::normal(double val) const
 {
-  auto identity = [](double val) { 
-    return val; 
+  auto identity = [](double val) {
+    return val;
   };
-  auto sigmoid = [](double val) { 
-    return 1.0 /  (1.0 + std::exp(-val)); 
+  auto sigmoid = [](double val) {
+    return 1.0 /  (1.0 + std::exp(-val));
   };
   auto tanh = [](double val) {
     return std::tanh(val);
@@ -17,11 +17,11 @@ double ActivationFunction::normal(double val) const
 
   switch(type)
   {
-  case Type::IDENTITY: 
+  case Type::IDENTITY:
     return identity(val);
-  case Type::SIGMOID:  
+  case Type::SIGMOID:
     return sigmoid(val);
-  case Type::TANH:     
+  case Type::TANH:
     return tanh(val);
   default:
     throw std::runtime_error("Invalid activation function type");
@@ -30,10 +30,10 @@ double ActivationFunction::normal(double val) const
 
 double ActivationFunction::derivative(double val) const
 {
-  auto identityDerivative = [](double /*val*/) { 
+  auto identityDerivative = [](double /*val*/) {
     return 1.0;
   };
-  auto sigmoidDerivative = [](double val) { 
+  auto sigmoidDerivative = [](double val) {
     auto tmp = std::exp(-val);
     return tmp / ((1+tmp) * (1+tmp));
   };
@@ -44,11 +44,11 @@ double ActivationFunction::derivative(double val) const
 
   switch(type)
   {
-  case Type::IDENTITY: 
+  case Type::IDENTITY:
     return identityDerivative(val);
-  case Type::SIGMOID:  
+  case Type::SIGMOID:
     return sigmoidDerivative(val);
-  case Type::TANH:     
+  case Type::TANH:
     return tanhDerivative(val);
   default:
     throw std::runtime_error("Invalid activation function type");

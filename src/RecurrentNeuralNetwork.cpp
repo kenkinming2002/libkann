@@ -1,4 +1,4 @@
-#include "RecurrentNeuralNetwork.hpp"
+#include <libkann/RecurrentNeuralNetwork.hpp>
 
 #include <iostream>
 
@@ -7,7 +7,7 @@ namespace
   dynarray<size_t> makeTopology(dynarray<size_t> topology, size_t memory)
   {
     topology.front() += memory;
-    topology.back()  += memory; 
+    topology.back()  += memory;
     return topology;
   }
 }
@@ -35,7 +35,7 @@ void RecurrentNeuralNetwork::feedForward()
 }
 
 template<typename PRNG>
-RecurrentNeuralNetwork RecurrentNeuralNetwork::cross(const RecurrentNeuralNetwork& lhs, const RecurrentNeuralNetwork& rhs, 
+RecurrentNeuralNetwork RecurrentNeuralNetwork::cross(const RecurrentNeuralNetwork& lhs, const RecurrentNeuralNetwork& rhs,
     PRNG& prng, double mutationRate)
 {
   assert(lhs.m_memory == rhs.m_memory);

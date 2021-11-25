@@ -1,4 +1,4 @@
-#include "NeuralNetwork.hpp"
+#include <libkann/NeuralNetwork.hpp>
 
 #include <libkann/ActivationFunction.hpp>
 
@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <functional>
 
-NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction) 
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, ActivationFunction activationFunction)
   : m_layers(topology.size()), m_connections(topology.size()-1), m_activationFunction(activationFunction)
 {
   for(size_t i = 0; i<m_layers.size(); ++i)
@@ -28,7 +28,7 @@ NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, dynarray<Eigen::MatrixXd
 }
 
 template<typename PRNG>
-NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFunction activationFunction) 
+NeuralNetwork::NeuralNetwork(dynarray<size_t> topology, PRNG& prng, ActivationFunction activationFunction)
   : NeuralNetwork(std::move(topology), activationFunction)
 {
   std::uniform_real_distribution<double> distribution(-1.0, 1.0);
@@ -53,7 +53,7 @@ void NeuralNetwork::feedForward()
 
 void NeuralNetwork::backPropagate(const Eigen::VectorXd& expectedOutput)
 {
-  Eigen::VectorXd outputGradient = 2.0 * (m_output - expectedOutput); 
+  Eigen::VectorXd outputGradient = 2.0 * (m_output - expectedOutput);
 
   for(size_t i=m_layers.size()-1; i>0; --i)
   {

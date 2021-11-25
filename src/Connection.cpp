@@ -1,4 +1,4 @@
-#include "Connection.hpp"
+#include <libkann/Connection.hpp>
 
 #include <random>
 #include <iostream>
