@@ -9,7 +9,7 @@ WeightLayer::WeightLayer(size_t inputSize, size_t outputSize)
   m_weightGradient = Eigen::MatrixXd::Zero(outputSize, inputSize);
 }
 
-Eigen::VectorXd WeightLayer::feedForward(Eigen::MatrixXd input)
+Eigen::VectorXd WeightLayer::feedForward(Eigen::VectorXd input)
 {
   m_input = input;
   return m_weight * input;

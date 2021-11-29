@@ -15,7 +15,7 @@ public:
   LIBKANN_SYMEXPORT ActivationLayer(size_t size);
 
 public:
-  LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(Eigen::MatrixXd input);
+  LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(Eigen::VectorXd input);
   LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::RowVectorXd& outputGradient);
 
 public:

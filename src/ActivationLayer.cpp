@@ -9,7 +9,7 @@ ActivationLayer::ActivationLayer(size_t size)
   m_input = Eigen::VectorXd(size);
 }
 
-Eigen::VectorXd ActivationLayer::feedForward(Eigen::MatrixXd input)
+Eigen::VectorXd ActivationLayer::feedForward(Eigen::VectorXd input)
 {
   m_input = input;
   return m_input.unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
