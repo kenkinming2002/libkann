@@ -19,7 +19,7 @@ class Creature : public PhantomBody, public Selectable
 private:
   static constexpr size_t EYES_COUNT = 2;
 
-private:
+public:
   //static constexpr size_t NUM_INPUT = 4; // Energy, health, Sight
   enum Input {
     INPUT_ENERGY = 0,
@@ -37,14 +37,10 @@ private:
     OUTPUT_COUNT
   };
 
-private:
-  static dynarray<size_t> topology();
-
 public:
-  Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position,
+  Creature(kann::RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position,
       double energy = CONFIG.creature.maxEnergy, double health = CONFIG.creature.maxHealth);
-  template<typename PRNG>
-  Creature(PRNG& prng, Eigen::Vector2d position);
+  Creature(std::default_random_engine& engine, Eigen::Vector2d position);
 
 public:
   template<typename InputIterator>
@@ -79,7 +75,7 @@ public:
   friend class Renderer;
 
 private:
-  RecurrentNeuralNetwork m_neuralNetwork;
+  kann::RecurrentNeuralNetwork m_neuralNetwork;
 
 private:
   double m_energy, m_health;

@@ -22,8 +22,8 @@ static double GRID_DIVISION_LENGTH_BERRYBUSH()
   return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (initialBerryBushesCount / AVERAGE_COUNT_PER_CELL));
 }
 
-World::World(seed_type seed) 
-  : m_dimension(CONFIG.world.width, CONFIG.world.height), 
+World::World(seed_type seed)
+  : m_dimension(CONFIG.world.width, CONFIG.world.height),
     m_creatures(Grid<Creature>::centered_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_CREATURE()),
     m_berryBushes(Grid<BerryBush>::centered_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_BERRYBUSH()),
     m_generator(seed)
@@ -50,12 +50,14 @@ void World::update(float dt)
   Creature::batchUpdate(creatures.begin(), creatures.end(), dt, *this);
 
   static constexpr auto positionFunc = [](const Creature& creature) { return creature.position(); };
-
   m_creatures.synchronize(positionFunc); // Register the updated position
 
   m_birthCount += m_newborns.size();
   m_deathToll += m_creatures.remove_if(std::mem_fn(&Creature::dead));
-  m_creatures.insert(positionFunc, m_newborns.begin(), m_newborns.end());
+
+  for(auto&& newborn : m_newborns)
+    m_creatures.insert(newborn.position(), std::move(newborn));
+
   m_newborns.clear();
 
   m_updateTimer.end();

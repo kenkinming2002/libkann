@@ -6,6 +6,28 @@
 #include <iostream>
 #include <limits>
 
+namespace
+{
+  void showProgressBar(std::string_view name, size_t count, size_t total)
+  {
+    constexpr static size_t width = 40;
+    std::cout << "\e[?25l";
+
+    std::cout << name << "[";
+    for(size_t i=0; i<width; ++i)
+      if((float)i/width < (float)count/total)
+        std::cout << "=";
+      else
+        std::cout << " ";
+
+    std::cout << " - ";
+    std::cout << count << "/" << total;
+    std::cout << "]\r";
+
+    std::cout << "\e[?25h";
+  }
+}
+
 DataSet::DataSet(const char* imageFileName, const char* labelFileName)
 {
   IDXFile imageFile(imageFileName), labelFile(labelFileName);
@@ -29,11 +51,15 @@ DataSet::DataSet(const char* imageFileName, const char* labelFileName)
   }
 }
 
-void DataSet::train(NeuralNetwork& nn, float learningRate)
+void DataSet::train(kann::NeuralNetwork& nn, float learningRate)
 {
   Eigen::VectorXd expectedOutput(10);
-  for(const auto& data: m_data)
+  for(size_t i=0; i<m_data.size(); ++i)
   {
+    showProgressBar("Tranining", i, m_data.size());
+
+    const auto& data = m_data[i];
+
     Eigen::VectorXd input(data.image.size());
     for(size_t i=0; i<data.image.size(); ++i)
       input(i) = static_cast<double>(data.image[i])/255;
@@ -46,13 +72,19 @@ void DataSet::train(NeuralNetwork& nn, float learningRate)
     nn.backPropagate(expectedOutput);
     nn.train(learningRate);
   }
+
+  std::cout << std::endl;
 }
 
-void DataSet::test(NeuralNetwork& nn)
+void DataSet::test(kann::NeuralNetwork& nn)
 {
   size_t correct = 0;
-  for(const auto& data: m_data)
+  for(size_t i=0; i<m_data.size(); ++i)
   {
+    showProgressBar("Testing", i, m_data.size());
+
+    const auto& data = m_data[i];
+
     Eigen::VectorXd input(data.image.size());
     for(size_t i=0; i<data.image.size(); ++i)
       input(i) = static_cast<double>(data.image[i])/255;
@@ -73,6 +105,9 @@ void DataSet::test(NeuralNetwork& nn)
     if(label == data.label)
       ++correct;
   }
+
+  std::cout << std::endl;
+
   double correctionRate = 100.0 * static_cast<double>(correct) / m_data.size();
   std::cout << "Correction Rate:" << correctionRate << "%\n";
 }

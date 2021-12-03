@@ -15,7 +15,7 @@
 class World
 {
 public:
-  using random_engine_type = std::mt19937;
+  using random_engine_type = std::default_random_engine;
   using seed_type = random_engine_type::result_type;
 
 public:
@@ -60,7 +60,7 @@ public:
   auto dimension() const { return m_dimension; }
 
 public:
-  void addCreature(const Creature& creature) { m_newborns.push_back(creature); }
+  void addCreature(Creature creature) { m_newborns.push_back(std::move(creature)); }
 
 public:
   auto& prng() { return m_generator; }
@@ -74,7 +74,7 @@ private:
   std::vector<Creature> m_newborns;
 
 private:
-  std::mt19937 m_generator;
+  std::default_random_engine m_generator;
 
 private:
   size_t m_deathToll = 0;

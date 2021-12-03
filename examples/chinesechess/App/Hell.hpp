@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <random>
 
 #include "../Game.hpp"
 #include "../Renderer.hpp"
@@ -16,7 +17,7 @@ namespace App
     static int main(int argc, char* argv[]);
 
   public:
-    using random_engine_type = std::mt19937;
+    using random_engine_type = std::default_random_engine;
     using seed_type = random_engine_type::result_type;
     Hell(seed_type seed, const std::vector<size_t>& agentHiddenLayers, double agentLearningRate);
 

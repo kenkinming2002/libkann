@@ -2,25 +2,41 @@
 
 #include "Match.hpp"
 
-#include <cereal/archives/binary.hpp>
+#include <libkann/WeightLayer.hpp>
+#include <libkann/ActivationLayer.hpp>
 
+#include <cereal/archives/binary.hpp>
 #include <cereal/details/helpers.hpp>
+
 #include <fstream>
 #include <string>
 
-Population::Population(seed_type seed, size_t size, const std::vector<size_t>& agentsHiddenLayers) : m_generator(seed)
+Population::Population(seed_type seed, size_t size, const std::vector<size_t>& agentHiddenLayers) : m_generator(seed)
 {
-  dynarray<size_t> topology(agentsHiddenLayers.size() + 2);
+  const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
 
-  topology.front() = Agent::INPUT_LAYER_SIZE;
-  std::copy(agentsHiddenLayers.begin(), agentsHiddenLayers.end(), std::next(topology.begin()));
-  topology.back() = Agent::OUTPUT_LAYER_SIZE;
+  std::vector<size_t> topology;
+
+  topology.push_back(Agent::INPUT_LAYER_SIZE);
+  topology.insert(topology.end(), agentHiddenLayers.begin(), agentHiddenLayers.end());
+  topology.push_back(Agent::OUTPUT_LAYER_SIZE);
 
   assert(size % 2 == 0 && "population size must be even");
   m_agents.reserve(size);
   std::generate_n(std::back_inserter(m_agents), size, [&](){
-    auto neuralNetwork = NeuralNetwork(topology, m_generator, ActivationFunction(ActivationFunction::Type::SIGMOID));
-    return Agent(std::move(neuralNetwork));
+    kann::NeuralNetwork nn;
+    for(size_t i=0; i < topology.size()-1; ++i)
+    {
+      size_t prevSize = topology[i];
+      size_t nextSize = topology[i+1];
+      auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
+
+      auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
+      nn.addLayer(std::move(weightLayer));
+      nn.addLayer(std::move(activationLayer));
+    }
+    nn.randomize(m_generator);
+    return nn;
   });
 }
 

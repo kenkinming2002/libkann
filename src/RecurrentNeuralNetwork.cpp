@@ -2,43 +2,25 @@
 
 #include <iostream>
 
-namespace
+namespace kann
 {
-  dynarray<size_t> makeTopology(dynarray<size_t> topology, size_t memory)
+  RecurrentNeuralNetwork::RecurrentNeuralNetwork(NeuralNetwork&& nn, size_t memory)
+    : NeuralNetwork(std::move(nn)), m_memory(memory) {}
+
+  RecurrentNeuralNetwork::RecurrentNeuralNetwork(size_t memory)
+    : NeuralNetwork(), m_memory(memory) {}
+
+  void RecurrentNeuralNetwork::feedForward(Eigen::VectorXd input)
   {
-    topology.front() += memory;
-    topology.back()  += memory;
-    return topology;
+    Eigen::VectorXd realInput(this->inputSize());
+    realInput << input, this->output().tail(m_memory);
+    NeuralNetwork::feedForward(realInput);
+  }
+
+  RecurrentNeuralNetwork RecurrentNeuralNetwork::cross(const RecurrentNeuralNetwork& other, std::default_random_engine& prng, double mutationRate) const
+  {
+    assert(m_memory == other.m_memory);
+    auto result = NeuralNetwork::cross(other, prng, mutationRate);
+    return RecurrentNeuralNetwork(std::move(result), other.m_memory);
   }
 }
-
-RecurrentNeuralNetwork::RecurrentNeuralNetwork(NeuralNetwork&& neuralNetwork, size_t memory)
-  : NeuralNetwork(std::move(neuralNetwork)), m_memory(memory) {}
-
-RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, ActivationFunction activationFunction)
-  : NeuralNetwork(makeTopology(std::move(topology), memory), activationFunction), m_memory(memory) {}
-
-template<typename PRNG>
-RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, PRNG& prng, ActivationFunction activationFunction)
-  : NeuralNetwork(makeTopology(std::move(topology), memory), prng, activationFunction), m_memory(memory) {}
-
-template RecurrentNeuralNetwork::RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, std::mt19937& prng, ActivationFunction activationFunction);
-
-void RecurrentNeuralNetwork::feedForward(Eigen::VectorXd input)
-{
-  Eigen::VectorXd realInput(this->inputSize());
-  realInput << input, this->output().tail(m_memory);
-  NeuralNetwork::feedForward(realInput);
-}
-
-template<typename PRNG>
-RecurrentNeuralNetwork RecurrentNeuralNetwork::cross(const RecurrentNeuralNetwork& lhs, const RecurrentNeuralNetwork& rhs,
-    PRNG& prng, double mutationRate)
-{
-  assert(lhs.m_memory == rhs.m_memory);
-
-  auto result = NeuralNetwork::cross(lhs, rhs, prng, mutationRate);
-  return RecurrentNeuralNetwork(std::move(result), lhs.m_memory);
-}
-
-template RecurrentNeuralNetwork RecurrentNeuralNetwork::cross<std::mt19937>(const RecurrentNeuralNetwork& lhs, const RecurrentNeuralNetwork& rhs, std::mt19937& prng, double mutationRate);

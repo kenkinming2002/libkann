@@ -3,31 +3,52 @@
 #include "World.hpp"
 #include "Ray.hpp"
 
+#include <libkann/WeightLayer.hpp>
+#include <libkann/ActivationLayer.hpp>
+
 #include <cassert>
 #include <cmath>
 
 static constexpr double ANGLE = M_PI / 12.0;
 
-dynarray<size_t> Creature::topology()
+namespace
 {
-  dynarray<size_t> topology(CONFIG.creature.hiddenLayers.size() + 2);
+  kann::RecurrentNeuralNetwork makeRecurrentNeuralNetwork(std::default_random_engine& engine)
+  {
+    kann::RecurrentNeuralNetwork nn(CONFIG.creature.memory);
 
-  topology.front() = INPUT_COUNT;
-  std::copy(CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end(), std::next(topology.begin()));
-  topology.back()  = OUTPUT_COUNT;
+    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
 
-  return topology;
+    std::vector<size_t> topology;
+
+    topology.push_back(Creature::INPUT_COUNT + CONFIG.creature.memory);
+    topology.insert(topology.end(), CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end());
+    topology.push_back(Creature::OUTPUT_COUNT + CONFIG.creature.memory);
+
+    for(size_t i=0; i < topology.size()-1; ++i)
+    {
+      size_t prevSize = topology[i];
+      size_t nextSize = topology[i+1];
+      auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
+
+      auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
+      nn.addLayer(std::move(weightLayer));
+      nn.addLayer(std::move(activationLayer));
+    }
+
+    nn.randomize(engine);
+
+    return nn;
+  }
 }
 
-Creature::Creature(RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy, double health)
-  : PhantomBody(position, CONFIG.creature.radius), m_neuralNetwork(neuralNetwork),
+Creature::Creature(kann::RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy, double health)
+  : PhantomBody(position, CONFIG.creature.radius),
+    m_neuralNetwork(std::move(neuralNetwork)),
     m_energy(energy), m_health(health), m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
-template<typename PRNG>
-Creature::Creature(PRNG& prng, Eigen::Vector2d position)
-  : Creature(RecurrentNeuralNetwork(topology(), CONFIG.creature.memory, prng, ActivationFunction(ActivationFunction::Type::TANH)), position) {}
-
-template Creature::Creature(std::mt19937& prng, Eigen::Vector2d position);
+Creature::Creature(std::default_random_engine& engine, Eigen::Vector2d position)
+  : Creature(makeRecurrentNeuralNetwork(engine), position) {}
 
 void Creature::updateSight(World& world)
 {
@@ -204,7 +225,7 @@ void Creature::updateMating(World& world)
     if(!takeEnergy(CONFIG.creature.maxEnergy * 0.2) || !otherCreature.takeEnergy(CONFIG.creature.maxEnergy * 0.2))
       continue;
 
-    auto neuralNetwork = RecurrentNeuralNetwork::cross(m_neuralNetwork, otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
+    auto neuralNetwork = m_neuralNetwork.cross(otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
     Eigen::Vector2d position = (this->position() + otherCreature.position()) / 2.0;
 
     world.addCreature(Creature(std::move(neuralNetwork), position, 0.3 * CONFIG.creature.maxEnergy));

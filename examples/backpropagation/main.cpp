@@ -1,9 +1,15 @@
 #include "DataSet.hpp"
+#include "libkann/ActivationFunction.hpp"
 
 #include <libkann/utilities/random.hpp>
-#include <libkann/ConvolutionalLayer.hpp>
+
 #include <libkann/NeuralNetwork.hpp>
 
+#include <libkann/WeightLayer.hpp>
+#include <libkann/ActivationLayer.hpp>
+#include <libkann/ConvolutionalLayer.hpp>
+
+#include <memory>
 #include <random>
 #include <chrono>
 
@@ -11,41 +17,79 @@ static constexpr double LEARNING_RATE = 0.05;
 
 int main()
 {
-  std::mt19937 generator(random<std::mt19937::result_type>());
-
-  ConvolutionalLayer convolutionLayer(120, 100, 3, 4, 1);
-  convolutionLayer.randomize(generator);
-
-  ActivationLayer activationLayer(convolutionLayer.outputSize());
-  activationLayer.activationFunction(ActivationFunction(ActivationFunction::Type::SIGMOID));
-
-  Eigen::VectorXd input           = Eigen::VectorXd::Random(convolutionLayer.inputSize());
-  Eigen::VectorXd expectedOutput  = Eigen::VectorXd::Random(activationLayer.outputSize());
-  for(;;)
-  {
-    auto intermediate1 = convolutionLayer.feedForward(input);
-    auto output = activationLayer.feedForward(intermediate1);
-
-    Eigen::VectorXd outputGradient = 2.0 * (output - expectedOutput);
-    std::cout << "Cost:" << outputGradient.dot(outputGradient) << std::endl;
-
-    auto intermediate2 = activationLayer.backPropagate(outputGradient);
-    auto inputGradient = convolutionLayer.backPropagate(intermediate2);
-    convolutionLayer.train(0.01);
-  }
-
-  NeuralNetwork nn({DataSet::INPUT_LAYER_SIZE, 30, 30, 30, DataSet::OUTPUT_LAYER_SIZE}, generator, ActivationFunction(ActivationFunction::Type::SIGMOID));
+  std::default_random_engine engine(random<std::mt19937::result_type>());
 
   DataSet testingDataSet(
     "examples/backpropagation/datasets/t10k-images-idx3-ubyte",
     "examples/backpropagation/datasets/t10k-labels-idx1-ubyte"
   );
+
   DataSet trainingDataSet(
     "examples/backpropagation/datasets/train-images-idx3-ubyte",
     "examples/backpropagation/datasets/train-labels-idx1-ubyte"
   );
 
-  testingDataSet.test(nn);
-  trainingDataSet.train(nn, LEARNING_RATE);
-  testingDataSet.test(nn);
+
+  // Normal Neural Network
+  {
+    kann::NeuralNetwork nn;
+
+    const size_t topology[] = {DataSet::INPUT_LAYER_SIZE, 30, 30, 30, DataSet::OUTPUT_LAYER_SIZE};
+    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
+
+    for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
+    {
+      size_t prevSize = topology[i];
+      size_t nextSize = topology[i+1];
+      auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
+
+      auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
+      nn.addLayer(std::move(weightLayer));
+      nn.addLayer(std::move(activationLayer));
+    }
+
+    nn.randomize(engine);
+
+    testingDataSet.test(nn);
+    trainingDataSet.train(nn, LEARNING_RATE);
+    testingDataSet.test(nn);
+  }
+
+  // Convolutional Neural Network
+  {
+    kann::NeuralNetwork nn;
+
+    const size_t kernelSize = 5;
+    const size_t topology[] = {1, 3, 3, 1};
+    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
+
+    size_t width = Data::IMAGE_WIDTH;
+    for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
+    {
+      size_t prevSize = topology[i];
+      size_t nextSize = topology[i+1];
+
+      auto convolutionalLayer = std::make_unique<kann::ConvolutionalLayer>(width, width, kernelSize, prevSize, nextSize);
+
+      auto activationLayer    = std::make_unique<kann::ActivationLayer>(convolutionalLayer->outputSize(), activationFunction);
+
+      nn.addLayer(std::move(convolutionalLayer));
+      nn.addLayer(std::move(activationLayer));
+
+      assert(width>kernelSize);
+      width -= kernelSize - 1;
+    }
+
+    auto weightLayer     = std::make_unique<kann::WeightLayer>(nn.outputSize(), DataSet::OUTPUT_LAYER_SIZE);
+    auto activationLayer = std::make_unique<kann::ActivationLayer>(DataSet::OUTPUT_LAYER_SIZE, activationFunction);
+
+    nn.addLayer(std::move(weightLayer));
+    nn.addLayer(std::move(activationLayer));
+
+    nn.randomize(engine);
+
+    testingDataSet.test(nn);
+    trainingDataSet.train(nn, LEARNING_RATE);
+    testingDataSet.test(nn);
+  }
 }

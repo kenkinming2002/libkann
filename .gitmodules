@@ -4,3 +4,6 @@
 [submodule "subprojects/nlohmann-json"]
 	path = subprojects/nlohmann-json
 	url = https://github.com/nlohmann/json.git
+[submodule "third_party/cereal"]
+	path = third_party/cereal
+	url = https://github.com/USCiLab/cereal.git

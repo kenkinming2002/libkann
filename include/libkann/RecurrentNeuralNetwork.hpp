@@ -2,23 +2,21 @@
 
 #include <libkann/NeuralNetwork.hpp>
 
-class RecurrentNeuralNetwork : public NeuralNetwork
+namespace kann
 {
-public:
-  LIBKANN_SYMEXPORT RecurrentNeuralNetwork(NeuralNetwork&& neuralNetwork, size_t memory);
+  class RecurrentNeuralNetwork : public NeuralNetwork
+  {
+  public:
+    LIBKANN_SYMEXPORT RecurrentNeuralNetwork(NeuralNetwork&& nn, size_t memory);
+    LIBKANN_SYMEXPORT RecurrentNeuralNetwork(size_t memory);
 
-public:
-  LIBKANN_SYMEXPORT RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, ActivationFunction activationFunction);
-  template<typename PRNG>
-  LIBKANN_SYMEXPORT RecurrentNeuralNetwork(dynarray<size_t> topology, size_t memory, PRNG& prng, ActivationFunction activationFunction);
+  public:
+    LIBKANN_SYMEXPORT void feedForward(Eigen::VectorXd input);
 
-public:
-  LIBKANN_SYMEXPORT void feedForward(Eigen::VectorXd input);
+  public:
+    LIBKANN_SYMEXPORT RecurrentNeuralNetwork cross(const RecurrentNeuralNetwork& other, std::default_random_engine& prng, double mutationRate) const;
 
-public:
-  template<typename PRNG>
-  LIBKANN_SYMEXPORT static RecurrentNeuralNetwork cross(const RecurrentNeuralNetwork& lhs, const RecurrentNeuralNetwork& rhs, PRNG& prng, double mutationRate);
-
-private:
-  size_t m_memory;
-};
+  private:
+    size_t m_memory;
+  };
+}

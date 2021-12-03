@@ -1,6 +1,10 @@
 #include "Hell.hpp"
 
 #include "../utilities/lexical_cast.hpp"
+#include "libkann/NeuralNetwork.hpp"
+
+#include <libkann/WeightLayer.hpp>
+#include <libkann/ActivationLayer.hpp>
 
 #include <libkann/utilities/random.hpp>
 
@@ -43,13 +47,13 @@ namespace App
 
     // Parse Program Options
     enum OptionVal : int { SEED = 0, AGENT_HIDDEN_LAYERS = 1, AGENT_LEARNING_RATE = 2 };
-    
-    struct option options[] = 
+
+    struct option options[] =
     {
-      {"seed"               , required_argument, nullptr, SEED}, 
-      {"agent-hidden-layers", required_argument, nullptr, AGENT_HIDDEN_LAYERS}, 
-      {"agent-learning-rate", required_argument, nullptr, AGENT_LEARNING_RATE}, 
-      {"help"               , no_argument      , nullptr, 'h'}, 
+      {"seed"               , required_argument, nullptr, SEED},
+      {"agent-hidden-layers", required_argument, nullptr, AGENT_HIDDEN_LAYERS},
+      {"agent-learning-rate", required_argument, nullptr, AGENT_LEARNING_RATE},
+      {"help"               , no_argument      , nullptr, 'h'},
       {0, 0, 0, 0}
     };
     int c;
@@ -77,10 +81,10 @@ namespace App
     }
 
   if(optind < argc)
-  { 
+  {
     std::clog << "error: too many arguments\n";
-    usage(); 
-    return EXIT_FAILURE; 
+    usage();
+    return EXIT_FAILURE;
   }
 
   if(!seed) seed = random<seed_type>();
@@ -106,20 +110,34 @@ namespace App
   {
     Agent makeAgent(Hell::seed_type seed, const std::vector<size_t>& agentHiddenLayers)
     {
-      dynarray<size_t> topology(agentHiddenLayers.size() + 2);
+      Hell::random_engine_type engine(seed);
+
+      const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
+
+      std::vector<size_t> topology;
+
+      topology.push_back(Agent::INPUT_LAYER_SIZE);
+      topology.insert(topology.end(), agentHiddenLayers.begin(), agentHiddenLayers.end());
+      topology.push_back(Agent::OUTPUT_LAYER_SIZE);
+
+      kann::NeuralNetwork nn;
+      for(size_t i=0; i < topology.size()-1; ++i)
       {
-        topology.front() = Agent::INPUT_LAYER_SIZE;
-        std::copy(agentHiddenLayers.begin(), agentHiddenLayers.end(), std::next(topology.begin()));
-        topology.back() = Agent::OUTPUT_LAYER_SIZE;
+        size_t prevSize = topology[i];
+        size_t nextSize = topology[i+1];
+        auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
+
+        auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
+        nn.addLayer(std::move(weightLayer));
+        nn.addLayer(std::move(activationLayer));
       }
-      Hell::random_engine_type generator(seed);
-      
-      auto neuralNetwork = NeuralNetwork(topology, generator, ActivationFunction(ActivationFunction::Type::SIGMOID));
-      return Agent(std::move(neuralNetwork));
+      nn.randomize(engine);
+
+      return Agent(std::move(nn));
     }
   }
 
-  Hell::Hell(seed_type seed, const std::vector<size_t>& agentHiddenLayers, double agentLearningRate) 
+  Hell::Hell(seed_type seed, const std::vector<size_t>& agentHiddenLayers, double agentLearningRate)
     : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), ""),
       m_renderer(m_window),
       m_agent(makeAgent(seed, agentHiddenLayers)),

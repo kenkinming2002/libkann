@@ -26,8 +26,8 @@ public:
   DataSet(const char* imageFileName, const char* labelFileName);
 
 public:
-  void train(NeuralNetwork& nn, float learningRate);
-  void test(NeuralNetwork& nn);
+  void train(kann::NeuralNetwork& nn, float learningRate);
+  void test(kann::NeuralNetwork& nn);
 
 private:
   std::vector<Data> m_data;

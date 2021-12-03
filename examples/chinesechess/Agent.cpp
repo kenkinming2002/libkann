@@ -7,7 +7,7 @@
 #include <fstream>
 #include <filesystem>
 
-Agent::Agent(NeuralNetwork neuralNetwork) : m_neuralNetwork(std::move(neuralNetwork)) {}
+Agent::Agent(kann::NeuralNetwork neuralNetwork) : m_neuralNetwork(std::move(neuralNetwork)) {}
 
 void Agent::loadFromFile(std::filesystem::path filePath)
 {
@@ -119,10 +119,8 @@ void Agent::learnFrom(Game& game, double learningRate)
   m_neuralNetwork.train(learningRate);
 }
 
-template<typename PRNG>
-Agent Agent::cross(const Agent& lhs, const Agent& rhs, PRNG& prng, double mutationRate)
+Agent Agent::cross(const Agent& lhs, const Agent& rhs, std::default_random_engine& engine, double mutationRate)
 {
-  return Agent(NeuralNetwork::cross(lhs.m_neuralNetwork, rhs.m_neuralNetwork, prng, mutationRate));
+  return Agent(lhs.m_neuralNetwork.cross(rhs.m_neuralNetwork, engine, mutationRate));
 }
 
-template Agent Agent::cross(const Agent& lhs, const Agent& rhs, std::mt19937& prng, double mutationRate);

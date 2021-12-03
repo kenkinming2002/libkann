@@ -15,7 +15,7 @@ public:
 
 public:
   Agent() = default;
-  Agent(NeuralNetwork neuralNetwork);
+  Agent(kann::NeuralNetwork neuralNetwork);
 
 public:
   void loadFromFile(std::filesystem::path filePath);
@@ -34,8 +34,7 @@ public:
   void learnFrom(Game& game, double learnigRate);
 
 public:
-  template<typename PRNG>
-  static Agent cross(const Agent& lhs, const Agent& rhs, PRNG& prng, double mutationRate);
+  static Agent cross(const Agent& lhs, const Agent& rhs, std::default_random_engine& engine, double mutationRate);
 
 public:
   void addScore(double value) { m_score += value; }
@@ -52,7 +51,7 @@ public:
   }
 
 private:
-  NeuralNetwork m_neuralNetwork;
+  kann::NeuralNetwork m_neuralNetwork;
   double m_score = 0.0;
 
 private:

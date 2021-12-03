@@ -3,39 +3,46 @@
 #include <libkann/export.hpp>
 #include <libkann/Layer.hpp>
 #include <libkann/ActivationFunction.hpp>
+#include <libkann/serialization/Eigen.hpp>
 
 #include <Eigen/Eigen>
 
-class ActivationLayer
+namespace kann
 {
-public:
-  ActivationLayer() = default;
-
-public:
-  LIBKANN_SYMEXPORT ActivationLayer(size_t size);
-
-public:
-  LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(Eigen::VectorXd input);
-  LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::RowVectorXd& outputGradient);
-
-public:
-  LIBKANN_SYMEXPORT size_t inputSize() const;
-  LIBKANN_SYMEXPORT size_t outputSize() const;
-
-public:
-  void activationFunction(ActivationFunction activationFunction)
+  class ActivationLayer : public Layer
   {
-    m_activationFunction = activationFunction;
-  }
+  public:
+    LIBKANN_SYMEXPORT ActivationLayer() = default;
+    LIBKANN_SYMEXPORT ActivationLayer(size_t size, ActivationFunction activationFunction);
 
-  ActivationFunction activationFunction() const
-  {
-    return m_activationFunction;
-  }
+  public:
+    LIBKANN_SYMEXPORT size_t inputSize() const override;
+    LIBKANN_SYMEXPORT size_t outputSize() const override;
 
-private:
-  ActivationFunction m_activationFunction;
-  Eigen::VectorXd m_input;
-};
+  public:
+    LIBKANN_SYMEXPORT void randomize(std::default_random_engine& engine) override;
 
-static_assert(isLayer<ActivationLayer>);
+  public:
+    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(Eigen::VectorXd input) override;
+    LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::RowVectorXd& outputGradient) override;
+    LIBKANN_SYMEXPORT void train(double learningRate) override;
+
+  public:
+    LIBKANN_SYMEXPORT std::unique_ptr<Layer> cross(const Layer& other, std::default_random_engine& engine, double mutationRate) const override;
+
+  public:
+    template<typename Archive>
+    void serialize(Archive& archive)
+    {
+      archive(m_activationFunction);
+      archive(m_input);
+    }
+
+  private:
+    ActivationFunction m_activationFunction;
+    Eigen::VectorXd m_input;
+  };
+}
+
+CEREAL_REGISTER_TYPE(kann::ActivationLayer);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::Layer, kann::ActivationLayer);

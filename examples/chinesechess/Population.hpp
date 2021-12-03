@@ -10,7 +10,7 @@
 class Population
 {
 public:
-  using random_engine_type = std::mt19937;
+  using random_engine_type = std::default_random_engine;
   using seed_type = random_engine_type::result_type;
 
 public:
@@ -26,5 +26,5 @@ private:
   std::vector<Agent> m_agents;
 
 private:
-  std::mt19937 m_generator;
+  random_engine_type m_generator;
 };

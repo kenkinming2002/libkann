@@ -12,7 +12,7 @@
 
 namespace details
 {
-  inline auto clamp(Eigen::Vector2d v, Eigen::Vector2d lo, Eigen::Vector2d hi) 
+  inline auto clamp(Eigen::Vector2d v, Eigen::Vector2d lo, Eigen::Vector2d hi)
   {
     return Eigen::Vector2d(
       std::clamp(v(0), lo(0), hi(0)),
@@ -30,12 +30,12 @@ public:
   auto position() const { return m_position; }
   auto dimension() const { return m_dimension; }
 
-  double distance(Eigen::Vector2d point) const 
+  double distance(Eigen::Vector2d point) const
   {
     return (point - details::clamp(point, m_position, m_position + m_dimension)).norm();
   }
 
-  double squaredDistance(Eigen::Vector2d point) const 
+  double squaredDistance(Eigen::Vector2d point) const
   {
     return (point - details::clamp(point, m_position, m_position + m_dimension)).squaredNorm();
   }
@@ -47,7 +47,7 @@ private:
 struct DividedBox : public Box
 {
 public:
-  DividedBox(Eigen::Vector2d position, Eigen::Vector2d dimension, double divisionLength) 
+  DividedBox(Eigen::Vector2d position, Eigen::Vector2d dimension, double divisionLength)
     : Box(position, dimension), m_divisionLength(divisionLength),
       m_width(static_cast<size_t>(dimension(0) / m_divisionLength)+1),
       m_height(static_cast<size_t>(dimension(1) / m_divisionLength)+1) {}
@@ -74,7 +74,7 @@ public:
 
   Box box(size_t x, size_t y) const
   {
-    return Box(Eigen::Vector2d(x * m_divisionLength, y * m_divisionLength) + this->position(), 
+    return Box(Eigen::Vector2d(x * m_divisionLength, y * m_divisionLength) + this->position(),
         Eigen::Vector2d(m_divisionLength, m_divisionLength));
   }
 
@@ -144,18 +144,18 @@ public:
   void insert(Eigen::Vector2d position, T&& t) { cell(position).push_back(std::move(t)); }
 
   template<typename PositionFunc, typename InputIterator>
-  void insert(PositionFunc positionFunc, InputIterator first, InputIterator last) 
-  { 
+  void insert(PositionFunc positionFunc, InputIterator first, InputIterator last)
+  {
     std::for_each(first, last, [this, &positionFunc](auto&& t){
       Eigen::Vector2d position = positionFunc(t);
-      this->insert(position, std::forward<decltype(t)>(t)); 
+      this->insert(position, std::forward<decltype(t)>(t));
     });
   }
 
   template<typename... Args>
-  void emplace(Eigen::Vector2d position, Args&&... args) 
-  { 
-    cell(position).emplace_back(std::forward<Args>(args)...); 
+  void emplace(Eigen::Vector2d position, Args&&... args)
+  {
+    cell(position).emplace_back(std::forward<Args>(args)...);
   }
 
   void erase(Eigen::Vector2d position, const_iterator it) { cell(position).erase(it); }
@@ -163,7 +163,7 @@ public:
 public:
   /*
    * The following function all return a vector of reference of some sort, which
-   * incurs memory allocation at each call. 
+   * incurs memory allocation at each call.
    *
    * This may be circumvented by using the same vector and clearing it to reuse
    * the allocated memory instead of frequently calling new and delete, but this
