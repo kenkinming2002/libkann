@@ -10,6 +10,7 @@
 #include <Eigen/Eigen>
 
 #include <functional>
+#include <random>
 #include <variant>
 
 class World;
@@ -37,10 +38,54 @@ public:
     OUTPUT_COUNT
   };
 
+
 public:
-  Creature(kann::RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position,
-      double energy = CONFIG.creature.maxEnergy, double health = CONFIG.creature.maxHealth);
-  Creature(std::default_random_engine& engine, Eigen::Vector2d position);
+  struct NeuralNetworkConfig
+  {
+    std::vector<size_t> hiddenLayers;
+    size_t memory;
+  };
+
+  static kann::RecurrentNeuralNetwork makeNeuralNetork(const NeuralNetworkConfig& config, std::default_random_engine& engine);
+
+  struct Config
+  {
+    // Maximum
+    double maxRadius;
+    double maxEnergy;
+    double maxHealth;
+
+    // Physics
+    double forwardLinearSpeed;
+    double backwardLinearSpeed;
+    double angularSpeed;
+
+    // Energy
+    double passiveEnergyDrain;
+    double movementEnergyDrainMultiplier;
+
+    // Health
+    double healingThreshold;
+    double healingRate;
+
+    double hungerHealthDrain;
+
+    // Cooldown
+    float eatingCooldown;
+    float matingCooldown;
+
+    // Intelligence
+    double viewDistance;
+  };
+  /* Create a default creature from config using engine. You should use
+   * setters to further configure the creature if so needed. */
+  Creature(const Config& config, kann::RecurrentNeuralNetwork neuralNetwork,
+      Eigen::Vector2d position, double energy, double health);
+
+private:
+  // TODO: Do not store it by value
+  Config m_config;
+
 
 public:
   template<typename InputIterator>
@@ -69,6 +114,11 @@ public:
   double health() const { return m_health; }
   void health(double health) { m_health = health; this->radius() = CONFIG.creature.radius * m_health / CONFIG.creature.maxHealth; }
 
+public:
+  double energy() const { return m_energy; }
+  void energy(double energy) { m_energy = energy; }
+
+public:
   auto statistics() const { return m_statistics; }
 
 public:

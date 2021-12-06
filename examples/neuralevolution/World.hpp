@@ -31,7 +31,7 @@ public:
     size_t initialBerryBushesClusterSizeMax;
     size_t initialBerryBushesClusterCount;
   };
-  World(Config config);
+  World(Config config, Creature::Config creatureConfig, Creature::NeuralNetworkConfig creatureNeuralNetworkConfig);
 
 public:
   friend class Renderer;
@@ -69,7 +69,7 @@ public:
   auto& berryBushes() { return m_berryBushes; }
 
 public:
-  auto dimension() const { return m_dimension; }
+  Eigen::Vector2d dimension() const { return {m_config.width, m_config.height}; }
 
 public:
   void addCreature(Creature creature) { m_newborns.push_back(std::move(creature)); }
@@ -78,7 +78,10 @@ public:
   auto& prng() { return m_generator; }
 
 private:
-  Eigen::Vector2d m_dimension;
+  const Config m_config;
+  const Creature::Config m_creatureConfig;
+
+private:
   Grid<Creature> m_creatures;
   Grid<BerryBush> m_berryBushes;
 

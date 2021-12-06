@@ -23,13 +23,14 @@ namespace
   }
 }
 
-World::World(Config config)
-  : m_dimension(config.width, config.height),
-  m_creatures(createGrid<Creature>(config.width, config.height,
-        config.initialCreaturesCount, AVERAGE_COUNT_PER_CELL)),
-  m_berryBushes(createGrid<BerryBush>(config.width, config.height,
-        config.initialBerryBushesClusterCount *
-        config.initialBerryBushesClusterSizeMin+config.initialBerryBushesClusterSizeMin,
+World::World(Config config, Creature::Config creatureConfig,
+    Creature::NeuralNetworkConfig creatureNeuralNetworkConfig)
+  : m_config(config), m_creatureConfig(creatureConfig),
+    m_creatures(createGrid<Creature>(m_config.width, m_config.height,
+        m_config.initialCreaturesCount,
+        AVERAGE_COUNT_PER_CELL)),
+    m_berryBushes(createGrid<BerryBush>(config.width, config.height,
+        config.initialBerryBushesClusterCount * (config.initialBerryBushesClusterSizeMin+config.initialBerryBushesClusterSizeMax) / 2.0,
         AVERAGE_COUNT_PER_CELL)),
     m_generator(config.seed)
 {
@@ -40,10 +41,16 @@ World::World(Config config)
       m_berryBushes.emplace(staticBody.position(), staticBody.position());
   });
 
-  generateNormal(m_creatures, m_generator, CONFIG.creature.radius,
-      config.initialCreaturesCount, [this](StaticBody staticBody){
-      m_creatures.emplace(staticBody.position(), m_generator,
-          staticBody.position());
+  generateNormal(m_creatures, m_generator, creatureConfig.maxRadius,
+      config.initialCreaturesCount, [&](StaticBody staticBody){
+      auto neuralNetwork = Creature::makeNeuralNetork(creatureNeuralNetworkConfig, m_generator);
+      m_creatures.emplace(staticBody.position(),
+          creatureConfig,
+          std::move(neuralNetwork),
+          staticBody.position(),
+          creatureConfig.maxEnergy,
+          creatureConfig.maxHealth
+      );
   });
 }
 
@@ -106,11 +113,11 @@ World::result_variant World::find(Eigen::Vector2d position)
   Box queryBox(position, Eigen::Vector2d(0.0f, 0.0f));
 
   this->creatures().query(queryBox, [&](auto& creature){
-    if((creature.position() - position).squaredNorm() < CONFIG.creature.radius * CONFIG.creature.radius)
+    if((creature.position() - position).squaredNorm() < creature.radius() * creature.radius())
       result = std::ref(creature);
   });
   this->berryBushes().query(queryBox, [&](auto& berryBush){
-    if((berryBush.position() - position).squaredNorm() < CONFIG.berryBush.radius * CONFIG.berryBush.radius)
+    if((berryBush.position() - position).squaredNorm() < berryBush.radius() * berryBush.radius())
       result = std::ref(berryBush);
   });
   return result;

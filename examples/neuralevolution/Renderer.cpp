@@ -254,7 +254,7 @@ void Renderer::draw(const World::Info& info)
 void Renderer::draw(const World& world)
 {
   this->draw(world.info());
-  this->addRectangle(sf::Vector2f(0.0f, 0.0f), convert(world.m_dimension), sf::Color::White);
+  this->addRectangle(sf::Vector2f(0.0f, 0.0f), convert(world.dimension()), sf::Color::White);
 
   for(std::reference_wrapper<const BerryBush> berryBush: world.m_berryBushes.all())
     this->draw(berryBush);

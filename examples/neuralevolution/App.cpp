@@ -12,6 +12,24 @@ App::App(seed_type seed)
       .initialBerryBushesClusterSizeMin = CONFIG.world.initialBerryBushesClusterSizeMin,
       .initialBerryBushesClusterSizeMax = CONFIG.world.initialBerryBushesClusterSizeMax,
       .initialBerryBushesClusterCount   = CONFIG.world.initialBerryBushesClusterCount
+    }, Creature::Config{
+      .maxRadius                     = CONFIG.creature.radius, // TODO: Fix the name
+      .maxEnergy                     = CONFIG.creature.maxEnergy,
+      .maxHealth                     = CONFIG.creature.maxHealth,
+      .forwardLinearSpeed            = CONFIG.creature.forwardLinearSpeed,
+      .backwardLinearSpeed           = CONFIG.creature.backwardLinearSpeed,
+      .angularSpeed                  = CONFIG.creature.angularSpeed,
+      .passiveEnergyDrain            = CONFIG.creature.passiveEnergyDrain,
+      .movementEnergyDrainMultiplier = CONFIG.creature.movementEnergyDrainMultiplier,
+      .healingThreshold              = CONFIG.creature.healingThreshold,
+      .healingRate                   = CONFIG.creature.healingRate,
+      .hungerHealthDrain             = CONFIG.creature.hungerHealthDrain,
+      .eatingCooldown                = CONFIG.creature.eatingCooldown,
+      .matingCooldown                = CONFIG.creature.matingCooldown,
+      .viewDistance                  = CONFIG.creature.viewDistance,
+    }, Creature::NeuralNetworkConfig{
+      .hiddenLayers = CONFIG.creature.hiddenLayers,
+      .memory       = CONFIG.creature.memory
     }),
     m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
     m_renderer(m_window) {}

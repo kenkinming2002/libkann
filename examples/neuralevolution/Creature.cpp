@@ -2,6 +2,7 @@
 
 #include "World.hpp"
 #include "Ray.hpp"
+#include "libkann/RecurrentNeuralNetwork.hpp"
 
 #include <libkann/WeightLayer.hpp>
 #include <libkann/ActivationLayer.hpp>
@@ -9,46 +10,43 @@
 #include <cassert>
 #include <cmath>
 
-static constexpr double ANGLE = M_PI / 12.0;
-
-namespace
+kann::RecurrentNeuralNetwork Creature::makeNeuralNetork(const NeuralNetworkConfig& config, std::default_random_engine& engine)
 {
-  kann::RecurrentNeuralNetwork makeRecurrentNeuralNetwork(std::default_random_engine& engine)
+  kann::RecurrentNeuralNetwork nn(config.memory);
+
+  const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
+
+  // TODO: do not create a vector for this
+  std::vector<size_t> topology;
+  topology.push_back(Creature::INPUT_COUNT + config.memory);
+  topology.insert(topology.end(), config.hiddenLayers.begin(), config.hiddenLayers.end());
+  topology.push_back(Creature::OUTPUT_COUNT + config.memory);
+
+  for(size_t i=0; i < topology.size()-1; ++i)
   {
-    kann::RecurrentNeuralNetwork nn(CONFIG.creature.memory);
+    size_t prevSize = topology[i];
+    size_t nextSize = topology[i+1];
+    auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
 
-    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
-
-    std::vector<size_t> topology;
-
-    topology.push_back(Creature::INPUT_COUNT + CONFIG.creature.memory);
-    topology.insert(topology.end(), CONFIG.creature.hiddenLayers.begin(), CONFIG.creature.hiddenLayers.end());
-    topology.push_back(Creature::OUTPUT_COUNT + CONFIG.creature.memory);
-
-    for(size_t i=0; i < topology.size()-1; ++i)
-    {
-      size_t prevSize = topology[i];
-      size_t nextSize = topology[i+1];
-      auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
-
-      auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
-      nn.addLayer(std::move(weightLayer));
-      nn.addLayer(std::move(activationLayer));
-    }
-
-    nn.randomize(engine);
-
-    return nn;
+    auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
+    nn.addLayer(std::move(weightLayer));
+    nn.addLayer(std::move(activationLayer));
   }
+
+  nn.randomize(engine);
+
+  return nn;
 }
 
-Creature::Creature(kann::RecurrentNeuralNetwork neuralNetwork, Eigen::Vector2d position, double energy, double health)
-  : PhantomBody(position, CONFIG.creature.radius),
-    m_neuralNetwork(std::move(neuralNetwork)),
-    m_energy(energy), m_health(health), m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
+static constexpr double ANGLE = M_PI / 12.0;
 
-Creature::Creature(std::default_random_engine& engine, Eigen::Vector2d position)
-  : Creature(makeRecurrentNeuralNetwork(engine), position) {}
+Creature::Creature(const Config& config, kann::RecurrentNeuralNetwork neuralNetwork,
+    Eigen::Vector2d position, double energy, double health)
+  : PhantomBody(position, config.maxRadius),
+    m_config(config),
+    m_neuralNetwork(std::move(neuralNetwork)),
+    m_energy(energy), m_health(health),
+    m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
 
 void Creature::updateSight(World& world)
 {
@@ -70,11 +68,11 @@ void Creature::updateSight(World& world)
     //
     // Reset eye from last update
     eye.target = std::monostate{};
-    eye.distance = CONFIG.creature.viewDistance;
+    eye.distance = m_config.viewDistance;
     ray = Ray(this->position(), this->direction() + eye.angle);
   }
 
-  world.creatures().query(this->position(), CONFIG.creature.viewDistance + CONFIG.creature.radius, [&](Creature& creature){
+  world.creatures().query(this->position(), m_config.viewDistance + m_config.maxRadius, [&](Creature& creature){
     for(size_t i=0; i<EYES_COUNT; ++i)
     {
       auto& eye = m_eyes[i];
@@ -89,7 +87,7 @@ void Creature::updateSight(World& world)
       }
     }
   });
-  world.berryBushes().query(this->position(), CONFIG.creature.viewDistance + CONFIG.berryBush.radius, [&](BerryBush& berryBush){
+  world.berryBushes().query(this->position(), m_config.viewDistance + CONFIG.berryBush.radius, [&](BerryBush& berryBush){
     for(size_t i=0; i<EYES_COUNT; ++i)
     {
       auto& eye = m_eyes[i];
@@ -127,7 +125,7 @@ void Creature::updateCooldown(float dt)
 
 void Creature::updateSurvival(float dt)
 {
-  this->takeEnergy(CONFIG.creature.passiveEnergyDrain * dt);
+  this->takeEnergy(m_config.passiveEnergyDrain * dt);
 }
 
 void Creature::updateStatistics(float dt)
@@ -140,13 +138,13 @@ void Creature::updateMovement(float dt, const World& world)
   const auto& output = m_neuralNetwork.output();
 
   auto linearSpeedFactor = output(OUTPUT_ACCELERATION_FACTOR);
-  auto linearSpeedMultiplier = linearSpeedFactor >= 0.0 ?  CONFIG.creature.forwardLinearSpeed : CONFIG.creature.backwardLinearSpeed;
+  auto linearSpeedMultiplier = linearSpeedFactor >= 0.0 ?  m_config.forwardLinearSpeed : m_config.backwardLinearSpeed;
   auto linearSpeed = linearSpeedFactor * linearSpeedMultiplier;
 
   auto angularDirection = output(OUTPUT_RELATIVE_DIRECTION) * M_PI; // Map from (-1, 1) to (-PI, PI)
 
   this->applyImpulse(linearSpeed, angularDirection);
-  this->takeEnergy(CONFIG.creature.movementEnergyDrainMultiplier * linearSpeed * linearSpeed * dt);
+  this->takeEnergy(m_config.movementEnergyDrainMultiplier * linearSpeed * linearSpeed * dt);
 
   PhantomBody::update(dt, world);
 }
@@ -154,7 +152,7 @@ void Creature::updateMovement(float dt, const World& world)
 void Creature::updateEating()
 {
   static constexpr double EATING_ENERGY_COST = 5.0f;
-  const double EATING_DISTANCE = CONFIG.creature.radius * 1.5 + CONFIG.berryBush.radius;
+  const double EATING_DISTANCE = m_config.maxRadius * 1.5 + CONFIG.berryBush.radius;
 
   const auto& output = m_neuralNetwork.output();
   if(output(OUTPUT_EATING_DESIRE)<0.0)
@@ -164,7 +162,7 @@ void Creature::updateEating()
     return; // Cooldown
 
   this->takeEnergy(EATING_ENERGY_COST);
-  m_eatingCooldown = CONFIG.creature.eatingCooldown;
+  m_eatingCooldown = m_config.eatingCooldown;
 
   for(auto& eye: m_eyes)
   {
@@ -182,10 +180,10 @@ void Creature::updateEating()
 
     berryBush.take();
     m_energy += CONFIG.berryBush.energyPerBerry;
-    if(m_energy>CONFIG.creature.maxEnergy)
+    if(m_energy>m_config.maxEnergy)
     {
-      this->takeHealth(m_energy-CONFIG.creature.maxEnergy);
-      m_energy = CONFIG.creature.maxEnergy;
+      this->takeHealth(m_energy-m_config.maxEnergy);
+      m_energy = m_config.maxEnergy;
     }
 
     return;
@@ -195,7 +193,7 @@ void Creature::updateEating()
 void Creature::updateMating(World& world)
 {
   static constexpr double MATING_ENERGY_COST = 5.0f;
-  const double MATING_DISTANCE = CONFIG.creature.radius * 2.5;
+  const double MATING_DISTANCE = m_config.maxRadius * 2.5;
 
   for(auto& eye: m_eyes)
   {
@@ -215,20 +213,25 @@ void Creature::updateMating(World& world)
 
     this->takeEnergy(MATING_ENERGY_COST);
 
-    m_matingCooldown = CONFIG.creature.matingCooldown;
-    otherCreature.m_matingCooldown = CONFIG.creature.matingCooldown;
+    m_matingCooldown = m_config.matingCooldown;
+    otherCreature.m_matingCooldown = m_config.matingCooldown;
 
     if(auto squaredDistance = (this->position() - otherCreature.position()).squaredNorm();
         squaredDistance >= MATING_DISTANCE * MATING_DISTANCE)
       continue; // Too far away
 
-    if(!takeEnergy(CONFIG.creature.maxEnergy * 0.2) || !otherCreature.takeEnergy(CONFIG.creature.maxEnergy * 0.2))
+    if(!takeEnergy(m_config.maxEnergy * 0.2) || !otherCreature.takeEnergy(m_config.maxEnergy * 0.2))
       continue;
 
     auto neuralNetwork = m_neuralNetwork.cross(otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
     Eigen::Vector2d position = (this->position() + otherCreature.position()) / 2.0;
 
-    world.addCreature(Creature(std::move(neuralNetwork), position, 0.3 * CONFIG.creature.maxEnergy));
+    auto newCreature = Creature(m_config, std::move(neuralNetwork),
+      position,
+      m_config.maxEnergy * 0.3,
+      m_config.maxHealth
+    );
+    world.addCreature(std::move(newCreature));
     ++m_statistics.matingCount;
     ++otherCreature.m_statistics.matingCount;
 
@@ -240,12 +243,12 @@ void Creature::updateHealth(float dt)
 {
   // Take health
   if(m_energy == 0.0f)
-    takeHealth(CONFIG.creature.hungerHealthDrain * dt);
+    takeHealth(m_config.hungerHealthDrain * dt);
 
   // Healing
-  if(m_energy >= CONFIG.creature.maxEnergy * CONFIG.creature.healingThreshold)
+  if(m_energy >= m_config.maxEnergy * m_config.healingThreshold)
   {
-    double amount = std::min(CONFIG.creature.maxHealth - this->health(), m_energy);
+    double amount = std::min(m_config.maxHealth - this->health(), m_energy);
     this->health(this->health()+amount);
     m_energy -= amount;
   }
