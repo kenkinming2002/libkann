@@ -19,7 +19,19 @@ public:
   using seed_type = random_engine_type::result_type;
 
 public:
-  World(seed_type seed);
+  struct Config
+  {
+    seed_type seed;
+
+    double width;
+    double height;
+
+    size_t initialCreaturesCount;
+    size_t initialBerryBushesClusterSizeMin;
+    size_t initialBerryBushesClusterSizeMax;
+    size_t initialBerryBushesClusterCount;
+  };
+  World(Config config);
 
 public:
   friend class Renderer;

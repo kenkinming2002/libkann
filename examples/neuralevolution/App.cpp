@@ -4,9 +4,16 @@
 
 #include <SFML/Window/Event.hpp>
 
-App::App(seed_type seed) 
-  : m_world(seed), 
-    m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"), 
+App::App(seed_type seed)
+  : m_world(World::Config{
+      .width = CONFIG.world.width,
+      .height = CONFIG.world.height,
+      .initialCreaturesCount = CONFIG.world.initialCreaturesCount,
+      .initialBerryBushesClusterSizeMin = CONFIG.world.initialBerryBushesClusterSizeMin,
+      .initialBerryBushesClusterSizeMax = CONFIG.world.initialBerryBushesClusterSizeMax,
+      .initialBerryBushesClusterCount   = CONFIG.world.initialBerryBushesClusterCount
+    }),
+    m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
     m_renderer(m_window) {}
 
 void App::run()

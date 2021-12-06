@@ -11,31 +11,40 @@
 
 static constexpr double AVERAGE_COUNT_PER_CELL = 3.0;
 
-static double GRID_DIVISION_LENGTH_CREATURE()
+namespace
 {
-  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (static_cast<double>(CONFIG.world.initialCreaturesCount) / AVERAGE_COUNT_PER_CELL));
+  template<typename T>
+  static Grid<T> createGrid(double width, double height, size_t count, size_t countPerCell)
+  {
+    double size       = width * height;
+    double cellsCount = (double)count / countPerCell;
+    double divisionLength = size / cellsCount;
+    return Grid<T>(Grid<T>::centered_tag, {0.0, 0.0}, {width, height}, divisionLength);
+  }
 }
 
-static double GRID_DIVISION_LENGTH_BERRYBUSH()
+World::World(Config config)
+  : m_dimension(config.width, config.height),
+  m_creatures(createGrid<Creature>(config.width, config.height,
+        config.initialCreaturesCount, AVERAGE_COUNT_PER_CELL)),
+  m_berryBushes(createGrid<BerryBush>(config.width, config.height,
+        config.initialBerryBushesClusterCount *
+        config.initialBerryBushesClusterSizeMin+config.initialBerryBushesClusterSizeMin,
+        AVERAGE_COUNT_PER_CELL)),
+    m_generator(config.seed)
 {
-  double initialBerryBushesCount = static_cast<double>(CONFIG.world.initialBerryBushesClusterCount) * static_cast<double>(CONFIG.world.initialBerryBushesClusterSizeMin+CONFIG.world.initialBerryBushesClusterSizeMin) / 2.0;
-  return std::sqrt((CONFIG.world.width * CONFIG.world.height) / (initialBerryBushesCount / AVERAGE_COUNT_PER_CELL));
-}
-
-World::World(seed_type seed)
-  : m_dimension(CONFIG.world.width, CONFIG.world.height),
-    m_creatures(Grid<Creature>::centered_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_CREATURE()),
-    m_berryBushes(Grid<BerryBush>::centered_tag, {0.0, 0.0}, {CONFIG.world.width, CONFIG.world.height}, GRID_DIVISION_LENGTH_BERRYBUSH()),
-    m_generator(seed)
-{
-  generateClusters(m_berryBushes, m_generator, CONFIG.berryBush.radius, CONFIG.world.initialBerryBushesClusterCount, CONFIG.world.initialBerryBushesClusterSizeMin, CONFIG.world.initialBerryBushesClusterSizeMax, [this](StaticBody staticBody){
+  generateClusters(m_berryBushes, m_generator, CONFIG.berryBush.radius,
+      config.initialBerryBushesClusterCount,
+      config.initialBerryBushesClusterSizeMin,
+      config.initialBerryBushesClusterSizeMax, [this](StaticBody staticBody){
       m_berryBushes.emplace(staticBody.position(), staticBody.position());
   });
 
-  generateNormal(m_creatures, m_generator, CONFIG.creature.radius, CONFIG.world.initialCreaturesCount, [this](StaticBody staticBody){
-      m_creatures.emplace(staticBody.position(), m_generator, staticBody.position());
+  generateNormal(m_creatures, m_generator, CONFIG.creature.radius,
+      config.initialCreaturesCount, [this](StaticBody staticBody){
+      m_creatures.emplace(staticBody.position(), m_generator,
+          staticBody.position());
   });
-
 }
 
 void World::update(float dt)
