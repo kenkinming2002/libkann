@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Config.hpp"
 #include "BerryBush.hpp"
 #include "Selectable.hpp"
 #include "PhantomBody.hpp"
@@ -76,6 +75,9 @@ public:
 
     // Intelligence
     double viewDistance;
+
+    // Mating
+    double mutationRate;
   };
   /* Create a default creature from config using engine. You should use
    * setters to further configure the creature if so needed. */
@@ -108,11 +110,18 @@ private:
 
 public:
   bool dead() const { return m_health == 0.0; }
-  bool healthy() const { return m_health == CONFIG.creature.maxHealth; }
+  bool healthy() const
+  {
+    return m_health == m_config.maxHealth;
+  }
 
 public:
   double health() const { return m_health; }
-  void health(double health) { m_health = health; this->radius() = CONFIG.creature.radius * m_health / CONFIG.creature.maxHealth; }
+  void health(double health)
+  {
+    m_health = health;
+    this->radius() = m_config.maxRadius * m_health / m_config.maxHealth;
+  }
 
 public:
   double energy() const { return m_energy; }

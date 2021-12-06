@@ -30,6 +30,11 @@ App::App(seed_type seed)
     }, Creature::NeuralNetworkConfig{
       .hiddenLayers = CONFIG.creature.hiddenLayers,
       .memory       = CONFIG.creature.memory
+    }, BerryBush::Config{
+      .energyPerBerry = CONFIG.berryBush.energyPerBerry,
+      .maxBerryCount  = CONFIG.berryBush.maxBerryCount,
+      .growthRate     = CONFIG.berryBush.growthRate,
+      .radius         = CONFIG.berryBush.radius
     }),
     m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
     m_renderer(m_window) {}

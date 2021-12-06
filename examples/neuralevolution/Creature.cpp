@@ -1,5 +1,7 @@
 #include "Creature.hpp"
 
+#include "Config.hpp"
+
 #include "World.hpp"
 #include "Ray.hpp"
 #include "libkann/RecurrentNeuralNetwork.hpp"
@@ -152,7 +154,6 @@ void Creature::updateMovement(float dt, const World& world)
 void Creature::updateEating()
 {
   static constexpr double EATING_ENERGY_COST = 5.0f;
-  const double EATING_DISTANCE = m_config.maxRadius * 1.5 + CONFIG.berryBush.radius;
 
   const auto& output = m_neuralNetwork.output();
   if(output(OUTPUT_EATING_DESIRE)<0.0)
@@ -171,15 +172,15 @@ void Creature::updateEating()
 
     auto& berryBush = std::get<std::reference_wrapper<BerryBush>>(eye.target).get();
 
+    auto eatingDistance = m_config.maxRadius * 1.5 + berryBush.radius();
     if(auto squaredDistance = (this->position() - berryBush.position()).squaredNorm();
-        squaredDistance >= EATING_DISTANCE * EATING_DISTANCE)
+        squaredDistance >= eatingDistance * eatingDistance)
       continue;
 
     if(berryBush.count() == 0)
       continue; // No berry to eat
 
-    berryBush.take();
-    m_energy += CONFIG.berryBush.energyPerBerry;
+    m_energy += berryBush.take();
     if(m_energy>m_config.maxEnergy)
     {
       this->takeHealth(m_energy-m_config.maxEnergy);
@@ -223,7 +224,7 @@ void Creature::updateMating(World& world)
     if(!takeEnergy(m_config.maxEnergy * 0.2) || !otherCreature.takeEnergy(m_config.maxEnergy * 0.2))
       continue;
 
-    auto neuralNetwork = m_neuralNetwork.cross(otherCreature.m_neuralNetwork, world.prng(), CONFIG.neuralNetwork.mutationRate);
+    auto neuralNetwork = m_neuralNetwork.cross(otherCreature.m_neuralNetwork, world.prng(), m_config.mutationRate);
     Eigen::Vector2d position = (this->position() + otherCreature.position()) / 2.0;
 
     auto newCreature = Creature(m_config, std::move(neuralNetwork),

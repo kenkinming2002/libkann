@@ -1,6 +1,5 @@
 #include "World.hpp"
 
-#include "Config.hpp"
 #include "Generator.hpp"
 
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -21,24 +20,33 @@ namespace
     double divisionLength = size / cellsCount;
     return Grid<T>(Grid<T>::centered_tag, {0.0, 0.0}, {width, height}, divisionLength);
   }
+
+  static Grid<Creature> createCreatureGrid(const World::Config& config)
+  {
+    return createGrid<Creature>(config.width, config.height, config.initialCreaturesCount, AVERAGE_COUNT_PER_CELL);
+  }
+
+  static Grid<BerryBush> createBerryBushGrid(const World::Config& config)
+  {
+    auto initialBerryBushesCount = config.initialBerryBushesClusterCount * (config.initialBerryBushesClusterSizeMin+config.initialBerryBushesClusterSizeMax) / 2.0;
+    return createGrid<BerryBush>(config.width, config.height, initialBerryBushesCount, AVERAGE_COUNT_PER_CELL);
+  }
 }
 
-World::World(Config config, Creature::Config creatureConfig,
-    Creature::NeuralNetworkConfig creatureNeuralNetworkConfig)
-  : m_config(config), m_creatureConfig(creatureConfig),
-    m_creatures(createGrid<Creature>(m_config.width, m_config.height,
-        m_config.initialCreaturesCount,
-        AVERAGE_COUNT_PER_CELL)),
-    m_berryBushes(createGrid<BerryBush>(config.width, config.height,
-        config.initialBerryBushesClusterCount * (config.initialBerryBushesClusterSizeMin+config.initialBerryBushesClusterSizeMax) / 2.0,
-        AVERAGE_COUNT_PER_CELL)),
+World::World(Config config, Creature::Config creatureConfig, Creature::NeuralNetworkConfig creatureNeuralNetworkConfig, BerryBush::Config berryBushConfig)
+  : m_config(config), m_creatureConfig(creatureConfig), m_berryBushConfig(berryBushConfig),
+    m_creatures(createCreatureGrid(m_config)),
+    m_berryBushes(createBerryBushGrid(m_config)),
     m_generator(config.seed)
 {
-  generateClusters(m_berryBushes, m_generator, CONFIG.berryBush.radius,
-      config.initialBerryBushesClusterCount,
-      config.initialBerryBushesClusterSizeMin,
-      config.initialBerryBushesClusterSizeMax, [this](StaticBody staticBody){
-      m_berryBushes.emplace(staticBody.position(), staticBody.position());
+  generateClusters(m_berryBushes, m_generator, m_berryBushConfig.radius,
+      m_config.initialBerryBushesClusterCount,
+      m_config.initialBerryBushesClusterSizeMin,
+      m_config.initialBerryBushesClusterSizeMax, [&](StaticBody staticBody){
+      m_berryBushes.emplace(staticBody.position(),
+          m_berryBushConfig,
+          staticBody.position()
+      );
   });
 
   generateNormal(m_creatures, m_generator, creatureConfig.maxRadius,
@@ -60,8 +68,9 @@ void World::update(float dt)
 
   m_worldTime += dt;
 
-  auto berryBushes = m_berryBushes.all();
-  BerryBush::batchUpdate(berryBushes.begin(), berryBushes.end(), dt);
+  for(auto& berryBush : m_berryBushes.all())
+    berryBush.get().update(dt);
+
   auto creatures = m_creatures.all();
   Creature::batchUpdate(creatures.begin(), creatures.end(), dt, *this);
 

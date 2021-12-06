@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Config.hpp"
 #include "Selectable.hpp"
 #include "StaticBody.hpp"
 
@@ -11,31 +10,36 @@
 class BerryBush : public StaticBody, public Selectable
 {
 public:
-  BerryBush(Eigen::Vector2d position);
+  struct Config
+  {
+    double energyPerBerry;
+    size_t maxBerryCount;
+    float growthRate;
+
+    double radius;
+  };
+
+public:
+  BerryBush(Config config, Eigen::Vector2d position);
 
 public:
   friend class Renderer;
 
 public:
-  auto count() const { return m_berryCount; }
-  void take(size_t count=1) { m_berryCount -= count; }
+  void update(float dt);
 
 public:
-  template<typename InputIterator>
-  static void batchUpdate(InputIterator first, InputIterator last, float dt);
+  auto count() const { return m_berryCount; }
+
+  /* @return amount of energy taken */
+  [[nodiscard]] double take(size_t count=1)
+  {
+    m_berryCount -= count;
+    return m_config.energyPerBerry * count;
+  }
 
 private:
+  Config m_config;
   size_t m_berryCount;
-  static float m_growth;
+  float m_growth;
 };
-
-template<typename InputIterator>
-void BerryBush::batchUpdate(InputIterator first, InputIterator last, float dt)
-{
-  m_growth += dt * CONFIG.berryBush.growthRate;
-  if(m_growth>=1.0f)
-  {
-    m_growth-=1.0f;
-    std::for_each(first, last, [&](BerryBush& berryBush){ berryBush.m_berryCount = std::min(CONFIG.berryBush.maxBerryCount, berryBush.m_berryCount+1);} );
-  }
-}

@@ -1,5 +1,7 @@
 #include "Renderer.hpp"
 
+#include "Config.hpp"
+
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Text.hpp>

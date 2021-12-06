@@ -31,7 +31,9 @@ public:
     size_t initialBerryBushesClusterSizeMax;
     size_t initialBerryBushesClusterCount;
   };
-  World(Config config, Creature::Config creatureConfig, Creature::NeuralNetworkConfig creatureNeuralNetworkConfig);
+  World(Config config, Creature::Config creatureConfig,
+      Creature::NeuralNetworkConfig creatureNeuralNetworkConfig,
+      BerryBush::Config berryBushConfig);
 
 public:
   friend class Renderer;
@@ -80,6 +82,7 @@ public:
 private:
   const Config m_config;
   const Creature::Config m_creatureConfig;
+  const BerryBush::Config m_berryBushConfig;
 
 private:
   Grid<Creature> m_creatures;
