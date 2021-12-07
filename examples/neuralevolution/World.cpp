@@ -93,72 +93,62 @@ World::World(Config config, Creature::Config creatureConfig, Creature::NeuralNet
 
 void World::update(float dt)
 {
-  m_remaingUpdateTime += dt;
 
-  // While it is okay to do physics at 60FPS
-  // Doing creature update at 60FPS is slow
-  // TODO: Fixme
-  const float timeStep = 1.0f / 60.0f;
-  while(m_remaingUpdateTime >= timeStep)
-  {
-    m_remaingUpdateTime -= timeStep;
+  m_updateTimer.begin();
 
-    m_updateTimer.begin();
+  // 1: Physics
+  const int32 velocityIterations = 8;
+  const int32 positionIterations = 3;
+  m_world.Step(dt, velocityIterations, positionIterations);
 
-    // 1: Physics
-    const int32 velocityIterations = 8;
-    const int32 positionIterations = 3;
-    m_world.Step(timeStep, velocityIterations, positionIterations);
+  // 2: Berry Bushes and Creatures
+  for(auto& berryBush : m_berryBushes)
+    berryBush.update(dt);
 
-    // 2: Berry Bushes and Creatures
-    for(auto& berryBush : m_berryBushes)
-      berryBush.update(timeStep);
-
-    for(auto& creature : m_creatures)
-      creature.updatePerception(timeStep);
+  for(auto& creature : m_creatures)
+    creature.updatePerception(dt);
 
 #pragma omp parallel for
-    for(size_t i=0; i<m_creatures.size(); ++i)
-      m_creatures[i].updateNeuralNetwork();
+  for(size_t i=0; i<m_creatures.size(); ++i)
+    m_creatures[i].updateNeuralNetwork();
 
-    for(auto& creature : m_creatures)
-      creature.update(timeStep, *this);
+  for(auto& creature : m_creatures)
+    creature.update(dt, *this);
 
-    // 3: Clear dead creatures
-    auto oldSize = m_creatures.size();
-    m_creatures.erase(std::remove_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::dead)), m_creatures.end());
-    auto newSize = m_creatures.size();
-    m_info.deathToll += oldSize - newSize;
+  // 3: Clear dead creatures
+  auto oldSize = m_creatures.size();
+  m_creatures.erase(std::remove_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::dead)), m_creatures.end());
+  auto newSize = m_creatures.size();
+  m_info.deathToll += oldSize - newSize;
 
-    // 4: Add new creatures
-    m_info.birthCount += m_newborns.size();
-    m_creatures.insert(m_creatures.end(),
+  // 4: Add new creatures
+  m_info.birthCount += m_newborns.size();
+  m_creatures.insert(m_creatures.end(),
       std::move_iterator(m_newborns.begin()),
       std::move_iterator(m_newborns.end())
-    );
-    m_newborns.clear();
+      );
+  m_newborns.clear();
 
-    // 5: Update info
-    {
-      m_info.ageStatistics = Statistics<float, float>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
+  // 5: Update info
+  {
+    m_info.ageStatistics = Statistics<float, float>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
         return creature.statistics().lifetime;
-      });
+        });
 
-      m_info.matingCountStatistics = Statistics<float, size_t>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
+    m_info.matingCountStatistics = Statistics<float, size_t>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
         return creature.statistics().matingCount;
-      });
+        });
 
-      m_info.healthyCreaturesCount =  std::count_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::healthy));
-      m_info.creaturesCount = m_creatures.size();
+    m_info.healthyCreaturesCount =  std::count_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::healthy));
+    m_info.creaturesCount = m_creatures.size();
 
-      m_info.realTime = m_startTime.getElapsedTime().asSeconds();
-      m_info.worldTime += timeStep;
+    m_info.realTime = m_startTime.getElapsedTime().asSeconds();
+    m_info.worldTime += dt;
 
-      m_info.averageUpdateTime = m_updateTimer.average();
-    }
-
-    m_updateTimer.end();
+    m_info.averageUpdateTime = m_updateTimer.average();
   }
+
+  m_updateTimer.end();
 }
 
 namespace

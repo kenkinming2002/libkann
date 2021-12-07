@@ -105,8 +105,5 @@ private:
   sf::Clock m_startTime;
 
 private:
-  float m_remaingUpdateTime = 0.0f;
-
-private:
   Timer<> m_updateTimer;
 };
