@@ -1,6 +1,6 @@
 #include "World.hpp"
-
-#include "Generator.hpp"
+#include "libkann/NeuralNetwork.hpp"
+#include "libkann/RecurrentNeuralNetwork.hpp"
 
 #include <SFML/Graphics/RenderTarget.hpp>
 
@@ -10,100 +10,141 @@
 
 static constexpr double AVERAGE_COUNT_PER_CELL = 3.0;
 
-namespace
-{
-  template<typename T>
-  static Grid<T> createGrid(double width, double height, size_t count, size_t countPerCell)
-  {
-    double size       = width * height;
-    double cellsCount = (double)count / countPerCell;
-    double divisionLength = size / cellsCount;
-    return Grid<T>(Grid<T>::centered_tag, {0.0, 0.0}, {width, height}, divisionLength);
-  }
-
-  static Grid<Creature> createCreatureGrid(const World::Config& config)
-  {
-    return createGrid<Creature>(config.width, config.height, config.initialCreaturesCount, AVERAGE_COUNT_PER_CELL);
-  }
-
-  static Grid<BerryBush> createBerryBushGrid(const World::Config& config)
-  {
-    auto initialBerryBushesCount = config.initialBerryBushesClusterCount * (config.initialBerryBushesClusterSizeMin+config.initialBerryBushesClusterSizeMax) / 2.0;
-    return createGrid<BerryBush>(config.width, config.height, initialBerryBushesCount, AVERAGE_COUNT_PER_CELL);
-  }
-}
-
 World::World(Config config, Creature::Config creatureConfig, Creature::NeuralNetworkConfig creatureNeuralNetworkConfig, BerryBush::Config berryBushConfig)
   : m_config(config), m_creatureConfig(creatureConfig), m_berryBushConfig(berryBushConfig),
-    m_creatures(createCreatureGrid(m_config)),
-    m_berryBushes(createBerryBushGrid(m_config)),
-    m_generator(config.seed)
+    m_generator(config.seed),
+    m_world(b2Vec2(0.0f,0.0f)) // No gravity
 {
-  generateClusters(m_berryBushes, m_generator, m_berryBushConfig.radius,
-      m_config.initialBerryBushesClusterCount,
-      m_config.initialBerryBushesClusterSizeMin,
-      m_config.initialBerryBushesClusterSizeMax, [&](StaticBody staticBody){
-      m_berryBushes.emplace(staticBody.position(),
-          m_berryBushConfig,
-          staticBody.position()
-      );
-  });
+  // Create walls
+  {
+    /* Somehow we cannot assign directly, even if our custom deleter has default
+     * constructor */
 
-  generateNormal(m_creatures, m_generator, creatureConfig.maxRadius,
-      config.initialCreaturesCount, [&](StaticBody staticBody){
-      auto neuralNetwork = Creature::makeNeuralNetork(creatureNeuralNetworkConfig, m_generator);
-      m_creatures.emplace(staticBody.position(),
-          creatureConfig,
-          std::move(neuralNetwork),
-          staticBody.position(),
-          creatureConfig.maxEnergy,
-          creatureConfig.maxHealth
-      );
-  });
+    const float wallThickness = 5.0f;
+    const b2Vec2 positions[] = {
+      b2Vec2(-(config.width+wallThickness)/2.0f, 0.0f                               ),
+      b2Vec2( (config.width+wallThickness)/2.0f, 0.0f                               ),
+      b2Vec2(0.0f                              , -(config.height+wallThickness)/2.0f),
+      b2Vec2(0.0f                              ,  (config.height+wallThickness)/2.0f)
+    };
+
+    const b2Vec2 dimensions[] = {
+      b2Vec2(wallThickness, config.height),
+      b2Vec2(wallThickness, config.height),
+      b2Vec2(config.width , wallThickness),
+      b2Vec2(config.width , wallThickness)
+    };
+
+    for(size_t i=0; i<4; ++i)
+    {
+      const auto& position  = positions[i];
+      const auto& dimension = dimensions[i];
+
+      b2BodyDef bodyDef;
+      bodyDef.position = position;
+      bodyDef.type     = b2_staticBody;
+
+      b2Body* body = m_world.CreateBody(&bodyDef);
+
+      b2PolygonShape boxShape;
+      boxShape.SetAsBox(dimension.x, dimension.y);
+
+      b2FixtureDef fixtureDef;
+      fixtureDef.shape = &boxShape;
+      fixtureDef.density  = 1.0f;
+      fixtureDef.friction = 0.3f;
+
+      body->CreateFixture(&fixtureDef);
+    }
+  }
+
+  // Creatures
+  {
+    std::uniform_real_distribution<double> distX(-m_config.width/2.0f,  m_config.width/2.0f);
+    std::uniform_real_distribution<double> distY(-m_config.height/2.0f, m_config.height/2.0f);
+
+    for(size_t i=0; i<m_config.initialCreaturesCount; ++i)
+    {
+      b2Vec2 position(distX(m_generator), distY(m_generator));
+      auto nn = Creature::makeNeuralNetork(creatureNeuralNetworkConfig, m_generator);
+      m_creatures.emplace_back(m_world, m_creatureConfig, std::move(nn), position, m_creatureConfig.maxEnergy, m_creatureConfig.maxHealth);
+    }
+  }
+
+  // Berry Bushes
+  {
+    std::uniform_real_distribution<double> distX(-m_config.width/2.0f,  m_config.width/2.0f);
+    std::uniform_real_distribution<double> distY(-m_config.height/2.0f, m_config.height/2.0f);
+    std::uniform_int_distribution<size_t> distSize(m_config.initialBerryBushesClusterSizeMin, m_config.initialBerryBushesClusterSizeMax);
+
+    for(size_t i=0; i<m_config.initialBerryBushesClusterCount; ++i)
+    {
+      size_t clusterSize = distSize(m_generator);
+      for(size_t j=0; j<clusterSize; ++j)
+      {
+        b2Vec2 position(distX(m_generator), distY(m_generator));
+        m_berryBushes.emplace_back(m_world, m_berryBushConfig, position);
+      }
+    }
+  }
 }
 
 void World::update(float dt)
 {
-  m_updateTimer.begin();
+  m_remaingUpdateTime += dt;
 
-  m_worldTime += dt;
+  // While it is okay to do physics at 60FPS
+  // Doing creature update at 60FPS is slow
+  // TODO: Fixme
+  const float timeStep = 1.0f / 60.0f;
+  while(m_remaingUpdateTime >= timeStep)
+  {
+    m_remaingUpdateTime -= timeStep;
 
-  for(auto& berryBush : m_berryBushes.all())
-    berryBush.get().update(dt);
+    m_updateTimer.begin();
 
-  auto creatures = m_creatures.all();
-  Creature::batchUpdate(creatures.begin(), creatures.end(), dt, *this);
+    const int32 velocityIterations = 8;
+    const int32 positionIterations = 3;
+    m_world.Step(timeStep, velocityIterations, positionIterations);
 
-  static constexpr auto positionFunc = [](const Creature& creature) { return creature.position(); };
-  m_creatures.synchronize(positionFunc); // Register the updated position
+    m_worldTime += timeStep;
 
-  m_birthCount += m_newborns.size();
-  m_deathToll += m_creatures.remove_if(std::mem_fn(&Creature::dead));
+    for(auto& berryBush : m_berryBushes)
+      berryBush.update(timeStep);
 
-  for(auto&& newborn : m_newborns)
-    m_creatures.insert(newborn.position(), std::move(newborn));
+    for(auto& creature : m_creatures)
+      creature.updatePerception(timeStep);
 
-  m_newborns.clear();
+#pragma omp parallel for
+    for(size_t i=0; i<m_creatures.size(); ++i)
+      m_creatures[i].updateNeuralNetwork();
 
-  m_updateTimer.end();
+    for(auto& creature : m_creatures)
+      creature.update(timeStep, *this);
+
+    auto oldSize = m_creatures.size();
+    m_creatures.erase(std::remove_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::dead)), m_creatures.end());
+    auto newSize = m_creatures.size();
+    m_deathToll += oldSize - newSize;
+
+    m_updateTimer.end();
+  }
 }
 
 World::Info World::info() const
 {
-  auto creatures = m_creatures.all();
-
   Info info;
 
-  info.ageStatistics = Statistics<float, float>(creatures.begin(), creatures.end(), [](const Creature& creature){
+  info.ageStatistics = Statistics<float, float>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
       return creature.statistics().lifetime;
   });
 
-  info.matingCountStatistics = Statistics<float, size_t>(creatures.begin(), creatures.end(), [](const Creature& creature){
+  info.matingCountStatistics = Statistics<float, size_t>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
       return creature.statistics().matingCount;
   });
 
-  info.healthyCreaturesCount =  std::count_if(creatures.begin(), creatures.end(), std::mem_fn(&Creature::healthy));
-  info.creaturesCount = creatures.size();
+  info.healthyCreaturesCount =  std::count_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::healthy));
+  info.creaturesCount = m_creatures.size();
 
   info.deathToll = m_deathToll;
   info.birthCount = m_birthCount;
@@ -116,18 +157,3 @@ World::Info World::info() const
   return info;
 }
 
-World::result_variant World::find(Eigen::Vector2d position)
-{
-  std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>> result = std::monostate{};
-  Box queryBox(position, Eigen::Vector2d(0.0f, 0.0f));
-
-  this->creatures().query(queryBox, [&](auto& creature){
-    if((creature.position() - position).squaredNorm() < creature.radius() * creature.radius())
-      result = std::ref(creature);
-  });
-  this->berryBushes().query(queryBox, [&](auto& berryBush){
-    if((berryBush.position() - position).squaredNorm() < berryBush.radius() * berryBush.radius())
-      result = std::ref(berryBush);
-  });
-  return result;
-}

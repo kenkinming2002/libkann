@@ -1,13 +1,14 @@
 #pragma once
 
-#include "Selectable.hpp"
-#include "StaticBody.hpp"
+#include "Entity.hpp"
+
+#include <box2d/box2d.h>
 
 #include <Eigen/Eigen>
 
 #include <algorithm>
 
-class BerryBush : public StaticBody, public Selectable
+class BerryBush : public Entity
 {
 public:
   struct Config
@@ -20,7 +21,7 @@ public:
   };
 
 public:
-  BerryBush(Config config, Eigen::Vector2d position);
+  BerryBush(b2World& world, Config config, b2Vec2 position);
 
 public:
   friend class Renderer;
@@ -39,7 +40,9 @@ public:
   }
 
 private:
-  Config m_config;
+  const Config m_config;
+
+private:
   size_t m_berryCount;
   float m_growth;
 };

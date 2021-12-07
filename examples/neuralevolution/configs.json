@@ -32,7 +32,7 @@
     "HiddenLayers" : [10, 10, 10, 10],
     "Memory": 100,
 
-    "ViewDistance" : 1000.0
+    "ViewDistance" : 200.0
   },
   "World" : {
     "Width" : 2000.0,

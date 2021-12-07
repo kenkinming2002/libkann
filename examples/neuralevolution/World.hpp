@@ -2,7 +2,6 @@
 
 #include "Creature.hpp"
 #include "BerryBush.hpp"
-#include "Grid.hpp"
 #include "Timer.hpp"
 #include "Statistics.hpp"
 
@@ -11,6 +10,8 @@
 #include <variant>
 
 #include <SFML/System/Clock.hpp>
+
+#include <box2d/box2d.h>
 
 class World
 {
@@ -23,8 +24,8 @@ public:
   {
     seed_type seed;
 
-    double width;
-    double height;
+    float width;
+    float height;
 
     size_t initialCreaturesCount;
     size_t initialBerryBushesClusterSizeMin;
@@ -61,23 +62,14 @@ public:
   Info info() const;
 
 public:
-  using result_variant = std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>>;
-  result_variant find(Eigen::Vector2d position);
+  b2Vec2 dimension() const { return {m_config.width, m_config.height}; }
 
 public:
-  const auto& creatures() const { return m_creatures; }
-  auto& creatures() { return m_creatures; }
-  const auto& berryBushes() const { return m_berryBushes; }
-  auto& berryBushes() { return m_berryBushes; }
-
-public:
-  Eigen::Vector2d dimension() const { return {m_config.width, m_config.height}; }
-
-public:
-  void addCreature(Creature creature) { m_newborns.push_back(std::move(creature)); }
+  void addCreature(Creature creature) { m_creatures.push_back(std::move(creature)); }
 
 public:
   auto& prng() { return m_generator; }
+  auto& world() { return m_world; }
 
 private:
   const Config m_config;
@@ -85,14 +77,14 @@ private:
   const BerryBush::Config m_berryBushConfig;
 
 private:
-  Grid<Creature> m_creatures;
-  Grid<BerryBush> m_berryBushes;
-
-private:
-  std::vector<Creature> m_newborns;
-
-private:
   std::default_random_engine m_generator;
+
+private:
+  b2World m_world;
+
+private:
+  std::vector<BerryBush> m_berryBushes;
+  std::vector<Creature> m_creatures;
 
 private:
   size_t m_deathToll = 0;
@@ -101,6 +93,9 @@ private:
 private:
   sf::Clock m_startTime;
   float m_worldTime = 0.0f;
+
+private:
+  float m_remaingUpdateTime = 0.0f;
 
 private:
   Timer<> m_updateTimer;

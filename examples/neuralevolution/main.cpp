@@ -1,8 +1,6 @@
 #include "App.hpp"
 #include "Config.hpp"
 
-#include "Grid.hpp"
-
 #include <libkann/utilities/random.hpp>
 
 #include <iostream>

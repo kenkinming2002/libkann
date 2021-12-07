@@ -1,10 +1,6 @@
 #include "Creature.hpp"
 
-#include "Config.hpp"
-
 #include "World.hpp"
-#include "Ray.hpp"
-#include "libkann/RecurrentNeuralNetwork.hpp"
 
 #include <libkann/WeightLayer.hpp>
 #include <libkann/ActivationLayer.hpp>
@@ -42,216 +38,197 @@ kann::RecurrentNeuralNetwork Creature::makeNeuralNetork(const NeuralNetworkConfi
 
 static constexpr double ANGLE = M_PI / 12.0;
 
-Creature::Creature(const Config& config, kann::RecurrentNeuralNetwork neuralNetwork,
-    Eigen::Vector2d position, double energy, double health)
-  : PhantomBody(position, config.maxRadius),
+Creature::Creature(b2World& world, const Config& config,
+    kann::RecurrentNeuralNetwork neuralNetwork, b2Vec2 position, double energy,
+    double health)
+  : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
     m_config(config),
     m_neuralNetwork(std::move(neuralNetwork)),
-    m_energy(energy), m_health(health),
-    m_eyes{Eye(-ANGLE), Eye(ANGLE)} {}
+    m_eyes{Eye(-ANGLE), Eye(ANGLE)},
+    m_energy(energy), m_health(health) {}
 
-void Creature::updateSight(World& world)
+// All the thinking happen here
+void Creature::updatePerception(float dt)
 {
-  Ray rays[EYES_COUNT];
-  for(size_t i=0; i<EYES_COUNT; ++i)
+  // 1: Update sight
+  for(auto& eye : m_eyes)
   {
-    auto& eye = m_eyes[i];
-    auto& ray = rays[i];
-
-    // MEMORIAL: The following line costs hours of debugging to add
-    //
-    // Thanks: gcc asan
-    //
-    // This following line of code has cost hours of debugging to add
-    // This is because if eye.target is not set, (perhaps because no creature is
-    // in front of us), the previous result will be used which may well be
-    // freed. This manifest itself into errors in mating process.
-    //
-    //
-    // Reset eye from last update
-    eye.target = std::monostate{};
-    eye.distance = m_config.viewDistance;
-    ray = Ray(this->position(), this->direction() + eye.angle);
+    RaycastResult result;
+    if(this->raycast(eye.angle, m_config.viewDistance, result))
+    {
+      eye.target   = result.entity;
+      eye.distance = result.distance;
+    }
+    else
+    {
+      eye.target   = nullptr;
+      eye.distance = m_config.viewDistance;
+    }
   }
-
-  world.creatures().query(this->position(), m_config.viewDistance + m_config.maxRadius, [&](Creature& creature){
-    for(size_t i=0; i<EYES_COUNT; ++i)
-    {
-      auto& eye = m_eyes[i];
-      auto& ray = rays[i];
-      if(&creature == this)
-        return;
-
-      if(double distance = ray.cast(creature); distance < eye.distance && distance > 0.0)
-      {
-        eye.distance = distance;
-        eye.target = std::ref(creature);
-      }
-    }
-  });
-  world.berryBushes().query(this->position(), m_config.viewDistance + CONFIG.berryBush.radius, [&](BerryBush& berryBush){
-    for(size_t i=0; i<EYES_COUNT; ++i)
-    {
-      auto& eye = m_eyes[i];
-      auto& ray = rays[i];
-      if(double distance = ray.cast(berryBush); distance < eye.distance && distance > 0.0)
-      {
-        eye.distance = distance;
-        eye.target = std::ref(berryBush);
-      }
-    }
-  });
 }
 
 void Creature::updateNeuralNetwork()
 {
-  // 1: Neural network
   Eigen::VectorXd input(INPUT_COUNT);
-  input(INPUT_ENERGY)          = m_energy;
-  input(INPUT_HEALTH)          = m_health;
-  input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance;
-  input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance;
+
+  input(INPUT_ENERGY)          = m_energy / m_config.maxEnergy;
+  input(INPUT_HEALTH)          = m_health / m_config.maxHealth;
+  input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / m_config.viewDistance;
+  input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / m_config.viewDistance;
   m_neuralNetwork.feedForward(std::move(input));
 }
 
-void Creature::updateCooldown(float dt)
+// Working alone
+void Creature::update(float dt, World& world)
 {
-  m_eatingCooldown -= dt;
-  if(m_eatingCooldown<0.0f)
-    m_eatingCooldown=0.0f;
+  static constexpr double EATING_ENERGY_COST = 5.0;
+  static constexpr double MATING_ENERGY_COST = 5.0;
+  static constexpr float REACH_MULTIPLIER = 1.5f;
 
-  m_matingCooldown -= dt;
-  if(m_matingCooldown<0.0f)
-    m_matingCooldown=0.0f;
-}
-
-void Creature::updateSurvival(float dt)
-{
-  this->takeEnergy(m_config.passiveEnergyDrain * dt);
-}
-
-void Creature::updateStatistics(float dt)
-{
-  m_statistics.lifetime += dt;
-}
-
-void Creature::updateMovement(float dt, const World& world)
-{
   const auto& output = m_neuralNetwork.output();
 
-  auto linearSpeedFactor = output(OUTPUT_ACCELERATION_FACTOR);
-  auto linearSpeedMultiplier = linearSpeedFactor >= 0.0 ?  m_config.forwardLinearSpeed : m_config.backwardLinearSpeed;
-  auto linearSpeed = linearSpeedFactor * linearSpeedMultiplier;
-
-  auto angularDirection = output(OUTPUT_RELATIVE_DIRECTION) * M_PI; // Map from (-1, 1) to (-PI, PI)
-
-  this->applyImpulse(linearSpeed, angularDirection);
-  this->takeEnergy(m_config.movementEnergyDrainMultiplier * linearSpeed * linearSpeed * dt);
-
-  PhantomBody::update(dt, world);
-}
-
-void Creature::updateEating()
-{
-  static constexpr double EATING_ENERGY_COST = 5.0f;
-
-  const auto& output = m_neuralNetwork.output();
-  if(output(OUTPUT_EATING_DESIRE)<0.0)
-    return; // Don't want to eat
-
-  if(m_eatingCooldown!=0.0)
-    return; // Cooldown
-
-  this->takeEnergy(EATING_ENERGY_COST);
-  m_eatingCooldown = m_config.eatingCooldown;
-
-  for(auto& eye: m_eyes)
+  // 1: Cooldown
   {
-    if(!std::holds_alternative<std::reference_wrapper<BerryBush>>(eye.target))
-      continue;
+    m_eatingCooldown -= dt;
+    if(m_eatingCooldown<0.0f)
+      m_eatingCooldown=0.0f;
 
-    auto& berryBush = std::get<std::reference_wrapper<BerryBush>>(eye.target).get();
+    m_matingCooldown -= dt;
+    if(m_matingCooldown<0.0f)
+      m_matingCooldown=0.0f;
+  }
 
-    auto eatingDistance = m_config.maxRadius * 1.5 + berryBush.radius();
-    if(auto squaredDistance = (this->position() - berryBush.position()).squaredNorm();
-        squaredDistance >= eatingDistance * eatingDistance)
-      continue;
+  // 2: Survival energy cost
+  {
+    this->takeEnergy(m_config.passiveEnergyDrain * dt);
+  }
 
-    if(berryBush.count() == 0)
-      continue; // No berry to eat
+  // 3: Movement
+  {
+    // TODO: Fix the scale of the world, we do not want 1 pixel per meter
+    const float TEMPORARY_HACK = 1000.0f;
 
-    m_energy += berryBush.take();
-    if(m_energy>m_config.maxEnergy)
+    // TODO: Rename configuration variable to suit the changes in their meaning
+    auto linearForceFactor = output(OUTPUT_LINEAR_FORCE_FACTOR);
+    auto linearForceMultiplier = linearForceFactor >= 0.0 ?  m_config.forwardLinearSpeed : m_config.backwardLinearSpeed;
+    auto linearForce = linearForceFactor * linearForceMultiplier * dt;
+    this->applyForwardForce(linearForce * TEMPORARY_HACK);
+
+    // TODO: Add config variable for angular force or not?
+    auto angularForceFactor = output(OUTPUT_ANGULAR_FORCE_FACTOR); // Map from (-1, 1) to (-PI, PI)
+    auto angularForce =  angularForceFactor * M_PI * dt;
+    this->applyTorque(angularForce);
+    this->takeEnergy(m_config.movementEnergyDrainMultiplier * linearForce * linearForce * dt);
+
+    // 4: Hunger
+    if(m_energy == 0.0f)
+      takeHealth(m_config.hungerHealthDrain * dt);
+
+    // 5: Healing
+    if(m_energy >= m_config.maxEnergy * m_config.healingThreshold)
     {
-      this->takeHealth(m_energy-m_config.maxEnergy);
-      m_energy = m_config.maxEnergy;
+      double amount = std::min(m_config.maxHealth - this->health(), m_energy);
+      this->health(this->health()+amount);
+      m_energy -= amount;
     }
-
-    return;
   }
-}
 
-void Creature::updateMating(World& world)
-{
-  static constexpr double MATING_ENERGY_COST = 5.0f;
-  const double MATING_DISTANCE = m_config.maxRadius * 2.5;
-
-  for(auto& eye: m_eyes)
+  // 4: Eating
   {
-    if(!std::holds_alternative<std::reference_wrapper<Creature>>(eye.target))
-      continue;
+    if(output(OUTPUT_EATING_DESIRE)>0.0 && m_eatingCooldown == 0.0)
+    {
+      takeEnergy(EATING_ENERGY_COST);
+      m_eatingCooldown = m_config.eatingCooldown;
+      for(auto& eye: m_eyes)
+      {
+        auto* target = eye.target;
+        if(!target)
+          continue;
 
-    auto& otherCreature = std::get<std::reference_wrapper<Creature>>(eye.target).get();
+        if(target->type() != Entity::Type::BERRY_BUSH)
+          continue;
 
-    const auto& output      = m_neuralNetwork.output();
-    const auto& otherOutput = otherCreature.m_neuralNetwork.output();
+        BerryBush* berryBush = static_cast<BerryBush*>(target);
 
-    if(output(OUTPUT_MATING_DESIRE)<0.0 || otherOutput(OUTPUT_MATING_DESIRE)<0.0)
-      return; // Don't want to mate
+        const auto eatingDistance = (this->radius() + berryBush->radius()) * REACH_MULTIPLIER;
+        if(eye.distance > eatingDistance)
+          continue; // Too far away
 
-    if(m_matingCooldown!=0.0 || otherCreature.m_matingCooldown != 0.0)
-      return; // Cooldown
+        if(berryBush->count() == 0)
+          continue; // No berry to eat
 
-    this->takeEnergy(MATING_ENERGY_COST);
+        m_energy += berryBush->take();
 
-    m_matingCooldown = m_config.matingCooldown;
-    otherCreature.m_matingCooldown = m_config.matingCooldown;
+        // Clamping
+        if(m_energy>m_config.maxEnergy)
+        {
+          this->takeHealth(m_energy-m_config.maxEnergy); // Penalty for eating too much
+          m_energy = m_config.maxEnergy;
+        }
 
-    if(auto squaredDistance = (this->position() - otherCreature.position()).squaredNorm();
-        squaredDistance >= MATING_DISTANCE * MATING_DISTANCE)
-      continue; // Too far away
-
-    if(!takeEnergy(m_config.maxEnergy * 0.2) || !otherCreature.takeEnergy(m_config.maxEnergy * 0.2))
-      continue;
-
-    auto neuralNetwork = m_neuralNetwork.cross(otherCreature.m_neuralNetwork, world.prng(), m_config.mutationRate);
-    Eigen::Vector2d position = (this->position() + otherCreature.position()) / 2.0;
-
-    auto newCreature = Creature(m_config, std::move(neuralNetwork),
-      position,
-      m_config.maxEnergy * 0.3,
-      m_config.maxHealth
-    );
-    world.addCreature(std::move(newCreature));
-    ++m_statistics.matingCount;
-    ++otherCreature.m_statistics.matingCount;
-
-    return;
+        break; // Only eat from one berry bush at once
+      }
+    }
   }
-}
 
-void Creature::updateHealth(float dt)
-{
-  // Take health
-  if(m_energy == 0.0f)
-    takeHealth(m_config.hungerHealthDrain * dt);
-
-  // Healing
-  if(m_energy >= m_config.maxEnergy * m_config.healingThreshold)
+  // 5: Mating
   {
-    double amount = std::min(m_config.maxHealth - this->health(), m_energy);
-    this->health(this->health()+amount);
-    m_energy -= amount;
+    if(output(OUTPUT_MATING_DESIRE)>0.0 && m_matingCooldown == 0.0)
+    {
+      takeEnergy(MATING_ENERGY_COST);
+      m_matingCooldown = m_config.matingCooldown;
+      for(auto& eye: m_eyes)
+      {
+        auto* target = eye.target;
+        if(!target)
+          continue;
+
+        if(target->type() != Entity::Type::CREATURE)
+          continue;
+
+        Creature* other = static_cast<Creature*>(target);
+
+        const auto matingDistance = (radius() + other->radius()) * REACH_MULTIPLIER;
+        if(eye.distance > matingDistance)
+          continue;
+
+        // Check if other have the same desire
+        if(other->m_neuralNetwork.output()(OUTPUT_EATING_DESIRE)<0.0)
+          continue; // Other do not want to mate
+
+        if(other->m_matingCooldown != 0.0)
+          continue; // Other cannot mate
+
+        // Yes, he/she do, perhaps the cost would be different?
+        other->takeEnergy(MATING_ENERGY_COST);
+        other->m_matingCooldown = other->m_config.matingCooldown;
+
+
+        if(!takeEnergy(m_config.maxEnergy * 0.2) || !other->takeEnergy(m_config.maxEnergy * 0.2))
+          continue;
+
+        auto newNeuralNetwork = m_neuralNetwork.cross(other->m_neuralNetwork, world.prng(), m_config.mutationRate);
+        auto newPosition = position();
+        newPosition += other->position();
+        newPosition *= 0.5;
+
+        // What we really need is the world prng and b2World
+        auto newCreature = Creature(world.world(), m_config,
+            std::move(newNeuralNetwork), newPosition,
+            m_config.maxEnergy * 0.3, m_config.maxHealth
+        );
+        world.addCreature(std::move(newCreature));
+
+        ++m_statistics.matingCount;
+        ++other->m_statistics.matingCount;
+        break; // Only mate once
+      }
+    }
+  }
+
+  // 6: Statistics
+  {
+    m_statistics.lifetime += dt;
   }
 }
 

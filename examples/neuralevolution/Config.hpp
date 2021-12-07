@@ -26,7 +26,7 @@ public:
   };
   BerryBush berryBush;
 
-  struct Creature  
+  struct Creature
   {
     double maxEnergy;
     double maxHealth;
@@ -55,10 +55,10 @@ public:
   };
   Creature creature;
 
-  struct World  
+  struct World
   {
-    double width;
-    double height;
+    float width;
+    float height;
     size_t initialCreaturesCount;
     size_t initialBerryBushesClusterSizeMin;
     size_t initialBerryBushesClusterSizeMax;

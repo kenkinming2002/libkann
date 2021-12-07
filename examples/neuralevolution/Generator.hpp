@@ -83,10 +83,8 @@ void generateClusters(const Grid<T>& grid, PRNG& prng, double radius, size_t clu
 }
 
 template<typename T, typename PRNG, typename InsertionFunc>
-[[gnu::noinline]] void generateNormal(const Grid<T>& grid, PRNG& prng, double radius, size_t count, InsertionFunc insertionFunc)
+[[gnu::noinline]] void generateNormal(PRNG& prng, double radius, size_t count, InsertionFunc insertionFunc)
 {
-  static_assert(std::is_base_of_v<StaticBody, T>);
-
   auto gridPosition = grid.position();
   auto gridDimension = grid.dimension();
 

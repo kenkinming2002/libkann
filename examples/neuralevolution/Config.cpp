@@ -48,12 +48,12 @@ Config::Config(const char* fileName)
 
   this->creature.hiddenLayers = creatureConfig.at("HiddenLayers").get<std::vector<size_t>>();
   this->creature.memory = creatureConfig.at("Memory").get<size_t>();
-  
+
   this->creature.viewDistance = creatureConfig.at("ViewDistance").get<double>();
 
   auto worldConfig = config.at("World");
-  this->world.width = worldConfig.at("Width").get<double>();
-  this->world.height = worldConfig.at("Height").get<double>();
+  this->world.width = worldConfig.at("Width").get<float>();
+  this->world.height = worldConfig.at("Height").get<float>();
   this->world.initialCreaturesCount = worldConfig.at("InitialCreaturesCount").get<size_t>();
   this->world.initialBerryBushesClusterSizeMin = worldConfig.at("InitialBerryBushesClusterSizeMin").get<size_t>();
   this->world.initialBerryBushesClusterSizeMax = worldConfig.at("InitialBerryBushesClusterSizeMax").get<size_t>();

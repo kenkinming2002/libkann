@@ -1,8 +1,6 @@
 #pragma once
 
 #include "BerryBush.hpp"
-#include "Selectable.hpp"
-#include "PhantomBody.hpp"
 
 #include <libkann/RecurrentNeuralNetwork.hpp>
 
@@ -14,10 +12,10 @@
 
 class World;
 
-class Creature : public PhantomBody, public Selectable
+class Creature : public Entity
 {
-private:
-  static constexpr size_t EYES_COUNT = 2;
+public:
+  friend class Renderer;
 
 public:
   //static constexpr size_t NUM_INPUT = 4; // Energy, health, Sight
@@ -30,8 +28,8 @@ public:
   };
 
   enum Output {
-    OUTPUT_ACCELERATION_FACTOR = 0,
-    OUTPUT_RELATIVE_DIRECTION = 1,
+    OUTPUT_LINEAR_FORCE_FACTOR  = 0,
+    OUTPUT_ANGULAR_FORCE_FACTOR = 1,
     OUTPUT_EATING_DESIRE = 2,
     OUTPUT_MATING_DESIRE = 3,
     OUTPUT_COUNT
@@ -81,47 +79,30 @@ public:
   };
   /* Create a default creature from config using engine. You should use
    * setters to further configure the creature if so needed. */
-  Creature(const Config& config, kann::RecurrentNeuralNetwork neuralNetwork,
-      Eigen::Vector2d position, double energy, double health);
-
-private:
-  // TODO: Do not store it by value
-  Config m_config;
-
+  Creature(b2World& world, const Config& config, kann::RecurrentNeuralNetwork
+      neuralNetwork, b2Vec2 position, double energy, double health);
 
 public:
-  template<typename InputIterator>
-  static void batchUpdate(InputIterator first, InputIterator last, float dt, World& world);
+  /* Not thread safe */
+  void updatePerception(float dt);
 
-private:
-  void updateSight(World& world);
+  /* Thread safe - and really need to be parallelize because this is *SLOW* */
   void updateNeuralNetwork();
-  void updateCooldown(float dt);
-  void updateSurvival(float dt);
-  void updateStatistics(float dt);
-  void updateMovement(float dt, const World& world);
-  void updateEating();
-  void updateMating(World& world);
-  void updateHealth(float dt);
 
-private:
+  /* Not thread safe */
+  void update(float dt, World& world);
+
+public:
   bool takeEnergy(double amount);
   bool takeHealth(double amount);
 
 public:
   bool dead() const { return m_health == 0.0; }
-  bool healthy() const
-  {
-    return m_health == m_config.maxHealth;
-  }
+  bool healthy() const { return m_health == m_config.maxHealth; }
 
 public:
   double health() const { return m_health; }
-  void health(double health)
-  {
-    m_health = health;
-    this->radius() = m_config.maxRadius * m_health / m_config.maxHealth;
-  }
+  void health(double health) { m_health = health; }
 
 public:
   double energy() const { return m_energy; }
@@ -130,11 +111,28 @@ public:
 public:
   auto statistics() const { return m_statistics; }
 
-public:
-  friend class Renderer;
+private:
+  // TODO: Do not store it by value
+  Config m_config;
 
 private:
   kann::RecurrentNeuralNetwork m_neuralNetwork;
+
+private:
+  static constexpr size_t EYES_COUNT = 2;
+  struct Eye
+  {
+  public:
+    Eye(double angle) : angle(angle) {}
+
+  public:
+    double angle;
+
+  public:
+    Entity* target;
+    double distance;
+  };
+  Eye m_eyes[EYES_COUNT];
 
 private:
   double m_energy, m_health;
@@ -144,21 +142,6 @@ private:
   float m_matingCooldown = 0.0f;
 
 private:
-  struct Eye
-  {
-  public:
-    Eye(double angle) : angle(angle) {}
-
-  public:
-    double angle;
-    double distance;
-
-  public:
-    std::variant<std::monostate, std::reference_wrapper<Creature>, std::reference_wrapper<BerryBush>> target;
-  };
-  Eye m_eyes[EYES_COUNT];
-
-private:
   struct Statistics
   {
     float lifetime = 0.0f; //< How long has this creature survived
@@ -166,51 +149,3 @@ private:
   } m_statistics;
 };
 
-template<typename InputIterator>
-void Creature::batchUpdate(InputIterator first, InputIterator last, float dt, World& world)
-{
-#pragma omp parallel
-  {
-#pragma omp for
-    for(auto it = first; it != last; ++it)
-    {
-      Creature& creature = *it;
-      creature.updateSight(world);
-      creature.updateNeuralNetwork();
-    }
-
-    // NOTE: updateMovement() need to be called after all updateSight() and
-    //       updateNeuralNetwork() complete, and there are 2 reasons.
-    //
-    //       1. updateSight() depends on the position of *ALL* creatures. However,
-    //          updateMovement() updates the position of creatures.
-    //
-    //       2. updateMovement() depends on result from updateNeuralNetwork()
-    //          which depends onn updateSight()
-#pragma omp for
-    for(auto it = first; it != last; ++it)
-    {
-      Creature& creature = *it;
-      creature.updateCooldown(dt);
-      creature.updateSurvival(dt);
-      creature.updateStatistics(dt);
-      creature.updateMovement(dt, world);
-    }
-
-#pragma omp single
-    // Note: updateEating() and updateMating() must be ran in serial.
-    for(auto it = first; it != last; ++it)
-    {
-      Creature& creature = *it;
-      creature.updateEating();
-      creature.updateMating(world);
-    }
-
-#pragma omp for
-    for(auto it = first; it != last; ++it)
-    {
-      Creature& creature = *it;
-      creature.updateHealth(dt);
-    }
-  }
-}
