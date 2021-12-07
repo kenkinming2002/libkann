@@ -36,11 +36,13 @@ App::App(seed_type seed)
       .growthRate     = CONFIG.berryBush.growthRate,
       .radius         = CONFIG.berryBush.radius
     }),
+    m_csvFile("statistics.csv"),
     m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "App"),
     m_renderer(m_window) {}
 
 void App::run()
 {
+  m_world.beginStatistics(m_csvFile);
   while(this->loop());
 }
 
@@ -57,7 +59,7 @@ void App::handleInput()
   sf::Event event;
   while (m_window.pollEvent(event))
   {
-    if(m_renderer.handleInput(event, m_world))
+    if(m_renderer.handleInput(event))
       continue;
 
     switch(event.type)
@@ -91,11 +93,15 @@ void App::update()
     {
       m_elapsedtime-=FIXED_DELTA_TIME;
       m_world.update(FIXED_DELTA_TIME);
+      m_world.writeStatistics(m_csvFile);
     }
     break;
   case SpeedMode::ASAP:
     while(m_clock.getElapsedTime().asSeconds() <= FRAME_TIME)
+    {
       m_world.update(FIXED_DELTA_TIME);
+      m_world.writeStatistics(m_csvFile);
+    }
 
     m_clock.restart();
     break;
@@ -105,7 +111,7 @@ void App::update()
 void App::render() const
 {
   m_renderer.begin();
-  m_renderer.draw(m_world);
+  m_world.draw(m_renderer);
   m_renderer.end();
 
   m_window.display();

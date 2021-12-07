@@ -1,16 +1,23 @@
 #pragma once
 
-#include "Creature.hpp"
-#include "BerryBush.hpp"
-#include "World.hpp"
 #include "Timer.hpp"
-#include "CSVFile.hpp"
 
 #include <SFML/System/String.hpp>
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
+
+#include <cmath>
+
+inline sf::Color lerp(sf::Color a, sf::Color b, float t)
+{
+  return sf::Color(
+    std::lerp(a.r, b.r, t),
+    std::lerp(a.g, b.g, t),
+    std::lerp(a.b, b.b, t)
+  );
+}
 
 class Renderer
 {
@@ -53,25 +60,23 @@ public:
   static constexpr float MOVE_SPEED = 10.0f;
 
   static constexpr float OUTLINE_THICKNESS = 3.0f;
+  inline static const sf::Color OUTLINE_COLOR = sf::Color::Black;
   static const sf::Color GUI_TEXT_COLOR /*= sf::Color::Red*/;
   static constexpr unsigned GUI_TEXT_SIZE = 30;
 
 public:
-  bool handleInput(sf::Event event, World& world);
+  bool handleInput(sf::Event event);
+
+public:
+  bool debug() const { return m_drawDebug; }
 
 public:
   void begin();
   void end();
 
 public:
-  void draw(const Creature& creature);
-  void draw(const BerryBush& berryBush);
-  void draw(const World::Info& info);
-  void draw(const World& world);
-
-private:
-  void addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::Color fillColor, float outlineThickness = 0.0f, sf::Color outlineColor = sf::Color::Transparent);
-  void addCircle(sf::Vector2f position, float radius, sf::Color fillColor, float outlineThickness = 0.0f, sf::Color outlineColor = sf::Color::Transparent);
+  void addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::Color fillColor, float outlineThickness = OUTLINE_THICKNESS, sf::Color outlineColor = OUTLINE_COLOR);
+  void addCircle(sf::Vector2f position, float radius, sf::Color fillColor, float outlineThickness = OUTLINE_THICKNESS, sf::Color outlineColor = OUTLINE_COLOR);
 
   void addLine(sf::Vector2f position, float length, float angle, float thickness, sf::Color fillColor);
 
@@ -95,9 +100,6 @@ private:
 
 private:
   bool m_drawDebug = false;
-
-private:
-  CSVFile m_csvFile;
 
 private:
   Timer<> m_renderTimer;

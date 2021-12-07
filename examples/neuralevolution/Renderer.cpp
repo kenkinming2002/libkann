@@ -17,18 +17,6 @@ const sf::Color Renderer::GUI_TEXT_COLOR = sf::Color::Red;
 
 namespace
 {
-  sf::Vector2f convert(b2Vec2 vec) { return sf::Vector2f(vec.x, vec.y); }
-  b2Vec2 convert(sf::Vector2f vec) { return b2Vec2(vec.x, vec.y); }
-
-  sf::Color lerp(sf::Color a, sf::Color b, float t)
-  {
-    return sf::Color(
-      std::lerp(a.r, b.r, t),
-      std::lerp(a.g, b.g, t),
-      std::lerp(a.b, b.b, t)
-    );
-  }
-
   template<typename... Args>
   std::string concatenate(const Args&... args)
   {
@@ -40,24 +28,9 @@ namespace
 }
 
 Renderer::Renderer(sf::RenderTarget& renderTarget)
-  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles), m_csvFile("statistics.csv")
-{
-  m_csvFile.write(
-    "Time",
-    "Creatures Count - Healthy",
-    "Creatures Count - All",
-    "Age - Mean", "Age - StandardDeviation",
-    "Age - Minimum", "Age - LowerQuartile",
-    "Age - Median",
-    "Age - UpperQuartile", "Age - Maximum" ,
-    "Mating Count - Mean", "Mating Count - StandardDeviation",
-    "Mating Count - Minimum", "Mating Count - LowerQuartile",
-    "Mating Count - Median",
-    "Mating Count - UpperQuartile", "Mating Count - Maximum"
-  );
-}
+  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles) {}
 
-bool Renderer::handleInput(sf::Event event, World& world)
+bool Renderer::handleInput(sf::Event event)
 {
   switch(event.type) {
     case sf::Event::KeyPressed:
@@ -160,80 +133,6 @@ void Renderer::end()
   }
 
   m_renderTimer.end();
-}
-
-void Renderer::draw(const Creature& creature)
-{
-  float radius = creature.radius();
-  sf::Color color = lerp(sf::Color::Yellow, sf::Color::Green, creature.m_energy / CONFIG.creature.maxEnergy);
-  this->addCircle(convert(creature.position()), radius, color, OUTLINE_THICKNESS, sf::Color::Black);
-
-  if(m_drawDebug)
-  {
-    for(const auto& eye: creature.m_eyes)
-    {
-      if(eye.distance == CONFIG.creature.viewDistance)
-        continue;
-
-      float angle = creature.angle() + eye.angle;
-      this->addLine(convert(creature.position()), eye.distance, angle, 3.0f, sf::Color::Red);
-    }
-  }
-}
-
-void Renderer::draw(const BerryBush& berryBush)
-{
-  const float BAR_THICKNESS       = CONFIG.berryBush.radius * 0.2f;
-  const float BAR_VERTICAL_OFFSET = CONFIG.berryBush.radius * 1.2f;
-
-  this->addCircle(convert(berryBush.position()), berryBush.radius(), sf::Color::Green, OUTLINE_THICKNESS, sf::Color::Black);
-  this->addBar(
-    convert(berryBush.position()) + sf::Vector2f(0.0f, BAR_VERTICAL_OFFSET),
-    sf::Vector2f(2.0f * CONFIG.berryBush.radius, BAR_THICKNESS),
-    sf::Color::Green, sf::Color::Red,
-    static_cast<float>(berryBush.m_berryCount) / CONFIG.berryBush.maxBerryCount
-  );
-}
-
-void Renderer::draw(const World::Info& info)
-{
-  this->addGuiText(concatenate("Creatures:", info.healthyCreaturesCount, "/", info.creaturesCount, "(Healthy/All)"));
-  this->addGuiText(concatenate("Statistics:", info.deathToll, "/", info.birthCount, "(DeathToll/BirthCount)"));
-
-  this->addGuiText(concatenate("Age:", info.ageStatistics.toString()));
-  this->addGuiText(concatenate("Mating Count:", info.matingCountStatistics.toString()));
-
-  this->addGuiText(concatenate("Time:", info.realTime, "/", info.worldTime, "/", info.worldTime / info.realTime, "(Real/World/Ratio)"));
-  this->addGuiText(concatenate("Update Time:", info.averageUpdateTime));
-
-  m_csvFile.write(
-    info.worldTime,
-
-    info.healthyCreaturesCount,
-    info.creaturesCount,
-
-    info.ageStatistics.mean, info.ageStatistics.standardDeviation,
-    info.ageStatistics.minimum, info.ageStatistics.lowerQuartile,
-    info.ageStatistics.median,
-    info.ageStatistics.upperQuartile, info.ageStatistics.maximum ,
-
-    info.matingCountStatistics.mean, info.matingCountStatistics.standardDeviation,
-    info.matingCountStatistics.minimum, info.matingCountStatistics.lowerQuartile,
-    info.matingCountStatistics.median,
-    info.matingCountStatistics.upperQuartile, info.matingCountStatistics.maximum
-  );
-}
-
-void Renderer::draw(const World& world)
-{
-  this->draw(world.info());
-  this->addRectangle(sf::Vector2f(0.0f, 0.0f), convert(world.dimension()), sf::Color::White);
-
-  for(auto& berryBush: world.m_berryBushes)
-    this->draw(berryBush);
-
-  for(auto& creature: world.m_creatures)
-    this->draw(creature);
 }
 
 void Renderer::addRectangle(sf::Vector2f position, sf::Vector2f dimension, sf::Color fillColor, float outlineThickness, sf::Color outlineColor)

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <numeric>
+
 #include <SFML/System/Clock.hpp>
 
 template<size_t SAMPLE_COUNT = 100>

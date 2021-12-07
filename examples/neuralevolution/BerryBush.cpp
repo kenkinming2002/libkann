@@ -18,3 +18,18 @@ void BerryBush::update(float dt)
       ++m_berryCount;
   }
 }
+
+void BerryBush::draw(Renderer& renderer) const
+{
+  const auto radius = this->radius();
+  const auto position = this->position();
+
+  const auto BAR_THICKNESS       = radius * 0.2f;
+  const auto BAR_VERTICAL_OFFSET = radius * 1.2f;
+
+  renderer.addCircle({position.x, position.y}, radius, sf::Color::Green);
+  renderer.addBar({position.x, position.y+BAR_VERTICAL_OFFSET},
+      {radius * 2.0f, BAR_THICKNESS}, sf::Color::Green, sf::Color::Red,
+      (float)m_berryCount / m_config.maxBerryCount
+  );
+}

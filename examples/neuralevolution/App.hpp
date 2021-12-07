@@ -2,6 +2,7 @@
 
 #include "World.hpp"
 #include "Renderer.hpp"
+#include "CSVFile.hpp"
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
@@ -47,6 +48,7 @@ private:
 
 private:
   World m_world;
+  CSVFile m_csvFile;
 
 private:
   mutable sf::RenderWindow m_window;

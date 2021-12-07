@@ -4,6 +4,7 @@
 #include "BerryBush.hpp"
 #include "Timer.hpp"
 #include "Statistics.hpp"
+#include "CSVFile.hpp"
 
 #include <vector>
 #include <random>
@@ -43,6 +44,9 @@ public:
   void update(float dt);
 
 public:
+  void draw(Renderer& renderer) const;
+
+public:
   struct Info
   {
     Statistics<float, float> ageStatistics;
@@ -59,13 +63,16 @@ public:
 
     float averageUpdateTime;
   };
-  Info info() const;
+
+public:
+  void beginStatistics(CSVFile& file) const;
+  void writeStatistics(CSVFile& file) const;
 
 public:
   b2Vec2 dimension() const { return {m_config.width, m_config.height}; }
 
 public:
-  void addCreature(Creature creature) { m_creatures.push_back(std::move(creature)); }
+  void addCreature(Creature creature) { m_newborns.push_back(std::move(creature)); }
 
 public:
   auto& prng() { return m_generator; }
@@ -85,14 +92,17 @@ private:
 private:
   std::vector<BerryBush> m_berryBushes;
   std::vector<Creature> m_creatures;
+  std::vector<Creature> m_newborns;
 
 private:
-  size_t m_deathToll = 0;
-  size_t m_birthCount = 0;
+  Info m_info{
+    .deathToll = 0,
+    .birthCount = 0,
+    .worldTime = 0.0f
+  };
 
 private:
   sf::Clock m_startTime;
-  float m_worldTime = 0.0f;
 
 private:
   float m_remaingUpdateTime = 0.0f;

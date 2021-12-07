@@ -1,6 +1,7 @@
 #include "Creature.hpp"
 
 #include "World.hpp"
+#include "Renderer.hpp"
 
 #include <libkann/WeightLayer.hpp>
 #include <libkann/ActivationLayer.hpp>
@@ -229,6 +230,26 @@ void Creature::update(float dt, World& world)
   // 6: Statistics
   {
     m_statistics.lifetime += dt;
+  }
+}
+
+void Creature::draw(Renderer& renderer) const
+{
+  const auto radius = this->radius();
+  const auto color = lerp(sf::Color::Yellow, sf::Color::Green, m_energy / m_config.maxEnergy);
+  const auto position = this->position();
+  renderer.addCircle({position.x, position.y}, radius, color);
+
+  if(renderer.debug())
+  {
+    for(const auto& eye: m_eyes)
+    {
+      if(eye.distance == m_config.viewDistance)
+        continue;
+
+      float angle = this->angle() + eye.angle;
+      renderer.addLine({position.x, position.y}, eye.distance, angle, 3.0f, sf::Color::Red);
+    }
   }
 }
 

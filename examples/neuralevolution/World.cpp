@@ -7,14 +7,16 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
-
-static constexpr double AVERAGE_COUNT_PER_CELL = 3.0;
+#include <iterator>
+#include <utility>
 
 World::World(Config config, Creature::Config creatureConfig, Creature::NeuralNetworkConfig creatureNeuralNetworkConfig, BerryBush::Config berryBushConfig)
   : m_config(config), m_creatureConfig(creatureConfig), m_berryBushConfig(berryBushConfig),
     m_generator(config.seed),
     m_world(b2Vec2(0.0f,0.0f)) // No gravity
 {
+  // Statistics
+
   // Create walls
   {
     /* Somehow we cannot assign directly, even if our custom deleter has default
@@ -103,12 +105,12 @@ void World::update(float dt)
 
     m_updateTimer.begin();
 
+    // 1: Physics
     const int32 velocityIterations = 8;
     const int32 positionIterations = 3;
     m_world.Step(timeStep, velocityIterations, positionIterations);
 
-    m_worldTime += timeStep;
-
+    // 2: Berry Bushes and Creatures
     for(auto& berryBush : m_berryBushes)
       berryBush.update(timeStep);
 
@@ -122,38 +124,109 @@ void World::update(float dt)
     for(auto& creature : m_creatures)
       creature.update(timeStep, *this);
 
+    // 3: Clear dead creatures
     auto oldSize = m_creatures.size();
     m_creatures.erase(std::remove_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::dead)), m_creatures.end());
     auto newSize = m_creatures.size();
-    m_deathToll += oldSize - newSize;
+    m_info.deathToll += oldSize - newSize;
+
+    // 4: Add new creatures
+    m_info.birthCount += m_newborns.size();
+    m_creatures.insert(m_creatures.end(),
+      std::move_iterator(m_newborns.begin()),
+      std::move_iterator(m_newborns.end())
+    );
+    m_newborns.clear();
+
+    // 5: Update info
+    {
+      m_info.ageStatistics = Statistics<float, float>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
+        return creature.statistics().lifetime;
+      });
+
+      m_info.matingCountStatistics = Statistics<float, size_t>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
+        return creature.statistics().matingCount;
+      });
+
+      m_info.healthyCreaturesCount =  std::count_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::healthy));
+      m_info.creaturesCount = m_creatures.size();
+
+      m_info.realTime = m_startTime.getElapsedTime().asSeconds();
+      m_info.worldTime += timeStep;
+
+      m_info.averageUpdateTime = m_updateTimer.average();
+    }
 
     m_updateTimer.end();
   }
 }
 
-World::Info World::info() const
+namespace
 {
-  Info info;
+  template<typename... Args>
+  std::string concatenate(const Args&... args)
+  {
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(4);
+    (ss << ... << args);
+    return ss.str();
+  }
+}
 
-  info.ageStatistics = Statistics<float, float>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
-      return creature.statistics().lifetime;
-  });
+void World::draw(Renderer& renderer) const
+{
+  renderer.addGuiText(concatenate("Creatures:", m_info.healthyCreaturesCount, "/", m_info.creaturesCount, "(Healthy/All)"));
+  renderer.addGuiText(concatenate("Statistics:", m_info.deathToll, "/", m_info.birthCount, "(DeathToll/BirthCount)"));
 
-  info.matingCountStatistics = Statistics<float, size_t>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
-      return creature.statistics().matingCount;
-  });
+  renderer.addGuiText(concatenate("Age:", m_info.ageStatistics.toString()));
+  renderer.addGuiText(concatenate("Mating Count:", m_info.matingCountStatistics.toString()));
 
-  info.healthyCreaturesCount =  std::count_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::healthy));
-  info.creaturesCount = m_creatures.size();
+  renderer.addGuiText(concatenate("Time:", m_info.realTime, "/", m_info.worldTime, "/", m_info.worldTime / m_info.realTime, "(Real/World/Ratio)"));
+  renderer.addGuiText(concatenate("Update Time:", m_info.averageUpdateTime));
 
-  info.deathToll = m_deathToll;
-  info.birthCount = m_birthCount;
+  renderer.addRectangle(sf::Vector2f(0.0f, 0.0f), {m_config.width, m_config.height}, sf::Color::White);
 
-  info.realTime = m_startTime.getElapsedTime().asSeconds();
-  info.worldTime = m_worldTime;
+  for(const auto& berryBush: m_berryBushes)
+    berryBush.draw(renderer);
 
-  info.averageUpdateTime = m_updateTimer.average();
+  for(const auto& creature: m_creatures)
+    creature.draw(renderer);
+}
 
-  return info;
+void World::beginStatistics(CSVFile& file) const
+{
+  file.write(
+    "Time",
+    "Creatures Count - Healthy",
+    "Creatures Count - All",
+    "Age - Mean", "Age - StandardDeviation",
+    "Age - Minimum", "Age - LowerQuartile",
+    "Age - Median",
+    "Age - UpperQuartile", "Age - Maximum" ,
+    "Mating Count - Mean", "Mating Count - StandardDeviation",
+    "Mating Count - Minimum", "Mating Count - LowerQuartile",
+    "Mating Count - Median",
+    "Mating Count - UpperQuartile", "Mating Count - Maximum"
+  );
+}
+
+void World::writeStatistics(CSVFile& file) const
+{
+  file.write(
+    m_info.worldTime,
+
+    m_info.healthyCreaturesCount,
+    m_info.creaturesCount,
+
+    m_info.ageStatistics.mean, m_info.ageStatistics.standardDeviation,
+    m_info.ageStatistics.minimum, m_info.ageStatistics.lowerQuartile,
+    m_info.ageStatistics.median,
+    m_info.ageStatistics.upperQuartile, m_info.ageStatistics.maximum ,
+
+    m_info.matingCountStatistics.mean, m_info.matingCountStatistics.standardDeviation,
+    m_info.matingCountStatistics.minimum, m_info.matingCountStatistics.lowerQuartile,
+    m_info.matingCountStatistics.median,
+    m_info.matingCountStatistics.upperQuartile, m_info.matingCountStatistics.maximum
+  );
 }
 

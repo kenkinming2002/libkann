@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BerryBush.hpp"
+#include "Renderer.hpp"
 
 #include <libkann/RecurrentNeuralNetwork.hpp>
 
@@ -14,9 +15,6 @@ class World;
 
 class Creature : public Entity
 {
-public:
-  friend class Renderer;
-
 public:
   //static constexpr size_t NUM_INPUT = 4; // Energy, health, Sight
   enum Input {
@@ -91,6 +89,9 @@ public:
 
   /* Not thread safe */
   void update(float dt, World& world);
+
+public:
+  void draw(Renderer& renderer) const;
 
 public:
   bool takeEnergy(double amount);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Entity.hpp"
+#include "Renderer.hpp"
 
 #include <box2d/box2d.h>
 
@@ -28,6 +29,9 @@ public:
 
 public:
   void update(float dt);
+
+public:
+  void draw(Renderer& renderer) const;
 
 public:
   auto count() const { return m_berryCount; }
