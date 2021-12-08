@@ -28,7 +28,7 @@ namespace kann
     void randomize(std::default_random_engine& prng) override;
 
   public:
-    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(Eigen::VectorXd input) override;
+    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward() override;
     LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::RowVectorXd& outputGradient) override;
     LIBKANN_SYMEXPORT void train(double learningRate) override;
 
@@ -60,12 +60,13 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
+      archive(cereal::base_class<Layer>(this));
+
       archive(m_inputWidth);
       archive(m_inputHeight);
       archive(m_inputChannelCount);
       archive(m_outputChannelCount);
 
-      archive(m_input);
       archive(m_kernels);
       archive(m_kernelsGradient);
     }
@@ -77,7 +78,6 @@ namespace kann
     size_t m_outputChannelCount;
 
   private:
-    Eigen::VectorXd m_input;
     std::vector<Eigen::MatrixXd> m_kernels;
     std::vector<Eigen::MatrixXd> m_kernelsGradient;
   };

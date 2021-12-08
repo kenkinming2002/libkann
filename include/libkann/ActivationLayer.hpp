@@ -23,7 +23,7 @@ namespace kann
     LIBKANN_SYMEXPORT void randomize(std::default_random_engine& engine) override;
 
   public:
-    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(Eigen::VectorXd input) override;
+    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward() override;
     LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::RowVectorXd& outputGradient) override;
     LIBKANN_SYMEXPORT void train(double learningRate) override;
 
@@ -34,13 +34,14 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
+      archive(cereal::base_class<Layer>(this));
+
       archive(m_activationFunction);
-      archive(m_input);
     }
 
   private:
+    size_t m_size;
     ActivationFunction m_activationFunction;
-    Eigen::VectorXd m_input;
   };
 }
 

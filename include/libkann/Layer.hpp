@@ -17,6 +17,17 @@ namespace kann
   class Layer
   {
   public:
+    void input(Eigen::VectorXd input)
+    {
+      m_input = std::move(input);
+    }
+
+    const Eigen::VectorXd& input() const
+    {
+      return m_input;
+    }
+
+  public:
     virtual size_t inputSize() const = 0;
     virtual size_t outputSize() const = 0;
 
@@ -24,7 +35,9 @@ namespace kann
     virtual void randomize(std::default_random_engine& engine) = 0;
 
   public:
-    virtual Eigen::VectorXd feedForward(Eigen::VectorXd input) = 0;
+    virtual Eigen::VectorXd feedForward() = 0;
+
+  public:
     virtual Eigen::RowVectorXd backPropagate(const Eigen::RowVectorXd& outputGradient) = 0;
     virtual void train(double learningRate) = 0; // TODO: Improve the interface
 
@@ -33,5 +46,15 @@ namespace kann
 
   public:
     virtual ~Layer() = default;
+
+  public:
+    template<typename Archive>
+    void serialize(Archive& archive)
+    {
+      archive(m_input);
+    }
+
+  private:
+    Eigen::VectorXd m_input;
   };
 }

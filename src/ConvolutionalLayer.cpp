@@ -12,8 +12,6 @@ namespace kann
     assert(m_inputWidth  >= m_kernelSize);
     assert(m_inputHeight >= m_kernelSize);
 
-    m_input = Eigen::VectorXd::Zero(this->inputSize());
-
     auto kernelsCount = m_inputChannelCount * m_outputChannelCount;
     m_kernels        .resize(kernelsCount, Eigen::MatrixXd::Zero(m_kernelSize, m_kernelSize));
     m_kernelsGradient.resize(kernelsCount, Eigen::MatrixXd::Zero(m_kernelSize, m_kernelSize));
@@ -38,10 +36,8 @@ namespace kann
       });
   }
 
-  Eigen::VectorXd ConvolutionalLayer::feedForward(Eigen::VectorXd input)
+  Eigen::VectorXd ConvolutionalLayer::feedForward()
   {
-    assert(input.size() == this->inputSize());
-    m_input = std::move(input);
     // Well, we do convolutions
     Eigen::VectorXd output = Eigen::VectorXd::Zero(this->outputSize());
 
@@ -51,7 +47,7 @@ namespace kann
         auto outputWidth = m_inputWidth-m_kernelSize+1;
         auto outputHeight = m_inputHeight-m_kernelSize+1;
 
-        Eigen::Map<const Eigen::MatrixXd> inputChannel (m_input.data()  + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
+        Eigen::Map<const Eigen::MatrixXd> inputChannel (this->input().data()  + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
         Eigen::Map<Eigen::MatrixXd>       outputChannel(output.data()   + outputChannelIndex * outputWidth  * outputHeight,  outputHeight,  outputWidth);
         for(size_t i=0; i<outputWidth; ++i)
           for(size_t j=0; j<outputHeight; ++j)
@@ -76,7 +72,7 @@ namespace kann
         auto outputWidth = m_inputWidth-m_kernelSize+1;
         auto outputHeight = m_inputHeight-m_kernelSize+1;
 
-        Eigen::Map<const Eigen::MatrixXd> inputChannel         (m_input.data()        + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
+        Eigen::Map<const Eigen::MatrixXd> inputChannel         (this->input().data()        + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
         Eigen::Map<Eigen::MatrixXd>       inputGradientChannel (inputGradient.data()  + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
 
         Eigen::Map<const Eigen::MatrixXd> outputGradientChannel(outputGradient.data() + outputChannelIndex * outputWidth  * outputHeight,  outputHeight,  outputWidth);

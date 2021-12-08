@@ -30,7 +30,10 @@ namespace kann
   void NeuralNetwork::feedForward(Eigen::VectorXd input)
   {
     for(auto& layer : m_layers)
-      input = layer->feedForward(input);
+    {
+      layer->input(std::move(input));
+      input = layer->feedForward();
+    }
 
     m_output = input;
   }

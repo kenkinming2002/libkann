@@ -7,32 +7,28 @@ namespace kann
   using namespace std::placeholders;
 
   ActivationLayer::ActivationLayer(size_t size, ActivationFunction activationFunction)
-  {
-    m_input              = Eigen::VectorXd(size);
-    m_activationFunction = activationFunction;
-  }
+    : m_size(size), m_activationFunction(activationFunction) {}
 
   size_t ActivationLayer::inputSize() const
   {
-    return m_input.size();
+    return m_size;
   }
 
   size_t ActivationLayer::outputSize() const
   {
-    return m_input.size();
+    return m_size;
   }
 
   void ActivationLayer::randomize(std::default_random_engine& engine) {}
 
-  Eigen::VectorXd ActivationLayer::feedForward(Eigen::VectorXd input)
+  Eigen::VectorXd ActivationLayer::feedForward()
   {
-    m_input = input;
-    return m_input.unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
+    return this->input().unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
   }
 
   Eigen::RowVectorXd ActivationLayer::backPropagate(const Eigen::RowVectorXd& outputGradient)
   {
-    return m_input.unaryExpr(std::bind(&ActivationFunction::derivative, &m_activationFunction, _1)).transpose().cwiseProduct(outputGradient);
+    return this->input().unaryExpr(std::bind(&ActivationFunction::derivative, &m_activationFunction, _1)).transpose().cwiseProduct(outputGradient);
   }
 
   void ActivationLayer::train(double learningRate) {}

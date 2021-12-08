@@ -6,7 +6,6 @@ namespace kann
 {
   WeightLayer::WeightLayer(size_t inputSize, size_t outputSize)
   {
-    m_input          = Eigen::VectorXd(inputSize);
     m_weight         = Eigen::MatrixXd(outputSize, inputSize);
     m_weightGradient = Eigen::MatrixXd::Zero(outputSize, inputSize);
   }
@@ -29,15 +28,14 @@ namespace kann
     });
   }
 
-  Eigen::VectorXd WeightLayer::feedForward(Eigen::VectorXd input)
+  Eigen::VectorXd WeightLayer::feedForward()
   {
-    m_input = input;
-    return m_weight * input;
+    return m_weight * this->input();
   }
 
   Eigen::RowVectorXd WeightLayer::backPropagate(const Eigen::RowVectorXd& outputGradient)
   {
-    m_weightGradient += (m_input * outputGradient).transpose();
+    m_weightGradient += (this->input() * outputGradient).transpose();
     return outputGradient * m_weight;
   }
 
