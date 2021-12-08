@@ -8,7 +8,10 @@ namespace kann
   {
   public:
     using NeuralNetworkBase::NeuralNetworkBase;
-    NeuralNetwork(NeuralNetworkBase&& base) : NeuralNetworkBase(std::move(base)) {}
+    NeuralNetwork(NeuralNetworkBase&& base) : NeuralNetworkBase(std::move(base))
+    {
+      m_output = Eigen::VectorXd::Zero(outputSize());
+    }
 
   private:
     using NeuralNetworkBase::feedForward;
