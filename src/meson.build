@@ -1,10 +1,10 @@
 
 libkann_sources = [
-  'NeuralNetworkBase.cpp',
-  'WeightLayer.cpp',
-  'ActivationLayer.cpp',
-  'ConvolutionalLayer.cpp',
-  'RecurrentNeuralNetwork.cpp',
+  'neural_networks/NeuralNetwork.cpp',
+  'neural_networks/RecurrentNeuralNetwork.cpp',
+  'layers/WeightLayer.cpp',
+  'layers/ActivationLayer.cpp',
+  'layers/ConvolutionalLayer.cpp',
   'ActivationFunction.cpp'
 ]
 

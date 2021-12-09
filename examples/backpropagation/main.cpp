@@ -3,11 +3,11 @@
 
 #include <libkann/utilities/random.hpp>
 
-#include <libkann/NeuralNetwork.hpp>
+#include <libkann/neural_networks/NeuralNetwork.hpp>
 
-#include <libkann/WeightLayer.hpp>
-#include <libkann/ActivationLayer.hpp>
-#include <libkann/ConvolutionalLayer.hpp>
+#include <libkann/layers/WeightLayer.hpp>
+#include <libkann/layers/ActivationLayer.hpp>
+#include <libkann/layers/ConvolutionalLayer.hpp>
 
 #include <memory>
 #include <random>

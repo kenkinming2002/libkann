@@ -3,7 +3,7 @@
 #include "BerryBush.hpp"
 #include "Renderer.hpp"
 
-#include <libkann/RecurrentNeuralNetwork.hpp>
+#include <libkann/neural_networks/RecurrentNeuralNetwork.hpp>
 
 #include <Eigen/Eigen>
 

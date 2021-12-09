@@ -1,6 +1,6 @@
 #pragma once
 
-#include <libkann/NeuralNetwork.hpp>
+#include <libkann/neural_networks/NeuralNetwork.hpp>
 
 #include <array>
 #include <vector>

@@ -1,6 +1,6 @@
 #include "World.hpp"
-#include "libkann/NeuralNetwork.hpp"
-#include "libkann/RecurrentNeuralNetwork.hpp"
+#include <libkann/neural_networks/NeuralNetwork.hpp>
+#include <libkann/neural_networks/RecurrentNeuralNetwork.hpp>
 
 #include <SFML/Graphics/RenderTarget.hpp>
 

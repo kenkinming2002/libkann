@@ -1,4 +1,4 @@
-#include <libkann/ConvolutionalLayer.hpp>
+#include <libkann/layers/ConvolutionalLayer.hpp>
 
 #include <assert.h>
 

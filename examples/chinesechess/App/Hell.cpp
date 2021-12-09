@@ -1,10 +1,10 @@
 #include "Hell.hpp"
 
 #include "../utilities/lexical_cast.hpp"
-#include "libkann/NeuralNetwork.hpp"
 
-#include <libkann/WeightLayer.hpp>
-#include <libkann/ActivationLayer.hpp>
+#include <libkann/neural_networks/NeuralNetwork.hpp>
+#include <libkann/layers/WeightLayer.hpp>
+#include <libkann/layers/ActivationLayer.hpp>
 
 #include <libkann/utilities/random.hpp>
 

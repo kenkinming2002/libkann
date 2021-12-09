@@ -3,7 +3,7 @@
 #include "Board.hpp"
 #include "Game.hpp"
 
-#include <libkann/NeuralNetwork.hpp>
+#include <libkann/neural_networks/NeuralNetwork.hpp>
 #include <optional>
 #include <filesystem>
 

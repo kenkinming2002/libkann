@@ -1,4 +1,4 @@
-#include <libkann/WeightLayer.hpp>
+#include <libkann/layers/WeightLayer.hpp>
 
 #include <iostream>
 

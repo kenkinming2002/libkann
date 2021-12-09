@@ -3,8 +3,8 @@
 #include "World.hpp"
 #include "Renderer.hpp"
 
-#include <libkann/WeightLayer.hpp>
-#include <libkann/ActivationLayer.hpp>
+#include <libkann/layers/WeightLayer.hpp>
+#include <libkann/layers/ActivationLayer.hpp>
 
 #include <cassert>
 #include <cmath>

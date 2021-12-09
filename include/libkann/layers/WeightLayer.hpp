@@ -1,7 +1,7 @@
 #pragma once
 
 #include <libkann/export.hpp>
-#include <libkann/Layer.hpp>
+#include <libkann/layers/Layer.hpp>
 #include <libkann/serialization/Eigen.hpp>
 
 #include <Eigen/Eigen>
