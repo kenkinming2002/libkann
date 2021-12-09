@@ -67,7 +67,6 @@ namespace kann
   void NeuralNetwork::addLayer(std::unique_ptr<Layer> layer)
   {
     m_layers.push_back(std::move(layer));
-    m_output = Eigen::VectorXd::Zero(this->outputSize());
   }
 
   const Eigen::VectorXd& NeuralNetwork::output() const
