@@ -1,66 +1,53 @@
 #pragma once
 
-#include <libkann/NeuralNetworkBase.hpp>
+#include <libkann/export.hpp>
+#include <libkann/Layer.hpp>
+#include <libkann/serialization/Eigen.hpp>
+
+#include <Eigen/Eigen>
+
+#include <cereal/types/vector.hpp>
+
+#include <vector>
+#include <memory>
+#include <random>
 
 namespace kann
 {
-  class NeuralNetwork : public NeuralNetworkBase
+  class NeuralNetwork
   {
   public:
-    using NeuralNetworkBase::NeuralNetworkBase;
-    NeuralNetwork(NeuralNetworkBase&& base) : NeuralNetworkBase(std::move(base))
-    {
-      m_output = Eigen::VectorXd::Zero(outputSize());
-    }
-
-  private:
-    using NeuralNetworkBase::feedForward;
-    using NeuralNetworkBase::backPropagate;
-    using NeuralNetworkBase::cross;
-    using NeuralNetworkBase::addLayer;
+    NeuralNetwork() = default;
 
   public:
-    using NeuralNetworkBase::inputSize;
-    using NeuralNetworkBase::outputSize;
-    using NeuralNetworkBase::train;
+    LIBKANN_SYMEXPORT size_t inputSize() const;
+    LIBKANN_SYMEXPORT size_t outputSize() const;
 
   public:
-    void feedForward(Eigen::VectorXd input)
-    {
-      m_output = NeuralNetworkBase::feedForward(std::move(input));
-    }
-
-    void backPropagate(Eigen::VectorXd expectedOutput)
-    {
-      Eigen::RowVectorXd outputGradient = 2.0 * (m_output - expectedOutput).transpose();
-      NeuralNetworkBase::backPropagate(outputGradient);
-    }
+    LIBKANN_SYMEXPORT void randomize(std::default_random_engine& engine);
 
   public:
-    NeuralNetwork cross(const NeuralNetwork& other, std::default_random_engine& engine, double mutationRate) const
-    {
-      return NeuralNetworkBase::cross(other, engine, mutationRate);
-    }
+    LIBKANN_SYMEXPORT void feedForward(Eigen::VectorXd input);
+    LIBKANN_SYMEXPORT void backPropagate(const Eigen::VectorXd& expectedOutput);
+    LIBKANN_SYMEXPORT void train(double learningRate);
 
   public:
-    void addLayer(std::unique_ptr<Layer> layer)
-    {
-      NeuralNetworkBase::addLayer(std::move(layer));
-      m_output = Eigen::VectorXd::Zero(outputSize());
-    }
+    LIBKANN_SYMEXPORT NeuralNetwork cross(const NeuralNetwork& other, std::default_random_engine& engine, double mutationRate) const;
 
   public:
-    const Eigen::VectorXd& output() const { return m_output; }
+    LIBKANN_SYMEXPORT void addLayer(std::unique_ptr<Layer> layer);
+    LIBKANN_SYMEXPORT const Eigen::VectorXd& output() const;
 
   public:
     template<typename Archive>
     void serialize(Archive& archive)
     {
-      archive(cereal::base_class<NeuralNetworkBase>(this));
-      archive(m_output); // Do we really want to save this?
+      archive(m_layers);
+      archive(m_output);
     }
 
   private:
+    std::vector<std::unique_ptr<Layer>> m_layers;
     Eigen::VectorXd m_output;
   };
 }
