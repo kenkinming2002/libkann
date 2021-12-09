@@ -1,4 +1,4 @@
-#include <libkann/NeuralNetwork.hpp>
+#include <libkann/neural_networks/NeuralNetwork.hpp>
 
 #include <libkann/ActivationFunction.hpp>
 

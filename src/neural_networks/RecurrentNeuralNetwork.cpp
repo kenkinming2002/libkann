@@ -1,4 +1,4 @@
-#include <libkann/RecurrentNeuralNetwork.hpp>
+#include <libkann/neural_networks/RecurrentNeuralNetwork.hpp>
 
 #include <iostream>
 

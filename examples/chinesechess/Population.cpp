@@ -2,8 +2,8 @@
 
 #include "Match.hpp"
 
-#include <libkann/WeightLayer.hpp>
-#include <libkann/ActivationLayer.hpp>
+#include <libkann/layers/WeightLayer.hpp>
+#include <libkann/layers/ActivationLayer.hpp>
 
 #include <cereal/archives/binary.hpp>
 #include <cereal/details/helpers.hpp>
