@@ -43,19 +43,18 @@ Creature::Creature(b2World& world, const Config& config,
     kann::RecurrentNeuralNetwork neuralNetwork, b2Vec2 position, double energy,
     double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
-    m_config(config),
     m_neuralNetwork(std::move(neuralNetwork)),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)},
     m_energy(energy), m_health(health) {}
 
 // All the thinking happen here
-void Creature::updatePerception(float dt)
+void Creature::updatePerception(const Config& config, float dt)
 {
   // 1: Update sight
   for(auto& eye : m_eyes)
   {
     RaycastResult result;
-    if(this->raycast(eye.angle, m_config.viewDistance, result))
+    if(this->raycast(eye.angle, config.viewDistance, result))
     {
       eye.target   = result.entity;
       eye.distance = result.distance;
@@ -63,24 +62,24 @@ void Creature::updatePerception(float dt)
     else
     {
       eye.target   = nullptr;
-      eye.distance = m_config.viewDistance;
+      eye.distance = config.viewDistance;
     }
   }
 }
 
-void Creature::updateNeuralNetwork()
+void Creature::updateNeuralNetwork(const Config& config)
 {
   Eigen::VectorXd input(INPUT_COUNT);
 
-  input(INPUT_ENERGY)          = m_energy / m_config.maxEnergy;
-  input(INPUT_HEALTH)          = m_health / m_config.maxHealth;
-  input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / m_config.viewDistance;
-  input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / m_config.viewDistance;
+  input(INPUT_ENERGY)          = m_energy / config.maxEnergy;
+  input(INPUT_HEALTH)          = m_health / config.maxHealth;
+  input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / config.viewDistance;
+  input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / config.viewDistance;
   m_neuralNetwork.feedForward(std::move(input));
 }
 
 // Working alone
-void Creature::update(float dt, World& world)
+void Creature::update(const Config& config, const BerryBush::Config& berryBushConfig, float dt, World& world)
 {
   static constexpr double EATING_ENERGY_COST = 5.0;
   static constexpr double MATING_ENERGY_COST = 5.0;
@@ -101,7 +100,7 @@ void Creature::update(float dt, World& world)
 
   // 2: Survival energy cost
   {
-    this->takeEnergy(m_config.passiveEnergyDrain * dt);
+    this->takeEnergy(config.passiveEnergyDrain * dt);
   }
 
   // 3: Movement
@@ -111,7 +110,7 @@ void Creature::update(float dt, World& world)
 
     // TODO: Rename configuration variable to suit the changes in their meaning
     auto linearForceFactor = output(OUTPUT_LINEAR_FORCE_FACTOR);
-    auto linearForceMultiplier = linearForceFactor >= 0.0 ?  m_config.forwardLinearSpeed : m_config.backwardLinearSpeed;
+    auto linearForceMultiplier = linearForceFactor >= 0.0 ?  config.forwardLinearSpeed : config.backwardLinearSpeed;
     auto linearForce = linearForceFactor * linearForceMultiplier * dt;
     this->applyForwardForce(linearForce * TEMPORARY_HACK);
 
@@ -119,16 +118,16 @@ void Creature::update(float dt, World& world)
     auto angularForceFactor = output(OUTPUT_ANGULAR_FORCE_FACTOR); // Map from (-1, 1) to (-PI, PI)
     auto angularForce =  angularForceFactor * M_PI * dt;
     this->applyTorque(angularForce);
-    this->takeEnergy(m_config.movementEnergyDrainMultiplier * linearForce * linearForce * dt);
+    this->takeEnergy(config.movementEnergyDrainMultiplier * linearForce * linearForce * dt);
 
     // 4: Hunger
     if(m_energy == 0.0f)
-      takeHealth(m_config.hungerHealthDrain * dt);
+      takeHealth(config.hungerHealthDrain * dt);
 
     // 5: Healing
-    if(m_energy >= m_config.maxEnergy * m_config.healingThreshold)
+    if(m_energy >= config.maxEnergy * config.healingThreshold)
     {
-      double amount = std::min(m_config.maxHealth - this->health(), m_energy);
+      double amount = std::min(config.maxHealth - this->health(), m_energy);
       this->health(this->health()+amount);
       m_energy -= amount;
     }
@@ -139,7 +138,7 @@ void Creature::update(float dt, World& world)
     if(output(OUTPUT_EATING_DESIRE)>0.0 && m_eatingCooldown == 0.0)
     {
       takeEnergy(EATING_ENERGY_COST);
-      m_eatingCooldown = m_config.eatingCooldown;
+      m_eatingCooldown = config.eatingCooldown;
       for(auto& eye: m_eyes)
       {
         auto* target = eye.target;
@@ -158,13 +157,13 @@ void Creature::update(float dt, World& world)
         if(berryBush->count() == 0)
           continue; // No berry to eat
 
-        m_energy += berryBush->take();
+        m_energy += berryBush->take(berryBushConfig);
 
         // Clamping
-        if(m_energy>m_config.maxEnergy)
+        if(m_energy>config.maxEnergy)
         {
-          this->takeHealth(m_energy-m_config.maxEnergy); // Penalty for eating too much
-          m_energy = m_config.maxEnergy;
+          this->takeHealth(m_energy-config.maxEnergy); // Penalty for eating too much
+          m_energy = config.maxEnergy;
         }
 
         break; // Only eat from one berry bush at once
@@ -177,7 +176,7 @@ void Creature::update(float dt, World& world)
     if(output(OUTPUT_MATING_DESIRE)>0.0 && m_matingCooldown == 0.0)
     {
       takeEnergy(MATING_ENERGY_COST);
-      m_matingCooldown = m_config.matingCooldown;
+      m_matingCooldown = config.matingCooldown;
       for(auto& eye: m_eyes)
       {
         auto* target = eye.target;
@@ -202,21 +201,21 @@ void Creature::update(float dt, World& world)
 
         // Yes, he/she do, perhaps the cost would be different?
         other->takeEnergy(MATING_ENERGY_COST);
-        other->m_matingCooldown = other->m_config.matingCooldown;
+        other->m_matingCooldown = config.matingCooldown;
 
 
-        if(!takeEnergy(m_config.maxEnergy * 0.2) || !other->takeEnergy(m_config.maxEnergy * 0.2))
+        if(!takeEnergy(config.maxEnergy * 0.2) || !other->takeEnergy(config.maxEnergy * 0.2))
           continue;
 
-        auto newNeuralNetwork = m_neuralNetwork.cross(other->m_neuralNetwork, world.prng(), m_config.mutationRate);
+        auto newNeuralNetwork = m_neuralNetwork.cross(other->m_neuralNetwork, world.prng(), config.mutationRate);
         auto newPosition = position();
         newPosition += other->position();
         newPosition *= 0.5;
 
         // What we really need is the world prng and b2World
-        auto newCreature = Creature(world.world(), m_config,
+        auto newCreature = Creature(world.world(), config,
             std::move(newNeuralNetwork), newPosition,
-            m_config.maxEnergy * 0.3, m_config.maxHealth
+            config.maxEnergy * 0.3, config.maxHealth
         );
         world.addCreature(std::move(newCreature));
 
@@ -233,10 +232,10 @@ void Creature::update(float dt, World& world)
   }
 }
 
-void Creature::draw(Renderer& renderer) const
+void Creature::draw(const Config& config, Renderer& renderer) const
 {
   const auto radius = this->radius();
-  const auto color = lerp(sf::Color::Yellow, sf::Color::Green, m_energy / m_config.maxEnergy);
+  const auto color = lerp(sf::Color::Yellow, sf::Color::Green, m_energy / config.maxEnergy);
   const auto position = this->position();
   renderer.addCircle({position.x, position.y}, radius, color);
 
@@ -244,7 +243,7 @@ void Creature::draw(Renderer& renderer) const
   {
     for(const auto& eye: m_eyes)
     {
-      if(eye.distance == m_config.viewDistance)
+      if(eye.distance == config.viewDistance)
         continue;
 
       float angle = this->angle() + eye.angle;
@@ -264,3 +263,4 @@ bool Creature::takeHealth(double amount)
   this->health(std::max(this->health() - amount, 0.0));
   return this->health() == 0.0;
 }
+

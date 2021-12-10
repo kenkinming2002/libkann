@@ -22,29 +22,26 @@ public:
   };
 
 public:
-  BerryBush(b2World& world, Config config, b2Vec2 position);
+  BerryBush(b2World& world, const Config& config, b2Vec2 position);
 
 public:
   friend class Renderer;
 
 public:
-  void update(float dt);
+  void update(const Config& config, float dt);
 
 public:
-  void draw(Renderer& renderer) const;
+  void draw(const Config& config, Renderer& renderer) const;
 
 public:
   auto count() const { return m_berryCount; }
 
   /* @return amount of energy taken */
-  [[nodiscard]] double take(size_t count=1)
+  [[nodiscard]] double take(const Config& config, size_t count=1)
   {
     m_berryCount -= count;
-    return m_config.energyPerBerry * count;
+    return config.energyPerBerry * count;
   }
-
-private:
-  const Config m_config;
 
 private:
   size_t m_berryCount;

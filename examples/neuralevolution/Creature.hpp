@@ -75,6 +75,7 @@ public:
     // Mating
     double mutationRate;
   };
+
   /* Create a default creature from config using engine. You should use
    * setters to further configure the creature if so needed. */
   Creature(b2World& world, const Config& config, kann::RecurrentNeuralNetwork
@@ -82,16 +83,16 @@ public:
 
 public:
   /* Not thread safe */
-  void updatePerception(float dt);
+  void updatePerception(const Config& config, float dt);
 
   /* Thread safe - and really need to be parallelize because this is *SLOW* */
-  void updateNeuralNetwork();
+  void updateNeuralNetwork(const Config& config);
 
   /* Not thread safe */
-  void update(float dt, World& world);
+  void update(const Config& config, const BerryBush::Config& berryBushConfig, float dt, World& world);
 
 public:
-  void draw(Renderer& renderer) const;
+  void draw(const Config& config, Renderer& renderer) const;
 
 public:
   bool takeEnergy(double amount);
@@ -99,7 +100,7 @@ public:
 
 public:
   bool dead() const { return m_health == 0.0; }
-  bool healthy() const { return m_health == m_config.maxHealth; }
+  bool healthy(const Config& config) const { return m_health == config.maxHealth; }
 
 public:
   double health() const { return m_health; }
@@ -111,10 +112,6 @@ public:
 
 public:
   auto statistics() const { return m_statistics; }
-
-private:
-  // TODO: Do not store it by value
-  Config m_config;
 
 private:
   kann::RecurrentNeuralNetwork m_neuralNetwork;
