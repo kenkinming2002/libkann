@@ -22,7 +22,9 @@ namespace kann
 
   void WeightLayer::randomize(std::default_random_engine& engine)
   {
-    std::uniform_real_distribution<double> weightDistribution(-1.0, 1.0);
+    const double range = std::sqrt(2.0 / this->inputSize());
+    std::uniform_real_distribution<double> weightDistribution(-range, range);
+
     m_weight = Eigen::MatrixXd::NullaryExpr(m_weightGradient.rows(), m_weight.cols(), [&](){
       return weightDistribution(engine);
     });
@@ -52,7 +54,9 @@ namespace kann
 
     std::uniform_int_distribution<> distribution(0, 1);
     std::uniform_real_distribution<double> mutationDistribution(0.0, 1.0);
-    std::uniform_real_distribution<double> weightDistribution(-1.0, 1.0);
+
+    const double range = std::sqrt(2.0 / this->inputSize());
+    std::uniform_real_distribution<double> weightDistribution(-range, range);
 
     assert(m_weight.size() != 0);
     assert(m_weight.size() == other.m_weight.size());
