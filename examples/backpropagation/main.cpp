@@ -55,8 +55,11 @@ int main()
 
     nn.train(trainingDataSet, LEARNING_RATE);
 
+    correctness = nn.test(trainingDataSet);
+    std::cout << "Training Data Set Correctness:" << correctness << std::endl;
+
     correctness = nn.test(testingDataSet);
-    std::cout << "Correctness:" << correctness << std::endl;
+    std::cout << "Testing Data Set Correctness:" << correctness << std::endl;
   }
 
   // Convolutional Neural Network
@@ -99,7 +102,10 @@ int main()
 
     nn.train(trainingDataSet, LEARNING_RATE);
 
+    correctness = nn.test(trainingDataSet);
+    std::cout << "Training Data Set Correctness:" << correctness << std::endl;
+
     correctness = nn.test(testingDataSet);
-    std::cout << "Correctness:" << correctness << std::endl;
+    std::cout << "Testing Data Set Correctness:" << correctness << std::endl;
   }
 }
