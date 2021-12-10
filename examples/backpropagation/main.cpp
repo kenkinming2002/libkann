@@ -7,12 +7,34 @@
 #include <libkann/layers/ConvolutionalLayer.hpp>
 
 #include <libkann/datasets/MNISTDataSet.hpp>
+#include <libkann/datasets/write.hpp>
 
 #include <memory>
 #include <random>
 #include <chrono>
+#include <fstream>
+#include <filesystem>
 
 static constexpr double LEARNING_RATE = 0.05;
+
+static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dataSet)
+{
+  if(!std::filesystem::create_directories(dirpath))
+  {
+    std::cerr << "Error: Failed to create directories " << dirpath << std::endl;
+    return;
+  }
+
+  Eigen::VectorXd input, output;
+  for(size_t i = 0;  i<dataSet.size(); ++i)
+  {
+    dataSet.get(i, input, output);
+
+    std::filesystem::path filepath = dirpath / (std::string("data")+std::to_string(i)+std::string(".bmp"));
+    std::ofstream file(filepath, std::ofstream::binary);
+    kann::writeImage(file, input, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+  }
+}
 
 int main()
 {
@@ -27,6 +49,12 @@ int main()
     "examples/backpropagation/datasets/t10k-images-idx3-ubyte",
     "examples/backpropagation/datasets/t10k-labels-idx1-ubyte"
   );
+
+  // Try to write out the data set
+  {
+    writeDataSet("output/training", trainingDataSet);
+    writeDataSet("output/testing",   testingDataSet);
+  }
 
   // Normal Neural Network
   {
