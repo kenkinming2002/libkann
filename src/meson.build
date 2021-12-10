@@ -1,5 +1,6 @@
 
 libkann_sources = [
+  'neural_networks/AutoEncoder.cpp',
   'neural_networks/NeuralNetwork.cpp',
   'neural_networks/RecurrentNeuralNetwork.cpp',
   'layers/WeightLayer.cpp',

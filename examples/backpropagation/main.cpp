@@ -1,6 +1,7 @@
 #include <libkann/utilities/random.hpp>
 
 #include <libkann/neural_networks/NeuralNetwork.hpp>
+#include <libkann/neural_networks/AutoEncoder.hpp>
 
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
@@ -36,7 +37,7 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
   }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
   std::default_random_engine engine(random<std::mt19937::result_type>());
 
@@ -50,14 +51,23 @@ int main()
     "examples/backpropagation/datasets/t10k-labels-idx1-ubyte"
   );
 
-  // Try to write out the data set
+  if(argc != 2)
   {
+    std::cerr << "Usage: " << argv[0] << " write/normal/convolution/autoencoder" << std::endl;
+    return -1;
+  }
+
+  std::string subcommand = argv[1];
+
+  if(subcommand == "write")
+  {
+    // Try to write out the data set
     writeDataSet("output/training", trainingDataSet);
     writeDataSet("output/testing",   testingDataSet);
   }
-
-  // Normal Neural Network
+  else if(subcommand == "normal")
   {
+    // Normal Neural Network
     kann::NeuralNetwork nn;
 
     const size_t topology[] = {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10};
@@ -89,9 +99,9 @@ int main()
     correctness = nn.test(testingDataSet);
     std::cout << "Testing Data Set Correctness:" << correctness << std::endl;
   }
-
-  // Convolutional Neural Network
+  else if(subcommand == "convolution")
   {
+    // Convolutional Neural Network
     kann::NeuralNetwork nn;
 
     const size_t kernelSize = 5;
@@ -135,5 +145,57 @@ int main()
 
     correctness = nn.test(testingDataSet);
     std::cout << "Testing Data Set Correctness:" << correctness << std::endl;
+  }
+  else if(subcommand == "autoencoder")
+  {
+    static constexpr size_t FEATURES_COUNT = 64;
+
+    kann::AutoEncoder autoEncoder;
+
+    const size_t topology[] = {kann::MNISTDataSet::IMAGE_SIZE, 256, 32, FEATURES_COUNT, 32, 256, kann::MNISTDataSet::IMAGE_SIZE};
+    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
+
+    for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
+    {
+      size_t prevSize = topology[i];
+      size_t nextSize = topology[i+1];
+
+      auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
+      auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
+
+      autoEncoder.addLayer(std::move(weightLayer));
+      autoEncoder.addLayer(std::move(activationLayer));
+
+      if(nextSize == FEATURES_COUNT)
+        autoEncoder.setFeaturesLayer();
+    }
+
+    autoEncoder.randomize(engine);
+    autoEncoder.train(trainingDataSet, LEARNING_RATE);
+
+    static constexpr size_t GENERATE_COUNT = 100;
+
+    const std::filesystem::path dirpath("output/autoencoder");
+    if(!std::filesystem::create_directories(dirpath))
+    {
+      std::cerr << "Error: Failed to create directories " << dirpath << std::endl;
+      return -1;
+    }
+
+    for(size_t i = 0; i<GENERATE_COUNT; ++i)
+    {
+      const Eigen::VectorXd features = Eigen::VectorXd::Random(FEATURES_COUNT) * std::sqrt(2.0 / 10);
+      autoEncoder.generate(features);
+
+      std::filesystem::path filepath = dirpath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
+      std::ofstream file(filepath, std::ofstream::binary);
+      kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    }
+  }
+  else
+  {
+    std::cerr << "Error: Invalid Command " << subcommand << std::endl;
+    std::cerr << "Usage: " << argv[0] << " write/normal/convolution/autoencoder" << std::endl;
+    return -1;
   }
 }
