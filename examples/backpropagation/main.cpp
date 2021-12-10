@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
 
     kann::AutoEncoder autoEncoder;
 
-    const size_t topology[] = {kann::MNISTDataSet::IMAGE_SIZE, 256, 32, FEATURES_COUNT, 32, 256, kann::MNISTDataSet::IMAGE_SIZE};
+    const size_t topology[] = {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE};
     const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
 
     for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
@@ -173,23 +173,47 @@ int main(int argc, char* argv[])
     autoEncoder.randomize(engine);
     autoEncoder.train(trainingDataSet, LEARNING_RATE);
 
-    static constexpr size_t GENERATE_COUNT = 100;
-
-    const std::filesystem::path dirpath("output/autoencoder");
-    if(!std::filesystem::create_directories(dirpath))
+    // Reconstruction
     {
-      std::cerr << "Error: Failed to create directories " << dirpath << std::endl;
-      return -1;
+      const std::filesystem::path dirpath("output/autoencoder-reconstruction");
+      if(!std::filesystem::create_directories(dirpath))
+      {
+        std::cerr << "Error: Failed to create directories " << dirpath << std::endl;
+        return -1;
+      }
+
+      Eigen::VectorXd input, output;
+      for(size_t i = 0; i<trainingDataSet.size(); ++i)
+      {
+        trainingDataSet.get(i, input, output);
+        autoEncoder.feedForward(input);
+
+        std::filesystem::path filepath = dirpath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
+        std::ofstream file(filepath, std::ofstream::binary);
+        kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      }
     }
 
-    for(size_t i = 0; i<GENERATE_COUNT; ++i)
+    // Generate
     {
-      const Eigen::VectorXd features = Eigen::VectorXd::Random(FEATURES_COUNT) * std::sqrt(2.0 / 10);
-      autoEncoder.generate(features);
+      static constexpr size_t GENERATE_COUNT = 100;
 
-      std::filesystem::path filepath = dirpath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-      std::ofstream file(filepath, std::ofstream::binary);
-      kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      const std::filesystem::path dirpath("output/autoencoder");
+      if(!std::filesystem::create_directories(dirpath))
+      {
+        std::cerr << "Error: Failed to create directories " << dirpath << std::endl;
+        return -1;
+      }
+
+      for(size_t i = 0; i<GENERATE_COUNT; ++i)
+      {
+        const Eigen::VectorXd features = Eigen::VectorXd::Random(FEATURES_COUNT) * std::sqrt(2.0 / 10);
+        autoEncoder.generate(features);
+
+        std::filesystem::path filepath = dirpath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
+        std::ofstream file(filepath, std::ofstream::binary);
+        kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      }
     }
   }
   else
