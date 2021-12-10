@@ -5,6 +5,8 @@ libkann_sources = [
   'layers/WeightLayer.cpp',
   'layers/ActivationLayer.cpp',
   'layers/ConvolutionalLayer.cpp',
+  'datasets/IDXFile.cpp',
+  'datasets/MNISTDataSet.cpp',
   'ActivationFunction.cpp'
 ]
 

@@ -73,6 +73,65 @@ namespace kann
   {
     return m_output;
   }
+
+  namespace
+  {
+    static void showProgressBar(std::string_view name, size_t count, size_t total)
+    {
+      constexpr static size_t width = 40;
+      std::cout << "\e[?25l";
+
+      std::cout << name << "[";
+      for(size_t i=0; i<width; ++i)
+        if((float)i/width < (float)count/total)
+          std::cout << "=";
+        else
+          std::cout << " ";
+
+      std::cout << " - ";
+      std::cout << count << "/" << total;
+      std::cout << "]\r";
+
+      std::cout << "\e[?25h";
+    }
+  }
+
+  void NeuralNetwork::train(const DataSet& dataSet, float learningRate)
+  {
+    const size_t size = dataSet.size();
+
+    Eigen::VectorXd input, output;
+    for(size_t i = 0; i<size; ++i)
+    {
+      showProgressBar("Training", i, size);
+
+      dataSet.get(i, input, output);
+      this->feedForward(input);
+      this->backPropagate(output);
+      this->train(learningRate); // TODO: Batching
+    }
+    std::cout << std::endl;
+  }
+
+  double NeuralNetwork::test(const DataSet& dataSet)
+  {
+    const size_t size = dataSet.size();
+
+    Eigen::VectorXd input, output;
+    double correctness = 0.0;
+    for(size_t i = 0; i<size; ++i)
+    {
+      showProgressBar("Testing", i, size);
+
+      dataSet.get(i, input, output);
+      this->feedForward(input);
+      correctness += dataSet.correctness(i, this->output());
+    }
+    std::cout << std::endl;
+
+    correctness /= size;
+    return correctness;
+  }
 }
 
 

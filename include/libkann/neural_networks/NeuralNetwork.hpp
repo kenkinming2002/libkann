@@ -2,6 +2,7 @@
 
 #include <libkann/export.hpp>
 #include <libkann/layers/Layer.hpp>
+#include <libkann/datasets/DataSet.hpp>
 #include <libkann/serialization/Eigen.hpp>
 
 #include <Eigen/Eigen>
@@ -37,6 +38,10 @@ namespace kann
   public:
     LIBKANN_SYMEXPORT void addLayer(std::unique_ptr<Layer> layer);
     LIBKANN_SYMEXPORT const Eigen::VectorXd& output() const;
+
+  public:
+    LIBKANN_SYMEXPORT void train(const DataSet& dataSet, float learningRate);
+    LIBKANN_SYMEXPORT double test(const DataSet& dataSet);
 
   public:
     template<typename Archive>

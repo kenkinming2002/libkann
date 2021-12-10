@@ -1,6 +1,3 @@
-#include "DataSet.hpp"
-#include "libkann/ActivationFunction.hpp"
-
 #include <libkann/utilities/random.hpp>
 
 #include <libkann/neural_networks/NeuralNetwork.hpp>
@@ -8,6 +5,8 @@
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
 #include <libkann/layers/ConvolutionalLayer.hpp>
+
+#include <libkann/datasets/MNISTDataSet.hpp>
 
 #include <memory>
 #include <random>
@@ -19,22 +18,21 @@ int main()
 {
   std::default_random_engine engine(random<std::mt19937::result_type>());
 
-  DataSet testingDataSet(
-    "examples/backpropagation/datasets/t10k-images-idx3-ubyte",
-    "examples/backpropagation/datasets/t10k-labels-idx1-ubyte"
-  );
-
-  DataSet trainingDataSet(
+  kann::MNISTDataSet trainingDataSet(
     "examples/backpropagation/datasets/train-images-idx3-ubyte",
     "examples/backpropagation/datasets/train-labels-idx1-ubyte"
   );
 
+  kann::MNISTDataSet testingDataSet(
+    "examples/backpropagation/datasets/t10k-images-idx3-ubyte",
+    "examples/backpropagation/datasets/t10k-labels-idx1-ubyte"
+  );
 
   // Normal Neural Network
   {
     kann::NeuralNetwork nn;
 
-    const size_t topology[] = {DataSet::INPUT_LAYER_SIZE, 30, 30, 30, DataSet::OUTPUT_LAYER_SIZE};
+    const size_t topology[] = {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10};
     const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
 
     for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
@@ -50,9 +48,15 @@ int main()
 
     nn.randomize(engine);
 
-    testingDataSet.test(nn);
-    trainingDataSet.train(nn, LEARNING_RATE);
-    testingDataSet.test(nn);
+    double correctness;
+
+    correctness = nn.test(testingDataSet);
+    std::cout << "Correctness:" << correctness << std::endl;
+
+    nn.train(trainingDataSet, LEARNING_RATE);
+
+    correctness = nn.test(testingDataSet);
+    std::cout << "Correctness:" << correctness << std::endl;
   }
 
   // Convolutional Neural Network
@@ -63,7 +67,7 @@ int main()
     const size_t topology[] = {1, 3, 3, 1};
     const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
 
-    size_t width = Data::IMAGE_WIDTH;
+    size_t width = kann::MNISTDataSet::IMAGE_WIDTH;
     for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
     {
       size_t prevSize = topology[i];
@@ -80,16 +84,22 @@ int main()
       width -= kernelSize - 1;
     }
 
-    auto weightLayer     = std::make_unique<kann::WeightLayer>(nn.outputSize(), DataSet::OUTPUT_LAYER_SIZE);
-    auto activationLayer = std::make_unique<kann::ActivationLayer>(DataSet::OUTPUT_LAYER_SIZE, activationFunction);
+    auto weightLayer     = std::make_unique<kann::WeightLayer>(nn.outputSize(), 10);
+    auto activationLayer = std::make_unique<kann::ActivationLayer>(10, activationFunction);
 
     nn.addLayer(std::move(weightLayer));
     nn.addLayer(std::move(activationLayer));
 
     nn.randomize(engine);
 
-    testingDataSet.test(nn);
-    trainingDataSet.train(nn, LEARNING_RATE);
-    testingDataSet.test(nn);
+    double correctness;
+
+    correctness = nn.test(testingDataSet);
+    std::cout << "Correctness:" << correctness << std::endl;
+
+    nn.train(trainingDataSet, LEARNING_RATE);
+
+    correctness = nn.test(testingDataSet);
+    std::cout << "Correctness:" << correctness << std::endl;
   }
 }
