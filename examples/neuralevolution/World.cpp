@@ -1,6 +1,6 @@
 #include "World.hpp"
-#include "libkann/NeuralNetwork.hpp"
-#include "libkann/RecurrentNeuralNetwork.hpp"
+#include <libkann/neural_networks/NeuralNetwork.hpp>
+#include <libkann/neural_networks/RecurrentNeuralNetwork.hpp>
 
 #include <SFML/Graphics/RenderTarget.hpp>
 
@@ -9,6 +9,8 @@
 #include <cmath>
 #include <iterator>
 #include <utility>
+
+using namespace std::placeholders;
 
 World::World(Config config, Creature::Config creatureConfig, Creature::NeuralNetworkConfig creatureNeuralNetworkConfig, BerryBush::Config berryBushConfig)
   : m_config(config), m_creatureConfig(creatureConfig), m_berryBushConfig(berryBushConfig),
@@ -93,7 +95,6 @@ World::World(Config config, Creature::Config creatureConfig, Creature::NeuralNet
 
 void World::update(float dt)
 {
-
   m_updateTimer.begin();
 
   // 1: Physics
@@ -103,17 +104,17 @@ void World::update(float dt)
 
   // 2: Berry Bushes and Creatures
   for(auto& berryBush : m_berryBushes)
-    berryBush.update(dt);
+    berryBush.update(m_berryBushConfig, dt);
 
   for(auto& creature : m_creatures)
-    creature.updatePerception(dt);
+    creature.updatePerception(m_creatureConfig, dt);
 
 #pragma omp parallel for
   for(size_t i=0; i<m_creatures.size(); ++i)
-    m_creatures[i].updateNeuralNetwork();
+    m_creatures[i].updateNeuralNetwork(m_creatureConfig);
 
   for(auto& creature : m_creatures)
-    creature.update(dt, *this);
+    creature.update(m_creatureConfig, m_berryBushConfig, dt, *this);
 
   // 3: Clear dead creatures
   auto oldSize = m_creatures.size();
@@ -124,22 +125,22 @@ void World::update(float dt)
   // 4: Add new creatures
   m_info.birthCount += m_newborns.size();
   m_creatures.insert(m_creatures.end(),
-      std::move_iterator(m_newborns.begin()),
-      std::move_iterator(m_newborns.end())
-      );
+    std::move_iterator(m_newborns.begin()),
+    std::move_iterator(m_newborns.end())
+  );
   m_newborns.clear();
 
   // 5: Update info
   {
     m_info.ageStatistics = Statistics<float, float>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
-        return creature.statistics().lifetime;
-        });
+      return creature.statistics().lifetime;
+    });
 
     m_info.matingCountStatistics = Statistics<float, size_t>(m_creatures.begin(), m_creatures.end(), [](const Creature& creature){
-        return creature.statistics().matingCount;
-        });
+      return creature.statistics().matingCount;
+    });
 
-    m_info.healthyCreaturesCount =  std::count_if(m_creatures.begin(), m_creatures.end(), std::mem_fn(&Creature::healthy));
+    m_info.healthyCreaturesCount =  std::count_if(m_creatures.begin(), m_creatures.end(), std::bind(&Creature::healthy, _1, std::cref(m_creatureConfig)));
     m_info.creaturesCount = m_creatures.size();
 
     m_info.realTime = m_startTime.getElapsedTime().asSeconds();
@@ -177,10 +178,10 @@ void World::draw(Renderer& renderer) const
   renderer.addRectangle(sf::Vector2f(0.0f, 0.0f), {m_config.width, m_config.height}, sf::Color::White);
 
   for(const auto& berryBush: m_berryBushes)
-    berryBush.draw(renderer);
+    berryBush.draw(m_berryBushConfig, renderer);
 
   for(const auto& creature: m_creatures)
-    creature.draw(renderer);
+    creature.draw(m_creatureConfig, renderer);
 }
 
 void World::beginStatistics(CSVFile& file) const

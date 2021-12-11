@@ -1,11 +1,15 @@
 
 libkann_sources = [
-  'NeuralNetworkBase.cpp',
-  'WeightLayer.cpp',
-  'ActivationLayer.cpp',
-  'ConvolutionalLayer.cpp',
-  'DeconvolutionalLayer.cpp',
-  'RecurrentNeuralNetwork.cpp',
+  'neural_networks/AutoEncoder.cpp',
+  'neural_networks/NeuralNetwork.cpp',
+  'neural_networks/RecurrentNeuralNetwork.cpp',
+  'layers/WeightLayer.cpp',
+  'layers/ActivationLayer.cpp',
+  'layers/ConvolutionalLayer.cpp',
+  'layers/DeconvolutionalLayer.cpp',
+  'datasets/IDXFile.cpp',
+  'datasets/MNISTDataSet.cpp',
+  'datasets/write.cpp',
   'ActivationFunction.cpp'
 ]
 

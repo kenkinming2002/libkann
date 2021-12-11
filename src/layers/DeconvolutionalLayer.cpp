@@ -1,4 +1,4 @@
-#include <libkann/DeconvolutionalLayer.hpp>
+#include <libkann/layers/DeconvolutionalLayer.hpp>
 
 #include <assert.h>
 

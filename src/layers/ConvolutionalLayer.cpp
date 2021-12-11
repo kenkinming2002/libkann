@@ -1,4 +1,4 @@
-#include <libkann/ConvolutionalLayer.hpp>
+#include <libkann/layers/ConvolutionalLayer.hpp>
 
 #include <assert.h>
 
@@ -29,7 +29,9 @@ namespace kann
 
   void ConvolutionalLayer::randomize(std::default_random_engine& engine)
   {
-    std::uniform_real_distribution<double> dist(-0.1,0.1);
+    const double range = std::sqrt(2.0 / this->inputSize());
+    std::uniform_real_distribution<double> dist(-range,range);
+
     for(auto& kernel : m_kernels)
       kernel = Eigen::MatrixXd::NullaryExpr(kernel.rows(), kernel.cols(), [&](){
         return dist(engine);
@@ -105,7 +107,9 @@ namespace kann
 
     std::uniform_int_distribution<> distribution(0, 1);
     std::uniform_real_distribution<double> mutationDistribution(0.0, 1.0);
-    std::uniform_real_distribution<double> weightDistribution(-1.0, 1.0);
+
+    const double range = std::sqrt(2.0 / this->inputSize());
+    std::uniform_real_distribution<double> weightDistribution(-range,range);
 
     assert(m_kernels.size() != 0);
     assert(m_kernels.size() == other.m_kernels.size());

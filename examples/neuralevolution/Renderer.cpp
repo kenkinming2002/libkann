@@ -2,18 +2,18 @@
 
 #include "Config.hpp"
 
+#include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Font.hpp>
 
+#include <SFML/System/Vector2.hpp>
 #include <stdexcept>
 #include <cmath>
 #include <cassert>
 #include <sstream>
 #include <iomanip>
-
-const sf::Color Renderer::GUI_TEXT_COLOR = sf::Color::Red;
 
 namespace
 {
@@ -28,7 +28,24 @@ namespace
 }
 
 Renderer::Renderer(sf::RenderTarget& renderTarget)
-  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles) {}
+  : m_renderTarget(renderTarget), m_vertexArray(sf::PrimitiveType::Triangles)
+{
+  m_mainCamera = Camera{
+    .renderTargetSize = sf::Vector2f(renderTarget.getSize()),
+    .viewport = sf::FloatRect(0.0f, 0.15f, 1.0f, 0.85f),
+    .anchorType = Camera::AnchorType::CENTERED,
+    .position = sf::Vector2f(0.0f, 0.0f),
+    .scale = 1.0f
+  };
+
+  m_guiCamera = Camera{
+    .renderTargetSize = sf::Vector2f(renderTarget.getSize()),
+    .viewport = sf::FloatRect(0.0f, 0.0f, 1.0f, 0.15f),
+    .anchorType = Camera::AnchorType::TOP_LEFT,
+    .position = sf::Vector2f(0.0f, 0.0f),
+    .scale = 1.0f
+  };
+}
 
 bool Renderer::handleInput(sf::Event event)
 {
@@ -38,33 +55,33 @@ bool Renderer::handleInput(sf::Event event)
       {
         // Zoom in / Zoom out
         case sf::Keyboard::Add:
-          m_camera.zoom(1.0f / ZOOM_SPEED);
+          m_mainCamera.zoom(1.0f / ZOOM_SPEED);
           return true;
         case sf::Keyboard::Subtract:
-          m_camera.zoom(ZOOM_SPEED);
+          m_mainCamera.zoom(ZOOM_SPEED);
           return true;
 
         // Up/Down/Left/Right
         case sf::Keyboard::H:
         case sf::Keyboard::Left:
-          m_camera.move(-MOVE_SPEED, 0.0f);
+          m_mainCamera.move(-MOVE_SPEED, 0.0f);
           return true;
         case sf::Keyboard::J:
         case sf::Keyboard::Down:
-          m_camera.move(0.0f, MOVE_SPEED);
+          m_mainCamera.move(0.0f, MOVE_SPEED);
           return true;
         case sf::Keyboard::K:
         case sf::Keyboard::Up:
-          m_camera.move(0.0f, -MOVE_SPEED);
+          m_mainCamera.move(0.0f, -MOVE_SPEED);
           return true;
         case sf::Keyboard::L:
         case sf::Keyboard::Right:
-          m_camera.move(MOVE_SPEED, 0.0f);
+          m_mainCamera.move(MOVE_SPEED, 0.0f);
           return true;
 
           // Reset
         case sf::Keyboard::Equal:
-          m_camera.reset();
+          m_mainCamera.reset();
           return true;
 
         case sf::Keyboard::D:
@@ -73,12 +90,19 @@ bool Renderer::handleInput(sf::Event event)
         default:
           return false;
       }
+    // Window resize
+    case sf::Event::Resized:
+    {
+      m_mainCamera.renderTargetSize = sf::Vector2f(event.size.width, event.size.height);
+      m_guiCamera.renderTargetSize  = sf::Vector2f(event.size.width, event.size.height);
+      return true;
+    }
     // Zoom in / Zoom out
     case sf::Event::MouseWheelScrolled:
     {
       float factor = event.mouseWheelScroll.delta >= 0.0f ? event.mouseWheelScroll.delta * ZOOM_SPEED : -1.0f / (event.mouseWheelScroll.delta * ZOOM_SPEED);
       assert(factor > 0.0f);
-      m_camera.zoom(factor);
+      m_mainCamera.zoom(factor);
       return true;
     }
     default:
@@ -93,7 +117,7 @@ void Renderer:: begin()
   m_vertexArray.clear();
   m_strs.clear();
 
-  m_visibleRect = m_camera.visibleRect(m_renderTarget);
+  m_visibleRect = m_mainCamera.visibleRect();
 }
 
 void Renderer::end()
@@ -103,33 +127,48 @@ void Renderer::end()
   // Drawing
   m_renderTarget.clear(sf::Color::Black);
 
-  // VertexArray
-  m_renderTarget.setView(m_camera.view(m_renderTarget));
-  m_renderTarget.draw(m_vertexArray);
-
-  // Gui text
-  m_renderTarget.setView(this->guiView());
-
-  static sf::Font font = [](){
-    sf::Font font;
-    if(!font.loadFromFile("resources/fonts/NotoSansMono-Regular.ttf"))
-      throw std::runtime_error("Failed to load font");
-
-    return font;
-  }();
-
-  sf::Text text;
-  text.setFont(font);
-  text.setFillColor(GUI_TEXT_COLOR);
-  text.setCharacterSize(GUI_TEXT_SIZE);
-
-  sf::Vector2f position(0.0f, 0.0f);
-  for(const sf::String& str: m_strs)
+  // Main Camera
   {
-    text.setPosition(position);
-    text.setString(str);
-    m_renderTarget.draw(text);
-    position.y += text.getLocalBounds().height;
+    m_renderTarget.setView(m_mainCamera.view());
+
+    // VertexArray
+    m_renderTarget.draw(m_vertexArray);
+  }
+
+  // Gui Camera
+  {
+    m_renderTarget.setView(m_guiCamera.view());
+
+    // Background
+    sf::FloatRect visibleRect = m_guiCamera.visibleRect();
+    sf::RectangleShape rectangleShape;
+    rectangleShape.setFillColor(GUI_BG_COLOR);
+    rectangleShape.setPosition(sf::Vector2f(visibleRect.left, visibleRect.top));
+    rectangleShape.setSize(sf::Vector2f(visibleRect.width, visibleRect.height));
+    m_renderTarget.draw(rectangleShape);
+
+    // Gui text
+    static sf::Font font = [](){
+      sf::Font font;
+      if(!font.loadFromFile("resources/fonts/NotoSansMono-Regular.ttf"))
+        throw std::runtime_error("Failed to load font");
+
+      return font;
+    }();
+
+    sf::Text text;
+    text.setFont(font);
+    text.setFillColor(GUI_TEXT_COLOR);
+    text.setCharacterSize(GUI_TEXT_SIZE);
+
+    sf::Vector2f position(0.0f, 0.0f);
+    for(const sf::String& str: m_strs)
+    {
+      text.setPosition(position);
+      text.setString(str);
+      m_renderTarget.draw(text);
+      position.y += text.getLocalBounds().height;
+    }
   }
 
   m_renderTimer.end();
@@ -298,11 +337,4 @@ void Renderer::addBar(sf::Vector2f position, sf::Vector2f dimension, sf::Color c
   m_vertexArray.append(points[7]);
   m_vertexArray.append(points[4]);
 }
-
-sf::View Renderer::guiView() const
-{
-  sf::Vector2f windowSize(m_renderTarget.getSize());
-  return sf::View(windowSize/2.0f, windowSize);
-}
-
 
