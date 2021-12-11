@@ -1,35 +1,30 @@
-#include <libkann/layers/ConvolutionalLayer.hpp>
+#include <libkann/layers/DeconvolutionalLayer.hpp>
 
 #include <assert.h>
 
 namespace kann
 {
-  ConvolutionalLayer::ConvolutionalLayer(size_t inputWidth, size_t inputHeight, size_t kernelSize, size_t inputChannelCount, size_t outputChannelCount)
+  DeconvolutionalLayer::DeconvolutionalLayer(size_t inputWidth, size_t inputHeight, size_t kernelSize, size_t inputChannelCount, size_t outputChannelCount)
     : m_inputWidth(inputWidth), m_inputHeight(inputHeight), m_kernelSize(kernelSize), m_inputChannelCount(inputChannelCount), m_outputChannelCount(outputChannelCount)
   {
-    /* Unsigned overflow is well-defined behavior so we could safely do the check
-     * afterwards */
-    assert(m_inputWidth  >= m_kernelSize);
-    assert(m_inputHeight >= m_kernelSize);
-
     auto kernelsCount = m_inputChannelCount * m_outputChannelCount;
     m_kernels        .resize(kernelsCount, Eigen::MatrixXd::Zero(m_kernelSize, m_kernelSize));
     m_kernelsGradient.resize(kernelsCount, Eigen::MatrixXd::Zero(m_kernelSize, m_kernelSize));
   }
 
-  size_t ConvolutionalLayer::inputSize() const
+  size_t DeconvolutionalLayer::inputSize() const
   {
     return m_inputWidth * m_inputHeight * m_inputChannelCount;
   }
 
-  size_t ConvolutionalLayer::outputSize() const
+  size_t DeconvolutionalLayer::outputSize() const
   {
-    return (m_inputWidth-m_kernelSize+1) * (m_inputHeight-m_kernelSize+1) * m_outputChannelCount;
+    return (m_inputWidth+m_kernelSize-1) * (m_inputHeight+m_kernelSize-1) * m_outputChannelCount;
   }
 
-  void ConvolutionalLayer::randomize(std::default_random_engine& engine)
+  void DeconvolutionalLayer::randomize(std::default_random_engine& engine)
   {
-    const double range = std::sqrt(2.0 / this->inputSize());
+    const double range = std::sqrt(2.0 / this->inputSize()) / m_kernelSize;
     std::uniform_real_distribution<double> dist(-range,range);
 
     for(auto& kernel : m_kernels)
@@ -38,31 +33,31 @@ namespace kann
       });
   }
 
-  Eigen::VectorXd ConvolutionalLayer::feedForward()
+  Eigen::VectorXd DeconvolutionalLayer::feedForward()
   {
-    // Well, we do convolutions
+    // Well, we do deconvolutions
     Eigen::VectorXd output = Eigen::VectorXd::Zero(this->outputSize());
 
     for(size_t inputChannelIndex = 0; inputChannelIndex<m_inputChannelCount; ++inputChannelIndex)
       for(size_t outputChannelIndex = 0; outputChannelIndex<m_outputChannelCount; ++outputChannelIndex)
       {
-        auto outputWidth = m_inputWidth-m_kernelSize+1;
-        auto outputHeight = m_inputHeight-m_kernelSize+1;
+        auto outputWidth = m_inputWidth+m_kernelSize-1;
+        auto outputHeight = m_inputHeight+m_kernelSize-1;
 
         Eigen::Map<const Eigen::MatrixXd> inputChannel (this->input().data()  + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
         Eigen::Map<Eigen::MatrixXd>       outputChannel(output.data()   + outputChannelIndex * outputWidth  * outputHeight,  outputHeight,  outputWidth);
-        for(size_t i=0; i<outputWidth; ++i)
-          for(size_t j=0; j<outputHeight; ++j)
+        for(size_t i=0; i<m_inputWidth; ++i)
+          for(size_t j=0; j<m_inputHeight; ++j)
           {
             const auto& kernel = this->kernel(inputChannelIndex, outputChannelIndex);
-            outputChannel(j,i) += inputChannel.block(j,i,m_kernelSize,m_kernelSize).cwiseProduct(kernel).sum();
+            outputChannel.block(j,i, m_kernelSize, m_kernelSize) += inputChannel(j,i) * kernel;
           }
       }
 
     return output;
   }
 
-  Eigen::RowVectorXd ConvolutionalLayer::backPropagate(const Eigen::RowVectorXd& outputGradient)
+  Eigen::RowVectorXd DeconvolutionalLayer::backPropagate(const Eigen::RowVectorXd& outputGradient)
   {
     assert(outputGradient.size() == this->outputSize());
 
@@ -71,32 +66,33 @@ namespace kann
     for(size_t inputChannelIndex = 0; inputChannelIndex<m_inputChannelCount; ++inputChannelIndex)
       for(size_t outputChannelIndex = 0; outputChannelIndex<m_outputChannelCount; ++outputChannelIndex)
       {
-        auto outputWidth = m_inputWidth-m_kernelSize+1;
-        auto outputHeight = m_inputHeight-m_kernelSize+1;
+        auto outputWidth = m_inputWidth+m_kernelSize-1;
+        auto outputHeight = m_inputHeight+m_kernelSize-1;
 
         Eigen::Map<const Eigen::MatrixXd> inputChannel         (this->input().data()        + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
         Eigen::Map<Eigen::MatrixXd>       inputGradientChannel (inputGradient.data()  + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
 
         Eigen::Map<const Eigen::MatrixXd> outputGradientChannel(outputGradient.data() + outputChannelIndex * outputWidth  * outputHeight,  outputHeight,  outputWidth);
-        for(size_t i=0; i<outputWidth; ++i)
-          for(size_t j=0; j<outputHeight; ++j)
+        for(size_t i=0; i<m_inputWidth; ++i)
+          for(size_t j=0; j<m_inputHeight; ++j)
           {
             const auto& kernel   = this->kernel(inputChannelIndex, outputChannelIndex);
             auto& kernelGradient = this->kernelGradient(inputChannelIndex, outputChannelIndex);
-            inputGradientChannel.block(j,i,m_kernelSize,m_kernelSize) += outputGradientChannel(j,i) * kernel;
-            kernelGradient                                            += outputGradientChannel(j,i) * inputChannel.block(j,i,m_kernelSize,m_kernelSize);
+            inputGradientChannel(j,i) += outputGradientChannel.block(j,i, m_kernelSize, m_kernelSize).cwiseProduct(kernel).sum();
+            kernelGradient += outputGradientChannel.block(j,i, m_kernelSize, m_kernelSize) * inputChannel(j,i);
           }
       }
+
 
     static size_t counter = 0;
     if(++counter % 1000 == 0)
       for(const auto& kernelGradient : m_kernelsGradient)
-        std::cout << "Convolution Kernel Gradient:" << kernelGradient << std::endl;
+        std::cout << "Deconvolution Kernel Gradient:" << kernelGradient << std::endl;
 
     return inputGradient;
   }
 
-  void ConvolutionalLayer::train(double learningRate)
+  void DeconvolutionalLayer::train(double learningRate)
   {
     for(size_t i=0; i<m_kernels.size(); ++i)
     {
@@ -105,16 +101,14 @@ namespace kann
     }
   }
 
-  std::unique_ptr<Layer> ConvolutionalLayer::cross(const Layer& _other, std::default_random_engine& engine, double mutationRate) const
+  std::unique_ptr<Layer> DeconvolutionalLayer::cross(const Layer& _other, std::default_random_engine& engine, double mutationRate) const
   {
-    auto result = std::make_unique<ConvolutionalLayer>(*this);
-    const auto& other = dynamic_cast<const ConvolutionalLayer&>(_other);
+    auto result = std::make_unique<DeconvolutionalLayer>(*this);
+    const auto& other = dynamic_cast<const DeconvolutionalLayer&>(_other);
 
     std::uniform_int_distribution<> distribution(0, 1);
     std::uniform_real_distribution<double> mutationDistribution(0.0, 1.0);
-
-    const double range = std::sqrt(2.0 / this->inputSize());
-    std::uniform_real_distribution<double> weightDistribution(-range,range);
+    std::uniform_real_distribution<double> weightDistribution(-1.0, 1.0);
 
     assert(m_kernels.size() != 0);
     assert(m_kernels.size() == other.m_kernels.size());
