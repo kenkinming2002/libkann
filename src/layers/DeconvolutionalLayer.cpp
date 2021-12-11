@@ -24,7 +24,9 @@ namespace kann
 
   void DeconvolutionalLayer::randomize(std::default_random_engine& engine)
   {
-    std::uniform_real_distribution<double> dist(-0.1,0.1);
+    const double range = std::sqrt(2.0 / this->inputSize()) / m_kernelSize;
+    std::uniform_real_distribution<double> dist(-range,range);
+
     for(auto& kernel : m_kernels)
       kernel = Eigen::MatrixXd::NullaryExpr(kernel.rows(), kernel.cols(), [&](){
         return dist(engine);
@@ -80,6 +82,12 @@ namespace kann
             kernelGradient += outputGradientChannel.block(j,i, m_kernelSize, m_kernelSize) * inputChannel(j,i);
           }
       }
+
+
+    static size_t counter = 0;
+    if(++counter % 1000 == 0)
+      for(const auto& kernelGradient : m_kernelsGradient)
+        std::cout << "Deconvolution Kernel Gradient:" << kernelGradient << std::endl;
 
     return inputGradient;
   }

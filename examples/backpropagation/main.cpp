@@ -282,6 +282,15 @@ int main(int argc, char* argv[])
       }
     }
 
+    // Note: YOu must add a dense layer (or in our library called
+    //       kann::WeightLayer) at the end of any convolutional neural network.
+    //       They are the layer that actually do the heavy lifting of
+    //       classification.
+    auto lastWeightLayer     = std::make_unique<kann::WeightLayer>(autoEncoder.outputSize(), autoEncoder.outputSize());
+    auto lastActivationLayer = std::make_unique<kann::ActivationLayer>(autoEncoder.outputSize(), activationFunction);
+    autoEncoder.addLayer(std::move(lastWeightLayer));
+    autoEncoder.addLayer(std::move(lastActivationLayer));
+
     autoEncoder.randomize(engine);
     autoEncoder.train(trainingDataSet, LEARNING_RATE);
 

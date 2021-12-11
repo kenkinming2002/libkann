@@ -88,6 +88,11 @@ namespace kann
           }
       }
 
+    static size_t counter = 0;
+    if(++counter % 1000 == 0)
+      for(const auto& kernelGradient : m_kernelsGradient)
+        std::cout << "Convolution Kernel Gradient:" << kernelGradient << std::endl;
+
     return inputGradient;
   }
 
