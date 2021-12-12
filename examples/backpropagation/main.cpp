@@ -159,13 +159,13 @@ int main(int argc, char* argv[])
   std::default_random_engine engine(random<std::mt19937::result_type>());
 
   kann::MNISTDataSet trainingDataSet(
-    "examples/backpropagation/datasets/train-images-idx3-ubyte",
-    "examples/backpropagation/datasets/train-labels-idx1-ubyte"
+    "datasets/mnist/train-images-idx3-ubyte",
+    "datasets/mnist/train-labels-idx1-ubyte"
   );
 
   kann::MNISTDataSet testingDataSet(
-    "examples/backpropagation/datasets/t10k-images-idx3-ubyte",
-    "examples/backpropagation/datasets/t10k-labels-idx1-ubyte"
+    "datasets/mnist/t10k-images-idx3-ubyte",
+    "datasets/mnist/t10k-labels-idx1-ubyte"
   );
 
   if(argc != 2)
