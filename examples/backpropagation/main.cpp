@@ -1,3 +1,5 @@
+#include "libkann/ActivationFunction.hpp"
+#include "libkann/datasets/DataSet.hpp"
 #include <libkann/utilities/random.hpp>
 
 #include <libkann/neural_networks/NeuralNetwork.hpp>
@@ -38,6 +40,120 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
   }
 }
 
+template<typename NeuralNetwork>
+static void attachWeightActivationLayers(NeuralNetwork& nn, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
+{
+  const auto activationFunction = kann::ActivationFunction(activationType);
+  for(size_t i=0; i < topology.size()-1; ++i)
+  {
+    size_t prevSize = topology[i];
+    size_t nextSize = topology[i+1];
+
+    auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
+    auto activationLayer = std::make_unique<kann::ActivationLayer>(weightLayer->outputSize(), activationFunction);
+    nn.addLayer(std::move(weightLayer));
+    nn.addLayer(std::move(activationLayer));
+  }
+}
+
+template<typename NeuralNetwork>
+static void attachConvolutionActivationLayers(NeuralNetwork& nn, const std::vector<size_t>& topology, size_t& width, size_t& height, size_t kernelSize, kann::ActivationFunction::Type activationType)
+{
+  const auto activationFunction = kann::ActivationFunction(activationType);
+  for(size_t i=0; i < topology.size()-1; ++i)
+  {
+    size_t prevSize = topology[i];
+    size_t nextSize = topology[i+1];
+
+    auto convolutionalLayer = std::make_unique<kann::ConvolutionalLayer>(width, height, kernelSize, prevSize, nextSize);
+    auto activationLayer    = std::make_unique<kann::ActivationLayer>(convolutionalLayer->outputSize(), activationFunction);
+    nn.addLayer(std::move(convolutionalLayer));
+    nn.addLayer(std::move(activationLayer));
+
+    assert(width>kernelSize);
+    width -= kernelSize - 1;
+    assert(height>kernelSize);
+    height -= kernelSize - 1;
+  }
+}
+
+template<typename NeuralNetwork>
+static void attachDeconvolutionActivationLayers(NeuralNetwork& nn, const std::vector<size_t>& topology, size_t& width, size_t& height, size_t kernelSize, kann::ActivationFunction::Type activationType)
+{
+  const auto activationFunction = kann::ActivationFunction(activationType);
+  for(size_t i=0; i < topology.size()-1; ++i)
+  {
+    size_t prevSize = topology[i];
+    size_t nextSize = topology[i+1];
+
+    auto deconvolutionalLayer = std::make_unique<kann::DeconvolutionalLayer>(width, height, kernelSize, prevSize, nextSize);
+    auto activationLayer    = std::make_unique<kann::ActivationLayer>(deconvolutionalLayer->outputSize(), activationFunction);
+    nn.addLayer(std::move(deconvolutionalLayer));
+    nn.addLayer(std::move(activationLayer));
+
+    width += kernelSize - 1;
+    height += kernelSize - 1;
+  }
+}
+
+static void trainAndTestNeuralNetwork(kann::NeuralNetwork& nn, const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet)
+{
+  double correctness;
+
+  correctness = nn.test(testingDataSet);
+  std::cout << "Correctness:" << correctness << std::endl;
+
+  nn.train(trainingDataSet, LEARNING_RATE);
+
+  correctness = nn.test(trainingDataSet);
+  std::cout << "Training Data Set Correctness:" << correctness << std::endl;
+
+  correctness = nn.test(testingDataSet);
+  std::cout << "Testing Data Set Correctness:" << correctness << std::endl;
+}
+
+static void trainAndRunAutoEncoder(kann::AutoEncoder& autoEncoder, const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet,
+    std::filesystem::path reconstructionOutputPath, std::filesystem::path outputPath, size_t featuresCount, size_t generateCount)
+{
+    Eigen::VectorXd input, output;
+
+    autoEncoder.train(trainingDataSet, LEARNING_RATE);
+
+    // Reconstruction
+    if(!std::filesystem::create_directories(reconstructionOutputPath))
+    {
+      std::cerr << "Error: Failed to create directories " << reconstructionOutputPath << std::endl;
+      return;
+    }
+
+    for(size_t i = 0; i<trainingDataSet.size(); ++i)
+    {
+      trainingDataSet.get(i, input, output);
+      autoEncoder.feedForward(input);
+
+      std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
+      std::ofstream file(filepath, std::ofstream::binary);
+      kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    }
+
+    // Generate
+    if(!std::filesystem::create_directories(outputPath))
+    {
+      std::cerr << "Error: Failed to create directories " << outputPath << std::endl;
+      return;
+    }
+
+    for(size_t i = 0; i<generateCount; ++i)
+    {
+      const Eigen::VectorXd features = Eigen::VectorXd::Random(featuresCount) * std::sqrt(2.0 / 10);
+      autoEncoder.generate(features);
+
+      std::filesystem::path filepath = outputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
+      std::ofstream file(filepath, std::ofstream::binary);
+      kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    }
+}
+
 int main(int argc, char* argv[])
 {
   std::default_random_engine engine(random<std::mt19937::result_type>());
@@ -70,272 +186,59 @@ int main(int argc, char* argv[])
   {
     // Normal Neural Network
     kann::NeuralNetwork nn;
-
-    const size_t topology[] = {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10};
-    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
-
-    for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
-    {
-      size_t prevSize = topology[i];
-      size_t nextSize = topology[i+1];
-      auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
-
-      auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
-      nn.addLayer(std::move(weightLayer));
-      nn.addLayer(std::move(activationLayer));
-    }
-
+    attachWeightActivationLayers(nn, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
     nn.randomize(engine);
-
-    double correctness;
-
-    correctness = nn.test(testingDataSet);
-    std::cout << "Correctness:" << correctness << std::endl;
-
-    nn.train(trainingDataSet, LEARNING_RATE);
-
-    correctness = nn.test(trainingDataSet);
-    std::cout << "Training Data Set Correctness:" << correctness << std::endl;
-
-    correctness = nn.test(testingDataSet);
-    std::cout << "Testing Data Set Correctness:" << correctness << std::endl;
+    trainAndTestNeuralNetwork(nn, trainingDataSet, testingDataSet);
   }
   else if(subcommand == "convolution")
   {
     // Convolutional Neural Network
     kann::NeuralNetwork nn;
-
-    const size_t kernelSize = 5;
-    const size_t topology[] = {1, 3, 3, 1};
-    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
-
-    size_t width = kann::MNISTDataSet::IMAGE_WIDTH;
-    for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
-    {
-      size_t prevSize = topology[i];
-      size_t nextSize = topology[i+1];
-
-      auto convolutionalLayer = std::make_unique<kann::ConvolutionalLayer>(width, width, kernelSize, prevSize, nextSize);
-
-      auto activationLayer    = std::make_unique<kann::ActivationLayer>(convolutionalLayer->outputSize(), activationFunction);
-
-      nn.addLayer(std::move(convolutionalLayer));
-      nn.addLayer(std::move(activationLayer));
-
-      assert(width>kernelSize);
-      width -= kernelSize - 1;
-    }
-
-    auto weightLayer     = std::make_unique<kann::WeightLayer>(nn.outputSize(), 10);
-    auto activationLayer = std::make_unique<kann::ActivationLayer>(10, activationFunction);
-
-    nn.addLayer(std::move(weightLayer));
-    nn.addLayer(std::move(activationLayer));
-
+    size_t width = kann::MNISTDataSet::IMAGE_WIDTH, height = kann::MNISTDataSet::IMAGE_WIDTH;
+    attachConvolutionActivationLayers(nn, {1, 3, 3, 1}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
+    attachWeightActivationLayers(nn, {nn.outputSize(), 10}, kann::ActivationFunction::Type::SIGMOID);
     nn.randomize(engine);
-
-    double correctness;
-
-    correctness = nn.test(testingDataSet);
-    std::cout << "Correctness:" << correctness << std::endl;
-
-    nn.train(trainingDataSet, LEARNING_RATE);
-
-    correctness = nn.test(trainingDataSet);
-    std::cout << "Training Data Set Correctness:" << correctness << std::endl;
-
-    correctness = nn.test(testingDataSet);
-    std::cout << "Testing Data Set Correctness:" << correctness << std::endl;
+    trainAndTestNeuralNetwork(nn, trainingDataSet, testingDataSet);
   }
   else if(subcommand == "autoencoder")
   {
     static constexpr size_t FEATURES_COUNT = 64;
 
     kann::AutoEncoder autoEncoder;
-
-    const size_t topology[] = {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE};
-    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
-
-    for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
-    {
-      size_t prevSize = topology[i];
-      size_t nextSize = topology[i+1];
-
-      auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
-      auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
-
-      autoEncoder.addLayer(std::move(weightLayer));
-      autoEncoder.addLayer(std::move(activationLayer));
-
-      if(nextSize == FEATURES_COUNT)
-        autoEncoder.setFeaturesLayer();
-    }
-
+    attachWeightActivationLayers(autoEncoder, {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
+    autoEncoder.setFeaturesLayer();
+    attachWeightActivationLayers(autoEncoder, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
     autoEncoder.randomize(engine);
-    autoEncoder.train(trainingDataSet, LEARNING_RATE);
 
-    // Reconstruction
-    {
-      const std::filesystem::path dirpath("output/autoencoder-reconstruction");
-      if(!std::filesystem::create_directories(dirpath))
-      {
-        std::cerr << "Error: Failed to create directories " << dirpath << std::endl;
-        return -1;
-      }
-
-      Eigen::VectorXd input, output;
-      for(size_t i = 0; i<trainingDataSet.size(); ++i)
-      {
-        trainingDataSet.get(i, input, output);
-        autoEncoder.feedForward(input);
-
-        std::filesystem::path filepath = dirpath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-        std::ofstream file(filepath, std::ofstream::binary);
-        kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
-      }
-    }
-
-    // Generate
-    {
-      static constexpr size_t GENERATE_COUNT = 100;
-
-      const std::filesystem::path dirpath("output/autoencoder");
-      if(!std::filesystem::create_directories(dirpath))
-      {
-        std::cerr << "Error: Failed to create directories " << dirpath << std::endl;
-        return -1;
-      }
-
-      for(size_t i = 0; i<GENERATE_COUNT; ++i)
-      {
-        const Eigen::VectorXd features = Eigen::VectorXd::Random(FEATURES_COUNT) * std::sqrt(2.0 / 10);
-        autoEncoder.generate(features);
-
-        std::filesystem::path filepath = dirpath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-        std::ofstream file(filepath, std::ofstream::binary);
-        kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
-      }
-    }
+    trainAndRunAutoEncoder(autoEncoder, trainingDataSet, testingDataSet,
+      "output/autoencoder-reconstruction", "output/autoencoder",
+      FEATURES_COUNT, 500
+    );
   }
   else if(subcommand == "autoencoder-convolutional")
   {
     static constexpr size_t FEATURES_COUNT = 64;
 
     kann::AutoEncoder autoEncoder;
+    size_t width = kann::MNISTDataSet::IMAGE_WIDTH, height = kann::MNISTDataSet::IMAGE_WIDTH;
 
-    const size_t kernelSize = 5;
-    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
-
-    size_t width = kann::MNISTDataSet::IMAGE_WIDTH;
-
-    // Convolutional Layer
-    {
-      const size_t topology[] = {1, 5};
-
-      for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
-      {
-        size_t prevSize = topology[i];
-        size_t nextSize = topology[i+1];
-
-        auto convolutionalLayer = std::make_unique<kann::ConvolutionalLayer>(width, width, kernelSize, prevSize, nextSize);
-        auto activationLayer    = std::make_unique<kann::ActivationLayer>(convolutionalLayer->outputSize(), activationFunction);
-
-        autoEncoder.addLayer(std::move(convolutionalLayer));
-        autoEncoder.addLayer(std::move(activationLayer));
-
-        assert(width>kernelSize);
-        width -= kernelSize - 1;
-      }
-
-    }
+    attachConvolutionActivationLayers(autoEncoder, {1, 5}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
 
     const size_t size = autoEncoder.outputSize();
-
-    auto prevWeightLayer     = std::make_unique<kann::WeightLayer>(size, FEATURES_COUNT);
-    auto prevActivationLayer = std::make_unique<kann::ActivationLayer>(FEATURES_COUNT, activationFunction);
-    autoEncoder.addLayer(std::move(prevWeightLayer));
-    autoEncoder.addLayer(std::move(prevActivationLayer));
-
+    attachWeightActivationLayers(autoEncoder, {size, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
     autoEncoder.setFeaturesLayer();
+    attachWeightActivationLayers(autoEncoder, {FEATURES_COUNT, size}, kann::ActivationFunction::Type::SIGMOID);
 
-    auto nextWeightLayer     = std::make_unique<kann::WeightLayer>(FEATURES_COUNT, size);
-    auto nextActivationLayer = std::make_unique<kann::ActivationLayer>(size, activationFunction);
-    autoEncoder.addLayer(std::move(nextWeightLayer));
-    autoEncoder.addLayer(std::move(nextActivationLayer));
+    attachDeconvolutionActivationLayers(autoEncoder, {5, 1}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
 
-    // Deconvolutional Layer
-    {
-      const size_t topology[] = {5, 1};
-
-      for(size_t i=0; i < sizeof topology / sizeof topology[0] - 1; ++i)
-      {
-        size_t prevSize = topology[i];
-        size_t nextSize = topology[i+1];
-
-        auto deconvolutionalLayer = std::make_unique<kann::DeconvolutionalLayer>(width, width, kernelSize, prevSize, nextSize);
-        auto activationLayer    = std::make_unique<kann::ActivationLayer>(deconvolutionalLayer->outputSize(), activationFunction);
-
-        autoEncoder.addLayer(std::move(deconvolutionalLayer));
-        autoEncoder.addLayer(std::move(activationLayer));
-
-        width += kernelSize - 1;
-      }
-    }
-
-    // Note: YOu must add a dense layer (or in our library called
-    //       kann::WeightLayer) at the end of any convolutional neural network.
-    //       They are the layer that actually do the heavy lifting of
-    //       classification.
-    auto lastWeightLayer     = std::make_unique<kann::WeightLayer>(autoEncoder.outputSize(), autoEncoder.outputSize());
-    auto lastActivationLayer = std::make_unique<kann::ActivationLayer>(autoEncoder.outputSize(), activationFunction);
-    autoEncoder.addLayer(std::move(lastWeightLayer));
-    autoEncoder.addLayer(std::move(lastActivationLayer));
+    attachWeightActivationLayers(autoEncoder, {autoEncoder.outputSize(), autoEncoder.outputSize()}, kann::ActivationFunction::Type::SIGMOID);
 
     autoEncoder.randomize(engine);
-    autoEncoder.train(trainingDataSet, LEARNING_RATE);
 
-    // Reconstruction
-    {
-      const std::filesystem::path dirpath("output/autoencoder-convolutional-reconstruction");
-      if(!std::filesystem::create_directories(dirpath))
-      {
-        std::cerr << "Error: Failed to create directories " << dirpath << std::endl;
-        return -1;
-      }
-
-      Eigen::VectorXd input, output;
-      for(size_t i = 0; i<trainingDataSet.size(); ++i)
-      {
-        trainingDataSet.get(i, input, output);
-        autoEncoder.feedForward(input);
-
-        std::filesystem::path filepath = dirpath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-        std::ofstream file(filepath, std::ofstream::binary);
-        kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
-      }
-    }
-
-    // Generate
-    {
-      static constexpr size_t GENERATE_COUNT = 100;
-
-      const std::filesystem::path dirpath("output/autoencoder-convolutional");
-      if(!std::filesystem::create_directories(dirpath))
-      {
-        std::cerr << "Error: Failed to create directories " << dirpath << std::endl;
-        return -1;
-      }
-
-      for(size_t i = 0; i<GENERATE_COUNT; ++i)
-      {
-        const Eigen::VectorXd features = Eigen::VectorXd::Random(FEATURES_COUNT) * std::sqrt(2.0 / 10);
-        autoEncoder.generate(features);
-
-        std::filesystem::path filepath = dirpath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-        std::ofstream file(filepath, std::ofstream::binary);
-        kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
-      }
-    }
+    trainAndRunAutoEncoder(autoEncoder, trainingDataSet, testingDataSet,
+      "output/autoencoder-convolutional-reconstruction", "output/autoencoder-convolutional",
+      FEATURES_COUNT, 500
+    );
   }
   else
   {
