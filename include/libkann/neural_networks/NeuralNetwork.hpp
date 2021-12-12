@@ -48,11 +48,11 @@ namespace kann
     void serialize(Archive& archive)
     {
       archive(m_layers);
-      archive(m_output);
+      archive(m_data);
     }
 
   private:
     std::vector<std::unique_ptr<Layer>> m_layers;
-    Eigen::VectorXd m_output;
+    std::vector<Eigen::VectorXd> m_data;
   };
 }

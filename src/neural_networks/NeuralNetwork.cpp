@@ -29,24 +29,20 @@ namespace kann
 
   void NeuralNetwork::feedForward(Eigen::VectorXd input)
   {
-    for(auto& layer : m_layers)
-    {
-      layer->input(std::move(input));
-      input = layer->feedForward();
-    }
+    m_data.resize(m_layers.size()+1);
 
-    m_output = input;
+    m_data[0] = std::move(input);
+
+    for(size_t i=0; i<m_layers.size(); ++i)
+      m_data[i+1] = m_layers[i]->feedForward(m_data[i]);
   }
 
   void NeuralNetwork::backPropagate(const Eigen::VectorXd& expectedOutput)
   {
     // TODO: Allow changing the cost function
-    Eigen::VectorXd outputGradient = 2.0 * (m_output - expectedOutput);
-    for(auto it = m_layers.rbegin(); it != m_layers.rend(); ++it)
-    {
-      auto& layer = *it;
-      outputGradient = layer->backPropagate(outputGradient);
-    }
+    Eigen::VectorXd outputGradient = 2.0 * (output() - expectedOutput);
+    for(ssize_t i = m_layers.size()-1; i>=0; --i)
+      outputGradient = m_layers[i]->backPropagate(m_data[i], outputGradient);
   }
 
   void NeuralNetwork::train(double learningRate)
@@ -71,7 +67,7 @@ namespace kann
 
   const Eigen::VectorXd& NeuralNetwork::output() const
   {
-    return m_output;
+    return m_data.back();
   }
 
   namespace

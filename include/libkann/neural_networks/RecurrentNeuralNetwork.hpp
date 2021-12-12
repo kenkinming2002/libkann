@@ -41,11 +41,15 @@ namespace kann
     void serialize(Archive& archive)
     {
       archive(m_layers);
+      archive(m_data);
       archive(m_output);
+      archive(m_memory);
     }
 
   private:
     std::vector<std::unique_ptr<Layer>> m_layers;
+    std::vector<Eigen::VectorXd> m_data;
+
     Eigen::VectorXd m_output;
     Eigen::VectorXd m_memory;
   };

@@ -48,13 +48,14 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
+      archive(m_featuresLayerIndex);
       archive(m_layers);
-      archive(m_output);
+      archive(m_data);
     }
 
   private:
     size_t m_featuresLayerIndex = 0;
     std::vector<std::unique_ptr<Layer>> m_layers;
-    Eigen::VectorXd m_output;
+    std::vector<Eigen::VectorXd> m_data;
   };
 }

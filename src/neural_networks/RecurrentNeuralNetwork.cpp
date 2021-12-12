@@ -25,16 +25,16 @@ namespace kann
 
   void RecurrentNeuralNetwork::feedForward(Eigen::VectorXd input)
   {
+    m_data.resize(m_layers.size()+1);
+
     Eigen::VectorXd realInput(input.size()+m_memory.size());
     realInput << input, m_memory;
+    m_data[0] = std::move(realInput);
 
-    for(auto& layer : m_layers)
-    {
-      layer->input(std::move(realInput));
-      realInput = layer->feedForward();
-    }
+    for(size_t i=0; i<m_layers.size(); ++i)
+      m_data[i+1] = m_layers[i]->feedForward(m_data[i]);
 
-    Eigen::VectorXd realOutput = std::move(realInput);
+    const auto& realOutput = m_data.back();
     m_output = realOutput.head(realOutput.size() - m_memory.size());
     m_memory = realOutput.tail(m_memory.size());
   }

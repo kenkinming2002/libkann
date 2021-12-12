@@ -28,9 +28,12 @@ namespace kann
     void randomize(std::default_random_engine& prng) override;
 
   public:
-    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward() override;
-    LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::RowVectorXd& outputGradient) override;
+    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(const Eigen::VectorXd& input) override;
+    LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient) override;
+
+  public:
     LIBKANN_SYMEXPORT void train(double learningRate) override;
+
 
   public:
     LIBKANN_SYMEXPORT std::unique_ptr<Layer> cross(const Layer& other, std::default_random_engine& engine, double mutationRate) const override;

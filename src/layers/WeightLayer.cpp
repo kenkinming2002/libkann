@@ -30,14 +30,14 @@ namespace kann
     });
   }
 
-  Eigen::VectorXd WeightLayer::feedForward()
+  Eigen::VectorXd WeightLayer::feedForward(const Eigen::VectorXd& input)
   {
-    return m_weight * this->input();
+    return m_weight * input;
   }
 
-  Eigen::RowVectorXd WeightLayer::backPropagate(const Eigen::RowVectorXd& outputGradient)
+  Eigen::RowVectorXd WeightLayer::backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient)
   {
-    m_weightGradient += (this->input() * outputGradient).transpose();
+    m_weightGradient += (input * outputGradient).transpose();
     return outputGradient * m_weight;
   }
 

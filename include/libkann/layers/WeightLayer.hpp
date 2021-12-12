@@ -25,8 +25,10 @@ namespace kann
     LIBKANN_SYMEXPORT void randomize(std::default_random_engine& engine) override;
 
   public:
-    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward() override;
-    LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::RowVectorXd& outputGradient) override;
+    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(const Eigen::VectorXd& input) override;
+    LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient) override;
+
+  public:
     LIBKANN_SYMEXPORT void train(double learningRate) override;
 
   public:

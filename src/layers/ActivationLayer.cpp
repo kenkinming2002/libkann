@@ -21,14 +21,14 @@ namespace kann
 
   void ActivationLayer::randomize(std::default_random_engine& engine) {}
 
-  Eigen::VectorXd ActivationLayer::feedForward()
+  Eigen::VectorXd ActivationLayer::feedForward(const Eigen::VectorXd& input)
   {
-    return this->input().unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
+    return input.unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
   }
 
-  Eigen::RowVectorXd ActivationLayer::backPropagate(const Eigen::RowVectorXd& outputGradient)
+  Eigen::RowVectorXd ActivationLayer::backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient)
   {
-    return this->input().unaryExpr(std::bind(&ActivationFunction::derivative, &m_activationFunction, _1)).transpose().cwiseProduct(outputGradient);
+    return input.unaryExpr(std::bind(&ActivationFunction::derivative, &m_activationFunction, _1)).transpose().cwiseProduct(outputGradient);
   }
 
   void ActivationLayer::train(double learningRate) {}
