@@ -52,6 +52,8 @@ public:
 
 private:
   kann::NeuralNetwork m_neuralNetwork;
+  kann::FeedForwardResult m_feedForwardResult;
+  kann::BackPropagationResult m_backPropagationResult;
   double m_score = 0.0;
 
 private:

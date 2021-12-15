@@ -5,68 +5,34 @@
 namespace kann
 {
   WeightLayer::WeightLayer(size_t inputSize, size_t outputSize)
+    : Layer(inputSize * outputSize), m_inputSize(inputSize), m_outputSize(outputSize) {}
+
+  std::unique_ptr<Layer> WeightLayer::clone() const
   {
-    m_weight         = Eigen::MatrixXd(outputSize, inputSize);
-    m_weightGradient = Eigen::MatrixXd::Zero(outputSize, inputSize);
+    return std::make_unique<WeightLayer>(*this);
   }
 
   size_t WeightLayer::inputSize() const
   {
-    return m_weight.cols();
+    return m_inputSize;
   }
 
   size_t WeightLayer::outputSize() const
   {
-    return m_weight.rows();
+    return m_outputSize;
   }
 
-  void WeightLayer::randomize(std::default_random_engine& engine)
+  void WeightLayer::feedForward(const Eigen::VectorXd& input, Eigen::VectorXd& output) const
   {
-    const double range = std::sqrt(2.0 / this->inputSize());
-    std::uniform_real_distribution<double> weightDistribution(-range, range);
-
-    m_weight = Eigen::MatrixXd::NullaryExpr(m_weightGradient.rows(), m_weight.cols(), [&](){
-      return weightDistribution(engine);
-    });
+    output = weight() * input;
   }
 
-  Eigen::VectorXd WeightLayer::feedForward(const Eigen::VectorXd& input)
+  void WeightLayer::backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const
   {
-    return m_weight * input;
+    layerGradient.resize(params().size());
+
+    inputGradient = outputGradient * weight();
+    weightGradient(layerGradient) = (input * outputGradient).transpose();
   }
 
-  Eigen::RowVectorXd WeightLayer::backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient)
-  {
-    m_weightGradient += (input * outputGradient).transpose();
-    return outputGradient * m_weight;
-  }
-
-  void WeightLayer::train(double learningRate)
-  {
-    m_weight -= learningRate * m_weightGradient;
-    m_weightGradient.setZero();
-  }
-
-  std::unique_ptr<Layer> WeightLayer::cross(const Layer& _other, std::default_random_engine& engine, double mutationRate) const
-  {
-    auto result = std::make_unique<WeightLayer>(*this);
-    const auto& other = dynamic_cast<const WeightLayer&>(_other);
-
-    std::uniform_int_distribution<> distribution(0, 1);
-    std::uniform_real_distribution<double> mutationDistribution(0.0, 1.0);
-
-    const double range = std::sqrt(2.0 / this->inputSize());
-    std::uniform_real_distribution<double> weightDistribution(-range, range);
-
-    assert(m_weight.size() != 0);
-    assert(m_weight.size() == other.m_weight.size());
-    for(long i=0; i<result->m_weight.size(); ++i)
-    {
-      result->m_weight.data()[i] = distribution(engine) == 0 ? m_weight.data()[i] : other.m_weight.data()[i];
-      if(mutationDistribution(engine) < mutationRate)
-        result->m_weight.data()[i] = weightDistribution(engine);
-    }
-
-    return result;
-  }
 }

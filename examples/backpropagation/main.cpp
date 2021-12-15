@@ -1,5 +1,3 @@
-#include "libkann/ActivationFunction.hpp"
-#include "libkann/datasets/DataSet.hpp"
 #include <libkann/utilities/random.hpp>
 
 #include <libkann/neural_networks/NeuralNetwork.hpp>
@@ -120,37 +118,42 @@ static void trainAndRunAutoEncoder(kann::AutoEncoder& autoEncoder, const kann::D
     autoEncoder.train(trainingDataSet, LEARNING_RATE);
 
     // Reconstruction
-    if(!std::filesystem::create_directories(reconstructionOutputPath))
     {
-      std::cerr << "Error: Failed to create directories " << reconstructionOutputPath << std::endl;
-      return;
-    }
+      if(!std::filesystem::create_directories(reconstructionOutputPath))
+      {
+        std::cerr << "Error: Failed to create directories " << reconstructionOutputPath << std::endl;
+        return;
+      }
 
-    for(size_t i = 0; i<trainingDataSet.size(); ++i)
-    {
-      trainingDataSet.get(i, input, output);
-      autoEncoder.feedForward(input);
+      kann::FeedForwardResult result;
+      for(size_t i = 0; i<trainingDataSet.size(); ++i)
+      {
+        trainingDataSet.get(i, input, output);
+        autoEncoder.feedForward(input, result);
 
-      std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-      std::ofstream file(filepath, std::ofstream::binary);
-      kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+        std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
+        std::ofstream file(filepath, std::ofstream::binary);
+        kann::writeImage(file, result.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      }
     }
 
     // Generate
-    if(!std::filesystem::create_directories(outputPath))
     {
-      std::cerr << "Error: Failed to create directories " << outputPath << std::endl;
-      return;
-    }
+      if(!std::filesystem::create_directories(outputPath))
+      {
+        std::cerr << "Error: Failed to create directories " << outputPath << std::endl;
+        return;
+      }
 
-    for(size_t i = 0; i<generateCount; ++i)
-    {
-      const Eigen::VectorXd features = Eigen::VectorXd::Random(featuresCount) * std::sqrt(2.0 / 10);
-      autoEncoder.generate(features);
+      for(size_t i = 0; i<generateCount; ++i)
+      {
+        const Eigen::VectorXd features = Eigen::VectorXd::Random(featuresCount) * std::sqrt(2.0 / 10);
+        auto output = autoEncoder.generate(features);
 
-      std::filesystem::path filepath = outputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-      std::ofstream file(filepath, std::ofstream::binary);
-      kann::writeImage(file, autoEncoder.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+        std::filesystem::path filepath = outputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
+        std::ofstream file(filepath, std::ofstream::binary);
+        kann::writeImage(file, output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      }
     }
 }
 

@@ -18,48 +18,31 @@ namespace kann
     LIBKANN_SYMEXPORT WeightLayer(size_t inputSize, size_t outputSize);
 
   public:
+    LIBKANN_SYMEXPORT std::unique_ptr<Layer> clone() const override;
+
+  public:
     LIBKANN_SYMEXPORT size_t inputSize() const override;
     LIBKANN_SYMEXPORT size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT void randomize(std::default_random_engine& engine) override;
+    LIBKANN_SYMEXPORT void feedForward(const Eigen::VectorXd& input, Eigen::VectorXd& output) const override;
+    LIBKANN_SYMEXPORT void backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const override;
 
   public:
-    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(const Eigen::VectorXd& input) override;
-    LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient) override;
-
-  public:
-    LIBKANN_SYMEXPORT void train(double learningRate) override;
-
-  public:
-    LIBKANN_SYMEXPORT std::unique_ptr<Layer> cross(const Layer& other, std::default_random_engine& engine, double mutationRate) const override;
-
-  public:
-    void weight(Eigen::MatrixXd weight)
-    {
-      assert(m_weight.rows() == weight.rows());
-      assert(m_weight.cols() == weight.cols());
-      m_weight = weight;
-    }
-
-    Eigen::MatrixXd weight() const
-    {
-      return m_weight;
-    }
+    auto weight() const { return Eigen::Map<const Eigen::MatrixXd>(params().data(), m_outputSize, m_inputSize); }
+    auto weightGradient(Eigen::ArrayXd& gradient) const { return Eigen::Map<Eigen::MatrixXd>(gradient.data(), m_outputSize, m_inputSize); }
 
   public:
     template<typename Archive>
     void serialize(Archive& archive)
     {
       archive(cereal::base_class<Layer>(this));
-
-      archive(m_weight);
-      archive(m_weightGradient);
+      archive(m_inputSize);
+      archive(m_outputSize);
     }
 
   private:
-    Eigen::MatrixXd m_weight;
-    Eigen::MatrixXd m_weightGradient;
+    size_t m_inputSize, m_outputSize;
   };
 
 }

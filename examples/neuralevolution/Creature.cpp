@@ -75,7 +75,7 @@ void Creature::updateNeuralNetwork(const Config& config)
   input(INPUT_HEALTH)          = m_health / config.maxHealth;
   input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / config.viewDistance;
   input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / config.viewDistance;
-  m_neuralNetwork.feedForward(std::move(input));
+  m_neuralNetwork.feedForward(std::move(input), m_result);
 }
 
 // Working alone
@@ -85,7 +85,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
   static constexpr double MATING_ENERGY_COST = 5.0;
   static constexpr float REACH_MULTIPLIER = 1.5f;
 
-  const auto& output = m_neuralNetwork.output();
+  const auto& output = m_result.output;
 
   // 1: Cooldown
   {
@@ -193,7 +193,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
           continue;
 
         // Check if other have the same desire
-        if(other->m_neuralNetwork.output()(OUTPUT_EATING_DESIRE)<0.0)
+        if(other->m_result.output(OUTPUT_EATING_DESIRE)<0.0)
           continue; // Other do not want to mate
 
         if(other->m_matingCooldown != 0.0)
@@ -207,7 +207,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
         if(!takeEnergy(config.maxEnergy * 0.2) || !other->takeEnergy(config.maxEnergy * 0.2))
           continue;
 
-        auto newNeuralNetwork = m_neuralNetwork.cross(other->m_neuralNetwork, world.prng(), config.mutationRate);
+        auto newNeuralNetwork = kann::RecurrentNeuralNetwork::cross(m_neuralNetwork, other->m_neuralNetwork, world.prng(), config.mutationRate);
         auto newPosition = position();
         newPosition += other->position();
         newPosition *= 0.5;

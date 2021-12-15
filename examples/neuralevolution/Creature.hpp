@@ -115,6 +115,7 @@ public:
 
 private:
   kann::RecurrentNeuralNetwork m_neuralNetwork;
+  kann::RecurrentFeedForwardResult m_result;
 
 private:
   static constexpr size_t EYES_COUNT = 2;

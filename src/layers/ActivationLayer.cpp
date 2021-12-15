@@ -7,7 +7,12 @@ namespace kann
   using namespace std::placeholders;
 
   ActivationLayer::ActivationLayer(size_t size, ActivationFunction activationFunction)
-    : m_size(size), m_activationFunction(activationFunction) {}
+    : Layer(0), m_size(size), m_activationFunction(activationFunction) {}
+
+  std::unique_ptr<Layer> ActivationLayer::clone() const
+  {
+    return std::make_unique<ActivationLayer>(*this);
+  }
 
   size_t ActivationLayer::inputSize() const
   {
@@ -19,22 +24,14 @@ namespace kann
     return m_size;
   }
 
-  void ActivationLayer::randomize(std::default_random_engine& engine) {}
-
-  Eigen::VectorXd ActivationLayer::feedForward(const Eigen::VectorXd& input)
+  void ActivationLayer::feedForward(const Eigen::VectorXd& input, Eigen::VectorXd& output) const
   {
-    return input.unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
+    output = input.unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
   }
 
-  Eigen::RowVectorXd ActivationLayer::backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient)
+  void ActivationLayer::backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const
   {
-    return input.unaryExpr(std::bind(&ActivationFunction::derivative, &m_activationFunction, _1)).transpose().cwiseProduct(outputGradient);
-  }
-
-  void ActivationLayer::train(double learningRate) {}
-
-  std::unique_ptr<Layer> ActivationLayer::cross(const Layer& other, std::default_random_engine& engine, double mutationRate) const
-  {
-    return std::make_unique<ActivationLayer>(*this);
+    inputGradient = input.unaryExpr(std::bind(&ActivationFunction::derivative, &m_activationFunction, _1)).transpose().cwiseProduct(outputGradient);
+    layerGradient.resize(0); // We do not have any gradient
   }
 }

@@ -3,18 +3,35 @@
 namespace kann
 {
   RecurrentNeuralNetwork::RecurrentNeuralNetwork(size_t memory)
-    : m_memory(Eigen::VectorXd::Zero(memory)) {}
+    : m_memory(memory) {}
 
   size_t RecurrentNeuralNetwork::inputSize() const
   {
     assert(!m_layers.empty());
-    return m_layers.front()->inputSize() - m_memory.size();
+    return m_layers.front()->inputSize() - m_memory;
   }
 
   size_t RecurrentNeuralNetwork::outputSize() const
   {
     assert(!m_layers.empty());
-    return m_layers.back()->outputSize() - m_memory.size();
+    return m_layers.back()->outputSize() - m_memory;
+  }
+
+  void RecurrentNeuralNetwork::feedForward(Eigen::VectorXd input, RecurrentFeedForwardResult& result) const
+  {
+    if(result.memory.size() != m_memory)
+      result.memory = Eigen::VectorXd::Zero(m_memory);
+
+    Eigen::VectorXd realInput(input.size()+result.memory.size());
+    realInput << input, result.memory;
+
+    result.data.resize(m_layers.size()+1);
+    result.data.front() = std::move(realInput);
+    for(size_t i=0; i<m_layers.size(); ++i)
+      m_layers[i]->feedForward(result.data[i], result.data[i+1]);
+
+    result.output = result.data.back().head(result.data.back().size() - m_memory);
+    result.memory = result.data.back().tail(m_memory);
   }
 
   void RecurrentNeuralNetwork::randomize(std::default_random_engine& engine)
@@ -23,27 +40,17 @@ namespace kann
       layer->randomize(engine);
   }
 
-  void RecurrentNeuralNetwork::feedForward(Eigen::VectorXd input)
+  RecurrentNeuralNetwork RecurrentNeuralNetwork::cross(const RecurrentNeuralNetwork& lhs, const RecurrentNeuralNetwork& rhs, std::default_random_engine& engine, double mutationRate)
   {
-    m_data.resize(m_layers.size()+1);
+    assert(lhs.m_memory == rhs.m_memory);
+    assert(lhs.m_layers.size() == rhs.m_layers.size());
 
-    Eigen::VectorXd realInput(input.size()+m_memory.size());
-    realInput << input, m_memory;
-    m_data[0] = std::move(realInput);
+    const auto memory    = lhs.m_memory;
+    const auto layerSize = lhs.m_layers.size();
 
-    for(size_t i=0; i<m_layers.size(); ++i)
-      m_data[i+1] = m_layers[i]->feedForward(m_data[i]);
-
-    const auto& realOutput = m_data.back();
-    m_output = realOutput.head(realOutput.size() - m_memory.size());
-    m_memory = realOutput.tail(m_memory.size());
-  }
-
-  RecurrentNeuralNetwork RecurrentNeuralNetwork::cross(const RecurrentNeuralNetwork& other, std::default_random_engine& engine, double mutationRate) const
-  {
-    RecurrentNeuralNetwork result(m_memory.size());
-    for(size_t i=0; i<m_layers.size(); ++i)
-      result.addLayer(m_layers[i]->cross(*other.m_layers[i], engine, mutationRate));
+    RecurrentNeuralNetwork result(memory);
+    for(size_t i=0; i<layerSize; ++i)
+      result.addLayer(Layer::cross(*lhs.m_layers[i], *rhs.m_layers[i], engine, mutationRate));
 
     return result;
   }
@@ -51,10 +58,5 @@ namespace kann
   void RecurrentNeuralNetwork::addLayer(std::unique_ptr<Layer> layer)
   {
     m_layers.push_back(std::move(layer));
-  }
-
-  const Eigen::VectorXd& RecurrentNeuralNetwork::output() const
-  {
-    return m_output;
   }
 }

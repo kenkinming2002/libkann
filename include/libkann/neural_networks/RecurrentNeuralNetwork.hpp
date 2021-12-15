@@ -3,6 +3,7 @@
 #include <libkann/export.hpp>
 #include <libkann/layers/Layer.hpp>
 #include <libkann/serialization/Eigen.hpp>
+#include <libkann/neural_networks/Types.hpp>
 
 #include <Eigen/Eigen>
 
@@ -24,33 +25,27 @@ namespace kann
     LIBKANN_SYMEXPORT size_t outputSize() const;
 
   public:
+    LIBKANN_SYMEXPORT void feedForward(Eigen::VectorXd input, RecurrentFeedForwardResult& result) const;
+
+  public:
     LIBKANN_SYMEXPORT void randomize(std::default_random_engine& engine);
 
   public:
-    LIBKANN_SYMEXPORT void feedForward(Eigen::VectorXd input);
-
-  public:
-    LIBKANN_SYMEXPORT RecurrentNeuralNetwork cross(const RecurrentNeuralNetwork& other, std::default_random_engine& engine, double mutationRate) const;
+    LIBKANN_SYMEXPORT static RecurrentNeuralNetwork cross(const RecurrentNeuralNetwork& lhs, const RecurrentNeuralNetwork& rhs, std::default_random_engine& engine, double mutationRate);
 
   public:
     LIBKANN_SYMEXPORT void addLayer(std::unique_ptr<Layer> layer);
-    LIBKANN_SYMEXPORT const Eigen::VectorXd& output() const;
 
   public:
     template<typename Archive>
     void serialize(Archive& archive)
     {
       archive(m_layers);
-      archive(m_data);
-      archive(m_output);
       archive(m_memory);
     }
 
   private:
     std::vector<std::unique_ptr<Layer>> m_layers;
-    std::vector<Eigen::VectorXd> m_data;
-
-    Eigen::VectorXd m_output;
-    Eigen::VectorXd m_memory;
+    size_t m_memory;
   };
 }

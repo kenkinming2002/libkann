@@ -21,41 +21,28 @@ namespace kann
     LIBKANN_SYMEXPORT ConvolutionalLayer(size_t inputWidth, size_t inputHeight, size_t kernelSize, size_t inputChannelCount, size_t outputChannelCount);
 
   public:
+    LIBKANN_SYMEXPORT std::unique_ptr<Layer> clone() const override;
+
+  public:
     LIBKANN_SYMEXPORT size_t inputSize() const override;
     LIBKANN_SYMEXPORT size_t outputSize() const override;
 
   public:
-    void randomize(std::default_random_engine& prng) override;
-
-  public:
-    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward(const Eigen::VectorXd& input) override;
-    LIBKANN_SYMEXPORT Eigen::RowVectorXd backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient) override;
-
-  public:
-    LIBKANN_SYMEXPORT void train(double learningRate) override;
-
-  public:
-    LIBKANN_SYMEXPORT std::unique_ptr<Layer> cross(const Layer& other, std::default_random_engine& engine, double mutationRate) const override;
+    LIBKANN_SYMEXPORT void feedForward(const Eigen::VectorXd& input, Eigen::VectorXd& output) const override;
+    LIBKANN_SYMEXPORT void backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const override;
 
   private:
-    Eigen::MatrixXd& kernel(size_t inputChannelIndex, size_t outputChannelIndex)
+    auto kernel(size_t inputChannelIndex, size_t outputChannelIndex) const
     {
-      return m_kernels[outputChannelIndex * m_inputChannelCount + inputChannelIndex];
+      const size_t index = outputChannelIndex * m_inputChannelCount + inputChannelIndex;
+      return Eigen::Map<const Eigen::MatrixXd>(params().data() + index * m_kernelSize * m_kernelSize, m_kernelSize, m_kernelSize);
     }
 
-    const Eigen::MatrixXd& kernel(size_t inputChannelIndex, size_t outputChannelIndex) const
+    auto kernelGradient(Eigen::ArrayXd& gradient, size_t inputChannelIndex, size_t outputChannelIndex) const
     {
-      return m_kernels[outputChannelIndex * m_inputChannelCount + inputChannelIndex];
-    }
-
-    Eigen::MatrixXd& kernelGradient(size_t inputChannelIndex, size_t outputChannelIndex)
-    {
-      return m_kernelsGradient[outputChannelIndex * m_inputChannelCount + inputChannelIndex];
-    }
-
-    const Eigen::MatrixXd& kernelGradient(size_t inputChannelIndex, size_t outputChannelIndex) const
-    {
-      return m_kernelsGradient[outputChannelIndex * m_inputChannelCount + inputChannelIndex];
+      assert(gradient.size() == params().size());
+      const size_t index = outputChannelIndex * m_inputChannelCount + inputChannelIndex;
+      return Eigen::Map<Eigen::MatrixXd>(gradient.data() + index * m_kernelSize * m_kernelSize, m_kernelSize, m_kernelSize);
     }
 
   public:
@@ -66,11 +53,9 @@ namespace kann
 
       archive(m_inputWidth);
       archive(m_inputHeight);
+      archive(m_kernelSize);
       archive(m_inputChannelCount);
       archive(m_outputChannelCount);
-
-      archive(m_kernels);
-      archive(m_kernelsGradient);
     }
 
   private:
@@ -78,10 +63,6 @@ namespace kann
     size_t m_kernelSize;
     size_t m_inputChannelCount;
     size_t m_outputChannelCount;
-
-  private:
-    std::vector<Eigen::MatrixXd> m_kernels;
-    std::vector<Eigen::MatrixXd> m_kernelsGradient;
   };
 }
 

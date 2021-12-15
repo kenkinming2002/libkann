@@ -1,4 +1,5 @@
 #include "Agent.hpp"
+#include "libkann/neural_networks/NeuralNetwork.hpp"
 
 #include <cereal/details/helpers.hpp>
 #include <cereal/archives/binary.hpp>
@@ -76,8 +77,8 @@ double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
       input(index+1) = cell.color == color ? 1.0 : cell.color == Board::Cell::Color::NONE ? 0.0 : -1.0;
     }
 
-  m_neuralNetwork.feedForward(std::move(input));
-  return m_neuralNetwork.output()(0);
+  m_neuralNetwork.feedForward(std::move(input), m_feedForwardResult);
+  return m_feedForwardResult.output()(0);
 }
 
 void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
@@ -88,14 +89,14 @@ void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
 
     Eigen::VectorXd expectedOutput(1);
     expectedOutput << (good ? 1.0 : 0.0);
-    m_neuralNetwork.backPropagate(expectedOutput);
+    m_neuralNetwork.backPropagate(expectedOutput, m_feedForwardResult, m_backPropagationResult);
   }
   {
     this->evaluateBoard(board.flipped(), otherColor);
 
     Eigen::VectorXd expectedOutput(1);
     expectedOutput << (good ? 1.0 : 0.0);
-    m_neuralNetwork.backPropagate(expectedOutput);
+    m_neuralNetwork.backPropagate(expectedOutput, m_feedForwardResult, m_backPropagationResult);
   }
 }
 
@@ -116,11 +117,11 @@ void Agent::learnFrom(Game& game, double learningRate)
     if(!game.undoMove())
       break;
   }
-  m_neuralNetwork.train(learningRate);
+  m_neuralNetwork.train(learningRate, m_backPropagationResult);
 }
 
 Agent Agent::cross(const Agent& lhs, const Agent& rhs, std::default_random_engine& engine, double mutationRate)
 {
-  return Agent(lhs.m_neuralNetwork.cross(rhs.m_neuralNetwork, engine, mutationRate));
+  return Agent(kann::NeuralNetwork::cross(lhs.m_neuralNetwork, rhs.m_neuralNetwork, engine, mutationRate));
 }
 
