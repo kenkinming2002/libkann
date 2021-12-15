@@ -42,7 +42,7 @@ namespace kann
 
   public:
     LIBKANN_SYMEXPORT void train(const DataSet& dataSet, float learningRate);
-    LIBKANN_SYMEXPORT Eigen::VectorXd generate(Eigen::VectorXd features);
+    LIBKANN_SYMEXPORT Eigen::VectorXd generate(Eigen::VectorXd features) const;
 
   public:
     template<typename Archive>

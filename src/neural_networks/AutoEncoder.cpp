@@ -113,7 +113,7 @@ namespace kann
     std::cout << std::endl;
   }
 
-  Eigen::VectorXd AutoEncoder::generate(Eigen::VectorXd features)
+  Eigen::VectorXd AutoEncoder::generate(Eigen::VectorXd features) const
   {
     Eigen::VectorXd output, input = std::move(features);
     for(size_t i=m_featuresLayerIndex; i<m_layers.size(); ++i)
