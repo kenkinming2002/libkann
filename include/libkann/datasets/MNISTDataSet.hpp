@@ -9,6 +9,13 @@ namespace kann
   class MNISTDataSet : public DataSet
   {
   public:
+    enum Column
+    {
+      COLUMN_IMAGE,
+      COLUMN_LABEL
+    };
+
+  public:
     static constexpr size_t IMAGE_WIDTH = 28;
     static constexpr size_t IMAGE_SIZE  = IMAGE_WIDTH * IMAGE_WIDTH;
 
@@ -17,8 +24,8 @@ namespace kann
 
   public:
     size_t size() const override;
-    void get(size_t index, Eigen::VectorXd& input, Eigen::VectorXd& output) const override;
-    double correctness(size_t index, const Eigen::VectorXd& output) const override;
+    void get(size_t column, size_t index, Eigen::VectorXd& data) const override;
+    double correctness(size_t column, size_t index, const Eigen::VectorXd& data) const override;
 
   private:
     struct Data

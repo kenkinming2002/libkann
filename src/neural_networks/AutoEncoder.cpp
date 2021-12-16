@@ -94,21 +94,22 @@ namespace kann
     }
   }
 
-  void AutoEncoder::train(const DataSet& dataSet, float learningRate)
+  void AutoEncoder::train(const DataSet& dataSet, size_t dataColumn, float learningRate)
   {
     const size_t size = dataSet.size();
 
-    Eigen::VectorXd input, output;
+    Eigen::VectorXd data;
     FeedForwardResult feedForwardResult;
     BackPropagationResult backPropagationResult;
     for(size_t i = 0; i<size; ++i)
     {
       showProgressBar("Training", i, size);
 
-      dataSet.get(i, input, output);
-      this->feedForward(input, feedForwardResult);
-      this->backPropagate(input, feedForwardResult, backPropagationResult);
-      this->train(learningRate, backPropagationResult); // TODO: Batching
+      dataSet.get(dataColumn, i, data);
+
+      feedForward(data, feedForwardResult);
+      backPropagate(data, feedForwardResult, backPropagationResult);
+      train(learningRate, backPropagationResult); // TODO: Batching
     }
     std::cout << std::endl;
   }

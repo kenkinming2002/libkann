@@ -40,8 +40,8 @@ namespace kann
     LIBKANN_SYMEXPORT void addLayer(std::unique_ptr<Layer> layer);
 
   public:
-    LIBKANN_SYMEXPORT void train(const DataSet& dataSet, float learningRate);
-    LIBKANN_SYMEXPORT double test(const DataSet& dataSet) const;
+    LIBKANN_SYMEXPORT void train(const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate);
+    LIBKANN_SYMEXPORT double test(const DataSet& dataSet, size_t inputColumn, size_t outputColumn) const;
 
   public:
     template<typename Archive>

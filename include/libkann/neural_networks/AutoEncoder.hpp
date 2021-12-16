@@ -41,7 +41,7 @@ namespace kann
     LIBKANN_SYMEXPORT void setFeaturesLayer();
 
   public:
-    LIBKANN_SYMEXPORT void train(const DataSet& dataSet, float learningRate);
+    LIBKANN_SYMEXPORT void train(const DataSet& dataSet, size_t dataColumn, float learningRate);
     LIBKANN_SYMEXPORT Eigen::VectorXd generate(Eigen::VectorXd features) const;
 
   public:

@@ -89,7 +89,7 @@ namespace kann
     }
   }
 
-  void NeuralNetwork::train(const DataSet& dataSet, float learningRate)
+  void NeuralNetwork::train(const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate)
   {
     const size_t size = dataSet.size();
 
@@ -100,7 +100,8 @@ namespace kann
     {
       showProgressBar("Training", i, size);
 
-      dataSet.get(i, input, output);
+      dataSet.get(inputColumn,  i, input);
+      dataSet.get(outputColumn, i, output);
 
       feedForward(input, feedForwardResult);
       backPropagate(output, feedForwardResult, backPropagationResult);
@@ -109,7 +110,7 @@ namespace kann
     std::cout << std::endl;
   }
 
-  double NeuralNetwork::test(const DataSet& dataSet) const
+  double NeuralNetwork::test(const DataSet& dataSet, size_t inputColumn, size_t outputColumn) const
   {
     const size_t size = dataSet.size();
 
@@ -121,9 +122,11 @@ namespace kann
     {
       showProgressBar("Testing", i, size);
 
-      dataSet.get(i, input, output);
-      this->feedForward(input, feedForwardResult);
-      correctness += dataSet.correctness(i, feedForwardResult.output());
+      dataSet.get(inputColumn,  i, input);
+      dataSet.get(outputColumn, i, output);
+
+      feedForward(input, feedForwardResult);
+      correctness += dataSet.correctness(outputColumn, i, feedForwardResult.output());
     }
     std::cout << std::endl;
 

@@ -19,7 +19,7 @@
 
 static constexpr double LEARNING_RATE = 0.05;
 
-static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dataSet)
+static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dataSet, size_t dataColumn)
 {
   if(!std::filesystem::create_directories(dirpath))
   {
@@ -27,14 +27,14 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
     return;
   }
 
-  Eigen::VectorXd input, output;
+  Eigen::VectorXd data;
   for(size_t i = 0;  i<dataSet.size(); ++i)
   {
-    dataSet.get(i, input, output);
+    dataSet.get(i, dataColumn, data);
 
     std::filesystem::path filepath = dirpath / (std::string("data")+std::to_string(i)+std::string(".bmp"));
     std::ofstream file(filepath, std::ofstream::binary);
-    kann::writeImage(file, input, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    kann::writeImage(file, data, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
   }
 }
 
@@ -94,28 +94,26 @@ static void attachDeconvolutionActivationLayers(NeuralNetwork& nn, const std::ve
   }
 }
 
-static void trainAndTestNeuralNetwork(kann::NeuralNetwork& nn, const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet)
+static void trainAndTestNeuralNetwork(kann::NeuralNetwork& nn, const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet, size_t inputColumn, size_t outputColumn)
 {
   double correctness;
 
-  correctness = nn.test(testingDataSet);
+  correctness = nn.test(testingDataSet, inputColumn, outputColumn);
   std::cout << "Correctness:" << correctness << std::endl;
 
-  nn.train(trainingDataSet, LEARNING_RATE);
+  nn.train(trainingDataSet, inputColumn, outputColumn, LEARNING_RATE);
 
-  correctness = nn.test(trainingDataSet);
+  correctness = nn.test(trainingDataSet, inputColumn, outputColumn);
   std::cout << "Training Data Set Correctness:" << correctness << std::endl;
 
-  correctness = nn.test(testingDataSet);
+  correctness = nn.test(testingDataSet, inputColumn, outputColumn);
   std::cout << "Testing Data Set Correctness:" << correctness << std::endl;
 }
 
-static void trainAndRunAutoEncoder(kann::AutoEncoder& autoEncoder, const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet,
+static void trainAndRunAutoEncoder(kann::AutoEncoder& autoEncoder, const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet, size_t dataColumn,
     std::filesystem::path reconstructionOutputPath, std::filesystem::path outputPath, size_t featuresCount, size_t generateCount)
 {
-    Eigen::VectorXd input, output;
-
-    autoEncoder.train(trainingDataSet, LEARNING_RATE);
+    autoEncoder.train(trainingDataSet, dataColumn, LEARNING_RATE);
 
     // Reconstruction
     {
@@ -125,11 +123,12 @@ static void trainAndRunAutoEncoder(kann::AutoEncoder& autoEncoder, const kann::D
         return;
       }
 
+      Eigen::VectorXd data;
       kann::FeedForwardResult result;
       for(size_t i = 0; i<trainingDataSet.size(); ++i)
       {
-        trainingDataSet.get(i, input, output);
-        autoEncoder.feedForward(input, result);
+        trainingDataSet.get(dataColumn, i, data);
+        autoEncoder.feedForward(data, result);
 
         std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
         std::ofstream file(filepath, std::ofstream::binary);
@@ -182,8 +181,8 @@ int main(int argc, char* argv[])
   if(subcommand == "write")
   {
     // Try to write out the data set
-    writeDataSet("output/training", trainingDataSet);
-    writeDataSet("output/testing",   testingDataSet);
+    writeDataSet("output/training", trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
+    writeDataSet("output/testing",  testingDataSet,  kann::MNISTDataSet::COLUMN_IMAGE);
   }
   else if(subcommand == "normal")
   {
@@ -191,7 +190,7 @@ int main(int argc, char* argv[])
     kann::NeuralNetwork nn;
     attachWeightActivationLayers(nn, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
     nn.randomize(engine);
-    trainAndTestNeuralNetwork(nn, trainingDataSet, testingDataSet);
+    trainAndTestNeuralNetwork(nn, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
   }
   else if(subcommand == "convolution")
   {
@@ -201,7 +200,7 @@ int main(int argc, char* argv[])
     attachConvolutionActivationLayers(nn, {1, 3, 3, 1}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
     attachWeightActivationLayers(nn, {nn.outputSize(), 10}, kann::ActivationFunction::Type::SIGMOID);
     nn.randomize(engine);
-    trainAndTestNeuralNetwork(nn, trainingDataSet, testingDataSet);
+    trainAndTestNeuralNetwork(nn, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
   }
   else if(subcommand == "autoencoder")
   {
@@ -213,7 +212,7 @@ int main(int argc, char* argv[])
     attachWeightActivationLayers(autoEncoder, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
     autoEncoder.randomize(engine);
 
-    trainAndRunAutoEncoder(autoEncoder, trainingDataSet, testingDataSet,
+    trainAndRunAutoEncoder(autoEncoder, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE,
       "output/autoencoder-reconstruction", "output/autoencoder",
       FEATURES_COUNT, 500
     );
@@ -238,7 +237,7 @@ int main(int argc, char* argv[])
 
     autoEncoder.randomize(engine);
 
-    trainAndRunAutoEncoder(autoEncoder, trainingDataSet, testingDataSet,
+    trainAndRunAutoEncoder(autoEncoder, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE,
       "output/autoencoder-convolutional-reconstruction", "output/autoencoder-convolutional",
       FEATURES_COUNT, 500
     );
