@@ -1,3 +1,4 @@
+#include "libkann/Train.hpp"
 #include <libkann/utilities/random.hpp>
 
 #include <libkann/neural_networks/NeuralNetwork.hpp>
@@ -20,25 +21,6 @@
 #include <filesystem>
 
 static constexpr double LEARNING_RATE = 0.05;
-
-static void showProgressBar(std::string_view name, size_t count, size_t total)
-{
-  constexpr static size_t width = 40;
-  std::cout << "\e[?25l";
-
-  std::cout << name << "[";
-  for(size_t i=0; i<width; ++i)
-    if((float)i/width < (float)count/total)
-      std::cout << "=";
-    else
-      std::cout << " ";
-
-  std::cout << " - ";
-  std::cout << count << "/" << total;
-  std::cout << "]\r";
-
-  std::cout << "\e[?25h";
-}
 
 static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dataSet, size_t dataColumn)
 {
@@ -211,7 +193,6 @@ int main(int argc, char* argv[])
     const auto activationType = kann::ActivationFunction::Type::SIGMOID;
     const auto activationFunction = kann::ActivationFunction(activationType);
 
-
     // Add required layers to the model
     std::vector<std::shared_ptr<kann::Layer>> layers;
     for(size_t i=0; i < topology.size()-1; ++i)
@@ -230,55 +211,9 @@ int main(int argc, char* argv[])
       model.write_graphviz(file);
     }
 
-    {
-      const auto size = testingDataSet.size();
-
-      double correctness = 0.0;
-      Eigen::VectorXd input, output;
-      for(size_t i=0; i<size; ++i)
-      {
-        showProgressBar("Testing", i, size);
-        testingDataSet.get(kann::MNISTDataSet::COLUMN_IMAGE, i, input);
-        testingDataSet.get(kann::MNISTDataSet::COLUMN_LABEL, i, output);
-        auto output = model.feedForward(input);
-        correctness += testingDataSet.correctness(kann::MNISTDataSet::COLUMN_LABEL, i, output);
-      }
-      std::cout << std::endl;
-      std::cout << "correctness:" << correctness / size << std::endl;
-    }
-
-    {
-      const auto size = trainingDataSet.size();
-
-      Eigen::VectorXd input, expectedOutput;
-      for(size_t i=0; i<size; ++i)
-      {
-        showProgressBar("Training", i, size);
-        trainingDataSet.get(kann::MNISTDataSet::COLUMN_IMAGE, i, input);
-        trainingDataSet.get(kann::MNISTDataSet::COLUMN_LABEL, i, expectedOutput);
-        auto output = model.feedForward(input);
-        model.backPropagate(output, expectedOutput);
-        model.train(LEARNING_RATE);
-      }
-      std::cout << std::endl;
-    }
-
-    {
-      const auto size = testingDataSet.size();
-
-      double correctness = 0.0;
-      Eigen::VectorXd input, output;
-      for(size_t i=0; i<size; ++i)
-      {
-        showProgressBar("Testing", i, size);
-        testingDataSet.get(kann::MNISTDataSet::COLUMN_IMAGE, i, input);
-        testingDataSet.get(kann::MNISTDataSet::COLUMN_LABEL, i, output);
-        auto output = model.feedForward(input);
-        correctness += testingDataSet.correctness(kann::MNISTDataSet::COLUMN_LABEL, i, output);
-      }
-      std::cout << std::endl;
-      std::cout << "correctness:" << correctness / size << std::endl;
-    }
+    std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
+    kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE);
+    std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
   }
   else if(subcommand == "normal")
   {
