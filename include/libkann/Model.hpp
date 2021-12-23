@@ -6,7 +6,7 @@
 
 #include <memory>
 #include <ostream>
-#include <optional>
+#include <utility>
 
 namespace kann
 {
@@ -58,4 +58,13 @@ namespace kann
   };
 
   Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers);
+
+  /* The returend auto encoder model is used for training purposes
+   * whereas random data can be feed into the decoder model to obtain output.
+   *
+   * Since Model hold std::shared_ptr to Layer, training using the auto encoder
+   * model could be reflected in the decoder model.
+   *
+   * @return [auto encoder model, decoder model] */
+  std::pair<Model, Model> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers);
 }

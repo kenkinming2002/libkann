@@ -4,6 +4,7 @@
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/graphviz.hpp>
 
+#include <iterator>
 #include <ranges>
 #include <numeric>
 
@@ -124,5 +125,16 @@ namespace kann
     model.build(ids.front(), ids.back());
 
     return model;
+  }
+
+  std::pair<Model, Model> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers)
+  {
+    std::vector<std::shared_ptr<Layer>> layers;
+    std::copy(encoderLayers.begin(), encoderLayers.end(), std::back_inserter(layers));
+    std::copy(decoderLayers.begin(), decoderLayers.end(), std::back_inserter(layers));
+
+    auto autoEncoderModel = buildSimpleFeedForwardModel(layers);
+    auto decoderModel = buildSimpleFeedForwardModel(decoderLayers);
+    return {autoEncoderModel, decoderModel};
   }
 }
