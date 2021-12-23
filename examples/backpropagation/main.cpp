@@ -1,4 +1,3 @@
-#include "libkann/Train.hpp"
 #include <libkann/utilities/random.hpp>
 
 #include <libkann/neural_networks/NeuralNetwork.hpp>
@@ -13,6 +12,7 @@
 #include <libkann/datasets/write.hpp>
 
 #include <libkann/Model.hpp>
+#include <libkann/Train.hpp>
 
 #include <memory>
 #include <random>
@@ -38,6 +38,52 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
     std::filesystem::path filepath = dirpath / (std::string("data")+std::to_string(i)+std::string(".bmp"));
     std::ofstream file(filepath, std::ofstream::binary);
     kann::writeImage(file, data, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+  }
+}
+
+static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
+{
+  const auto activationFunction = kann::ActivationFunction(activationType);
+  for(size_t i=0; i < topology.size()-1; ++i)
+  {
+    size_t prevSize = topology[i];
+    size_t nextSize = topology[i+1];
+    layers.push_back(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
+    layers.push_back(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
+  }
+}
+
+static void attachConvolutionActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, size_t& width, size_t& height, size_t kernelSize, kann::ActivationFunction::Type activationType)
+{
+  const auto activationFunction = kann::ActivationFunction(activationType);
+  for(size_t i=0; i < topology.size()-1; ++i)
+  {
+    size_t prevSize = topology[i];
+    size_t nextSize = topology[i+1];
+
+    layers.push_back(std::make_shared<kann::ConvolutionalLayer>(width, height, kernelSize, prevSize, nextSize));
+    layers.push_back(std::make_shared<kann::ActivationLayer>(layers.back()->outputSize(), activationFunction));
+
+    assert(width>kernelSize);
+    width -= kernelSize - 1;
+    assert(height>kernelSize);
+    height -= kernelSize - 1;
+  }
+}
+
+static void attachDeconvolutionActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, size_t& width, size_t& height, size_t kernelSize, kann::ActivationFunction::Type activationType)
+{
+  const auto activationFunction = kann::ActivationFunction(activationType);
+  for(size_t i=0; i < topology.size()-1; ++i)
+  {
+    size_t prevSize = topology[i];
+    size_t nextSize = topology[i+1];
+
+    layers.push_back(std::make_shared<kann::DeconvolutionalLayer>(width, height, kernelSize, prevSize, nextSize));
+    layers.push_back(std::make_shared<kann::ActivationLayer>(layers.back()->outputSize(), activationFunction));
+
+    width += kernelSize - 1;
+    height += kernelSize - 1;
   }
 }
 
@@ -187,21 +233,11 @@ int main(int argc, char* argv[])
     writeDataSet("output/training", trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
     writeDataSet("output/testing",  testingDataSet,  kann::MNISTDataSet::COLUMN_IMAGE);
   }
-  else if(subcommand == "model")
+  else if(subcommand == "normal")
   {
-    const std::vector<size_t> topology{kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10};
-    const auto activationType = kann::ActivationFunction::Type::SIGMOID;
-    const auto activationFunction = kann::ActivationFunction(activationType);
-
-    // Add required layers to the model
+    // Normal Neural Network
     std::vector<std::shared_ptr<kann::Layer>> layers;
-    for(size_t i=0; i < topology.size()-1; ++i)
-    {
-      size_t prevSize = topology[i];
-      size_t nextSize = topology[i+1];
-      layers.push_back(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
-      layers.push_back(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
-    }
+    attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
     for(auto& layer : layers)
       layer->randomize(engine);
 
@@ -215,23 +251,24 @@ int main(int argc, char* argv[])
     kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE);
     std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
   }
-  else if(subcommand == "normal")
-  {
-    // Normal Neural Network
-    kann::NeuralNetwork nn;
-    attachWeightActivationLayers(nn, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
-    nn.randomize(engine);
-    trainAndTestNeuralNetwork(nn, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
-  }
   else if(subcommand == "convolution")
   {
-    // Convolutional Neural Network
-    kann::NeuralNetwork nn;
+    std::vector<std::shared_ptr<kann::Layer>> layers;
     size_t width = kann::MNISTDataSet::IMAGE_WIDTH, height = kann::MNISTDataSet::IMAGE_WIDTH;
-    attachConvolutionActivationLayers(nn, {1, 3, 3, 1}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
-    attachWeightActivationLayers(nn, {nn.outputSize(), 10}, kann::ActivationFunction::Type::SIGMOID);
-    nn.randomize(engine);
-    trainAndTestNeuralNetwork(nn, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
+    attachConvolutionActivationLayers(layers, {1, 3, 3, 1}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
+    attachWeightActivationLayers(layers, {layers.back()->outputSize(), 10}, kann::ActivationFunction::Type::SIGMOID);
+    for(auto& layer : layers)
+      layer->randomize(engine);
+
+    auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
+    {
+      std::ofstream file("output/graph.dot");
+      model.write_graphviz(file);
+    }
+
+    std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
+    kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE);
+    std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
   }
   else if(subcommand == "autoencoder")
   {
