@@ -1,6 +1,5 @@
 #include <libkann/Model.hpp>
 
-#include <boost/graph/graph_traits.hpp>
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/graphviz.hpp>
 
@@ -12,28 +11,31 @@
 
 namespace kann
 {
-  size_t Model::add(std::shared_ptr<Layer> layer)
+  Model::Handle Model::addNode()
   {
-    m_nodes.push_back(Node{.layer = std::move(layer)});
-    return m_nodes.size() - 1;
+    return boost::add_vertex(m_graph);
   }
 
-  void Model::connect(size_t parentID, size_t childID)
+  void Model::addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer, size_t inputOffset, size_t outputOffset)
   {
-    boost::add_edge(parentID, childID, m_graph);
+    boost::add_edge(parent, child, Connection{
+      .layer = std::move(layer),
+      .inputOffset  = inputOffset,
+      .outputOffset = outputOffset
+    }, m_graph);
   }
 
-  void Model::build(size_t inputID, size_t outputID)
+  void Model::build(Handle input, Handle output)
   {
-    m_inputID  = inputID;
-    m_outputID = outputID;
+    m_input  = input;
+    m_output = output;
 
     boost::topological_sort(m_graph, std::back_inserter(m_ordering));
     std::reverse(m_ordering.begin(), m_ordering.end());
 
     std::cout << "Ordering:";
-    for(auto id : m_ordering)
-      std::cout << id << " ";
+    for(auto handle : m_ordering)
+      std::cout << handle << " ";
     std::cout << std::endl;
   }
 
@@ -51,78 +53,71 @@ namespace kann
 
   void Model::write_graphviz(std::ostream& os) const
   {
-    boost::write_graphviz(os, m_graph, [this](std::ostream& os, const auto& id){
-      auto& layer = *m_nodes[id].layer.get();
+    auto edgeWriter = [this](std::ostream& os, const auto& handle){
+      const auto& connection = m_graph[handle];
+      const auto& layer = connection.layer;
       os << "[label=\"";
-      os << demangle(typeid(layer).name()) << "\\n";
-      os << "input_size=" << layer.inputSize() << "\\n";
-      os << "output_size=" << layer.outputSize() << "\\n";
+      os << demangle(typeid(*layer).name()) << "\\n";
+      os << "input_size=" << layer->inputSize() << "\\n";
+      os << "output_size=" << layer->outputSize() << "\\n";
       os << "\"]";
-    });
+    };
+    boost::write_graphviz(os, m_graph, boost::default_writer(), edgeWriter);
   }
 
   Eigen::VectorXd Model::feedForward(Eigen::VectorXd input)
   {
-    m_nodes[m_inputID].input = std::move(input);
-
-    Eigen::VectorXd finalOutput;
-    for(size_t id : m_ordering)
+    m_graph[m_input].data = std::move(input);
+    for(const auto& handle : m_ordering)
     {
-      const auto& node = m_nodes[id];
-
-      Eigen::VectorXd output;
-      node.layer->feedForward(node.input, output);
-      for(auto [begin, end] = boost::out_edges(id, m_graph); begin != end; ++begin)
+      const auto& inputNode = m_graph[handle];
+      for(auto [begin, end] = boost::out_edges(handle, m_graph); begin != end; ++begin)
       {
-        auto childID = boost::target(*begin, m_graph);
-        auto& childNode = m_nodes[childID];
-        childNode.input = output;
+        const auto& connection = m_graph[*begin];
+        auto& outputNode = m_graph[boost::target(*begin, m_graph)];
+        connection.layer->feedForward(inputNode.data, outputNode.data);
       }
-
-      if(id == m_outputID)
-        finalOutput = std::move(output);
     }
-    return finalOutput;
+    return m_graph[m_output].data;
   }
 
-  void Model::backPropagate(const Eigen::VectorXd& output, const Eigen::VectorXd& expectedOutput)
+  void Model::backPropagate(const Eigen::VectorXd& /*output*/, const Eigen::VectorXd& expectedOutput)
   {
-    m_nodes[m_outputID].outputGradient = 2.0 * (output - expectedOutput);
+    m_graph[m_output].gradient = 2.0 * (m_graph[m_output].data - expectedOutput);
     for(auto it = m_ordering.rbegin(); it != m_ordering.rend(); ++it)
     {
-      auto id = *it;
-      auto& node = m_nodes[id];
+      const auto& handle = *it;
 
-      Eigen::RowVectorXd inputGradient;
-      node.layer->backPropagate(node.input, node.outputGradient, inputGradient, node.layerGradient);
-
-      for(auto [begin, end] = boost::in_edges(id, m_graph); begin != end; ++begin)
+      const auto& outputNode = m_graph[handle];
+      for(auto [begin, end] = boost::in_edges(handle, m_graph); begin != end; ++begin)
       {
-        auto parentID = boost::source(*begin, m_graph);
-        auto& parentNode = m_nodes[parentID];
-        parentNode.outputGradient = inputGradient;
+        auto& connection = m_graph[*begin];
+        auto& inputNode = m_graph[boost::source(*begin, m_graph)];
+        connection.layer->backPropagate(inputNode.data, outputNode.gradient, inputNode.gradient, connection.layerGradient);
       }
     }
   }
 
   void Model::train(double learningRate)
   {
-    for(auto& node : m_nodes)
-      node.layer->train(learningRate, node.layerGradient);
+    for(auto [begin, end] = boost::edges(m_graph); begin != end; ++begin)
+    {
+      auto& connection = m_graph[*begin];
+      connection.layer->train(learningRate, connection.layerGradient);
+    }
   }
 
   Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers)
   {
     Model model;
-    std::vector<size_t> ids; // Not strictly necessary, since ids are allocated incrementally
+    std::vector<Model::Handle> handles;
+    for(size_t i=0; i<layers.size()+1; ++i)
+      handles.push_back(model.addNode());
 
-    for(auto& layer: layers)
-      ids.push_back(model.add(std::move(layer)));
+    for(size_t i=0; i<layers.size(); ++i)
+      model.addConnection(handles[i], handles[i+1], std::move(layers[i]));
 
-    for(size_t i=0; i<ids.size()-1; ++i)
-      model.connect(ids[i], ids[i+1]);
-
-    model.build(ids.front(), ids.back());
+    model.build(handles.front(), handles.back());
 
     return model;
   }

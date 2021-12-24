@@ -3,6 +3,7 @@
 #include <libkann/layers/Layer.hpp>
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graph_traits.hpp>
 
 #include <memory>
 #include <ostream>
@@ -12,21 +13,36 @@ namespace kann
 {
   class Model
   {
-  public:
-    struct Node
+  private:
+    struct Vertex
     {
-      std::shared_ptr<Layer> layer;
-
-      Eigen::VectorXd input;
-      Eigen::RowVectorXd outputGradient;
-
-      Eigen::ArrayXd layerGradient;
+      Eigen::VectorXd data;
+      Eigen::RowVectorXd gradient;
     };
 
+    struct Connection
+    {
+      std::shared_ptr<Layer> layer;
+      Eigen::ArrayXd layerGradient;
+
+      // Currently unsupported
+      size_t inputOffset;
+      size_t outputOffset;
+    };
+
+    typedef boost::adjacency_list<
+      boost::vecS, boost::vecS,
+      boost::bidirectionalS,
+      Vertex, Connection
+    > Graph;
+
   public:
-    size_t add(std::shared_ptr<Layer> layer);
-    void connect(size_t parentID, size_t childID);
-    void build(size_t inputID, size_t outputID);
+    typedef boost::graph_traits<Graph>::vertex_descriptor Handle;
+
+  public:
+    Handle addNode();
+    void addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer, size_t inputOffset = 0, size_t outputOffset = 0);
+    void build(Handle input, Handle output);
 
   public:
     void write_graphviz(std::ostream& os) const;
@@ -37,24 +53,11 @@ namespace kann
     void train(double learningRate);
 
   private:
-    std::vector<Node> m_nodes;
+    Graph m_graph;
 
   private:
-    size_t m_inputID, m_outputID;
-
-  private:
-    struct FeedbackBuffer
-    {
-      size_t inputID;
-      Eigen::VectorXd buffer;
-    };
-
-    // Index by outputID
-    std::map<size_t, FeedbackBuffer> m_feedbackBuffers;
-
-  private:
-    boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS> m_graph;
-    std::vector<size_t> m_ordering;
+    Handle m_input, m_output;
+    std::vector<Handle> m_ordering;
   };
 
   Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers);
