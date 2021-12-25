@@ -87,6 +87,19 @@ static void attachDeconvolutionActivationLayers(std::vector<std::shared_ptr<kann
   }
 }
 
+static void trainAndTestFeedForwardModel(kann::Model& model,
+    const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet,
+    size_t inputColumn, size_t outputColumn,
+    std::filesystem::path outputPath)
+{
+  std::ofstream file(outputPath);
+  model.write_graphviz(file);
+
+  std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
+  kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE);
+  std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
+}
+
 static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& decoderModel,
     const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet, size_t dataColumn,
     std::filesystem::path reconstructionOutputPath, std::filesystem::path outputPath, size_t featuresCount, size_t generateCount)
@@ -170,14 +183,7 @@ int main(int argc, char* argv[])
       layer->randomize(engine);
 
     auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
-    {
-      std::ofstream file("output/graph.dot");
-      model.write_graphviz(file);
-    }
-
-    std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
-    kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE);
-    std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
+    trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/normal.dot");
   }
   else if(subcommand == "convolution")
   {
@@ -189,14 +195,7 @@ int main(int argc, char* argv[])
       layer->randomize(engine);
 
     auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
-    {
-      std::ofstream file("output/graph.dot");
-      model.write_graphviz(file);
-    }
-
-    std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
-    kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE);
-    std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
+    trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/convolution.dot");
   }
   else if(subcommand == "autoencoder")
   {
