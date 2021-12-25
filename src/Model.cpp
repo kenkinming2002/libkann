@@ -11,9 +11,13 @@
 
 namespace kann
 {
-  Model::Handle Model::addNode()
+  Model::Handle Model::addNode(size_t size)
   {
-    return boost::add_vertex(m_graph);
+    return boost::add_vertex(Node{
+      .size     = size,
+      .data     = Eigen::VectorXd::Zero(size),
+      .gradient = Eigen::RowVectorXd::Zero(size)
+    }, m_graph);
   }
 
   void Model::addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer, size_t inputOffset, size_t outputOffset)
@@ -115,8 +119,11 @@ namespace kann
   {
     Model model;
     std::vector<Model::Handle> handles;
-    for(size_t i=0; i<layers.size()+1; ++i)
-      handles.push_back(model.addNode());
+    for(size_t i=0; i<layers.size(); ++i)
+      handles.push_back(model.addNode(layers[i]->inputSize()));
+
+    // The last node is not input to any layer
+    handles.push_back(model.addNode(layers.back()->outputSize()));
 
     for(size_t i=0; i<layers.size(); ++i)
       model.addConnection(handles[i], handles[i+1], std::move(layers[i]));

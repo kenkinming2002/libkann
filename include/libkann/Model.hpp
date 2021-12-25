@@ -16,6 +16,8 @@ namespace kann
   private:
     struct Node
     {
+      size_t size;
+
       Eigen::VectorXd data;
       Eigen::RowVectorXd gradient;
     };
@@ -23,11 +25,12 @@ namespace kann
     struct Connection
     {
       std::shared_ptr<Layer> layer;
-      Eigen::ArrayXd layerGradient;
 
       // Currently unsupported
       size_t inputOffset;
       size_t outputOffset;
+
+      Eigen::ArrayXd layerGradient;
     };
 
     typedef boost::adjacency_list<
@@ -40,7 +43,7 @@ namespace kann
     typedef boost::graph_traits<Graph>::vertex_descriptor Handle;
 
   public:
-    Handle addNode();
+    Handle addNode(size_t size);
     void addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer, size_t inputOffset = 0, size_t outputOffset = 0);
     void build(Handle input, Handle output);
 
