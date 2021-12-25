@@ -95,9 +95,15 @@ static void trainAndTestFeedForwardModel(kann::Model& model,
   std::ofstream file(outputPath);
   model.write_graphviz(file);
 
-  std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
+  double correctness;
+
+  correctness = kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
+  std::cout << "correctness:" << correctness << std::endl;
+
   kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE);
-  std::cout << "correctness:" << kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL) << std::endl;
+
+  correctness = kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
+  std::cout << "correctness:" << correctness << std::endl;
 }
 
 static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& decoderModel,
