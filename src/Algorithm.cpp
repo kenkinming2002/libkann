@@ -1,4 +1,4 @@
-#include <libkann/Train.hpp>
+#include <libkann/Algorithm.hpp>
 
 namespace kann
 {

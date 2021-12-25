@@ -12,7 +12,7 @@
 #include <libkann/datasets/write.hpp>
 
 #include <libkann/Model.hpp>
-#include <libkann/Train.hpp>
+#include <libkann/Algorithm.hpp>
 
 #include <memory>
 #include <random>
