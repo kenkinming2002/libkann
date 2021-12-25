@@ -14,7 +14,7 @@ namespace kann
   class Model
   {
   private:
-    struct Vertex
+    struct Node
     {
       Eigen::VectorXd data;
       Eigen::RowVectorXd gradient;
@@ -33,7 +33,7 @@ namespace kann
     typedef boost::adjacency_list<
       boost::vecS, boost::vecS,
       boost::bidirectionalS,
-      Vertex, Connection
+      Node, Connection
     > Graph;
 
   public:
