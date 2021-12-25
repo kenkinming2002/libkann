@@ -31,8 +31,8 @@ namespace kann
       showProgressBar("Training", i, size);
       dataSet.get(inputColumn,  i, input);
       dataSet.get(outputColumn, i, expectedOutput);
-      auto output = model.feedForward(input);
-      model.backPropagate(output, expectedOutput);
+      model.feedForward(input);
+      model.backPropagate(expectedOutput);
       model.train(learningRate);
     }
     std::cout << std::endl;
@@ -43,14 +43,13 @@ namespace kann
     const auto size = dataSet.size();
 
     double correctness = 0.0;
-    Eigen::VectorXd input, output;
+    Eigen::VectorXd input;
     for(size_t i=0; i<size; ++i)
     {
       showProgressBar("Testing", i, size);
       dataSet.get(inputColumn,  i, input);
-      dataSet.get(outputColumn, i, output);
-      auto output = model.feedForward(input);
-      correctness += dataSet.correctness(outputColumn, i, output);
+      model.feedForward(input);
+      correctness += dataSet.correctness(outputColumn, i, model.output());
     }
     std::cout << std::endl;
     correctness /= size;

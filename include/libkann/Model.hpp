@@ -48,9 +48,12 @@ namespace kann
     void write_graphviz(std::ostream& os) const;
 
   public:
-    Eigen::VectorXd feedForward(Eigen::VectorXd input);
-    void backPropagate(const Eigen::VectorXd& output, const Eigen::VectorXd& expectedOutput);
+    void feedForward(Eigen::VectorXd input);
+    void backPropagate(const Eigen::VectorXd& expectedOutput);
     void train(double learningRate);
+
+  public:
+    Eigen::VectorXd output() const;
 
   private:
     Graph m_graph;

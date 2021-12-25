@@ -65,7 +65,7 @@ namespace kann
     boost::write_graphviz(os, m_graph, boost::default_writer(), edgeWriter);
   }
 
-  Eigen::VectorXd Model::feedForward(Eigen::VectorXd input)
+  void Model::feedForward(Eigen::VectorXd input)
   {
     m_graph[m_input].data = std::move(input);
     for(const auto& handle : m_ordering)
@@ -78,10 +78,9 @@ namespace kann
         connection.layer->feedForward(inputNode.data, outputNode.data);
       }
     }
-    return m_graph[m_output].data;
   }
 
-  void Model::backPropagate(const Eigen::VectorXd& /*output*/, const Eigen::VectorXd& expectedOutput)
+  void Model::backPropagate(const Eigen::VectorXd& expectedOutput)
   {
     m_graph[m_output].gradient = 2.0 * (m_graph[m_output].data - expectedOutput);
     for(auto it = m_ordering.rbegin(); it != m_ordering.rend(); ++it)
@@ -105,6 +104,11 @@ namespace kann
       auto& connection = m_graph[*begin];
       connection.layer->train(learningRate, connection.layerGradient);
     }
+  }
+
+  Eigen::VectorXd Model::output() const
+  {
+    return m_graph[m_output].data;
   }
 
   Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers)
