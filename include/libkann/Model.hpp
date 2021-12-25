@@ -68,7 +68,7 @@ namespace kann
 
   Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers);
 
-  /* The returend auto encoder model is used for training purposes
+  /* The returned auto encoder model is used for training purposes
    * whereas random data can be feed into the decoder model to obtain output.
    *
    * Since Model hold std::shared_ptr to Layer, training using the auto encoder
