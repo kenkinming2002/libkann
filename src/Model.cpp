@@ -57,6 +57,13 @@ namespace kann
 
   void Model::write_graphviz(std::ostream& os) const
   {
+    auto vertexWriter = [this](std::ostream& os, const auto& handle){
+      const auto& node = m_graph[handle];
+      os << "[label=\"";
+      os << "size=" << node.size << "\\n";
+      os << "\"]";
+    };
+
     auto edgeWriter = [this](std::ostream& os, const auto& handle){
       const auto& connection = m_graph[handle];
       const auto& layer = connection.layer;
@@ -66,7 +73,7 @@ namespace kann
       os << "output_size=" << layer->outputSize() << "\\n";
       os << "\"]";
     };
-    boost::write_graphviz(os, m_graph, boost::default_writer(), edgeWriter);
+    boost::write_graphviz(os, m_graph, vertexWriter, edgeWriter);
   }
 
   void Model::feedForward(Eigen::VectorXd input)
