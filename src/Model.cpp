@@ -11,27 +11,14 @@
 
 namespace kann
 {
-  Model::Handle Model::addNode(size_t size)
+  /* Note: There actually is no guarantee(at least in the official
+   *       documentation) that vertex desciptor(a.k.a Handle) stay valid after
+   *       moving graph, but that should be the case, since in the case of using
+   *       boost::vecS, i.e. using std::vector to store vertex, vertex desciptor
+   *       is no more than a size_t which index into the std::vector of vertex */
+  Model::Model(Graph graph, Handle input, Handle output)
+    : m_graph(graph), m_input(input), m_output(output)
   {
-    return boost::add_vertex(Node{
-      .size     = size,
-      .data     = Eigen::VectorXd::Zero(size),
-      .gradient = Eigen::RowVectorXd::Zero(size)
-    }, m_graph);
-  }
-
-  void Model::addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer)
-  {
-    boost::add_edge(parent, child, Connection{
-      .layer = std::move(layer),
-    }, m_graph);
-  }
-
-  void Model::build(Handle input, Handle output)
-  {
-    m_input  = input;
-    m_output = output;
-
     boost::topological_sort(m_graph, std::back_inserter(m_ordering));
     std::reverse(m_ordering.begin(), m_ordering.end());
 
@@ -39,6 +26,13 @@ namespace kann
     for(auto handle : m_ordering)
       std::cout << handle << " ";
     std::cout << std::endl;
+
+    for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
+    {
+      Node& node = m_graph[*begin];
+      node.data     = Eigen::VectorXd::Zero(node.size);
+      node.gradient = Eigen::RowVectorXd::Zero(node.size);
+    }
   }
 
   static std::string demangle(const char* mangledName)
@@ -122,20 +116,16 @@ namespace kann
 
   Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers)
   {
-    Model model;
-    std::vector<Model::Handle> handles;
+    Model::Graph graph;
     for(size_t i=0; i<layers.size(); ++i)
-      handles.push_back(model.addNode(layers[i]->inputSize()));
+      boost::add_vertex(Model::Node{.size = layers[i]->inputSize()}, graph);
 
-    // The last node is not input to any layer
-    handles.push_back(model.addNode(layers.back()->outputSize()));
+    boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
 
     for(size_t i=0; i<layers.size(); ++i)
-      model.addConnection(handles[i], handles[i+1], std::move(layers[i]));
+      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i])}, graph);
 
-    model.build(handles.front(), handles.back());
-
-    return model;
+    return Model(graph, 0, layers.size());
   }
 
   std::pair<Model, Model> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers)

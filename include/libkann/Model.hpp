@@ -13,7 +13,7 @@ namespace kann
 {
   class Model
   {
-  private:
+  public:
     struct Node
     {
       size_t size;
@@ -28,19 +28,17 @@ namespace kann
       Eigen::ArrayXd layerGradient;
     };
 
+  public:
     typedef boost::adjacency_list<
       boost::vecS, boost::vecS,
       boost::bidirectionalS,
       Node, Connection
     > Graph;
 
-  public:
     typedef boost::graph_traits<Graph>::vertex_descriptor Handle;
 
   public:
-    Handle addNode(size_t size);
-    void addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer);
-    void build(Handle input, Handle output);
+    Model(Graph graph, Handle input, Handle output);
 
   public:
     void write_graphviz(std::ostream& os) const;
