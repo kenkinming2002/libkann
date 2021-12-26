@@ -25,11 +25,6 @@ namespace kann
     struct Connection
     {
       std::shared_ptr<Layer> layer;
-
-      // Currently unsupported
-      size_t inputOffset;
-      size_t outputOffset;
-
       Eigen::ArrayXd layerGradient;
     };
 
@@ -44,7 +39,7 @@ namespace kann
 
   public:
     Handle addNode(size_t size);
-    void addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer, size_t inputOffset = 0, size_t outputOffset = 0);
+    void addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer);
     void build(Handle input, Handle output);
 
   public:

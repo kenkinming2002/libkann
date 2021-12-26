@@ -20,12 +20,10 @@ namespace kann
     }, m_graph);
   }
 
-  void Model::addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer, size_t inputOffset, size_t outputOffset)
+  void Model::addConnection(Handle parent, Handle child, std::shared_ptr<Layer> layer)
   {
     boost::add_edge(parent, child, Connection{
       .layer = std::move(layer),
-      .inputOffset  = inputOffset,
-      .outputOffset = outputOffset
     }, m_graph);
   }
 
