@@ -3,6 +3,7 @@
 #include <libkann/neural_networks/NeuralNetwork.hpp>
 #include <libkann/neural_networks/AutoEncoder.hpp>
 
+#include <libkann/layers/IdentityLayer.hpp>
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
 #include <libkann/layers/ConvolutionalLayer.hpp>
@@ -184,7 +185,10 @@ int main(int argc, char* argv[])
   {
     // Normal Neural Network
     std::vector<std::shared_ptr<kann::Layer>> layers;
+    layers.push_back(std::make_shared<kann::IdentityLayer>(kann::MNISTDataSet::IMAGE_SIZE));
     attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
+    layers.push_back(std::make_shared<kann::IdentityLayer>(10));
+
     for(auto& layer : layers)
       layer->randomize(engine);
 
