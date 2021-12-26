@@ -13,7 +13,7 @@ namespace kann
   {
   public:
     LIBKANN_SYMEXPORT IdentityLayer() = default;
-    LIBKANN_SYMEXPORT IdentityLayer(size_t size);
+    LIBKANN_SYMEXPORT IdentityLayer(size_t inputSize, size_t outputSize, size_t offset);
 
   public:
     LIBKANN_SYMEXPORT std::unique_ptr<Layer> clone() const override;
@@ -31,11 +31,15 @@ namespace kann
     void serialize(Archive& archive)
     {
       archive(cereal::base_class<Layer>(this));
-      archive(m_size);
+      archive(m_inputSize);
+      archive(m_outputSize);
+      archive(m_offset);
     }
 
   private:
-    size_t m_size;
+    size_t m_inputSize;
+    size_t m_outputSize;
+    size_t m_offset;
   };
 }
 

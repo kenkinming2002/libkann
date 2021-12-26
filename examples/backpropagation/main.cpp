@@ -185,9 +185,9 @@ int main(int argc, char* argv[])
   {
     // Normal Neural Network
     std::vector<std::shared_ptr<kann::Layer>> layers;
-    layers.push_back(std::make_shared<kann::IdentityLayer>(kann::MNISTDataSet::IMAGE_SIZE));
+    layers.push_back(std::make_shared<kann::IdentityLayer>(kann::MNISTDataSet::IMAGE_SIZE, kann::MNISTDataSet::IMAGE_SIZE, 0));
     attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
-    layers.push_back(std::make_shared<kann::IdentityLayer>(10));
+    layers.push_back(std::make_shared<kann::IdentityLayer>(10, 10, 0));
 
     for(auto& layer : layers)
       layer->randomize(engine);
