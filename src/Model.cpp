@@ -27,11 +27,30 @@ namespace kann
       std::cout << handle << " ";
     std::cout << std::endl;
 
+    // Compute connection.offset
     for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
     {
       Node& node = m_graph[*begin];
       node.data     = Eigen::VectorXd::Zero(node.size);
       node.gradient = Eigen::RowVectorXd::Zero(node.size);
+
+      const size_t inDegree = boost::in_degree(*begin, m_graph);
+
+      std::vector<size_t> outputSizes(inDegree);
+      for(auto [_begin, _end] = boost::in_edges(*begin, m_graph); _begin != _end; ++ _begin)
+      {
+        Connection& connection = m_graph[*_begin];
+        outputSizes[connection.id] = connection.layer->outputSize();
+      }
+
+      std::vector<size_t> offsets(inDegree);
+      std::partial_sum(outputSizes.begin(), outputSizes.end(), offsets.begin());
+
+      for(auto [_begin, _end] = boost::in_edges(*begin, m_graph); _begin != _end; ++ _begin)
+      {
+        Connection& connection = m_graph[*_begin];
+        connection.offset = connection.id != 0 ? offsets[connection.id-1] : 0;
+      }
     }
   }
 
@@ -63,6 +82,7 @@ namespace kann
       os << demangle(typeid(*layer).name()) << "\\n";
       os << "input_size=" << layer->inputSize() << "\\n";
       os << "output_size=" << layer->outputSize() << "\\n";
+      os << "offset=" << connection.offset << "\\n";
       os << "\"]";
     };
     boost::write_graphviz(os, m_graph, vertexWriter, edgeWriter);
@@ -78,7 +98,13 @@ namespace kann
       {
         const auto& connection = m_graph[*begin];
         auto& outputNode = m_graph[boost::target(*begin, m_graph)];
-        connection.layer->feedForward(inputNode.data, outputNode.data);
+
+        Eigen::VectorXd input = inputNode.data;
+        Eigen::VectorXd output;
+
+        connection.layer->feedForward(input, output);
+
+        outputNode.data.segment(connection.offset, connection.layer->outputSize()) = output;
       }
     }
   }
@@ -95,7 +121,13 @@ namespace kann
       {
         auto& connection = m_graph[*begin];
         auto& inputNode = m_graph[boost::source(*begin, m_graph)];
-        connection.layer->backPropagate(inputNode.data, outputNode.gradient, inputNode.gradient, connection.layerGradient);
+
+        Eigen::RowVectorXd inputGradient;
+        Eigen::RowVectorXd outputGradient = outputNode.gradient.segment(connection.offset, connection.layer->outputSize());
+
+        connection.layer->backPropagate(inputNode.data, outputGradient, inputGradient, connection.layerGradient);
+
+        inputNode.gradient = inputGradient;
       }
     }
   }
@@ -123,7 +155,7 @@ namespace kann
     boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
 
     for(size_t i=0; i<layers.size(); ++i)
-      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i])}, graph);
+      boost::add_edge(i, i+1, Model::Connection{.id = 0, .layer = std::move(layers[i])}, graph);
 
     return Model(graph, 0, layers.size());
   }
