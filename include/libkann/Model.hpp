@@ -58,6 +58,9 @@ namespace kann
   public:
     Eigen::VectorXd output() const;
 
+  public:
+    static Model cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
+
   private:
     Graph m_graph;
     Handle m_input, m_output;

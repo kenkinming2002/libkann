@@ -16,7 +16,7 @@ Config::Config(const char* fileName)
   json config;
   configFile >> config;
 
-  this->neuralNetwork.mutationRate = config.at("NeuralNetwork").at("MutationRate").get<double>();
+  this->model.mutationRate = config.at("Model").at("MutationRate").get<double>();
 
   auto berryBushConfig = config.at("BerryBush");
   this->berryBush.energyPerBerry = berryBushConfig.at("EnergyPerBerry").get<double>();

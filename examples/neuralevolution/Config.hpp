@@ -10,11 +10,11 @@ public:
   Config(const char* filename);
 
 public:
-  struct NeuralNetwork
+  struct Model
   {
     double mutationRate;
   };
-  NeuralNetwork neuralNetwork;
+  Model model;
 
   struct BerryBush
   {

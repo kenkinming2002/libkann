@@ -4,6 +4,7 @@
 
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/graphviz.hpp>
+#include <boost/graph/copy.hpp>
 
 #include <iterator>
 #include <ranges>
@@ -150,6 +151,29 @@ namespace kann
   Eigen::VectorXd Model::output() const
   {
     return m_graph[m_output].data;
+  }
+
+  Model Model::cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate)
+  {
+    assert(boost::num_vertices(lhs.m_graph) == boost::num_vertices(rhs.m_graph));
+    assert(boost::num_edges(lhs.m_graph) == boost::num_edges(rhs.m_graph));
+    assert(lhs.m_input == rhs.m_input);
+    assert(lhs.m_output == rhs.m_output);
+
+    auto result = lhs;
+
+    for(auto [begin, end] = boost::edges(result.m_graph); begin != end; ++begin)
+    {
+      // Hopefully the edge descriptor for result.m_graph also works for
+      // rhs.m_graph
+      auto& connection          = result.m_graph[*begin];
+      const auto& rhsConnection = rhs.m_graph[*begin];
+      connection.layer = Layer::cross(*connection.layer, *rhsConnection.layer, engine, mutationRate);
+    }
+
+    // TODO: Zero all the data
+
+    return result;
   }
 
   Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers)
