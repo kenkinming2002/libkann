@@ -24,10 +24,8 @@ namespace kann
 
     struct Connection
     {
-      std::size_t id;
       std::shared_ptr<Layer> layer;
 
-      std::size_t offset;
       Eigen::ArrayXd layerGradient;
     };
 

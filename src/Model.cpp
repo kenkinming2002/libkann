@@ -24,35 +24,17 @@ namespace kann
     boost::topological_sort(m_graph, std::back_inserter(m_ordering));
     std::reverse(m_ordering.begin(), m_ordering.end());
 
+    // Zero all node
+
     std::cout << "Ordering:";
     for(auto handle : m_ordering)
       std::cout << handle << " ";
     std::cout << std::endl;
-
-    // Compute connection.offset
     for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
     {
       Node& node = m_graph[*begin];
       node.data     = Eigen::VectorXd::Zero(node.size);
       node.gradient = Eigen::RowVectorXd::Zero(node.size);
-
-      const size_t inDegree = boost::in_degree(*begin, m_graph);
-
-      std::vector<size_t> outputSizes(inDegree);
-      for(auto [_begin, _end] = boost::in_edges(*begin, m_graph); _begin != _end; ++ _begin)
-      {
-        Connection& connection = m_graph[*_begin];
-        outputSizes[connection.id] = connection.layer->outputSize();
-      }
-
-      std::vector<size_t> offsets(inDegree);
-      std::partial_sum(outputSizes.begin(), outputSizes.end(), offsets.begin());
-
-      for(auto [_begin, _end] = boost::in_edges(*begin, m_graph); _begin != _end; ++ _begin)
-      {
-        Connection& connection = m_graph[*_begin];
-        connection.offset = connection.id != 0 ? offsets[connection.id-1] : 0;
-      }
     }
   }
 
@@ -84,7 +66,6 @@ namespace kann
       os << demangle(typeid(*layer).name()) << "\\n";
       os << "input_size=" << layer->inputSize() << "\\n";
       os << "output_size=" << layer->outputSize() << "\\n";
-      os << "offset=" << connection.offset << "\\n";
       os << "\"]";
     };
     boost::write_graphviz(os, m_graph, vertexWriter, edgeWriter);
@@ -92,9 +73,23 @@ namespace kann
 
   void Model::feedForward(Eigen::VectorXd input)
   {
-    // Feedback connection
+    std::map<Handle, Eigen::VectorXd> feedBackData;
+
+    // Save feedBack data
     for(const auto& feedBack : m_feedBacks)
-      m_graph[feedBack.second].data = m_graph[feedBack.first].data;
+      feedBackData.insert(std::make_pair(feedBack.second, m_graph[feedBack.first].data));
+
+    // Zero all pre-existing node data
+    for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
+    {
+      Node& node = m_graph[*begin];
+      node.data.setZero();
+    }
+
+    // Restore feedBack data
+    for(auto& [handle, data] : feedBackData)
+      m_graph[handle].data = std::move(data);
+
 
     m_graph[m_input].data = std::move(input);
     for(const auto& handle : m_ordering)
@@ -105,12 +100,10 @@ namespace kann
         const auto& connection = m_graph[*begin];
         auto& outputNode = m_graph[boost::target(*begin, m_graph)];
 
-        Eigen::VectorXd input = inputNode.data;
         Eigen::VectorXd output;
+        connection.layer->feedForward(inputNode.data, output);
 
-        connection.layer->feedForward(input, output);
-
-        outputNode.data.segment(connection.offset, connection.layer->outputSize()) = output;
+        outputNode.data += output;
       }
     }
   }
@@ -138,9 +131,7 @@ namespace kann
         auto& inputNode = m_graph[boost::source(*begin, m_graph)];
 
         Eigen::RowVectorXd inputGradient;
-        Eigen::RowVectorXd outputGradient = outputNode.gradient.segment(connection.offset, connection.layer->outputSize());
-
-        connection.layer->backPropagate(inputNode.data, outputGradient, inputGradient, connection.layerGradient);
+        connection.layer->backPropagate(inputNode.data, outputNode.gradient, inputGradient, connection.layerGradient);
 
         inputNode.gradient += inputGradient;
       }
@@ -170,7 +161,7 @@ namespace kann
     boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
 
     for(size_t i=0; i<layers.size(); ++i)
-      boost::add_edge(i, i+1, Model::Connection{.id = 0, .layer = std::move(layers[i])}, graph);
+      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i])}, graph);
 
     return Model(graph, 0, layers.size());
   }
@@ -187,18 +178,18 @@ namespace kann
     boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
 
     for(size_t i=0; i<layers.size(); ++i)
-      boost::add_edge(i, i+1, Model::Connection{.id = 0, .layer = std::move(layers[i])}, graph);
+      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i])}, graph);
 
     const auto input        = boost::add_vertex(Model::Node{.size = inputSize  - memory}, graph);
     const auto output       = boost::add_vertex(Model::Node{.size = outputSize - memory}, graph);
     const auto inputMemory  = boost::add_vertex(Model::Node{.size = memory             }, graph);
     const auto outputMemory = boost::add_vertex(Model::Node{.size = memory             }, graph);
 
-    boost::add_edge(input,       0, Model::Connection{.id = 0, .layer = std::make_shared<IdentityLayer>(inputSize - memory, inputSize - memory, 0)}, graph);
-    boost::add_edge(inputMemory, 0, Model::Connection{.id = 1, .layer = std::make_shared<IdentityLayer>(memory            , memory            , 0)}, graph);
+    boost::add_edge(input,       0, Model::Connection{.layer = std::make_shared<IdentityLayer>(inputSize - memory, inputSize, 0                 )}, graph);
+    boost::add_edge(inputMemory, 0, Model::Connection{.layer = std::make_shared<IdentityLayer>(memory            , inputSize, inputSize - memory)}, graph);
 
-    boost::add_edge(layers.size(), output,       Model::Connection{.id = 0, .layer = std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0)}, graph);
-    boost::add_edge(layers.size(), outputMemory, Model::Connection{.id = 0, .layer = std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory)}, graph);
+    boost::add_edge(layers.size(), output,       Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0                  )}, graph);
+    boost::add_edge(layers.size(), outputMemory, Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory)}, graph);
 
     auto feedBack = Model::FeedBack{.first = outputMemory, .second = inputMemory};
     return Model(graph, input, output, {feedBack});
