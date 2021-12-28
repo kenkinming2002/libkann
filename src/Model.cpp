@@ -1,5 +1,7 @@
 #include <libkann/Model.hpp>
 
+#include <libkann/layers/IdentityLayer.hpp>
+
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/graphviz.hpp>
 
@@ -16,8 +18,8 @@ namespace kann
    *       moving graph, but that should be the case, since in the case of using
    *       boost::vecS, i.e. using std::vector to store vertex, vertex desciptor
    *       is no more than a size_t which index into the std::vector of vertex */
-  Model::Model(Graph graph, Handle input, Handle output)
-    : m_graph(graph), m_input(input), m_output(output)
+  Model::Model(Graph graph, Handle input, Handle output, std::vector<FeedBack> feedBacks)
+    : m_graph(graph), m_input(input), m_output(output), m_feedBacks(std::move(feedBacks))
   {
     boost::topological_sort(m_graph, std::back_inserter(m_ordering));
     std::reverse(m_ordering.begin(), m_ordering.end());
@@ -90,6 +92,10 @@ namespace kann
 
   void Model::feedForward(Eigen::VectorXd input)
   {
+    // Feedback connection
+    for(const auto& feedBack : m_feedBacks)
+      m_graph[feedBack.second].data = m_graph[feedBack.first].data;
+
     m_graph[m_input].data = std::move(input);
     for(const auto& handle : m_ordering)
     {
@@ -111,6 +117,15 @@ namespace kann
 
   void Model::backPropagate(const Eigen::VectorXd& expectedOutput)
   {
+    // TODO: Back propagation through time
+
+    // Zero all pre-existing node gradients
+    for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
+    {
+      Node& node = m_graph[*begin];
+      node.gradient.setZero();
+    }
+
     m_graph[m_output].gradient = 2.0 * (m_graph[m_output].data - expectedOutput);
     for(auto it = m_ordering.rbegin(); it != m_ordering.rend(); ++it)
     {
@@ -127,7 +142,7 @@ namespace kann
 
         connection.layer->backPropagate(inputNode.data, outputGradient, inputGradient, connection.layerGradient);
 
-        inputNode.gradient = inputGradient;
+        inputNode.gradient += inputGradient;
       }
     }
   }
@@ -158,6 +173,35 @@ namespace kann
       boost::add_edge(i, i+1, Model::Connection{.id = 0, .layer = std::move(layers[i])}, graph);
 
     return Model(graph, 0, layers.size());
+  }
+
+  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory)
+  {
+    const size_t inputSize  = layers.front()->inputSize();
+    const size_t outputSize = layers.back()->outputSize();
+
+    Model::Graph graph;
+    for(size_t i=0; i<layers.size(); ++i)
+      boost::add_vertex(Model::Node{.size = layers[i]->inputSize()}, graph);
+
+    boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
+
+    for(size_t i=0; i<layers.size(); ++i)
+      boost::add_edge(i, i+1, Model::Connection{.id = 0, .layer = std::move(layers[i])}, graph);
+
+    const auto input        = boost::add_vertex(Model::Node{.size = inputSize  - memory}, graph);
+    const auto output       = boost::add_vertex(Model::Node{.size = outputSize - memory}, graph);
+    const auto inputMemory  = boost::add_vertex(Model::Node{.size = memory             }, graph);
+    const auto outputMemory = boost::add_vertex(Model::Node{.size = memory             }, graph);
+
+    boost::add_edge(input,       0, Model::Connection{.id = 0, .layer = std::make_shared<IdentityLayer>(inputSize - memory, inputSize - memory, 0)}, graph);
+    boost::add_edge(inputMemory, 0, Model::Connection{.id = 1, .layer = std::make_shared<IdentityLayer>(memory            , memory            , 0)}, graph);
+
+    boost::add_edge(layers.size(), output,       Model::Connection{.id = 0, .layer = std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0)}, graph);
+    boost::add_edge(layers.size(), outputMemory, Model::Connection{.id = 0, .layer = std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory)}, graph);
+
+    auto feedBack = Model::FeedBack{.first = outputMemory, .second = inputMemory};
+    return Model(graph, input, output, {feedBack});
   }
 
   std::pair<Model, Model> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers)

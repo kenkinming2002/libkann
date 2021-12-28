@@ -207,6 +207,20 @@ int main(int argc, char* argv[])
     auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
     trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/convolution.dot");
   }
+  else if(subcommand == "recurrent")
+  {
+    // Normal Neural Network
+    const size_t MEMORY = 20;
+
+    std::vector<std::shared_ptr<kann::Layer>> layers;
+    attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE+MEMORY, 30, 30, 30, 10+MEMORY}, kann::ActivationFunction::Type::SIGMOID);
+
+    for(auto& layer : layers)
+      layer->randomize(engine);
+
+    auto model = kann::buildSimpleRecurrentModel(std::move(layers), MEMORY);
+    trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/recurrent.dot");
+  }
   else if(subcommand == "autoencoder")
   {
     static constexpr size_t FEATURES_COUNT = 64;

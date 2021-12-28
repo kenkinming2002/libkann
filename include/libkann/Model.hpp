@@ -41,7 +41,13 @@ namespace kann
     typedef boost::graph_traits<Graph>::vertex_descriptor Handle;
 
   public:
-    Model(Graph graph, Handle input, Handle output);
+    struct FeedBack
+    {
+      Handle first, second;
+    };
+
+  public:
+    Model(Graph graph, Handle input, Handle output, std::vector<FeedBack> feedBacks = {});
 
   public:
     void write_graphviz(std::ostream& os) const;
@@ -56,13 +62,15 @@ namespace kann
 
   private:
     Graph m_graph;
+    Handle m_input, m_output;
+    std::vector<FeedBack> m_feedBacks;
 
   private:
-    Handle m_input, m_output;
     std::vector<Handle> m_ordering;
   };
 
   Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers);
+  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory);
 
   /* The returned auto encoder model is used for training purposes
    * whereas random data can be feed into the decoder model to obtain output.
