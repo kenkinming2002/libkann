@@ -4,6 +4,7 @@
 
 #include <libkann/serialization/Graph.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/utility.hpp>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
@@ -84,18 +85,6 @@ namespace kann
     static Model cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 
   public:
-    struct Pair
-    {
-      size_t first;
-      size_t second;
-
-      template<typename Archive>
-      void serialize(Archive& archive)
-      {
-        archive(first, second);
-      }
-    };
-
     template<typename Archive>
     void save(Archive& archive) const
     {
@@ -112,12 +101,12 @@ namespace kann
       }
 
       {
-        std::vector<Pair> result;
+        std::vector<std::pair<size_t, size_t>> result;
         std::transform(m_feedBacks.begin(), m_feedBacks.end(), std::back_inserter(result), [&](const FeedBack& feedBack){
-          return Pair{
-            .first  = graphOutputSerializer.map(feedBack.first),
-            .second = graphOutputSerializer.map(feedBack.second)
-          };
+          return std::make_pair(
+            graphOutputSerializer.map(feedBack.first),
+            graphOutputSerializer.map(feedBack.second)
+          );
         });
         archive(result);
       }
@@ -147,9 +136,9 @@ namespace kann
       }
 
       {
-        std::vector<Pair> result;
+        std::vector<std::pair<size_t, size_t>> result;
         archive(result);
-        std::transform(result.begin(), result.end(), std::back_inserter(m_feedBacks), [&](const Pair& p){
+        std::transform(result.begin(), result.end(), std::back_inserter(m_feedBacks), [&](const std::pair<size_t, size_t>& p){
           return FeedBack{
             .first = graphInputSerializer.map(p.first),
             .second = graphInputSerializer.map(p.second)
