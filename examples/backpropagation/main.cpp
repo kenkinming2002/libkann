@@ -15,6 +15,9 @@
 #include <libkann/Model.hpp>
 #include <libkann/Algorithm.hpp>
 
+#include <cereal/archives/json.hpp>
+#include <cereal/archives/binary.hpp>
+
 #include <memory>
 #include <random>
 #include <chrono>
@@ -180,6 +183,39 @@ int main(int argc, char* argv[])
     // Try to write out the data set
     writeDataSet("output/training", trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
     writeDataSet("output/testing",  testingDataSet,  kann::MNISTDataSet::COLUMN_IMAGE);
+  }
+  else if(subcommand == "serialize")
+  {
+    {
+      std::vector<std::shared_ptr<kann::Layer>> layers;
+      layers.push_back(std::make_shared<kann::IdentityLayer>(kann::MNISTDataSet::IMAGE_SIZE, kann::MNISTDataSet::IMAGE_SIZE, 0));
+      attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
+      layers.push_back(std::make_shared<kann::IdentityLayer>(10, 10, 0));
+
+      for(auto& layer : layers)
+        layer->randomize(engine);
+
+      auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
+
+      std::ofstream file("output/model1.json");
+      cereal::JSONOutputArchive archive(file);
+      archive(model);
+    }
+
+    {
+      kann::Model model;
+      {
+        std::ifstream file("output/model1.json");
+        cereal::JSONInputArchive archive(file);
+        archive(model);
+      }
+
+      {
+        std::ofstream file("output/model2.json");
+        cereal::JSONOutputArchive archive(file);
+        archive(model);
+      }
+    }
   }
   else if(subcommand == "normal")
   {

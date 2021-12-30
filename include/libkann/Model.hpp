@@ -2,6 +2,9 @@
 
 #include <libkann/layers/Layer.hpp>
 
+#include <libkann/serialization/Graph.hpp>
+#include <cereal/types/vector.hpp>
+
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
 
@@ -20,6 +23,12 @@ namespace kann
 
       Eigen::VectorXd data;
       Eigen::RowVectorXd gradient;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(size, data, gradient);
+      }
     };
 
     struct Connection
@@ -27,6 +36,12 @@ namespace kann
       std::shared_ptr<Layer> layer;
 
       Eigen::ArrayXd layerGradient;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(layer, layerGradient);
+      }
     };
 
   public:
@@ -42,9 +57,16 @@ namespace kann
     struct FeedBack
     {
       Handle first, second;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(first, second);
+      }
     };
 
   public:
+    Model() = default;
     Model(Graph graph, Handle input, Handle output, std::vector<FeedBack> feedBacks = {});
 
   public:
@@ -60,6 +82,63 @@ namespace kann
 
   public:
     static Model cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
+
+  public:
+    template<typename Archive>
+    void save(Archive& archive) const
+    {
+      GraphSerializer graphSerializer(m_graph);
+
+      archive(graphSerializer);
+      archive(VertexSerializer(graphSerializer, m_input));
+      archive(VertexSerializer(graphSerializer, m_output));
+
+      size_t size;
+      {
+        size = m_feedBacks.size();
+        archive(size);
+        for(auto& feedBack : m_feedBacks)
+        {
+          archive(VertexSerializer(graphSerializer, feedBack.first));
+          archive(VertexSerializer(graphSerializer, feedBack.second));
+        }
+      }
+
+      {
+        size = m_ordering.size();
+        archive(size);
+        for(auto& handle : m_ordering)
+          archive(VertexSerializer(graphSerializer, handle));
+      }
+    }
+
+    template<typename Archive>
+    void load(Archive& archive)
+    {
+      GraphSerializer graphSerializer(m_graph);
+
+      archive(graphSerializer);
+      archive(VertexSerializer(graphSerializer, m_input));
+      archive(VertexSerializer(graphSerializer, m_output));
+
+      size_t size;
+      {
+        archive(size);
+        m_feedBacks.resize(size);
+        for(auto& feedBack : m_feedBacks)
+        {
+          archive(VertexSerializer(graphSerializer, feedBack.first));
+          archive(VertexSerializer(graphSerializer, feedBack.second));
+        }
+      }
+
+      {
+        archive(size);
+        m_ordering.resize(size);
+        for(auto& handle : m_ordering)
+          archive(VertexSerializer(graphSerializer, handle));
+      }
+    }
 
   private:
     Graph m_graph;
