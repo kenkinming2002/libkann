@@ -84,59 +84,85 @@ namespace kann
     static Model cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 
   public:
+    struct Pair
+    {
+      size_t first;
+      size_t second;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(first, second);
+      }
+    };
+
     template<typename Archive>
     void save(Archive& archive) const
     {
-      GraphSerializer graphSerializer(m_graph);
+      GraphOutputSerializer graphOutputSerializer(m_graph);
+      archive(graphOutputSerializer);
 
-      archive(graphSerializer);
-      archive(VertexSerializer(graphSerializer, m_input));
-      archive(VertexSerializer(graphSerializer, m_output));
-
-      size_t size;
       {
-        size = m_feedBacks.size();
-        archive(size);
-        for(auto& feedBack : m_feedBacks)
-        {
-          archive(VertexSerializer(graphSerializer, feedBack.first));
-          archive(VertexSerializer(graphSerializer, feedBack.second));
-        }
+        size_t result;
+        result = graphOutputSerializer.map(m_input);
+        archive(result);
+
+        result = graphOutputSerializer.map(m_output);
+        archive(result);
       }
 
       {
-        size = m_ordering.size();
-        archive(size);
-        for(auto& handle : m_ordering)
-          archive(VertexSerializer(graphSerializer, handle));
+        std::vector<Pair> result;
+        std::transform(m_feedBacks.begin(), m_feedBacks.end(), std::back_inserter(result), [&](const FeedBack& feedBack){
+          return Pair{
+            .first  = graphOutputSerializer.map(feedBack.first),
+            .second = graphOutputSerializer.map(feedBack.second)
+          };
+        });
+        archive(result);
+      }
+
+      {
+        std::vector<size_t> result;
+        std::transform(m_ordering.begin(), m_ordering.end(), std::back_inserter(result), [&](const Handle& handle){
+          return graphOutputSerializer.map(handle);
+        });
+        archive(result);
       }
     }
 
     template<typename Archive>
     void load(Archive& archive)
     {
-      GraphSerializer graphSerializer(m_graph);
+      GraphInputSerializer graphInputSerializer(m_graph);
+      archive(graphInputSerializer);
 
-      archive(graphSerializer);
-      archive(VertexSerializer(graphSerializer, m_input));
-      archive(VertexSerializer(graphSerializer, m_output));
-
-      size_t size;
       {
-        archive(size);
-        m_feedBacks.resize(size);
-        for(auto& feedBack : m_feedBacks)
-        {
-          archive(VertexSerializer(graphSerializer, feedBack.first));
-          archive(VertexSerializer(graphSerializer, feedBack.second));
-        }
+        size_t result;
+        archive(result);
+        m_input = graphInputSerializer.map(result);
+
+        archive(result);
+        m_output = graphInputSerializer.map(result);
       }
 
       {
-        archive(size);
-        m_ordering.resize(size);
-        for(auto& handle : m_ordering)
-          archive(VertexSerializer(graphSerializer, handle));
+        std::vector<Pair> result;
+        archive(result);
+        std::transform(result.begin(), result.end(), std::back_inserter(m_feedBacks), [&](const Pair& p){
+          return FeedBack{
+            .first = graphInputSerializer.map(p.first),
+            .second = graphInputSerializer.map(p.second)
+          };
+        });
+      }
+
+      {
+        std::vector<size_t> result;
+        archive(result);
+        std::transform(result.begin(), result.end(), std::back_inserter(m_ordering), [&](size_t i){
+          return graphInputSerializer.map(i);
+        });
       }
     }
 

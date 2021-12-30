@@ -10,16 +10,13 @@
 #include <type_traits>
 
 template<typename Graph>
-class VertexSerializer;
-
-template<typename Graph>
-class GraphSerializer
+class GraphOutputSerializer
 {
 public:
   typedef boost::graph_traits<Graph> Traits;
 
 public:
-  GraphSerializer(Graph& graph) : m_graph(graph) {}
+  GraphOutputSerializer(const Graph& graph) : m_graph(graph) {}
 
 public:
   template<typename Archive>
@@ -39,8 +36,7 @@ public:
     {
       auto desc = *it;
 
-      m_map1.insert({desc, i});
-      m_map2.push_back(desc);
+      m_map.insert({desc, i});
 
       archive(boost::get(boost::vertex_all, m_graph, desc));
     }
@@ -55,14 +51,31 @@ public:
       source = boost::source(desc, m_graph);
       target = boost::target(desc, m_graph);
 
-      u = m_map1[source];
-      v = m_map1[target];
+      u = m_map[source];
+      v = m_map[target];
 
       archive(u, v);
       archive(boost::get(boost::edge_all, m_graph, desc));
     }
   }
 
+  size_t map(typename Traits::vertex_descriptor desc) const { return m_map[desc]; }
+
+private:
+  const Graph& m_graph;
+  mutable std::map<typename Traits::vertex_descriptor, size_t> m_map;
+};
+
+template<typename Graph>
+class GraphInputSerializer
+{
+public:
+  typedef boost::graph_traits<Graph> Traits;
+
+public:
+  GraphInputSerializer(Graph& graph) : m_graph(graph) {}
+
+public:
   template<typename Archive>
   void load(Archive& archive)
   {
@@ -76,8 +89,7 @@ public:
     {
       auto desc = boost::add_vertex(m_graph);
 
-      m_map1.insert({desc, i});
-      m_map2.push_back(desc);
+      m_map.push_back(desc);
 
       archive(boost::get(boost::vertex_all, m_graph, desc));
     }
@@ -89,8 +101,8 @@ public:
 
       archive(u, v);
 
-      source = m_map2[u];
-      target = m_map2[v];
+      source = m_map[u];
+      target = m_map[v];
 
       auto [desc, success] = boost::add_edge(source, target, m_graph);
       if(!success)
@@ -100,49 +112,10 @@ public:
     }
   }
 
+  typename Traits::vertex_descriptor map(size_t i) { return m_map[i]; }
+
 private:
   Graph& m_graph;
-
-private:
-  mutable std::map<typename Traits::vertex_descriptor, size_t> m_map1;
-  mutable std::vector<typename Traits::vertex_descriptor> m_map2;
-
-private:
-  friend class VertexSerializer<Graph>;
-};
-
-template<typename Graph>
-class VertexSerializer
-{
-public:
-  typedef boost::graph_traits<Graph> Traits;
-  typedef std::conditional_t<std::is_const_v<Graph>, const typename Traits::vertex_descriptor, typename Traits::vertex_descriptor> VertexDescriptor;
-
-public:
-  VertexSerializer(const GraphSerializer<Graph>& graphSerializer, VertexDescriptor& desc)
-    : m_graphSerializer(graphSerializer), m_desc(desc) {}
-
-public:
-  template<typename Archive>
-  void save(Archive& archive) const
-  {
-    size_t i;
-
-    i = m_graphSerializer.m_map1[m_desc];
-    archive(i);
-  }
-
-  template<typename Archive>
-  void load(Archive& archive)
-  {
-    size_t i;
-
-    archive(i);
-    m_desc = m_graphSerializer.m_map2[i];
-  }
-
-private:
-  const GraphSerializer<Graph>& m_graphSerializer;
-  VertexDescriptor& m_desc;
+  std::vector<typename Traits::vertex_descriptor> m_map;
 };
 
