@@ -1,8 +1,5 @@
 #include <libkann/utilities/random.hpp>
 
-#include <libkann/neural_networks/NeuralNetwork.hpp>
-#include <libkann/neural_networks/AutoEncoder.hpp>
-
 #include <libkann/layers/IdentityLayer.hpp>
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
