@@ -1,8 +1,10 @@
 #include <libkann/Algorithm.hpp>
+#include <limits>
 
 namespace kann
 {
-  static void showProgressBar(std::string_view name, size_t count, size_t total)
+  template<typename... Args>
+  static void showProgressBar(std::string_view name, size_t count, size_t total, const Args&... args)
   {
     constexpr static size_t width = 40;
     std::cout << "\e[?25l";
@@ -16,7 +18,11 @@ namespace kann
 
     std::cout << " - ";
     std::cout << count << "/" << total;
-    std::cout << "]\r";
+    std::cout << "]";
+
+    (void)(std::cout << ... << args);
+
+    std::cout << "\r";
 
     std::cout << "\e[?25h";
   }
@@ -25,15 +31,18 @@ namespace kann
   {
     const auto size = dataSet.size();
 
+    double cost = std::numeric_limits<double>::quiet_NaN();
     Eigen::VectorXd input, expectedOutput;
     for(size_t i=0; i<size; ++i)
     {
-      showProgressBar("Training", i, size);
+      showProgressBar("Training", i, size, "Cost:", cost);
       dataSet.get(inputColumn,  i, input);
       dataSet.get(outputColumn, i, expectedOutput);
       model.feedForward(input);
       model.backPropagate(expectedOutput);
       model.train(learningRate);
+      cost = model.cost(expectedOutput);
+
     }
     std::cout << std::endl;
   }

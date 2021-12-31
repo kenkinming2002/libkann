@@ -77,6 +77,7 @@ namespace kann
 
   public:
     void feedForward(Eigen::VectorXd input);
+    double cost(const Eigen::VectorXd& expectedOutput) const;
     void backPropagate(const Eigen::VectorXd& expectedOutput);
     void train(double learningRate);
 
