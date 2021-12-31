@@ -51,6 +51,7 @@ namespace kann
       model.train(learningRate);
 
       callback(Info{
+        .model = model,
         .i = i,
         .size = size,
         .input = input,
@@ -76,6 +77,7 @@ namespace kann
       correctness += dataSet.correctness(outputColumn, i, model.output());
 
       callback(Info{
+        .model = model,
         .i = i,
         .size = size,
         .input = input,

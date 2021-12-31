@@ -10,6 +10,8 @@ namespace kann
   // We must pass the model explicitly because copy could have been made
   struct Info
   {
+    const Model& model;
+
     size_t i;
     size_t size;
 
