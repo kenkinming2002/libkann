@@ -3,6 +3,8 @@
 #include <libkann/layers/Layer.hpp>
 
 #include <libkann/serialization/Graph.hpp>
+#include <libkann/serialization/Eigen.hpp>
+
 #include <cereal/types/vector.hpp>
 #include <cereal/types/utility.hpp>
 

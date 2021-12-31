@@ -24,19 +24,20 @@ Population::Population(seed_type seed, size_t size, const std::vector<size_t>& a
   assert(size % 2 == 0 && "population size must be even");
   m_agents.reserve(size);
   std::generate_n(std::back_inserter(m_agents), size, [&](){
-    kann::NeuralNetwork nn;
+    std::vector<std::shared_ptr<kann::Layer>> layers;
     for(size_t i=0; i < topology.size()-1; ++i)
     {
       size_t prevSize = topology[i];
       size_t nextSize = topology[i+1];
-      auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
-
-      auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
-      nn.addLayer(std::move(weightLayer));
-      nn.addLayer(std::move(activationLayer));
+      layers.push_back(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
+      layers.push_back(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
     }
-    nn.randomize(m_generator);
-    return nn;
+
+    for(auto& layer : layers)
+      layer->randomize(m_generator);
+
+    auto model = kann::buildSimpleFeedForwardModel(layers);
+    return Agent(std::move(model));
   });
 }
 

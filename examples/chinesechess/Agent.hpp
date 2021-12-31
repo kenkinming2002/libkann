@@ -3,7 +3,8 @@
 #include "Board.hpp"
 #include "Game.hpp"
 
-#include <libkann/neural_networks/NeuralNetwork.hpp>
+#include <libkann/Model.hpp>
+
 #include <optional>
 #include <filesystem>
 
@@ -15,15 +16,15 @@ public:
 
 public:
   Agent() = default;
-  Agent(kann::NeuralNetwork neuralNetwork);
+  Agent(kann::Model model);
 
 public:
   void loadFromFile(std::filesystem::path filePath);
   void saveToFile(std::filesystem::path filePath) const;
 
 public:
-  auto& neuralNetwork() { return m_neuralNetwork; }
-  const auto& neuralNetwork() const { return m_neuralNetwork; }
+  auto& model() { return m_model; }
+  const auto& model() const { return m_model; }
 
 public:
   std::optional<Board::Move> selectMove(Board board, Board::Cell::Color color);
@@ -47,13 +48,11 @@ public:
   template<typename Archive>
   void serialize(Archive& archive)
   {
-    archive(m_neuralNetwork);
+    archive(m_model);
   }
 
 private:
-  kann::NeuralNetwork m_neuralNetwork;
-  kann::FeedForwardResult m_feedForwardResult;
-  kann::BackPropagationResult m_backPropagationResult;
+  kann::Model m_model;
   double m_score = 0.0;
 
 private:
