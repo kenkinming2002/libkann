@@ -3,7 +3,7 @@
 #include "BerryBush.hpp"
 #include "Renderer.hpp"
 
-#include <libkann/neural_networks/RecurrentNeuralNetwork.hpp>
+#include <libkann/Model.hpp>
 
 #include <Eigen/Eigen>
 
@@ -35,13 +35,13 @@ public:
 
 
 public:
-  struct NeuralNetworkConfig
+  struct ModelConfig
   {
     std::vector<size_t> hiddenLayers;
     size_t memory;
   };
 
-  static kann::RecurrentNeuralNetwork makeNeuralNetork(const NeuralNetworkConfig& config, std::default_random_engine& engine);
+  static kann::Model makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine);
 
   struct Config
   {
@@ -78,15 +78,15 @@ public:
 
   /* Create a default creature from config using engine. You should use
    * setters to further configure the creature if so needed. */
-  Creature(b2World& world, const Config& config, kann::RecurrentNeuralNetwork
-      neuralNetwork, b2Vec2 position, double energy, double health);
+  Creature(b2World& world, const Config& config, kann::Model
+      model, b2Vec2 position, double energy, double health);
 
 public:
   /* Not thread safe */
   void updatePerception(const Config& config, float dt);
 
   /* Thread safe - and really need to be parallelize because this is *SLOW* */
-  void updateNeuralNetwork(const Config& config);
+  void updateModel(const Config& config);
 
   /* Not thread safe */
   void update(const Config& config, const BerryBush::Config& berryBushConfig, float dt, World& world);
@@ -114,8 +114,7 @@ public:
   auto statistics() const { return m_statistics; }
 
 private:
-  kann::RecurrentNeuralNetwork m_neuralNetwork;
-  kann::RecurrentFeedForwardResult m_result;
+  kann::Model m_model;
 
 private:
   static constexpr size_t EYES_COUNT = 2;

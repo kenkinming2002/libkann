@@ -1,8 +1,8 @@
 #include "Hell.hpp"
 
 #include "../utilities/lexical_cast.hpp"
+#include "libkann/Model.hpp"
 
-#include <libkann/neural_networks/NeuralNetwork.hpp>
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
 
@@ -120,20 +120,20 @@ namespace App
       topology.insert(topology.end(), agentHiddenLayers.begin(), agentHiddenLayers.end());
       topology.push_back(Agent::OUTPUT_LAYER_SIZE);
 
-      kann::NeuralNetwork nn;
+      std::vector<std::shared_ptr<kann::Layer>> layers;
       for(size_t i=0; i < topology.size()-1; ++i)
       {
         size_t prevSize = topology[i];
         size_t nextSize = topology[i+1];
-        auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
-
-        auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
-        nn.addLayer(std::move(weightLayer));
-        nn.addLayer(std::move(activationLayer));
+        layers.push_back(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
+        layers.push_back(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
       }
-      nn.randomize(engine);
 
-      return Agent(std::move(nn));
+      for(auto& layer : layers)
+        layer->randomize(engine);
+
+      auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
+      return Agent(std::move(model));
     }
   }
 

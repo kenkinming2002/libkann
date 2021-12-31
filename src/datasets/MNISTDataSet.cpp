@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <libkann/datasets/MNISTDataSet.hpp>
 
 #include <stdexcept>
@@ -52,33 +53,46 @@ namespace kann
     return m_data.size();
   }
 
-  void MNISTDataSet::get(size_t index, Eigen::VectorXd& input, Eigen::VectorXd& output) const
+  void MNISTDataSet::get(size_t column, size_t index, Eigen::VectorXd& data) const
   {
-    const auto& data = m_data[index];
-
-    input.resize(IMAGE_SIZE);
-    for(size_t i=0; i<IMAGE_SIZE; ++i)
-      input(i) = static_cast<double>(data.image[i])/255;
-
-    output.resize(10);
-    for(uint8_t i=0; i<10; ++i)
-      output(i) = i == data.label ? 1.0 : 0.0;
+    switch(column)
+    {
+    case COLUMN_IMAGE:
+      data.resize(IMAGE_SIZE);
+      for(size_t i=0; i<IMAGE_SIZE; ++i)
+        data(i) = static_cast<double>(m_data[index].image[i])/255;
+      return;
+    case COLUMN_LABEL:
+      data.resize(10);
+      for(uint8_t i=0; i<10; ++i)
+        data(i) = i == m_data[index].label ? 1.0 : 0.0;
+      return;
+    default:
+      throw std::runtime_error("MNIST Data Set - get() - Invalid column");
+    }
   }
 
-  double MNISTDataSet::correctness(size_t index, const Eigen::VectorXd& output) const
+  double MNISTDataSet::correctness(size_t column, size_t index, const Eigen::VectorXd& data) const
   {
-    const auto& data = m_data[index];
+    switch(column)
+    {
+    case COLUMN_IMAGE:
+      throw std::runtime_error("MNIST Data Set - correctness() - Unsupported column COLUMN_IMAGE");
+    case COLUMN_LABEL:
+    {
+      uint8_t label = -1;
+      double record = -std::numeric_limits<double>::infinity();
+      for(uint8_t i=0; i<data.size(); ++i)
+        if(data(i)>record)
+        {
+          label = i;
+          record = data(i);
+        }
 
-    uint8_t label = -1;
-    double record = -std::numeric_limits<double>::infinity();
-
-    for(uint8_t i=0; i<output.size(); ++i)
-      if(output(i)>record)
-      {
-        label = i;
-        record = output(i);
-      }
-
-    return data.label == label ? 1.0 : 0.0;
+      return m_data[index].label == label ? 1.0 : 0.0;
+    }
+    default:
+      throw std::runtime_error("MNIST Data Set - correctness() - Invalid column");
+    }
   }
 }

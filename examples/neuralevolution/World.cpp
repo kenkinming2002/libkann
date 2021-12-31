@@ -1,6 +1,4 @@
 #include "World.hpp"
-#include <libkann/neural_networks/NeuralNetwork.hpp>
-#include <libkann/neural_networks/RecurrentNeuralNetwork.hpp>
 
 #include <SFML/Graphics/RenderTarget.hpp>
 
@@ -12,7 +10,7 @@
 
 using namespace std::placeholders;
 
-World::World(Config config, Creature::Config creatureConfig, Creature::NeuralNetworkConfig creatureNeuralNetworkConfig, BerryBush::Config berryBushConfig)
+World::World(Config config, Creature::Config creatureConfig, Creature::ModelConfig creatureModelConfig, BerryBush::Config berryBushConfig)
   : m_config(config), m_creatureConfig(creatureConfig), m_berryBushConfig(berryBushConfig),
     m_generator(config.seed),
     m_world(b2Vec2(0.0f,0.0f)) // No gravity
@@ -70,7 +68,7 @@ World::World(Config config, Creature::Config creatureConfig, Creature::NeuralNet
     for(size_t i=0; i<m_config.initialCreaturesCount; ++i)
     {
       b2Vec2 position(distX(m_generator), distY(m_generator));
-      auto nn = Creature::makeNeuralNetork(creatureNeuralNetworkConfig, m_generator);
+      auto nn = Creature::makeNeuralNetork(creatureModelConfig, m_generator);
       m_creatures.emplace_back(m_world, m_creatureConfig, std::move(nn), position, m_creatureConfig.maxEnergy, m_creatureConfig.maxHealth);
     }
   }
@@ -111,7 +109,7 @@ void World::update(float dt)
 
 #pragma omp parallel for
   for(size_t i=0; i<m_creatures.size(); ++i)
-    m_creatures[i].updateNeuralNetwork(m_creatureConfig);
+    m_creatures[i].updateModel(m_creatureConfig);
 
   for(auto& creature : m_creatures)
     creature.update(m_creatureConfig, m_berryBushConfig, dt, *this);

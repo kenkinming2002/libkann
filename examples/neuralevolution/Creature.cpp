@@ -9,10 +9,8 @@
 #include <cassert>
 #include <cmath>
 
-kann::RecurrentNeuralNetwork Creature::makeNeuralNetork(const NeuralNetworkConfig& config, std::default_random_engine& engine)
+kann::Model Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
 {
-  kann::RecurrentNeuralNetwork nn(config.memory);
-
   const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
 
   // TODO: do not create a vector for this
@@ -21,29 +19,28 @@ kann::RecurrentNeuralNetwork Creature::makeNeuralNetork(const NeuralNetworkConfi
   topology.insert(topology.end(), config.hiddenLayers.begin(), config.hiddenLayers.end());
   topology.push_back(Creature::OUTPUT_COUNT + config.memory);
 
+  std::vector<std::shared_ptr<kann::Layer>> layers;
   for(size_t i=0; i < topology.size()-1; ++i)
   {
     size_t prevSize = topology[i];
     size_t nextSize = topology[i+1];
-    auto weightLayer = std::make_unique<kann::WeightLayer>(prevSize, nextSize);
-
-    auto activationLayer = std::make_unique<kann::ActivationLayer>(nextSize, activationFunction);
-    nn.addLayer(std::move(weightLayer));
-    nn.addLayer(std::move(activationLayer));
+    layers.push_back(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
+    layers.push_back(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
   }
 
-  nn.randomize(engine);
+  for(auto& layer : layers)
+    layer->randomize(engine);
 
-  return nn;
+  return kann::buildSimpleRecurrentModel(layers, config.memory);
 }
 
 static constexpr double ANGLE = M_PI / 12.0;
 
 Creature::Creature(b2World& world, const Config& config,
-    kann::RecurrentNeuralNetwork neuralNetwork, b2Vec2 position, double energy,
+    kann::Model model, b2Vec2 position, double energy,
     double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
-    m_neuralNetwork(std::move(neuralNetwork)),
+    m_model(std::move(model)),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)},
     m_energy(energy), m_health(health) {}
 
@@ -67,7 +64,7 @@ void Creature::updatePerception(const Config& config, float dt)
   }
 }
 
-void Creature::updateNeuralNetwork(const Config& config)
+void Creature::updateModel(const Config& config)
 {
   Eigen::VectorXd input(INPUT_COUNT);
 
@@ -75,7 +72,8 @@ void Creature::updateNeuralNetwork(const Config& config)
   input(INPUT_HEALTH)          = m_health / config.maxHealth;
   input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / config.viewDistance;
   input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / config.viewDistance;
-  m_neuralNetwork.feedForward(std::move(input), m_result);
+
+  m_model.feedForward(std::move(input));
 }
 
 // Working alone
@@ -85,7 +83,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
   static constexpr double MATING_ENERGY_COST = 5.0;
   static constexpr float REACH_MULTIPLIER = 1.5f;
 
-  const auto& output = m_result.output;
+  const auto& output = m_model.output();
 
   // 1: Cooldown
   {
@@ -193,7 +191,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
           continue;
 
         // Check if other have the same desire
-        if(other->m_result.output(OUTPUT_EATING_DESIRE)<0.0)
+        if(other->m_model.output()(OUTPUT_EATING_DESIRE)<0.0)
           continue; // Other do not want to mate
 
         if(other->m_matingCooldown != 0.0)
@@ -207,14 +205,14 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
         if(!takeEnergy(config.maxEnergy * 0.2) || !other->takeEnergy(config.maxEnergy * 0.2))
           continue;
 
-        auto newNeuralNetwork = kann::RecurrentNeuralNetwork::cross(m_neuralNetwork, other->m_neuralNetwork, world.prng(), config.mutationRate);
+        auto newModel = kann::Model::cross(m_model, other->m_model, world.prng(), config.mutationRate);
         auto newPosition = position();
         newPosition += other->position();
         newPosition *= 0.5;
 
         // What we really need is the world prng and b2World
         auto newCreature = Creature(world.world(), config,
-            std::move(newNeuralNetwork), newPosition,
+            std::move(newModel), newPosition,
             config.maxEnergy * 0.3, config.maxHealth
         );
         world.addCreature(std::move(newCreature));
