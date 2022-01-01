@@ -1,8 +1,10 @@
 #include <libkann/Algorithm.hpp>
+#include <limits>
 
 namespace kann
 {
-  static void showProgressBar(std::string_view name, size_t count, size_t total)
+  template<typename... Args>
+  static void showProgressBar(std::string_view name, size_t count, size_t total, const Args&... args)
   {
     constexpr static size_t width = 40;
     std::cout << "\e[?25l";
@@ -16,42 +18,74 @@ namespace kann
 
     std::cout << " - ";
     std::cout << count << "/" << total;
-    std::cout << "]\r";
+    std::cout << "]";
+
+    (void)(std::cout << ... << args);
+
+    std::cout << "\r";
 
     std::cout << "\e[?25h";
+
+    if(count+1==total)
+      std::cout << std::endl;
   }
 
-  void train(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate)
+  Callback defaultCallback(std::string_view name)
+  {
+    return [=](Info info){
+      showProgressBar(name, info.i, info.size, "Cost:", info.cost);
+    };
+  }
+
+  void train(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback)
   {
     const auto size = dataSet.size();
 
     Eigen::VectorXd input, expectedOutput;
     for(size_t i=0; i<size; ++i)
     {
-      showProgressBar("Training", i, size);
       dataSet.get(inputColumn,  i, input);
       dataSet.get(outputColumn, i, expectedOutput);
       model.feedForward(input);
       model.backPropagate(expectedOutput);
       model.train(learningRate);
+
+      callback(Info{
+        .model = model,
+        .i = i,
+        .size = size,
+        .input = input,
+        .output = model.output(),
+        .expectedOutput = expectedOutput,
+        .cost = model.cost(expectedOutput)
+      });
     }
-    std::cout << std::endl;
   }
 
-  double test(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn)
+  double test(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback)
   {
     const auto size = dataSet.size();
 
     double correctness = 0.0;
-    Eigen::VectorXd input;
+    Eigen::VectorXd input, expectedOutput;
     for(size_t i=0; i<size; ++i)
     {
-      showProgressBar("Testing", i, size);
       dataSet.get(inputColumn,  i, input);
+      dataSet.get(outputColumn, i, expectedOutput);
+
       model.feedForward(input);
       correctness += dataSet.correctness(outputColumn, i, model.output());
+
+      callback(Info{
+        .model = model,
+        .i = i,
+        .size = size,
+        .input = input,
+        .output = model.output(),
+        .expectedOutput = expectedOutput,
+        .cost = model.cost(expectedOutput)
+      });
     }
-    std::cout << std::endl;
     correctness /= size;
     return correctness;
   }

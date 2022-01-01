@@ -109,6 +109,11 @@ namespace kann
     }
   }
 
+  double Model::cost(const Eigen::VectorXd& expectedOutput) const
+  {
+    return (m_graph[m_output].data - expectedOutput).squaredNorm();
+  }
+
   void Model::backPropagate(const Eigen::VectorXd& expectedOutput)
   {
     // TODO: Back propagation through time

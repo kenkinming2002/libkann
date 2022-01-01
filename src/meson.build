@@ -17,14 +17,17 @@ libkann_sources = [
 eigen_dep = dependency('eigen3')
 boost_dep = dependency('boost', modules : ['graph'])
 
+# TODO: Make this optional
+sfml_dep = dependency('sfml-graphics')
+
 libkann_lib = static_library('libkann', libkann_sources,
   include_directories : ['../include'],
-  dependencies        : [cereal_dep, eigen_dep, boost_dep],
+  dependencies        : [cereal_dep, eigen_dep, boost_dep, sfml_dep],
   cpp_args            : ['-fvisibility=hidden']
 )
 
 libkann_dep = declare_dependency(
   include_directories : ['../include'],
-  dependencies : [cereal_dep, eigen_dep, boost_dep],
+  dependencies : [cereal_dep, eigen_dep, boost_dep, sfml_dep],
   link_with : libkann_lib,
 )
