@@ -82,6 +82,10 @@ namespace kann
     void train(double learningRate);
 
   public:
+    size_t inputSize()  const { return m_graph[m_input].size; }
+    size_t outputSize() const { return m_graph[m_output].size; }
+
+  public:
     Eigen::VectorXd output() const;
 
   public:
