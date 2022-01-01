@@ -37,8 +37,8 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
     dataSet.get(i, dataColumn, data);
 
     std::filesystem::path filepath = dirpath / (std::string("data")+std::to_string(i)+std::string(".bmp"));
-    std::ofstream file(filepath, std::ofstream::binary);
-    kann::writeImage(file, data, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    auto image = kann::toImage(data, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    image.saveToFile(filepath);
   }
 }
 
@@ -128,8 +128,8 @@ static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& d
       autoEncoderModel.feedForward(data);
 
       std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-      std::ofstream file(filepath, std::ofstream::binary);
-      kann::writeImage(file, autoEncoderModel.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      auto image = kann::toImage(autoEncoderModel.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      image.saveToFile(filepath);
     }
   }
 
@@ -147,8 +147,8 @@ static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& d
       decoderModel.feedForward(features);
 
       std::filesystem::path filepath = outputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-      std::ofstream file(filepath, std::ofstream::binary);
-      kann::writeImage(file, decoderModel.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      auto image = kann::toImage(decoderModel.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      image.saveToFile(filepath);
     }
   }
 }
