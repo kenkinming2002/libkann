@@ -86,7 +86,7 @@ namespace kann
     size_t outputSize() const { return m_graph[m_output].size; }
 
   public:
-    Eigen::VectorXd output() const;
+    const Eigen::VectorXd& output() const;
 
   public:
     static Model cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);

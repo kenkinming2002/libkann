@@ -153,7 +153,7 @@ namespace kann
     }
   }
 
-  Eigen::VectorXd Model::output() const
+  const Eigen::VectorXd& Model::output() const
   {
     return m_graph[m_output].data;
   }
