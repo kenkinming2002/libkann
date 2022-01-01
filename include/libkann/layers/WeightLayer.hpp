@@ -29,8 +29,25 @@ namespace kann
     LIBKANN_SYMEXPORT void backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const override;
 
   public:
-    auto weight() const { return Eigen::Map<const Eigen::MatrixXd>(params().data(), m_outputSize, m_inputSize); }
-    auto weightGradient(Eigen::ArrayXd& gradient) const { return Eigen::Map<Eigen::MatrixXd>(gradient.data(), m_outputSize, m_inputSize); }
+    auto weight() const
+    {
+      return Eigen::Map<const Eigen::MatrixXd>(params().data(), m_outputSize, m_inputSize);
+    }
+
+    auto weightGradient(Eigen::ArrayXd& gradient) const
+    {
+      return Eigen::Map<Eigen::MatrixXd>(gradient.data(), m_outputSize, m_inputSize);
+    }
+
+    auto bias() const
+    {
+      return Eigen::Map<const Eigen::VectorXd>(params().data()+m_outputSize*m_inputSize, m_outputSize);
+    }
+
+    auto biasGradient(Eigen::ArrayXd& gradient) const
+    {
+      return Eigen::Map<Eigen::VectorXd>(gradient.data()+m_outputSize*m_inputSize, m_outputSize);
+    }
 
   public:
     template<typename Archive>
