@@ -25,6 +25,9 @@ namespace kann
 
   Callback defaultCallback(std::string_view name);
 
+  LIBKANN_SYMEXPORT void run(Model& model, const DataSet& dataSet, size_t column, Callback callback);
+
   LIBKANN_SYMEXPORT void train(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback = defaultCallback("Training"));
   LIBKANN_SYMEXPORT double test(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback = defaultCallback("Testing"));
+
 }

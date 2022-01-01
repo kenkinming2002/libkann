@@ -37,6 +37,28 @@ namespace kann
     };
   }
 
+  void run(Model& model, const DataSet& dataSet, size_t column, Callback callback)
+  {
+    const auto size = dataSet.size();
+
+    Eigen::VectorXd input;
+    for(size_t i=0; i<size; ++i)
+    {
+      dataSet.get(column,  i, input);
+      model.feedForward(input);
+
+      callback(Info{
+        .model = model,
+        .i = i,
+        .size = size,
+        .input = input,
+        .output = model.output(),
+        .expectedOutput = model.output(),
+        .cost = 0.0
+      });
+    }
+  }
+
   void train(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback)
   {
     const auto size = dataSet.size();

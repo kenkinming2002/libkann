@@ -114,24 +114,17 @@ static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& d
   kann::train(autoEncoderModel, trainingDataSet, dataColumn, dataColumn, LEARNING_RATE);
 
   // Reconstruction
+  if(!std::filesystem::create_directories(reconstructionOutputPath))
   {
-    if(!std::filesystem::create_directories(reconstructionOutputPath))
-    {
-      std::cerr << "Error: Failed to create directories " << reconstructionOutputPath << std::endl;
-      return;
-    }
-
-    Eigen::VectorXd data;
-    for(size_t i = 0; i<trainingDataSet.size(); ++i)
-    {
-      trainingDataSet.get(dataColumn, i, data);
-      autoEncoderModel.feedForward(data);
-
-      std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-      auto image = kann::toImage(autoEncoderModel.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
-      image.saveToFile(filepath);
-    }
+    std::cerr << "Error: Failed to create directories " << reconstructionOutputPath << std::endl;
+    return;
   }
+
+  kann::run(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, [&reconstructionOutputPath](kann::Info info){
+    std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(info.i)+std::string(".bmp"));
+    auto image = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    image.saveToFile(filepath);
+  });
 
   // Generate
   {
