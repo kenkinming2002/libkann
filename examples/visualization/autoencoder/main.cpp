@@ -33,8 +33,8 @@ struct Result
   sf::Image output;
 };
 
-std::mutex resultLock;
-Result result;
+std::mutex resultsLock;
+std::vector<Result> results;
 
 static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
 {
@@ -74,11 +74,11 @@ static auto buildAndRunAutoEncoder()
 
   auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
   kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, [](kann::Info info){
-    std::lock_guard lockGuard(resultLock);
-    result = Result{
+    std::lock_guard lockGuard(resultsLock);
+    results.push_back(Result{
       .input  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
       .output = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-    };
+    });
   });
 }
 
@@ -112,9 +112,12 @@ int main()
     // Update texture
     if(counter++ % 1024 == 0)
     {
-      std::lock_guard lockGuard(resultLock);
-      input.loadFromImage(result.input);
-      output.loadFromImage(result.output);
+      std::lock_guard lockGuard(resultsLock);
+      if(!results.empty())
+      {
+        input.loadFromImage(results.back().input);
+        output.loadFromImage(results.back().output);
+      }
     }
 
     window.clear();
