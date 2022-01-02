@@ -86,6 +86,7 @@ namespace kann
     size_t outputSize() const { return m_graph[m_output].size; }
 
   public:
+    const Eigen::VectorXd& input() const;
     const Eigen::VectorXd& output() const;
 
   public:

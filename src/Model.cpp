@@ -153,6 +153,11 @@ namespace kann
     }
   }
 
+  const Eigen::VectorXd& Model::input() const
+  {
+    return m_graph[m_input].data;
+  }
+
   const Eigen::VectorXd& Model::output() const
   {
     return m_graph[m_output].data;
