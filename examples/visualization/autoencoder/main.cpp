@@ -34,11 +34,14 @@ struct Result
   sf::Image output;
 };
 
-std::mutex lock;
+struct State
+{
+  std::mutex lock;
 
-std::vector<Result> results;
-size_t i;
-size_t size;
+  std::vector<Result> results;
+  size_t i;
+  size_t size;
+};
 
 static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
 {
@@ -52,7 +55,7 @@ static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer
   }
 }
 
-static auto buildAndRunAutoEncoder()
+static auto buildAndRunAutoEncoder(State& state)
 {
   std::default_random_engine engine(random<std::mt19937::result_type>());
 
@@ -77,22 +80,22 @@ static auto buildAndRunAutoEncoder()
     layer->randomize(engine);
 
   auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
-  kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, [](kann::Info info){
-    std::lock_guard lockGuard(lock);
+  kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, [&state](kann::Info info){
+    std::lock_guard lockGuard(state.lock);
 
-    results.push_back(Result{
+    state.results.push_back(Result{
       .input  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
       .output = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
     });
-    i    = info.i;
-    size = info.size;
+    state.i    = info.i;
+    state.size = info.size;
   });
 }
 
 int main()
 {
-  auto thrd = std::thread(buildAndRunAutoEncoder);
-  thrd.detach();
+  State state;
+  std::thread(buildAndRunAutoEncoder, std::ref(state)).detach();
 
   sf::RenderWindow window;
   window.create(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "AutoEncoder Visualization");
@@ -124,12 +127,12 @@ int main()
     // Update texture
     if(counter++ % 1024 == 0)
     {
-      std::lock_guard lockGuard(lock);
-      text.setString(std::to_string(i) + "/" + std::to_string(size));
-      if(!results.empty())
+      std::lock_guard lockGuard(state.lock);
+      text.setString(std::to_string(state.i) + "/" + std::to_string(state.size));
+      if(!state.results.empty())
       {
-        input.loadFromImage(results.back().input);
-        output.loadFromImage(results.back().output);
+        input.loadFromImage(state.results.back().input);
+        output.loadFromImage(state.results.back().output);
       }
     }
 
