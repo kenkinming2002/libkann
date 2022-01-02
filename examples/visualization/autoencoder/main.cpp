@@ -38,6 +38,8 @@ struct State
 {
   std::mutex lock;
 
+  std::string_view label;
+
   std::vector<Result> results;
   size_t i;
   size_t size;
@@ -87,6 +89,19 @@ static auto buildAndRunAutoEncoder(State& state)
       .input  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
       .output = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
     });
+    state.label = "Training";
+    state.i    = info.i;
+    state.size = info.size;
+  });
+
+  kann::run(autoEncoderModel, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, [&state](kann::Info info){
+    std::lock_guard lockGuard(state.lock);
+
+    state.results.push_back(Result{
+      .input  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
+      .output = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
+    });
+    state.label = "Testing";
     state.i    = info.i;
     state.size = info.size;
   });
@@ -128,7 +143,7 @@ int main()
     if(counter++ % 1024 == 0)
     {
       std::lock_guard lockGuard(state.lock);
-      text.setString(std::to_string(state.i) + "/" + std::to_string(state.size));
+      text.setString(std::string(state.label) + ":" + std::to_string(state.i) + "/" + std::to_string(state.size));
       if(!state.results.empty())
       {
         input.loadFromImage(state.results.back().input);
