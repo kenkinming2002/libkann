@@ -8,6 +8,7 @@ libkann_sources = [
   'layers/DeconvolutionalLayer.cpp',
   'datasets/IDXFile.cpp',
   'datasets/MNISTDataSet.cpp',
+  'datasets/RandomDataSet.cpp',
   'datasets/write.cpp',
   'Model.cpp',
   'Algorithm.cpp',

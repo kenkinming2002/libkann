@@ -7,6 +7,7 @@
 #include <libkann/layers/DeconvolutionalLayer.hpp>
 
 #include <libkann/datasets/MNISTDataSet.hpp>
+#include <libkann/datasets/RandomDataSet.hpp>
 #include <libkann/datasets/write.hpp>
 
 #include <libkann/Model.hpp>
@@ -127,23 +128,18 @@ static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& d
   });
 
   // Generate
+  if(!std::filesystem::create_directories(outputPath))
   {
-    if(!std::filesystem::create_directories(outputPath))
-    {
-      std::cerr << "Error: Failed to create directories " << outputPath << std::endl;
-      return;
-    }
-
-    for(size_t i = 0; i<generateCount; ++i)
-    {
-      const Eigen::VectorXd features = Eigen::VectorXd::Random(featuresCount) * std::sqrt(2.0 / 10);
-      decoderModel.feedForward(features);
-
-      std::filesystem::path filepath = outputPath / (std::string("result")+std::to_string(i)+std::string(".bmp"));
-      auto image = kann::toImage(decoderModel.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
-      image.saveToFile(filepath);
-    }
+    std::cerr << "Error: Failed to create directories " << outputPath << std::endl;
+    return;
   }
+
+  kann::RandomDataSet randomDataSet(featuresCount, generateCount);
+  kann::run(decoderModel, randomDataSet, kann::RandomDataSet::COLUMN_DATA, [&outputPath](kann::Info info){
+    std::filesystem::path filepath = outputPath / (std::string("result")+std::to_string(info.i)+std::string(".bmp"));
+    auto image = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    image.saveToFile(filepath);
+  });
 }
 
 int main(int argc, char* argv[])
