@@ -51,10 +51,6 @@ namespace kann
         .model = model,
         .i = i,
         .size = size,
-        .input = input,
-        .output = model.output(),
-        .expectedOutput = model.output(),
-        .cost = 0.0
       });
     }
   }
@@ -76,8 +72,6 @@ namespace kann
         .model = model,
         .i = i,
         .size = size,
-        .input = input,
-        .output = model.output(),
         .expectedOutput = expectedOutput,
         .cost = model.cost(expectedOutput)
       });
@@ -102,8 +96,6 @@ namespace kann
         .model = model,
         .i = i,
         .size = size,
-        .input = input,
-        .output = model.output(),
         .expectedOutput = expectedOutput,
         .cost = model.cost(expectedOutput)
       });

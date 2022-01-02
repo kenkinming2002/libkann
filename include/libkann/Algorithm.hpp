@@ -15,10 +15,7 @@ namespace kann
     size_t i;
     size_t size;
 
-    const Eigen::VectorXd& input;
-    const Eigen::VectorXd& output;
-    const Eigen::VectorXd& expectedOutput;
-
+    Eigen::VectorXd expectedOutput;
     double cost;
   };
   typedef std::function<void(Info)> Callback;

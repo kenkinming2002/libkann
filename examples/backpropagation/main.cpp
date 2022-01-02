@@ -122,7 +122,7 @@ static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& d
 
   kann::run(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, [&reconstructionOutputPath](kann::Info info){
     std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(info.i)+std::string(".bmp"));
-    auto image = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    auto image = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
     image.saveToFile(filepath);
   });
 
