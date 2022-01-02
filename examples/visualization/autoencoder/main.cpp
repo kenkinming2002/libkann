@@ -2,6 +2,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Text.hpp>
 
 #include <libkann/layers/Layer.hpp>
 #include <libkann/layers/WeightLayer.hpp>
@@ -33,8 +34,11 @@ struct Result
   sf::Image output;
 };
 
-std::mutex resultsLock;
+std::mutex lock;
+
 std::vector<Result> results;
+size_t i;
+size_t size;
 
 static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
 {
@@ -74,11 +78,14 @@ static auto buildAndRunAutoEncoder()
 
   auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
   kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, [](kann::Info info){
-    std::lock_guard lockGuard(resultsLock);
+    std::lock_guard lockGuard(lock);
+
     results.push_back(Result{
       .input  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
       .output = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
     });
+    i    = info.i;
+    size = info.size;
   });
 }
 
@@ -90,10 +97,15 @@ int main()
   sf::RenderWindow window;
   window.create(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "AutoEncoder Visualization");
 
-  sf::View view(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
-  window.setView(view);
-
+  sf::Font font;
+  sf::Text text;
   sf::Texture input, output;
+
+  if(!font.loadFromFile("resources/fonts/NotoSansMono-Regular.ttf"))
+    throw std::runtime_error("Failed to load font");
+
+  text.setFont(font);
+
   size_t counter = 0;
 
   while(window.isOpen())
@@ -112,7 +124,8 @@ int main()
     // Update texture
     if(counter++ % 1024 == 0)
     {
-      std::lock_guard lockGuard(resultsLock);
+      std::lock_guard lockGuard(lock);
+      text.setString(std::to_string(i) + "/" + std::to_string(size));
       if(!results.empty())
       {
         input.loadFromImage(results.back().input);
@@ -122,17 +135,32 @@ int main()
 
     window.clear();
 
-    sf::Sprite sprite;
+    // Result
+    {
+      sf::View view(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
+      window.setView(view);
 
-    sprite.setTexture(input);
-    sprite.setPosition(0.0f, 0.0f);
-    sprite.setScale(0.5f / sprite.getLocalBounds().width, 1.0f / sprite.getLocalBounds().height);
-    window.draw(sprite);
+      sf::Sprite sprite;
 
-    sprite.setTexture(output);
-    sprite.setPosition(0.5f, 0.0f);
-    sprite.setScale(0.5f / sprite.getLocalBounds().width, 1.0f / sprite.getLocalBounds().height);
-    window.draw(sprite);
+      sprite.setTexture(input);
+      sprite.setPosition(0.0f, 0.0f);
+      sprite.setScale(0.5f / sprite.getLocalBounds().width, 1.0f / sprite.getLocalBounds().height);
+      window.draw(sprite);
+
+      sprite.setTexture(output);
+      sprite.setPosition(0.5f, 0.0f);
+      sprite.setScale(0.5f / sprite.getLocalBounds().width, 1.0f / sprite.getLocalBounds().height);
+      window.draw(sprite);
+    }
+
+    // Text
+    {
+      auto windowSize = window.getSize();
+      sf::View view(sf::FloatRect(0.0f, 0.0f, windowSize.x, windowSize.y));
+      window.setView(view);
+
+      window.draw(text);
+    }
 
     window.display();
   }
