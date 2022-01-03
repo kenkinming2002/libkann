@@ -16,9 +16,9 @@
 
 #include <libkann/utilities/random.hpp>
 
-#include <queue>
+#include <atomic>
 #include <mutex>
-#include <future>
+#include <thread>
 #include <random>
 
 // These are merely suggestion to the window manager and need not be obeyed
@@ -27,23 +27,6 @@ static constexpr unsigned WINDOW_HEIGHT = 600;
 
 static constexpr size_t FEATURES_COUNT = 64;
 static constexpr double LEARNING_RATE = 0.05;
-
-struct Result
-{
-  sf::Image input;
-  sf::Image output;
-};
-
-struct State
-{
-  std::mutex lock;
-
-  std::string_view label;
-
-  std::vector<Result> results;
-  size_t i;
-  size_t size;
-};
 
 static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
 {
@@ -57,60 +40,103 @@ static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer
   }
 }
 
-static auto buildAndRunAutoEncoder(State& state)
+class Runner
 {
-  std::default_random_engine engine(random<std::mt19937::result_type>());
+public:
+  struct State
+  {
+    std::string_view label;
 
-  kann::MNISTDataSet trainingDataSet(
-    "datasets/mnist/train-images-idx3-ubyte",
-    "datasets/mnist/train-labels-idx1-ubyte"
-  );
+    size_t i;
+    size_t size;
 
-  kann::MNISTDataSet testingDataSet(
-    "datasets/mnist/t10k-images-idx3-ubyte",
-    "datasets/mnist/t10k-labels-idx1-ubyte"
-  );
+    sf::Image input;
+    sf::Image output;
+  };
 
-  std::vector<std::shared_ptr<kann::Layer>> encoderLayers;
-  attachWeightActivationLayers(encoderLayers, {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
-  for(auto& layer : encoderLayers)
-    layer->randomize(engine);
+public:
+  ~Runner()
+  {
+    m_stop.store(true);
+    if(m_worker.joinable())
+      m_worker.join();
+  }
 
-  std::vector<std::shared_ptr<kann::Layer>> decoderLayers;
-  attachWeightActivationLayers(decoderLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
-  for(auto& layer : decoderLayers)
-    layer->randomize(engine);
+public:
+  void run()
+  {
+    m_stop.store(false);
+    m_worker = std::thread(&Runner::_run, this);
+  }
 
-  auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
-  kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, [&state](kann::Info info){
-    std::lock_guard lockGuard(state.lock);
+private:
+  void _run()
+  {
+    std::default_random_engine engine(random<std::mt19937::result_type>());
 
-    state.results.push_back(Result{
-      .input  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
-      .output = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-    });
-    state.label = "Training";
-    state.i    = info.i;
-    state.size = info.size;
-  });
+    kann::MNISTDataSet trainingDataSet(
+      "datasets/mnist/train-images-idx3-ubyte",
+      "datasets/mnist/train-labels-idx1-ubyte"
+    );
 
-  kann::run(autoEncoderModel, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, [&state](kann::Info info){
-    std::lock_guard lockGuard(state.lock);
+    kann::MNISTDataSet testingDataSet(
+      "datasets/mnist/t10k-images-idx3-ubyte",
+      "datasets/mnist/t10k-labels-idx1-ubyte"
+    );
 
-    state.results.push_back(Result{
-      .input  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
-      .output = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-    });
-    state.label = "Testing";
-    state.i    = info.i;
-    state.size = info.size;
-  });
-}
+    std::vector<std::shared_ptr<kann::Layer>> encoderLayers;
+    attachWeightActivationLayers(encoderLayers, {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
+    for(auto& layer : encoderLayers)
+      layer->randomize(engine);
+
+    std::vector<std::shared_ptr<kann::Layer>> decoderLayers;
+    attachWeightActivationLayers(decoderLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
+    for(auto& layer : decoderLayers)
+      layer->randomize(engine);
+
+    const char* label;
+    auto callback = [this, &label](kann::Info info){
+      std::lock_guard lockGuard(m_lock);
+      m_state = State{
+        .label  = label,
+        .i      = info.i,
+        .size   = info.size,
+        .input  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
+        .output = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
+      };
+      return !m_stop.load();
+    };
+
+    auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
+
+    label = "Training";
+    kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, callback);
+
+    label = "Testing";
+    kann::run(autoEncoderModel, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, callback);
+  }
+
+public:
+  std::optional<State> state() const
+  {
+    std::lock_guard lockGuard(m_lock);
+    return m_state;
+  }
+
+private:
+  mutable std::mutex m_lock;
+  std::optional<State> m_state;
+
+private:
+  std::atomic<bool> m_stop;
+  std::thread m_worker;
+};
+
 
 int main()
 {
-  State state;
-  std::thread(buildAndRunAutoEncoder, std::ref(state)).detach();
+  Runner runner;
+  runner.run();
 
   sf::RenderWindow window;
   window.create(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "AutoEncoder Visualization");
@@ -142,12 +168,12 @@ int main()
     // Update texture
     if(counter++ % 1024 == 0)
     {
-      std::lock_guard lockGuard(state.lock);
-      text.setString(std::string(state.label) + ":" + std::to_string(state.i) + "/" + std::to_string(state.size));
-      if(!state.results.empty())
+      const auto state = runner.state();
+      if(state)
       {
-        input.loadFromImage(state.results.back().input);
-        output.loadFromImage(state.results.back().output);
+        text.setString(std::string(state->label) + ":" + std::to_string(state->i) + "/" + std::to_string(state->size));
+        input.loadFromImage(state->input);
+        output.loadFromImage(state->output);
       }
     }
 

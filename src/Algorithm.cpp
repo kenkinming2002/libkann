@@ -34,6 +34,7 @@ namespace kann
   {
     return [=](Info info){
       showProgressBar(name, info.i, info.size, "Cost:", info.cost);
+      return true;
     };
   }
 
@@ -47,11 +48,13 @@ namespace kann
       dataSet.get(column,  i, input);
       model.feedForward(input);
 
-      callback(Info{
+      const bool result = callback(Info{
         .model = model,
         .i = i,
         .size = size,
       });
+      if(!result)
+        break;
     }
   }
 
@@ -68,13 +71,15 @@ namespace kann
       model.backPropagate(expectedOutput);
       model.train(learningRate);
 
-      callback(Info{
+      const bool result = callback(Info{
         .model = model,
         .i = i,
         .size = size,
         .expectedOutput = expectedOutput,
         .cost = model.cost(expectedOutput)
       });
+      if(!result)
+        break;
     }
   }
 
@@ -92,13 +97,15 @@ namespace kann
       model.feedForward(input);
       correctness += dataSet.correctness(outputColumn, i, model.output());
 
-      callback(Info{
+      const bool result = callback(Info{
         .model = model,
         .i = i,
         .size = size,
         .expectedOutput = expectedOutput,
         .cost = model.cost(expectedOutput)
       });
+      if(!result)
+        break;
     }
     correctness /= size;
     return correctness;
