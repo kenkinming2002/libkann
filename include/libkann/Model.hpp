@@ -17,6 +17,11 @@
 
 namespace kann
 {
+  enum Tag
+  {
+    TAG_DEFAULT = 1u
+  };
+
   class Model
   {
   public:
@@ -37,6 +42,7 @@ namespace kann
     struct Connection
     {
       std::shared_ptr<Layer> layer;
+      unsigned tag;
 
       Eigen::ArrayXd layerGradient;
 
@@ -79,7 +85,7 @@ namespace kann
     void feedForward(Eigen::VectorXd input);
     double cost(const Eigen::VectorXd& expectedOutput) const;
     void backPropagate(const Eigen::VectorXd& expectedOutput);
-    void train(double learningRate);
+    void train(double learningRate, unsigned tags = TAG_DEFAULT);
 
   public:
     size_t inputSize()  const { return m_graph[m_input].size; }
