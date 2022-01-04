@@ -18,7 +18,7 @@ namespace kann
     Eigen::VectorXd expectedOutput;
     double cost;
   };
-  typedef std::function<void(Info)> Callback;
+  typedef std::function<bool(Info)> Callback;
 
   Callback defaultCallback(std::string_view name);
 
