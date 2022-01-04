@@ -19,7 +19,9 @@ namespace kann
 {
   enum Tag
   {
-    TAG_DEFAULT = 1u
+    TAG_DEFAULT           = 1u << 0,
+    TAG_GAN_GENERATOR     = 1u << 1,
+    TAG_GAN_DISCRIMINATOR = 1u << 2,
   };
 
   class Model
@@ -189,4 +191,12 @@ namespace kann
    *
    * @return [auto encoder model, decoder model] */
   std::pair<Model, Model> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers);
+
+  /* The returned GAN and discriminator model is used for training purpose.
+   *
+   * Since Model holds std::shared_ptr to Layer, the training result could be
+   * reflected in the generator model.
+   *
+   * @return [GAN Model, generator model, discriminator model] */
+  std::tuple<Model, Model, Model> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers);
 }

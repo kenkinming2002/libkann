@@ -67,6 +67,7 @@ namespace kann
       os << demangle(typeid(*layer).name()) << "\\n";
       os << "input_size=" << layer->inputSize() << "\\n";
       os << "output_size=" << layer->outputSize() << "\\n";
+      os << "tag=" << connection.tag << "\\n";
       os << "\"]";
     };
     boost::write_graphviz(os, m_graph, vertexWriter, edgeWriter);
@@ -239,5 +240,32 @@ namespace kann
     auto autoEncoderModel = buildSimpleFeedForwardModel(layers);
     auto decoderModel = buildSimpleFeedForwardModel(decoderLayers);
     return {autoEncoderModel, decoderModel};
+  }
+
+  std::tuple<Model, Model, Model> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers)
+  {
+    // Build the actual GAN Model
+    std::vector<std::shared_ptr<Layer>> layers;
+    std::copy(generatorLayers.begin(),     generatorLayers.end(),     std::back_inserter(layers));
+    std::copy(discriminatorLayers.begin(), discriminatorLayers.end(), std::back_inserter(layers));
+
+    Model::Graph graph;
+    for(size_t i=0; i<layers.size(); ++i)
+      boost::add_vertex(Model::Node{.size = layers[i]->inputSize()}, graph);
+
+    boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
+
+    for(size_t i=0; i<layers.size(); ++i)
+    {
+      unsigned tag = i < generatorLayers.size() ? TAG_GAN_GENERATOR : TAG_GAN_DISCRIMINATOR;
+      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = tag}, graph);
+    }
+
+    auto GANModel = Model(graph, 0, layers.size());
+
+    auto generatorModel     = buildSimpleFeedForwardModel(generatorLayers);
+    auto discriminatorModel = buildSimpleFeedForwardModel(discriminatorLayers);
+
+    return {GANModel, generatorModel, discriminatorModel};
   }
 }

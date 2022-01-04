@@ -292,6 +292,37 @@ int main(int argc, char* argv[])
       FEATURES_COUNT, 500
     );
   }
+  else if(subcommand == "gan")
+  {
+    static constexpr size_t FEATURES_COUNT = 64;
+
+    std::vector<std::shared_ptr<kann::Layer>> generatorLayers;
+    attachWeightActivationLayers(generatorLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
+    for(auto& layer : generatorLayers)
+      layer->randomize(engine);
+
+    std::vector<std::shared_ptr<kann::Layer>> discriminatorLayers;
+    attachWeightActivationLayers(discriminatorLayers, {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
+    for(auto& layer : discriminatorLayers)
+      layer->randomize(engine);
+
+
+    auto [GANModel, generatorModel, discriminatorModel] = kann::buildSimpleGANModel(std::move(generatorLayers), std::move(discriminatorLayers));
+    {
+      std::ofstream file("output/gan.dot");
+      GANModel.write_graphviz(file);
+    }
+
+    {
+      std::ofstream file("output/generator.dot");
+      GANModel.write_graphviz(file);
+    }
+
+    {
+      std::ofstream file("output/discriminator.dot");
+      GANModel.write_graphviz(file);
+    }
+  }
   else
   {
     std::cerr << "Error: Invalid Command " << subcommand << std::endl;
