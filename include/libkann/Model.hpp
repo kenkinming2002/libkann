@@ -178,8 +178,8 @@ namespace kann
     std::vector<Handle> m_ordering;
   };
 
-  Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers);
-  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory);
+  Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag = TAG_DEFAULT);
+  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag = TAG_DEFAULT);
 
   /* The returned auto encoder model is used for training purposes
    * whereas random data can be feed into the decoder model to obtain output.

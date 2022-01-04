@@ -187,7 +187,7 @@ namespace kann
     return result;
   }
 
-  Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers)
+  Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag)
   {
     Model::Graph graph;
     for(size_t i=0; i<layers.size(); ++i)
@@ -196,12 +196,12 @@ namespace kann
     boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
 
     for(size_t i=0; i<layers.size(); ++i)
-      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = TAG_DEFAULT}, graph);
+      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = tag}, graph);
 
     return Model(graph, 0, layers.size());
   }
 
-  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory)
+  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag)
   {
     const size_t inputSize  = layers.front()->inputSize();
     const size_t outputSize = layers.back()->outputSize();
@@ -213,18 +213,18 @@ namespace kann
     boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
 
     for(size_t i=0; i<layers.size(); ++i)
-      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = TAG_DEFAULT}, graph);
+      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = tag}, graph);
 
     const auto input        = boost::add_vertex(Model::Node{.size = inputSize  - memory}, graph);
     const auto output       = boost::add_vertex(Model::Node{.size = outputSize - memory}, graph);
     const auto inputMemory  = boost::add_vertex(Model::Node{.size = memory             }, graph);
     const auto outputMemory = boost::add_vertex(Model::Node{.size = memory             }, graph);
 
-    boost::add_edge(input,       0, Model::Connection{.layer = std::make_shared<IdentityLayer>(inputSize - memory, inputSize, 0                 ), .tag = TAG_DEFAULT}, graph);
-    boost::add_edge(inputMemory, 0, Model::Connection{.layer = std::make_shared<IdentityLayer>(memory            , inputSize, inputSize - memory), .tag = TAG_DEFAULT}, graph);
+    boost::add_edge(input,       0, Model::Connection{.layer = std::make_shared<IdentityLayer>(inputSize - memory, inputSize, 0                 ), .tag = tag}, graph);
+    boost::add_edge(inputMemory, 0, Model::Connection{.layer = std::make_shared<IdentityLayer>(memory            , inputSize, inputSize - memory), .tag = tag}, graph);
 
-    boost::add_edge(layers.size(), output,       Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0                  ), .tag = TAG_DEFAULT}, graph);
-    boost::add_edge(layers.size(), outputMemory, Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory), .tag = TAG_DEFAULT}, graph);
+    boost::add_edge(layers.size(), output,       Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0                  ), .tag = tag}, graph);
+    boost::add_edge(layers.size(), outputMemory, Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory), .tag = tag}, graph);
 
     auto feedBack = Model::FeedBack{.first = outputMemory, .second = inputMemory};
     return Model(graph, input, output, {feedBack});
