@@ -20,6 +20,10 @@
 #include <mutex>
 #include <thread>
 #include <random>
+#include <filesystem>
+#include <iomanip>
+
+#include <getopt.h>
 
 // These are merely suggestion to the window manager and need not be obeyed
 static constexpr unsigned WINDOW_WIDTH = 800;
@@ -42,6 +46,10 @@ static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer
 
 class Runner
 {
+public:
+  Runner(std::filesystem::path outputDirectory)
+    : m_outputDirectory(std::move(outputDirectory)) {}
+
 public:
   struct State
   {
@@ -96,23 +104,39 @@ private:
 
     const char* label;
     auto callback = [this, &label](kann::Info info){
-      std::lock_guard lockGuard(m_lock);
-      m_state = State{
-        .label  = label,
-        .i      = info.i,
-        .size   = info.size,
-        .input  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
-        .output = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-      };
+      auto inputImage  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      auto outputImage = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+
+      // Update state
+      {
+        std::lock_guard lockGuard(m_lock);
+        m_state = State{
+          .label  = label,
+          .i      = info.i,
+          .size   = info.size,
+          .input  = inputImage,
+          .output = outputImage
+        };
+      }
+
+      // Write output
+      std::ostringstream fileName;
+      fileName << std::setfill('0') << std::setw(std::ceil(std::log10(info.size))) << info.i << ".png";
+      outputImage.saveToFile(m_outputDirectory / label / fileName.str());
+
       return !m_stop.load();
     };
 
     auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
 
     label = "Training";
+
+    std::filesystem::create_directories(m_outputDirectory / label);
     kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, callback);
 
     label = "Testing";
+
+    std::filesystem::create_directories(m_outputDirectory / label);
     kann::run(autoEncoderModel, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, callback);
   }
 
@@ -124,6 +148,9 @@ public:
   }
 
 private:
+  std::filesystem::path m_outputDirectory;
+
+private:
   mutable std::mutex m_lock;
   std::optional<State> m_state;
 
@@ -132,10 +159,68 @@ private:
   std::thread m_worker;
 };
 
-
-int main()
+void usage()
 {
-  Runner runner;
+  std::clog << "Usage: autoencoder --output OUTPUT_DIRECTORY\n";
+  std::clog << "\n";
+
+  std::clog << "Options:\n";
+  std::clog << "  -o,--output\n";
+  std::clog << "    specify output directory\n";
+  std::clog << "  -h,--help\n";
+  std::clog << "    print this help message\n";
+}
+
+int main(int argc, char* argv[])
+{
+  // Option Parsing
+  int opt;
+  struct option options[] =
+  {
+    {"output", required_argument, nullptr, 'o' },
+    {"help"                      , no_argument      , nullptr, 'h'},
+    {0, 0, 0, 0}
+  };
+
+  std::optional<std::string> outputDirectory;
+
+  int c;
+  int indexptr;
+  while((c = getopt_long(argc, argv, "o:h", options, &indexptr)) != -1)
+    switch(c)
+    {
+    case 'o':
+      if(optarg)
+        outputDirectory = optarg;
+
+      break;
+    case 'h':
+      usage();
+      return EXIT_SUCCESS;
+    case '?':
+      usage();
+      return EXIT_FAILURE;
+  }
+
+  if(optind < argc)
+  {
+    std::clog << "error: too many arguments\n";
+    usage();
+    return EXIT_FAILURE;
+  }
+
+  while((opt = getopt_long(argc, argv, "o:", options, NULL)) != -1)
+    if(opt == 'o')
+      outputDirectory = optarg;
+
+  if(!outputDirectory)
+  {
+    std::cerr << "error: no output directory\n";
+    return -1;
+  }
+
+  // Main Program
+  Runner runner(*outputDirectory);
   runner.run();
 
   sf::RenderWindow window;
