@@ -17,6 +17,13 @@
 
 namespace kann
 {
+  enum Tag
+  {
+    TAG_DEFAULT           = 1u << 0,
+    TAG_GAN_GENERATOR     = 1u << 1,
+    TAG_GAN_DISCRIMINATOR = 1u << 2,
+  };
+
   class Model
   {
   public:
@@ -37,6 +44,7 @@ namespace kann
     struct Connection
     {
       std::shared_ptr<Layer> layer;
+      unsigned tag;
 
       Eigen::ArrayXd layerGradient;
 
@@ -79,7 +87,7 @@ namespace kann
     void feedForward(Eigen::VectorXd input);
     double cost(const Eigen::VectorXd& expectedOutput) const;
     void backPropagate(const Eigen::VectorXd& expectedOutput);
-    void train(double learningRate);
+    void train(double learningRate, unsigned tags = TAG_DEFAULT);
 
   public:
     size_t inputSize()  const { return m_graph[m_input].size; }
@@ -172,8 +180,8 @@ namespace kann
     std::vector<Handle> m_ordering;
   };
 
-  Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers);
-  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory);
+  Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag = TAG_DEFAULT);
+  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag = TAG_DEFAULT);
 
   /* The returned auto encoder model is used for training purposes
    * whereas random data can be feed into the decoder model to obtain output.
@@ -183,4 +191,12 @@ namespace kann
    *
    * @return [auto encoder model, decoder model] */
   std::pair<Model, Model> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers);
+
+  /* The returned GAN and discriminator model is used for training purpose.
+   *
+   * Since Model holds std::shared_ptr to Layer, the training result could be
+   * reflected in the generator model.
+   *
+   * @return [GAN Model, generator model, discriminator model] */
+  std::tuple<Model, Model, Model> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers);
 }

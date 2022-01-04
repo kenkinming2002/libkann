@@ -67,6 +67,7 @@ namespace kann
       os << demangle(typeid(*layer).name()) << "\\n";
       os << "input_size=" << layer->inputSize() << "\\n";
       os << "output_size=" << layer->outputSize() << "\\n";
+      os << "tag=" << connection.tag << "\\n";
       os << "\"]";
     };
     boost::write_graphviz(os, m_graph, vertexWriter, edgeWriter);
@@ -144,12 +145,13 @@ namespace kann
     }
   }
 
-  void Model::train(double learningRate)
+  void Model::train(double learningRate, unsigned tags)
   {
     for(auto [begin, end] = boost::edges(m_graph); begin != end; ++begin)
     {
       auto& connection = m_graph[*begin];
-      connection.layer->train(learningRate, connection.layerGradient);
+      if(connection.tag & tags)
+        connection.layer->train(learningRate, connection.layerGradient);
     }
   }
 
@@ -186,7 +188,7 @@ namespace kann
     return result;
   }
 
-  Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers)
+  Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag)
   {
     Model::Graph graph;
     for(size_t i=0; i<layers.size(); ++i)
@@ -195,12 +197,12 @@ namespace kann
     boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
 
     for(size_t i=0; i<layers.size(); ++i)
-      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i])}, graph);
+      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = tag}, graph);
 
     return Model(graph, 0, layers.size());
   }
 
-  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory)
+  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag)
   {
     const size_t inputSize  = layers.front()->inputSize();
     const size_t outputSize = layers.back()->outputSize();
@@ -212,18 +214,18 @@ namespace kann
     boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
 
     for(size_t i=0; i<layers.size(); ++i)
-      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i])}, graph);
+      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = tag}, graph);
 
     const auto input        = boost::add_vertex(Model::Node{.size = inputSize  - memory}, graph);
     const auto output       = boost::add_vertex(Model::Node{.size = outputSize - memory}, graph);
     const auto inputMemory  = boost::add_vertex(Model::Node{.size = memory             }, graph);
     const auto outputMemory = boost::add_vertex(Model::Node{.size = memory             }, graph);
 
-    boost::add_edge(input,       0, Model::Connection{.layer = std::make_shared<IdentityLayer>(inputSize - memory, inputSize, 0                 )}, graph);
-    boost::add_edge(inputMemory, 0, Model::Connection{.layer = std::make_shared<IdentityLayer>(memory            , inputSize, inputSize - memory)}, graph);
+    boost::add_edge(input,       0, Model::Connection{.layer = std::make_shared<IdentityLayer>(inputSize - memory, inputSize, 0                 ), .tag = tag}, graph);
+    boost::add_edge(inputMemory, 0, Model::Connection{.layer = std::make_shared<IdentityLayer>(memory            , inputSize, inputSize - memory), .tag = tag}, graph);
 
-    boost::add_edge(layers.size(), output,       Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0                  )}, graph);
-    boost::add_edge(layers.size(), outputMemory, Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory)}, graph);
+    boost::add_edge(layers.size(), output,       Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0                  ), .tag = tag}, graph);
+    boost::add_edge(layers.size(), outputMemory, Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory), .tag = tag}, graph);
 
     auto feedBack = Model::FeedBack{.first = outputMemory, .second = inputMemory};
     return Model(graph, input, output, {feedBack});
@@ -238,5 +240,32 @@ namespace kann
     auto autoEncoderModel = buildSimpleFeedForwardModel(layers);
     auto decoderModel = buildSimpleFeedForwardModel(decoderLayers);
     return {autoEncoderModel, decoderModel};
+  }
+
+  std::tuple<Model, Model, Model> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers)
+  {
+    // Build the actual GAN Model
+    std::vector<std::shared_ptr<Layer>> layers;
+    std::copy(generatorLayers.begin(),     generatorLayers.end(),     std::back_inserter(layers));
+    std::copy(discriminatorLayers.begin(), discriminatorLayers.end(), std::back_inserter(layers));
+
+    Model::Graph graph;
+    for(size_t i=0; i<layers.size(); ++i)
+      boost::add_vertex(Model::Node{.size = layers[i]->inputSize()}, graph);
+
+    boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
+
+    for(size_t i=0; i<layers.size(); ++i)
+    {
+      unsigned tag = i < generatorLayers.size() ? TAG_GAN_GENERATOR : TAG_GAN_DISCRIMINATOR;
+      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = tag}, graph);
+    }
+
+    auto GANModel = Model(graph, 0, layers.size());
+
+    auto generatorModel     = buildSimpleFeedForwardModel(generatorLayers);
+    auto discriminatorModel = buildSimpleFeedForwardModel(discriminatorLayers);
+
+    return {GANModel, generatorModel, discriminatorModel};
   }
 }

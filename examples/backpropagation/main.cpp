@@ -292,6 +292,74 @@ int main(int argc, char* argv[])
       FEATURES_COUNT, 500
     );
   }
+  else if(subcommand == "gan")
+  {
+    static constexpr size_t FEATURES_COUNT = 128;
+
+    std::vector<std::shared_ptr<kann::Layer>> generatorLayers;
+    attachWeightActivationLayers(generatorLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
+    for(auto& layer : generatorLayers)
+      layer->randomize(engine);
+
+    std::vector<std::shared_ptr<kann::Layer>> discriminatorLayers;
+    attachWeightActivationLayers(discriminatorLayers, {kann::MNISTDataSet::IMAGE_SIZE, 512, 128, 1}, kann::ActivationFunction::Type::SIGMOID);
+    for(auto& layer : discriminatorLayers)
+      layer->randomize(engine);
+
+
+    auto [GANModel, generatorModel, discriminatorModel] = kann::buildSimpleGANModel(std::move(generatorLayers), std::move(discriminatorLayers));
+    {
+      std::ofstream file("output/gan.dot");
+      GANModel.write_graphviz(file);
+    }
+
+    {
+      std::ofstream file("output/generator.dot");
+      GANModel.write_graphviz(file);
+    }
+
+    {
+      std::ofstream file("output/discriminator.dot");
+      GANModel.write_graphviz(file);
+    }
+
+    std::filesystem::path outputDirectory("output/gan");
+    std::filesystem::create_directories(outputDirectory / "Training");
+    std::filesystem::create_directories(outputDirectory / "Output");
+
+    {
+      auto defaultGANCallback = kann::defaultGANCallback("Training");
+      auto callback = [&outputDirectory, &defaultGANCallback](kann::GANInfo info){
+        std::ostringstream fileName;
+        fileName << std::setfill('0') << std::setw(std::ceil(std::log10(info.size))) << info.i << ".png";
+        auto image = kann::toImage(info.generatorModel.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+        image.saveToFile(outputDirectory / "Training" / fileName.str());
+
+        return defaultGANCallback(info);
+      };
+
+      kann::RandomDataSet latentDataSet(FEATURES_COUNT, trainingDataSet.size());
+      kann::trainGAN(GANModel, generatorModel, discriminatorModel,
+          latentDataSet, trainingDataSet,
+          kann::RandomDataSet::COLUMN_DATA, kann::MNISTDataSet::COLUMN_IMAGE,
+          LEARNING_RATE, callback);
+    }
+
+    {
+      auto defaultCallback = kann::defaultCallback("Training");
+      auto callback = [&outputDirectory, &defaultCallback](kann::Info info){
+        std::ostringstream fileName;
+        fileName << std::setfill('0') << std::setw(std::ceil(std::log10(info.size))) << info.i << ".png";
+        auto image = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+        image.saveToFile(outputDirectory / "Output" / fileName.str());
+
+        return defaultCallback(info);
+      };
+
+      kann::RandomDataSet randomDataSet(FEATURES_COUNT, 1000);
+      kann::run(generatorModel, randomDataSet, kann::RandomDataSet::COLUMN_DATA, callback);
+    }
+  }
   else
   {
     std::cerr << "Error: Invalid Command " << subcommand << std::endl;
