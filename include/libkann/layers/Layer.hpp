@@ -14,6 +14,16 @@
 
 namespace kann
 {
+  enum Tag
+  {
+    TAG_DEFAULT           = 1u << 0,
+    TAG_ENCODDER          = 1u << 1,
+    TAG_DECODDER          = 1u << 2,
+    TAG_GAN_GENERATOR     = 1u << 3,
+    TAG_GAN_DISCRIMINATOR = 1u << 4,
+    TAG_ALL = 0xFFFFFFFF
+  };
+
   class Layer
   {
   public:
@@ -47,10 +57,15 @@ namespace kann
       archive(m_params);
     }
 
+  public:
+    unsigned tag() const { return m_tag; }
+    void tag(unsigned tag) { m_tag = tag; }
+
   protected:
     const Eigen::ArrayXd& params() const { return m_params; }
 
   private:
+    unsigned m_tag = TAG_DEFAULT;
     Eigen::ArrayXd m_params;
   };
 }

@@ -7,6 +7,7 @@
 #include <boost/graph/copy.hpp>
 
 #include <iterator>
+#include <memory>
 #include <ranges>
 #include <numeric>
 
@@ -14,29 +15,63 @@
 
 namespace kann
 {
-  /* Note: There actually is no guarantee(at least in the official
-   *       documentation) that vertex desciptor(a.k.a Handle) stay valid after
-   *       moving graph, but that should be the case, since in the case of using
-   *       boost::vecS, i.e. using std::vector to store vertex, vertex desciptor
-   *       is no more than a size_t which index into the std::vector of vertex */
-  Model::Model(Graph graph, Handle input, Handle output, std::vector<FeedBack> feedBacks)
-    : m_graph(graph), m_input(input), m_output(output), m_feedBacks(std::move(feedBacks))
+  Model::Model(std::shared_ptr<Variable> input, std::shared_ptr<Variable> output,
+      std::vector<FeedBack> feedBacks)
+    : m_input(std::move(input)), m_output(std::move(output)),
+      m_feedBacks(std::move(feedBacks))
   {
+    initialize();
+  }
+
+  template<typename Callback>
+  static void walk(const std::shared_ptr<Variable>& variable, const Callback& callback)
+  {
+    if(!callback(variable))
+      return;
+
+    for(auto& input : variable->inputs)
+      walk(input.variable, callback);
+  }
+
+  void Model::initialize()
+  {
+    // Build the graph
+    // 1: Create a Node for every variable
+    std::map<std::shared_ptr<Variable>, Handle> handles;
+    auto callback = [this, &handles](const std::shared_ptr<Variable>& variable){
+      if(handles.find(variable) != handles.end())
+        return false;
+
+      auto handle = boost::add_vertex(Node{variable}, m_graph);
+      handles.insert(std::make_pair(variable, handle));
+      return true;
+    };
+    walk(m_output, callback);
+    for(auto& feedBack : m_feedBacks)
+      walk(feedBack.first, callback);
+
+    // 2: Add appropriate connection for each variable
+    for(const auto& [outputVariable, outputHandle] : handles)
+    {
+      for(const auto& [inputVariable, layer] : outputVariable->inputs)
+      {
+        assert(handles.find(inputVariable) != handles.end());
+        const auto& inputHandle = handles[inputVariable];
+
+        // TODO: Figure out a new way of setting tag
+        auto [_, success] = boost::add_edge(inputHandle, outputHandle, Connection{layer}, m_graph);
+        assert(success);
+      }
+    }
+
+    // Build the ordering
     boost::topological_sort(m_graph, std::back_inserter(m_ordering));
     std::reverse(m_ordering.begin(), m_ordering.end());
-
-    // Zero all node
 
     std::cout << "Ordering:";
     for(auto handle : m_ordering)
       std::cout << handle << " ";
     std::cout << std::endl;
-    for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
-    {
-      Node& node = m_graph[*begin];
-      node.data     = Eigen::VectorXd::Zero(node.size);
-      node.gradient = Eigen::RowVectorXd::Zero(node.size);
-    }
   }
 
   static std::string demangle(const char* mangledName)
@@ -54,20 +89,20 @@ namespace kann
   void Model::write_graphviz(std::ostream& os) const
   {
     auto vertexWriter = [this](std::ostream& os, const auto& handle){
-      const auto& node = m_graph[handle];
+      const Node& node = m_graph[handle];
       os << "[label=\"";
-      os << "size=" << node.size << "\\n";
+      os << "size=" << node.variable->size << "\\n";
       os << "\"]";
     };
 
     auto edgeWriter = [this](std::ostream& os, const auto& handle){
-      const auto& connection = m_graph[handle];
+      const Connection& connection = m_graph[handle];
       const auto& layer = connection.layer;
       os << "[label=\"";
       os << demangle(typeid(*layer).name()) << "\\n";
       os << "input_size=" << layer->inputSize() << "\\n";
       os << "output_size=" << layer->outputSize() << "\\n";
-      os << "tag=" << connection.tag << "\\n";
+      os << "tag=" << layer->tag() << "\\n";
       os << "\"]";
     };
     boost::write_graphviz(os, m_graph, vertexWriter, edgeWriter);
@@ -75,25 +110,33 @@ namespace kann
 
   void Model::feedForward(Eigen::VectorXd input)
   {
-    std::map<Handle, Eigen::VectorXd> feedBackData;
+    std::map<std::shared_ptr<Variable>, Eigen::VectorXd> feedBackData;
 
-    // Save feedBack data
+    /* Save feedBack data
+     *
+     * We kinda have a chicken-and-egg dilemma - to get the
+     * input for the feedback loop we need the output of the feedback loop to
+     * feed into the model first. The way to solve it is to make sure that the
+     * input variable of the feedback loop is zero by default, even if no
+     * feedForward has been called yet. This is handled by the fact that
+     * Variable::constant() by default initializing all its member vectors to
+     * zero vectors. Not doing so *MAY* lead to weird crashes from uninitialized
+     * value. */
     for(const auto& feedBack : m_feedBacks)
-      feedBackData.insert(std::make_pair(feedBack.second, m_graph[feedBack.first].data));
+      feedBackData.insert(std::make_pair(feedBack.second, feedBack.first->data));
 
     // Zero all pre-existing node data
     for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
     {
       Node& node = m_graph[*begin];
-      node.data.setZero();
+      node.variable->data.setZero();
     }
 
     // Restore feedBack data
-    for(auto& [handle, data] : feedBackData)
-      m_graph[handle].data = std::move(data);
+    for(auto& [second, data] : feedBackData)
+      second->data = std::move(data);
 
-
-    m_graph[m_input].data = std::move(input);
+    m_input->data = std::move(input);
     for(const auto& handle : m_ordering)
     {
       const auto& inputNode = m_graph[handle];
@@ -103,16 +146,15 @@ namespace kann
         auto& outputNode = m_graph[boost::target(*begin, m_graph)];
 
         Eigen::VectorXd output;
-        connection.layer->feedForward(inputNode.data, output);
-
-        outputNode.data += output;
+        connection.layer->feedForward(inputNode.variable->data, output);
+        outputNode.variable->data += output;
       }
     }
   }
 
   double Model::cost(const Eigen::VectorXd& expectedOutput) const
   {
-    return (m_graph[m_output].data - expectedOutput).squaredNorm();
+    return (m_output->data - expectedOutput).squaredNorm();
   }
 
   void Model::backPropagate(const Eigen::VectorXd& expectedOutput)
@@ -123,10 +165,10 @@ namespace kann
     for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
     {
       Node& node = m_graph[*begin];
-      node.gradient.setZero();
+      node.variable->gradient.setZero();
     }
 
-    m_graph[m_output].gradient = 2.0 * (m_graph[m_output].data - expectedOutput);
+    m_output->gradient = 2.0 * (m_output->data - expectedOutput);
     for(auto it = m_ordering.rbegin(); it != m_ordering.rend(); ++it)
     {
       const auto& handle = *it;
@@ -138,9 +180,8 @@ namespace kann
         auto& inputNode = m_graph[boost::source(*begin, m_graph)];
 
         Eigen::RowVectorXd inputGradient;
-        connection.layer->backPropagate(inputNode.data, outputNode.gradient, inputGradient, connection.layerGradient);
-
-        inputNode.gradient += inputGradient;
+        connection.layer->backPropagate(inputNode.variable->data, outputNode.variable->gradient, inputGradient, connection.layerGradient);
+        inputNode.variable->gradient += inputGradient;
       }
     }
   }
@@ -150,56 +191,114 @@ namespace kann
     for(auto [begin, end] = boost::edges(m_graph); begin != end; ++begin)
     {
       auto& connection = m_graph[*begin];
-      if(connection.tag & tags)
+      if(connection.layer->tag() & tags)
         connection.layer->train(learningRate, connection.layerGradient);
     }
   }
 
-  const Eigen::VectorXd& Model::input() const
+  template<typename Callback>
+  static void walk2(const std::shared_ptr<Variable>& variable1, const std::shared_ptr<Variable>& variable2, const Callback& callback)
   {
-    return m_graph[m_input].data;
+    if(!callback(variable1, variable2))
+      return;
+
+    assert(variable1->inputs.size() == variable2->inputs.size());
+    const size_t size = variable1->inputs.size();
+    for(size_t i=0; i<size; ++i)
+      walk2(variable1->inputs[i].variable, variable2->inputs[i].variable, callback);
   }
 
-  const Eigen::VectorXd& Model::output() const
-  {
-    return m_graph[m_output].data;
-  }
 
   Model Model::cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate)
   {
-    assert(boost::num_vertices(lhs.m_graph) == boost::num_vertices(rhs.m_graph));
-    assert(boost::num_edges(lhs.m_graph) == boost::num_edges(rhs.m_graph));
-    assert(lhs.m_input == rhs.m_input);
-    assert(lhs.m_output == rhs.m_output);
+    // Mapping from original variables from lhs and rhs to new variables
+    std::map<std::pair<std::shared_ptr<Variable>, std::shared_ptr<Variable>>, std::shared_ptr<Variable>> variables;
 
-    auto result = lhs;
-
-    for(auto [begin, end] = boost::edges(result.m_graph); begin != end; ++begin)
+    // Make a deep copy of lhs and rhs variables
     {
-      // Hopefully the edge descriptor for result.m_graph also works for
-      // rhs.m_graph
-      auto& connection          = result.m_graph[*begin];
-      const auto& rhsConnection = rhs.m_graph[*begin];
-      connection.layer = Layer::cross(*connection.layer, *rhsConnection.layer, engine, mutationRate);
+      auto callback = [&variables](const std::shared_ptr<Variable>& variable1, const std::shared_ptr<Variable>& variable2) -> bool {
+        if(variables.find(std::make_pair(variable1, variable2)) != variables.end())
+          return false;
+
+        assert(variable1->size == variable2->size);
+        const size_t size = variable1->size;
+        auto variable = Variable::constant(size);
+        variables.insert(std::make_pair(std::make_pair(variable1, variable2), std::move(variable)));
+        return true;
+      };
+      walk2(lhs.m_output, rhs.m_output, callback);
+
+      assert(lhs.m_feedBacks.size() == rhs.m_feedBacks.size());
+      const size_t size = lhs.m_feedBacks.size();
+      for(size_t i=0; i<size; ++i)
+        walk2(lhs.m_feedBacks[i].first, rhs.m_feedBacks[i].first, callback);
     }
 
-    // TODO: Zero all the data
 
-    return result;
+    // Fix up variable inputs
+    for(const auto& [key, variable] : variables)
+    {
+      const auto& [variable1, variable2] = key;
+
+      assert(variable1->inputs.size() == variable2->inputs.size());
+      const size_t size = variable1->inputs.size();
+      variable->inputs.resize(size);
+      for(size_t i=0; i<size; ++i)
+      {
+        const auto& input1 = variable1->inputs[i];
+        const auto& input2 = variable2->inputs[i];
+
+        auto it = variables.find(std::make_pair(input1.variable, input2.variable));
+        assert(it != variables.end());
+        auto childVariable = it->second;
+        auto childLayer = Layer::cross(*input1.layer, *input2.layer, engine, mutationRate);
+
+        auto& input = variable->inputs[i];
+
+        input.variable = std::move(childVariable);
+        input.layer    = std::move(childLayer);
+      }
+    }
+
+    // Lookup the necessary variable and construct the model
+    auto itInput = variables.find(std::make_pair(lhs.m_input, rhs.m_input));
+    assert(itInput != variables.end());
+    auto input = itInput->second;
+
+    auto itOutput = variables.find(std::make_pair(lhs.m_output, rhs.m_output));
+    assert(itOutput != variables.end());
+    auto output = itOutput->second;
+
+    std::vector<FeedBack> feedBacks;
+
+    assert(lhs.m_feedBacks.size() == rhs.m_feedBacks.size());
+    const size_t size = lhs.m_feedBacks.size();
+    feedBacks.resize(size);
+    for(size_t i=0; i<size; ++i)
+    {
+      auto itFirst  = variables.find(std::make_pair(lhs.m_feedBacks[i].first,  rhs.m_feedBacks[i].first));
+      assert(itFirst != variables.end());
+      auto first = itFirst->second;
+
+      auto itSecond = variables.find(std::make_pair(lhs.m_feedBacks[i].second, rhs.m_feedBacks[i].second));
+      assert(itSecond != variables.end());
+      auto second = itSecond->second;
+
+      feedBacks[i].first = std::move(first);
+      feedBacks[i].second = std::move(second);
+    }
+
+    return Model(std::move(input), std::move(output), std::move(feedBacks));
   }
 
   Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag)
   {
-    Model::Graph graph;
-    for(size_t i=0; i<layers.size(); ++i)
-      boost::add_vertex(Model::Node{.size = layers[i]->inputSize()}, graph);
+    auto input = Variable::constant(layers.front()->inputSize());
+    auto output = input;
+    for(auto& layer : layers)
+      output = output | layer;
 
-    boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
-
-    for(size_t i=0; i<layers.size(); ++i)
-      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = tag}, graph);
-
-    return Model(graph, 0, layers.size());
+    return Model(std::move(input), std::move(output));
   }
 
   Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag)
@@ -207,65 +306,66 @@ namespace kann
     const size_t inputSize  = layers.front()->inputSize();
     const size_t outputSize = layers.back()->outputSize();
 
-    Model::Graph graph;
-    for(size_t i=0; i<layers.size(); ++i)
-      boost::add_vertex(Model::Node{.size = layers[i]->inputSize()}, graph);
+    auto realInput = Variable::constant(inputSize-memory);
+    auto memoryInput = Variable::constant(memory);
 
-    boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
+    auto input1 = realInput   | std::make_shared<IdentityLayer>(inputSize - memory, inputSize, 0                 );
+    auto input2 = memoryInput | std::make_shared<IdentityLayer>(memory            , inputSize, inputSize - memory);
+    auto input = input1 + input2;
 
-    for(size_t i=0; i<layers.size(); ++i)
-      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = tag}, graph);
+    auto output = input;
+    for(auto& layer : layers)
+      output = output | layer;
 
-    const auto input        = boost::add_vertex(Model::Node{.size = inputSize  - memory}, graph);
-    const auto output       = boost::add_vertex(Model::Node{.size = outputSize - memory}, graph);
-    const auto inputMemory  = boost::add_vertex(Model::Node{.size = memory             }, graph);
-    const auto outputMemory = boost::add_vertex(Model::Node{.size = memory             }, graph);
+    auto realOutput   = output | std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0                  );
+    auto memoryOutput = output | std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory);
 
-    boost::add_edge(input,       0, Model::Connection{.layer = std::make_shared<IdentityLayer>(inputSize - memory, inputSize, 0                 ), .tag = tag}, graph);
-    boost::add_edge(inputMemory, 0, Model::Connection{.layer = std::make_shared<IdentityLayer>(memory            , inputSize, inputSize - memory), .tag = tag}, graph);
-
-    boost::add_edge(layers.size(), output,       Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0                  ), .tag = tag}, graph);
-    boost::add_edge(layers.size(), outputMemory, Model::Connection{.layer = std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory), .tag = tag}, graph);
-
-    auto feedBack = Model::FeedBack{.first = outputMemory, .second = inputMemory};
-    return Model(graph, input, output, {feedBack});
+    auto feedBack = Model::FeedBack{std::move(memoryOutput), std::move(memoryInput)};
+    return Model(std::move(realInput), std::move(realOutput), {feedBack});
   }
 
   std::pair<Model, Model> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers)
   {
-    std::vector<std::shared_ptr<Layer>> layers;
-    std::copy(encoderLayers.begin(), encoderLayers.end(), std::back_inserter(layers));
-    std::copy(decoderLayers.begin(), decoderLayers.end(), std::back_inserter(layers));
+    auto input = Variable::constant(encoderLayers.front()->inputSize());
+    auto middle = input;
+    for(auto& layer : encoderLayers)
+    {
+      layer->tag(TAG_ENCODDER);
+      middle = middle | layer;
+    }
 
-    auto autoEncoderModel = buildSimpleFeedForwardModel(layers);
-    auto decoderModel = buildSimpleFeedForwardModel(decoderLayers);
+    auto output = middle;
+    for(auto& layer : decoderLayers)
+    {
+      layer->tag(TAG_DECODDER);
+      output = output | layer;
+    }
+
+    auto autoEncoderModel = Model(input, output);
+    auto decoderModel     = Model(middle, output);
     return {autoEncoderModel, decoderModel};
   }
 
   std::tuple<Model, Model, Model> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers)
   {
-    // Build the actual GAN Model
-    std::vector<std::shared_ptr<Layer>> layers;
-    std::copy(generatorLayers.begin(),     generatorLayers.end(),     std::back_inserter(layers));
-    std::copy(discriminatorLayers.begin(), discriminatorLayers.end(), std::back_inserter(layers));
-
-    Model::Graph graph;
-    for(size_t i=0; i<layers.size(); ++i)
-      boost::add_vertex(Model::Node{.size = layers[i]->inputSize()}, graph);
-
-    boost::add_vertex(Model::Node{.size = layers.back()->outputSize()}, graph);
-
-    for(size_t i=0; i<layers.size(); ++i)
+    auto input = Variable::constant(generatorLayers.front()->inputSize());
+    auto middle = input;
+    for(auto& layer : generatorLayers)
     {
-      unsigned tag = i < generatorLayers.size() ? TAG_GAN_GENERATOR : TAG_GAN_DISCRIMINATOR;
-      boost::add_edge(i, i+1, Model::Connection{.layer = std::move(layers[i]), .tag = tag}, graph);
+      layer->tag(TAG_GAN_GENERATOR);
+      middle = middle | layer;
     }
 
-    auto GANModel = Model(graph, 0, layers.size());
+    auto output = middle;
+    for(auto& layer : discriminatorLayers)
+    {
+      layer->tag(TAG_GAN_DISCRIMINATOR);
+      output = output | layer;
+    }
 
-    auto generatorModel     = buildSimpleFeedForwardModel(generatorLayers);
-    auto discriminatorModel = buildSimpleFeedForwardModel(discriminatorLayers);
-
+    auto GANModel           = Model(input, output);
+    auto generatorModel     = Model(input, middle);
+    auto discriminatorModel = Model(middle, output);
     return {GANModel, generatorModel, discriminatorModel};
   }
 }
