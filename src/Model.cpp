@@ -39,7 +39,7 @@ namespace kann
     std::set<std::shared_ptr<const Variable>> inputVariables;
     inputVariables.insert(m_input);
     for(const auto& feedBack : m_feedBacks)
-      inputVariables.insert(feedBack.second);
+      inputVariables.insert(feedBack.input);
 
     // 1: Create a Node for every variable
     std::map<std::shared_ptr<const Variable>, Handle> handles;
@@ -62,7 +62,7 @@ namespace kann
     };
     walk(m_output, callback);
     for(auto& feedBack : m_feedBacks)
-      walk(feedBack.first, callback);
+      walk(feedBack.output, callback);
 
     // 2: Add appropriate connection for each variable
     for(const auto& [outputVariable, outputHandle] : handles)
@@ -87,7 +87,10 @@ namespace kann
 
     // Assign feedback handles
     for(const auto& feedBack : m_feedBacks)
-      m_feedBackHandles.emplace_back(handles.at(feedBack.first), handles.at(feedBack.second));
+      m_feedBackHandles.push_back(FeedBackHandle{
+        .input = handles.at(feedBack.input),
+        .output = handles.at(feedBack.output)
+      });
 
     // Build the ordering
     boost::topological_sort(m_graph, std::back_inserter(m_ordering));
@@ -148,7 +151,7 @@ namespace kann
      * zero vectors. Not doing so *MAY* lead to weird crashes from uninitialized
      * value. */
     for(const auto& feedBackHandle : m_feedBackHandles)
-      feedBackData.insert(std::make_pair(feedBackHandle.second, m_graph[feedBackHandle.first].data));
+      feedBackData.insert(std::make_pair(feedBackHandle.input, m_graph[feedBackHandle.output].data));
 
     // Zero all pre-existing node data
     for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
@@ -256,7 +259,7 @@ namespace kann
       assert(lhs.m_feedBacks.size() == rhs.m_feedBacks.size());
       const size_t size = lhs.m_feedBacks.size();
       for(size_t i=0; i<size; ++i)
-        walk2(lhs.m_feedBacks[i].first, rhs.m_feedBacks[i].first, callback);
+        walk2(lhs.m_feedBacks[i].output, rhs.m_feedBacks[i].output, callback);
     }
 
 
@@ -301,16 +304,16 @@ namespace kann
     feedBacks.resize(size);
     for(size_t i=0; i<size; ++i)
     {
-      auto itFirst  = variables.find(std::make_pair(lhs.m_feedBacks[i].first,  rhs.m_feedBacks[i].first));
-      assert(itFirst != variables.end());
-      auto first = itFirst->second;
+      auto itInput  = variables.find(std::make_pair(lhs.m_feedBacks[i].input,  rhs.m_feedBacks[i].input));
+      assert(itInput != variables.end());
+      auto input = itInput->second;
 
-      auto itSecond = variables.find(std::make_pair(lhs.m_feedBacks[i].second, rhs.m_feedBacks[i].second));
-      assert(itSecond != variables.end());
-      auto second = itSecond->second;
+      auto itOutput = variables.find(std::make_pair(lhs.m_feedBacks[i].output, rhs.m_feedBacks[i].output));
+      assert(itOutput != variables.end());
+      auto output = itOutput->second;
 
-      feedBacks[i].first = std::move(first);
-      feedBacks[i].second = std::move(second);
+      feedBacks[i].input = std::move(input);
+      feedBacks[i].output = std::move(output);
     }
 
     return Model(std::move(input), std::move(output), std::move(feedBacks));
@@ -345,7 +348,10 @@ namespace kann
     auto realOutput   = output | std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0                  );
     auto memoryOutput = output | std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory);
 
-    auto feedBack = Model::FeedBack{std::move(memoryOutput), std::move(memoryInput)};
+    auto feedBack = Model::FeedBack{
+      .input = std::move(memoryInput),
+      .output = std::move(memoryOutput)
+    };
     return Model(std::move(realInput), std::move(realOutput), {feedBack});
   }
 

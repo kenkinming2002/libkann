@@ -23,12 +23,12 @@ namespace kann
   public:
     struct FeedBack
     {
-      std::shared_ptr<const Variable> first, second;
+      std::shared_ptr<const Variable> input, output;
 
       template<typename Archive>
       void serialize(Archive& archive)
       {
-        archive(first, second);
+        archive(input, output);
       }
     };
 
@@ -105,13 +105,13 @@ namespace kann
 
     struct FeedBackHandle
     {
-      Handle first, second;
+      Handle input, output;
     };
 
   private:
     Graph m_graph;
     Handle m_inputHandle, m_outputHandle;
-    std::vector<std::pair<Handle, Handle>> m_feedBackHandles;
+    std::vector<FeedBackHandle> m_feedBackHandles;
     std::vector<Handle> m_ordering;
   };
 
