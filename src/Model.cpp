@@ -15,7 +15,7 @@
 
 namespace kann
 {
-  Model::Model(std::shared_ptr<Variable> input, std::shared_ptr<Variable> output,
+  Model::Model(std::shared_ptr<const Variable> input, std::shared_ptr<const Variable> output,
       std::vector<FeedBack> feedBacks)
     : m_input(std::move(input)), m_output(std::move(output)),
       m_feedBacks(std::move(feedBacks))
@@ -24,7 +24,7 @@ namespace kann
   }
 
   template<typename Callback>
-  static void walk(const std::shared_ptr<Variable>& variable, const Callback& callback)
+  static void walk(const std::shared_ptr<const Variable>& variable, const Callback& callback)
   {
     if(!callback(variable))
       return;
@@ -36,18 +36,23 @@ namespace kann
   void Model::initialize()
   {
     // Build the graph
-    std::set<std::shared_ptr<Variable>> inputVariables;
+    std::set<std::shared_ptr<const Variable>> inputVariables;
     inputVariables.insert(m_input);
     for(const auto& feedBack : m_feedBacks)
       inputVariables.insert(feedBack.second);
 
     // 1: Create a Node for every variable
-    std::map<std::shared_ptr<Variable>, Handle> handles;
-    auto callback = [this, &inputVariables, &handles](const std::shared_ptr<Variable>& variable){
+    std::map<std::shared_ptr<const Variable>, Handle> handles;
+    auto callback = [this, &inputVariables, &handles](const std::shared_ptr<const Variable>& variable){
       if(handles.find(variable) != handles.end())
         return false;
 
-      auto handle = boost::add_vertex(Node{variable}, m_graph);
+      auto node = Node{
+        .variable = variable,
+        .data     = Eigen::VectorXd::Zero(variable->size),
+        .gradient = Eigen::RowVectorXd::Zero(variable->size)
+      };
+      auto handle = boost::add_vertex(std::move(node), m_graph);
       handles.insert(std::make_pair(variable, handle));
 
       if(inputVariables.contains(variable))
@@ -75,6 +80,14 @@ namespace kann
         assert(success);
       }
     }
+
+    // Assign the handle to input and output
+    m_inputHandle = handles.at(m_input);
+    m_outputHandle = handles.at(m_output);
+
+    // Assign feedback handles
+    for(const auto& feedBack : m_feedBacks)
+      m_feedBackHandles.emplace_back(handles.at(feedBack.first), handles.at(feedBack.second));
 
     // Build the ordering
     boost::topological_sort(m_graph, std::back_inserter(m_ordering));
@@ -122,7 +135,7 @@ namespace kann
 
   void Model::feedForward(Eigen::VectorXd input)
   {
-    std::map<std::shared_ptr<Variable>, Eigen::VectorXd> feedBackData;
+    std::map<Handle, Eigen::VectorXd> feedBackData;
 
     /* Save feedBack data
      *
@@ -134,21 +147,21 @@ namespace kann
      * Variable::constant() by default initializing all its member vectors to
      * zero vectors. Not doing so *MAY* lead to weird crashes from uninitialized
      * value. */
-    for(const auto& feedBack : m_feedBacks)
-      feedBackData.insert(std::make_pair(feedBack.second, feedBack.first->data));
+    for(const auto& feedBackHandle : m_feedBackHandles)
+      feedBackData.insert(std::make_pair(feedBackHandle.second, m_graph[feedBackHandle.first].data));
 
     // Zero all pre-existing node data
     for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
     {
       Node& node = m_graph[*begin];
-      node.variable->data.setZero();
+      node.data.setZero();
     }
 
     // Restore feedBack data
-    for(auto& [second, data] : feedBackData)
-      second->data = std::move(data);
+    for(auto& [handle, data] : feedBackData)
+      m_graph[handle].data = std::move(data);
 
-    m_input->data = std::move(input);
+    m_graph[m_inputHandle].data = std::move(input);
     for(const auto& handle : m_ordering)
     {
       const auto& inputNode = m_graph[handle];
@@ -158,15 +171,15 @@ namespace kann
         auto& outputNode = m_graph[boost::target(*begin, m_graph)];
 
         Eigen::VectorXd output;
-        connection.layer->feedForward(inputNode.variable->data, output);
-        outputNode.variable->data += output;
+        connection.layer->feedForward(inputNode.data, output);
+        outputNode.data += output;
       }
     }
   }
 
   double Model::cost(const Eigen::VectorXd& expectedOutput) const
   {
-    return (m_output->data - expectedOutput).squaredNorm();
+    return (m_graph[m_outputHandle].data - expectedOutput).squaredNorm();
   }
 
   void Model::backPropagate(const Eigen::VectorXd& expectedOutput)
@@ -177,10 +190,10 @@ namespace kann
     for(auto [begin, end] = boost::vertices(m_graph); begin != end; ++begin)
     {
       Node& node = m_graph[*begin];
-      node.variable->gradient.setZero();
+      node.gradient.setZero();
     }
 
-    m_output->gradient = 2.0 * (m_output->data - expectedOutput);
+    m_graph[m_outputHandle].gradient = 2.0 * (m_graph[m_outputHandle].data - expectedOutput);
     for(auto it = m_ordering.rbegin(); it != m_ordering.rend(); ++it)
     {
       const auto& handle = *it;
@@ -192,8 +205,8 @@ namespace kann
         auto& inputNode = m_graph[boost::source(*begin, m_graph)];
 
         Eigen::RowVectorXd inputGradient;
-        connection.layer->backPropagate(inputNode.variable->data, outputNode.variable->gradient, inputGradient, connection.layerGradient);
-        inputNode.variable->gradient += inputGradient;
+        connection.layer->backPropagate(inputNode.data, outputNode.gradient, inputGradient, connection.layerGradient);
+        inputNode.gradient += inputGradient;
       }
     }
   }
@@ -209,7 +222,7 @@ namespace kann
   }
 
   template<typename Callback>
-  static void walk2(const std::shared_ptr<Variable>& variable1, const std::shared_ptr<Variable>& variable2, const Callback& callback)
+  static void walk2(const std::shared_ptr<const Variable>& variable1, const std::shared_ptr<const Variable>& variable2, const Callback& callback)
   {
     if(!callback(variable1, variable2))
       return;
@@ -224,11 +237,11 @@ namespace kann
   Model Model::cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate)
   {
     // Mapping from original variables from lhs and rhs to new variables
-    std::map<std::pair<std::shared_ptr<Variable>, std::shared_ptr<Variable>>, std::shared_ptr<Variable>> variables;
+    std::map<std::pair<std::shared_ptr<const Variable>, std::shared_ptr<const Variable>>, std::shared_ptr<Variable>> variables;
 
     // Make a deep copy of lhs and rhs variables
     {
-      auto callback = [&variables](const std::shared_ptr<Variable>& variable1, const std::shared_ptr<Variable>& variable2) -> bool {
+      auto callback = [&variables](const std::shared_ptr<const Variable>& variable1, const std::shared_ptr<const Variable>& variable2) -> bool {
         if(variables.find(std::make_pair(variable1, variable2)) != variables.end())
           return false;
 

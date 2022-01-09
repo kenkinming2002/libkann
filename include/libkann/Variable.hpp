@@ -33,21 +33,13 @@ namespace kann
 
   public:
     size_t size;
-
-  public:
     std::vector<Input> inputs;
-
-  public:
-    Eigen::VectorXd data;
-    Eigen::RowVectorXd gradient;
 
   public:
     template<typename Archive>
     void serialize(Archive& archive)
     {
       archive(inputs);
-      archive(data);
-      archive(gradient);
     }
   };
 

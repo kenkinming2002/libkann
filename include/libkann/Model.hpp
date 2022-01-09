@@ -23,7 +23,7 @@ namespace kann
   public:
     struct FeedBack
     {
-      std::shared_ptr<Variable> first, second;
+      std::shared_ptr<const Variable> first, second;
 
       template<typename Archive>
       void serialize(Archive& archive)
@@ -34,7 +34,7 @@ namespace kann
 
   public:
     Model() = default;
-    Model(std::shared_ptr<Variable> input, std::shared_ptr<Variable> output,
+    Model(std::shared_ptr<const Variable> input, std::shared_ptr<const Variable> output,
         std::vector<FeedBack> feedBacks = {});
 
   private:
@@ -54,8 +54,8 @@ namespace kann
     size_t outputSize() const { return m_output->size; }
 
   public:
-    const Eigen::VectorXd& input()  const { return m_input->data; }
-    const Eigen::VectorXd& output() const { return m_output->data; }
+    const Eigen::VectorXd& input()  const { return m_graph[m_inputHandle].data; }
+    const Eigen::VectorXd& output() const { return m_graph[m_outputHandle].data; }
 
   public:
     static Model cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
@@ -76,14 +76,16 @@ namespace kann
 
   // Externally visible representation
   private:
-    std::shared_ptr<Variable> m_input, m_output;
+    std::shared_ptr<const Variable> m_input, m_output;
     std::vector<FeedBack> m_feedBacks;
 
   // Internal representation, could be reconstructed
   private:
     struct Node
     {
-      std::shared_ptr<Variable> variable;
+      std::shared_ptr<const Variable> variable;
+      Eigen::VectorXd data;
+      Eigen::RowVectorXd gradient;
     };
 
     struct Connection
@@ -101,8 +103,15 @@ namespace kann
 
     typedef boost::graph_traits<Graph>::vertex_descriptor Handle;
 
+    struct FeedBackHandle
+    {
+      Handle first, second;
+    };
+
   private:
     Graph m_graph;
+    Handle m_inputHandle, m_outputHandle;
+    std::vector<std::pair<Handle, Handle>> m_feedBackHandles;
     std::vector<Handle> m_ordering;
   };
 
