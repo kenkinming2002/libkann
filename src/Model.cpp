@@ -36,14 +36,23 @@ namespace kann
   void Model::initialize()
   {
     // Build the graph
+    std::set<std::shared_ptr<Variable>> inputVariables;
+    inputVariables.insert(m_input);
+    for(const auto& feedBack : m_feedBacks)
+      inputVariables.insert(feedBack.second);
+
     // 1: Create a Node for every variable
     std::map<std::shared_ptr<Variable>, Handle> handles;
-    auto callback = [this, &handles](const std::shared_ptr<Variable>& variable){
+    auto callback = [this, &inputVariables, &handles](const std::shared_ptr<Variable>& variable){
       if(handles.find(variable) != handles.end())
         return false;
 
       auto handle = boost::add_vertex(Node{variable}, m_graph);
       handles.insert(std::make_pair(variable, handle));
+
+      if(inputVariables.contains(variable))
+        return false;
+
       return true;
     };
     walk(m_output, callback);
@@ -55,7 +64,10 @@ namespace kann
     {
       for(const auto& [inputVariable, layer] : outputVariable->inputs)
       {
-        assert(handles.find(inputVariable) != handles.end());
+        auto it = handles.find(inputVariable);
+        if(it == handles.end())
+          continue;
+
         const auto& inputHandle = handles[inputVariable];
 
         // TODO: Figure out a new way of setting tag
