@@ -11,7 +11,6 @@ namespace kann
   {
     auto result = std::make_shared<Variable>();
     result->size  = size;
-    result->value = Eigen::VectorXd::Zero(result->size);
 
     result->data     = Eigen::VectorXd::Zero(result->size);
     result->gradient = Eigen::VectorXd::Zero(result->size);

@@ -35,7 +35,6 @@ namespace kann
     size_t size;
 
   public:
-    Eigen::VectorXd value;
     std::vector<Input> inputs;
 
   public:
@@ -46,7 +45,6 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
-      archive(value);
       archive(inputs);
       archive(data);
       archive(gradient);
