@@ -105,7 +105,7 @@ private:
     const char* label;
     auto callback = [this, &label](kann::Info info){
       auto inputImage  = kann::toImage(info.model.input(),  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
-      auto outputImage = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      auto outputImage = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
 
       // Update state
       {
@@ -132,12 +132,12 @@ private:
     label = "Training";
 
     std::filesystem::create_directories(m_outputDirectory / label);
-    kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, callback);
+    kann::train(*autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, callback);
 
     label = "Testing";
 
     std::filesystem::create_directories(m_outputDirectory / label);
-    kann::run(autoEncoderModel, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, callback);
+    kann::run(*autoEncoderModel, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, callback);
   }
 
 public:

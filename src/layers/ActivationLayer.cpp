@@ -7,7 +7,7 @@ namespace kann
   using namespace std::placeholders;
 
   ActivationLayer::ActivationLayer(size_t size, ActivationFunction activationFunction)
-    : Layer(0), m_size(size), m_activationFunction(activationFunction) {}
+    : m_size(size), m_activationFunction(activationFunction) {}
 
   std::unique_ptr<Layer> ActivationLayer::clone() const
   {
@@ -24,14 +24,33 @@ namespace kann
     return m_size;
   }
 
-  void ActivationLayer::feedForward(const Eigen::VectorXd& input, Eigen::VectorXd& output) const
+  Eigen::VectorXd ActivationLayer::feedForward()
   {
-    output = input.unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
+    return input().unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
   }
 
-  void ActivationLayer::backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const
+  Eigen::VectorXd ActivationLayer::backPropagate()
   {
-    inputGradient = input.unaryExpr(std::bind(&ActivationFunction::derivative, &m_activationFunction, _1)).transpose().cwiseProduct(outputGradient);
-    layerGradient.resize(0); // We do not have any gradient
+    return input().unaryExpr(std::bind(&ActivationFunction::derivative, &m_activationFunction, _1)).cwiseProduct(outputGradient());
+  }
+
+  std::vector<std::span<double>> ActivationLayer::params()
+  {
+    return {};
+  }
+
+  std::vector<std::span<const double>> ActivationLayer::params() const
+  {
+    return {};
+  }
+
+  std::vector<std::span<double>> ActivationLayer::paramsGradient()
+  {
+    return {};
+  }
+
+  std::vector<std::span<const double>> ActivationLayer::paramsGradient() const
+  {
+    return {};
   }
 }

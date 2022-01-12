@@ -10,7 +10,8 @@
 #include <memory>
 #include <random>
 #include <utility>
-#include <concepts>
+#include <optional>
+#include <span>
 
 namespace kann
 {
@@ -27,8 +28,23 @@ namespace kann
   class Layer
   {
   public:
-    Layer() = default;
-    Layer(size_t paramsCount);
+    static std::unique_ptr<Layer> cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutationRate);
+
+  public:
+    void randomize(std::default_random_engine& engine);
+    void train(double learningRate);
+
+  public:
+    unsigned tag() const { return m_tag; }
+    void tag(unsigned tag) { m_tag = tag; }
+
+  public:
+    void input(Eigen::VectorXd input);
+    void outputGradient(Eigen::VectorXd outputGradient);
+
+  public:
+    const Eigen::VectorXd& input() const;
+    const Eigen::VectorXd& outputGradient() const;
 
   public:
     virtual ~Layer() = default;
@@ -41,31 +57,40 @@ namespace kann
     virtual size_t outputSize() const = 0;
 
   public:
-    virtual void feedForward(const Eigen::VectorXd& input, Eigen::VectorXd& output) const = 0;
-    virtual void backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const = 0;
+    /* Given input, return output. Input is stored internally for use by
+     * backPropgate()
+     *
+     * TODO: Pass input by shared_ptr
+     *
+     * @return output */
+    virtual Eigen::VectorXd feedForward() = 0;
 
+    /* Return input gradient. Also compute params
+     * gradient, which is stored internally in unsepecified format.
+     *
+     * @return input gradient */
+    virtual Eigen::VectorXd backPropagate() = 0;
+
+  // We do not have reflection in c++, so that is the best we could do
   public:
-    static std::unique_ptr<Layer> cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutationRate);
+    virtual std::vector<std::span<double>> params() = 0;
+    virtual std::vector<std::span<const double>> params() const = 0;
 
-    void randomize(std::default_random_engine& engine);
-    void train(double learningRate, const Eigen::ArrayXd& layerGradient);
+    virtual std::vector<std::span<double>> paramsGradient() = 0;
+    virtual std::vector<std::span<const double>> paramsGradient() const = 0;
 
   public:
     template<typename Archive>
     void serialize(Archive& archive)
     {
-      archive(m_params);
+      archive(m_input);
+      archive(m_outputGradient);
     }
-
-  public:
-    unsigned tag() const { return m_tag; }
-    void tag(unsigned tag) { m_tag = tag; }
-
-  protected:
-    const Eigen::ArrayXd& params() const { return m_params; }
 
   private:
     unsigned m_tag = TAG_DEFAULT;
-    Eigen::ArrayXd m_params;
+
+    Eigen::VectorXd m_input;
+    Eigen::VectorXd m_outputGradient;
   };
 }

@@ -6,6 +6,7 @@
 #include <libkann/serialization/Graph.hpp>
 #include <libkann/serialization/Eigen.hpp>
 
+#include <cereal/specialize.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/utility.hpp>
 
@@ -18,7 +19,7 @@
 
 namespace kann
 {
-  class Model
+  class Model : public Layer
   {
   public:
     struct FeedBack
@@ -34,89 +35,143 @@ namespace kann
 
   public:
     Model() = default;
-    Model(std::shared_ptr<const Variable> input, std::shared_ptr<const Variable> output,
-        std::vector<FeedBack> feedBacks = {});
-
-  private:
-    void initialize();
+    Model(std::shared_ptr<const Variable> input, std::shared_ptr<const Variable> output, std::vector<FeedBack> feedBacks = {});
 
   public:
     void write_graphviz(std::ostream& os) const;
 
   public:
-    void feedForward(Eigen::VectorXd input);
-    double cost(const Eigen::VectorXd& expectedOutput) const;
-    void backPropagate(const Eigen::VectorXd& expectedOutput);
+    static std::unique_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
+
+  public:
+    void randomize(std::default_random_engine& engine);
     void train(double learningRate, unsigned tags = TAG_ALL);
 
   public:
-    size_t inputSize()  const { return m_input->size; }
-    size_t outputSize() const { return m_output->size; }
+    std::unique_ptr<Layer> clone() const override;
 
   public:
-    const Eigen::VectorXd& input()  const { return m_graph[m_inputHandle].data; }
-    const Eigen::VectorXd& output() const { return m_graph[m_outputHandle].data; }
+    size_t inputSize()  const override { return m_graph[m_input_vertex_descriptor].size; }
+    size_t outputSize() const override { return m_graph[m_output_vertex_descriptor].size; }
 
   public:
-    static Model cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
+    Eigen::VectorXd feedForward() override;
+    Eigen::VectorXd backPropagate() override;
 
   public:
-    template<typename Archive>
-    void save(Archive& archive) const
-    {
-      archive(m_input, m_output, m_feedBacks);
-    }
+    std::vector<std::span<double>> params() override;
+    std::vector<std::span<const double>> params() const override;
 
-    template<typename Archive>
-    void load(Archive& archive)
-    {
-      archive(m_input, m_output, m_feedBacks);
-      initialize();
-    }
+    std::vector<std::span<double>> paramsGradient() override;
+    std::vector<std::span<const double>> paramsGradient() const override;
 
-  // Externally visible representation
-  private:
-    std::shared_ptr<const Variable> m_input, m_output;
-    std::vector<FeedBack> m_feedBacks;
-
-  // Internal representation, could be reconstructed
   private:
     struct Node
     {
-      std::shared_ptr<const Variable> variable;
+      // TODO: Consider using a shared_ptr
+      size_t size;
       Eigen::VectorXd data;
-      Eigen::RowVectorXd gradient;
+      Eigen::VectorXd gradient;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(size, data, gradient);
+      }
     };
 
     struct Connection
     {
       std::shared_ptr<Layer> layer;
-      Eigen::ArrayXd layerGradient;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(layer);
+      }
     };
 
-  private:
     typedef boost::adjacency_list<
       boost::vecS, boost::vecS,
       boost::bidirectionalS,
       Node, Connection
-    > Graph;
+    > graph_type;
+    typedef typename boost::graph_traits<graph_type>::vertex_descriptor vertex_descriptor_type;
 
-    typedef boost::graph_traits<Graph>::vertex_descriptor Handle;
-
-    struct FeedBackHandle
+    struct FeedBackVertexDescriptors
     {
-      Handle input, output;
+      vertex_descriptor_type input_vertex_descriptor, output_vertex_descriptor;
     };
 
+  public:
+    template<typename Archive>
+    void save(Archive& archive) const
+    {
+      archive(cereal::base_class<Layer>(this));
+
+      GraphOutputSerializer graphOutputSerializer(m_graph);
+      archive(graphOutputSerializer);
+
+      size_t input, output;
+      input  = graphOutputSerializer.map(m_input_vertex_descriptor);
+      output = graphOutputSerializer.map(m_output_vertex_descriptor);
+      archive(input, output);
+
+      std::vector<std::pair<size_t, size_t>> m_feedBacks_indices;
+      std::transform(m_feedBacks_vertex_descriptors.begin(), m_feedBacks_vertex_descriptors.end(), std::back_inserter(m_feedBacks_indices), [&graphOutputSerializer](const auto& feedBack_vertex_descriptor){
+        return std::make_pair(
+          graphOutputSerializer.map(feedBack_vertex_descriptor.input_vertex_descriptor),
+          graphOutputSerializer.map(feedBack_vertex_descriptor.output_vertex_descriptor)
+        );
+      });
+      archive(m_feedBacks_indices);
+
+      std::vector<size_t> m_ordering_indices;
+      std::transform(m_ordering.begin(), m_ordering.end(), std::back_inserter(m_ordering_indices), [&graphOutputSerializer](vertex_descriptor_type vertex_descriptor){
+        return graphOutputSerializer.map(vertex_descriptor);
+      });
+      archive(m_ordering_indices);
+    }
+
+    template<typename Archive>
+    void load(Archive& archive)
+    {
+      archive(cereal::base_class<Layer>(this));
+
+      GraphInputSerializer graphInputSerializer(m_graph);
+      archive(graphInputSerializer);
+
+      size_t input, output;
+      archive(input, output);
+      m_input_vertex_descriptor  = graphInputSerializer.map(input);
+      m_output_vertex_descriptor = graphInputSerializer.map(output);
+
+      std::vector<std::pair<size_t, size_t>> m_feedBacks_indices;
+      archive(m_feedBacks_indices);
+      std::transform(m_feedBacks_indices.begin(), m_feedBacks_indices.end(), std::back_inserter(m_feedBacks_vertex_descriptors), [&graphInputSerializer](const auto& feedBack_indices){
+        return FeedBackVertexDescriptors{
+          .input_vertex_descriptor  = graphInputSerializer.map(feedBack_indices.first),
+          .output_vertex_descriptor = graphInputSerializer.map(feedBack_indices.second)
+        };
+      });
+
+      std::vector<size_t> m_ordering_indices;
+      archive(m_ordering_indices);
+      std::transform(m_ordering_indices.begin(), m_ordering_indices.end(), std::back_inserter(m_ordering), [&graphInputSerializer](size_t index){
+        return graphInputSerializer.map(index);
+      });
+    }
+
   private:
-    Graph m_graph;
-    Handle m_inputHandle, m_outputHandle;
-    std::vector<FeedBackHandle> m_feedBackHandles;
-    std::vector<Handle> m_ordering;
+    graph_type m_graph;
+
+    vertex_descriptor_type m_input_vertex_descriptor, m_output_vertex_descriptor;
+    std::vector<FeedBackVertexDescriptors> m_feedBacks_vertex_descriptors;
+    std::vector<vertex_descriptor_type> m_ordering;
   };
 
-  Model buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag = TAG_DEFAULT);
-  Model buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag = TAG_DEFAULT);
+  std::shared_ptr<Model> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag = TAG_DEFAULT);
+  std::shared_ptr<Model> buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag = TAG_DEFAULT);
 
   /* The returned auto encoder model is used for training purposes
    * whereas random data can be feed into the decoder model to obtain output.
@@ -125,7 +180,7 @@ namespace kann
    * model could be reflected in the decoder model.
    *
    * @return [auto encoder model, decoder model] */
-  std::pair<Model, Model> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers);
+  std::pair<std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers);
 
   /* The returned GAN and discriminator model is used for training purpose.
    *
@@ -133,5 +188,11 @@ namespace kann
    * reflected in the generator model.
    *
    * @return [GAN Model, generator model, discriminator model] */
-  std::tuple<Model, Model, Model> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers);
+  std::tuple<std::shared_ptr<Model>, std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers);
+}
+
+namespace cereal
+{
+  template<typename Archive>
+  struct specialize<Archive, kann::Model, cereal::specialization::member_load_save> {};
 }

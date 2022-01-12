@@ -9,7 +9,7 @@
 #include <cassert>
 #include <cmath>
 
-kann::Model Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
+std::shared_ptr<kann::Model> Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
 {
   const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
 
@@ -37,7 +37,7 @@ kann::Model Creature::makeNeuralNetork(const ModelConfig& config, std::default_r
 static constexpr double ANGLE = M_PI / 12.0;
 
 Creature::Creature(b2World& world, const Config& config,
-    kann::Model model, b2Vec2 position, double energy,
+    std::shared_ptr<kann::Model> model, b2Vec2 position, double energy,
     double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
     m_model(std::move(model)),
@@ -73,7 +73,8 @@ void Creature::updateModel(const Config& config)
   input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / config.viewDistance;
   input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / config.viewDistance;
 
-  m_model.feedForward(std::move(input));
+  m_model->input(std::move(input));
+  m_output = m_model->feedForward();
 }
 
 // Working alone
@@ -82,8 +83,6 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
   static constexpr double EATING_ENERGY_COST = 5.0;
   static constexpr double MATING_ENERGY_COST = 5.0;
   static constexpr float REACH_MULTIPLIER = 1.5f;
-
-  const auto& output = m_model.output();
 
   // 1: Cooldown
   {
@@ -107,13 +106,13 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
     const float TEMPORARY_HACK = 1000.0f;
 
     // TODO: Rename configuration variable to suit the changes in their meaning
-    auto linearForceFactor = output(OUTPUT_LINEAR_FORCE_FACTOR);
+    auto linearForceFactor = m_output(OUTPUT_LINEAR_FORCE_FACTOR);
     auto linearForceMultiplier = linearForceFactor >= 0.0 ?  config.forwardLinearSpeed : config.backwardLinearSpeed;
     auto linearForce = linearForceFactor * linearForceMultiplier * dt;
     this->applyForwardForce(linearForce * TEMPORARY_HACK);
 
     // TODO: Add config variable for angular force or not?
-    auto angularForceFactor = output(OUTPUT_ANGULAR_FORCE_FACTOR); // Map from (-1, 1) to (-PI, PI)
+    auto angularForceFactor = m_output(OUTPUT_ANGULAR_FORCE_FACTOR); // Map from (-1, 1) to (-PI, PI)
     auto angularForce =  angularForceFactor * M_PI * dt;
     this->applyTorque(angularForce);
     this->takeEnergy(config.movementEnergyDrainMultiplier * linearForce * linearForce * dt);
@@ -133,7 +132,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
 
   // 4: Eating
   {
-    if(output(OUTPUT_EATING_DESIRE)>0.0 && m_eatingCooldown == 0.0)
+    if(m_output(OUTPUT_EATING_DESIRE)>0.0 && m_eatingCooldown == 0.0)
     {
       takeEnergy(EATING_ENERGY_COST);
       m_eatingCooldown = config.eatingCooldown;
@@ -171,7 +170,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
 
   // 5: Mating
   {
-    if(output(OUTPUT_MATING_DESIRE)>0.0 && m_matingCooldown == 0.0)
+    if(m_output(OUTPUT_MATING_DESIRE)>0.0 && m_matingCooldown == 0.0)
     {
       takeEnergy(MATING_ENERGY_COST);
       m_matingCooldown = config.matingCooldown;
@@ -191,7 +190,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
           continue;
 
         // Check if other have the same desire
-        if(other->m_model.output()(OUTPUT_EATING_DESIRE)<0.0)
+        if(other->m_output(OUTPUT_EATING_DESIRE)<0.0)
           continue; // Other do not want to mate
 
         if(other->m_matingCooldown != 0.0)
@@ -205,7 +204,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
         if(!takeEnergy(config.maxEnergy * 0.2) || !other->takeEnergy(config.maxEnergy * 0.2))
           continue;
 
-        auto newModel = kann::Model::cross(m_model, other->m_model, world.prng(), config.mutationRate);
+        auto newModel = kann::Model::cross(*m_model, *other->m_model, world.prng(), config.mutationRate);
         auto newPosition = position();
         newPosition += other->position();
         newPosition *= 0.5;

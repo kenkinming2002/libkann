@@ -2,44 +2,99 @@
 
 namespace kann
 {
-  Layer::Layer(size_t paramsCount)
-    : m_params(Eigen::ArrayXd::Zero(paramsCount)) {}
+  void Layer::input(Eigen::VectorXd input)
+  {
+    m_input = input;
+  }
+
+  void Layer::outputGradient(Eigen::VectorXd outputGradient)
+  {
+    m_outputGradient = outputGradient;
+  }
+
+  const Eigen::VectorXd& Layer::input() const
+  {
+    return m_input;
+  }
+
+  const Eigen::VectorXd& Layer::outputGradient() const
+  {
+    return m_outputGradient;
+  }
+
+  std::unique_ptr<Layer> Layer::cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutationRate)
+  {
+    auto result = lhs.clone();
+
+    assert(lhs.inputSize() == result->inputSize());
+    assert(rhs.inputSize() == result->inputSize());
+
+    const auto range = std::sqrt(2.0 / result->inputSize());
+    std::uniform_int_distribution<int> distSelection(0, 1);
+    std::uniform_real_distribution<double> distMutation(0.0, 1.0);
+    std::uniform_real_distribution<double> distWeight(-range, range);
+
+    const auto lhsParams = lhs.params();
+    const auto rhsParams = rhs.params();
+    auto params = result->params();
+
+    assert(lhsParams.size() == params.size());
+    assert(rhsParams.size() == params.size());
+
+    for(size_t i=0; i<params.size(); ++i)
+    {
+      auto lhsParam = Eigen::Map<const Eigen::ArrayXd>(lhsParams[i].data(), lhsParams[i].size());
+      auto rhsParam = Eigen::Map<const Eigen::ArrayXd>(rhsParams[i].data(), rhsParams[i].size());
+      auto param = Eigen::Map<Eigen::ArrayXd>(params[i].data(), params[i].size());
+
+      std::cout << "LHS size:" << lhsParam.size() << ", RHS size:" << rhsParam.size() << std::endl;
+    }
+
+    for(size_t i=0; i<params.size(); ++i)
+    {
+      auto lhsParam = Eigen::Map<const Eigen::ArrayXd>(lhsParams[i].data(), lhsParams[i].size());
+      auto rhsParam = Eigen::Map<const Eigen::ArrayXd>(rhsParams[i].data(), rhsParams[i].size());
+      auto param = Eigen::Map<Eigen::ArrayXd>(params[i].data(), params[i].size());
+
+      std::cout << "LHS size:" << lhsParam.size() << std::endl;
+      std::cout << "RHS size:" << rhsParam.size() << std::endl;
+
+      assert(lhsParam.size() == rhsParam.size());
+      param = lhsParam.binaryExpr(rhsParam, [&](auto a, auto b){
+        if(distMutation(engine) > mutationRate)
+          return distWeight(engine);
+
+        return distSelection(engine) == 0 ? a : b;
+      });
+    }
+
+    return result;
+  }
 
   void Layer::randomize(std::default_random_engine& engine)
   {
     const double range = std::sqrt(2.0 / this->inputSize());
     std::uniform_real_distribution<double> distWeight(-range, range);
-    for(size_t i=0; i<m_params.size(); ++i)
-      m_params(i) = distWeight(engine);
+    auto params = this->params();
+    for(size_t i=0; i<params.size(); ++i)
+    {
+      auto param = Eigen::Map<Eigen::ArrayXd>(params[i].data(), params[i].size());
+      param = Eigen::ArrayXd::NullaryExpr(param.size(), [&](){return distWeight(engine);});
+    }
   }
 
-  std::unique_ptr<Layer> Layer::cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutationRate)
+  void Layer::train(double learningRate)
   {
-    assert(lhs.inputSize() == rhs.inputSize());
-    assert(lhs.outputSize() == rhs.outputSize());
-    assert(lhs.m_params.size() == rhs.m_params.size());
+    auto params = this->params();
+    auto paramsGradient = this->paramsGradient();
+    assert(params.size() == paramsGradient.size());
+    for(size_t i=0; i<params.size(); ++i)
+    {
+      auto param         = Eigen::Map<Eigen::ArrayXd>(params[i].data(), params[i].size());
+      auto paramGradient = Eigen::Map<Eigen::ArrayXd>(paramsGradient[i].data(), paramsGradient[i].size());
 
-    assert(lhs.inputSize() != 0);
-    assert(lhs.outputSize() != 0);
-
-    auto result = lhs.clone();
-
-    const auto range = std::sqrt(2.0 / lhs.inputSize());
-    std::uniform_int_distribution<int> distSelection(0, 1);
-    std::uniform_real_distribution<double> distMutation(0.0, 1.0);
-    std::uniform_real_distribution<double> distWeight(-range, range);
-
-    for(size_t i=0; i<result->m_params.size(); ++i)
-      if(distMutation(engine) > mutationRate)
-        result->m_params(i) = distWeight(engine);
-      else if(distSelection(engine) == 1)
-        result->m_params(i) =  rhs.m_params(i);
-
-    return result;
-  }
-
-  void Layer::train(double learningRate, const Eigen::ArrayXd& layerGradient)
-  {
-    m_params -= learningRate * layerGradient;
+      param -= learningRate * paramGradient;
+      paramGradient.setZero();
+    }
   }
 }

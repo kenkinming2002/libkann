@@ -25,29 +25,15 @@ namespace kann
     LIBKANN_SYMEXPORT size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT void feedForward(const Eigen::VectorXd& input, Eigen::VectorXd& output) const override;
-    LIBKANN_SYMEXPORT void backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const override;
+    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward() override;
+    LIBKANN_SYMEXPORT Eigen::VectorXd backPropagate() override;
 
-  public:
-    auto weight() const
-    {
-      return Eigen::Map<const Eigen::MatrixXd>(params().data(), m_outputSize, m_inputSize);
-    }
+  protected:
+    LIBKANN_SYMEXPORT std::vector<std::span<double>> params() override;
+    LIBKANN_SYMEXPORT std::vector<std::span<const double>> params() const override;
 
-    auto weightGradient(Eigen::ArrayXd& gradient) const
-    {
-      return Eigen::Map<Eigen::MatrixXd>(gradient.data(), m_outputSize, m_inputSize);
-    }
-
-    auto bias() const
-    {
-      return Eigen::Map<const Eigen::VectorXd>(params().data()+m_outputSize*m_inputSize, m_outputSize);
-    }
-
-    auto biasGradient(Eigen::ArrayXd& gradient) const
-    {
-      return Eigen::Map<Eigen::VectorXd>(gradient.data()+m_outputSize*m_inputSize, m_outputSize);
-    }
+    LIBKANN_SYMEXPORT std::vector<std::span<double>> paramsGradient() override;
+    LIBKANN_SYMEXPORT std::vector<std::span<const double>> paramsGradient() const override;
 
   public:
     template<typename Archive>
@@ -56,10 +42,19 @@ namespace kann
       archive(cereal::base_class<Layer>(this));
       archive(m_inputSize);
       archive(m_outputSize);
+      archive(m_weight, m_weightGradient);
+      archive(m_bias, m_biasGradient);
     }
 
   private:
     size_t m_inputSize, m_outputSize;
+
+  private:
+    Eigen::MatrixXd m_weight;
+    Eigen::MatrixXd m_weightGradient;
+
+    Eigen::VectorXd m_bias;
+    Eigen::VectorXd m_biasGradient;
   };
 
 }

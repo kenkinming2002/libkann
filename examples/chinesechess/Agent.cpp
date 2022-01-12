@@ -7,7 +7,7 @@
 #include <fstream>
 #include <filesystem>
 
-Agent::Agent(kann::Model model) : m_model(std::move(model)) {}
+Agent::Agent(std::shared_ptr<kann::Model> model) : m_model(std::move(model)) {}
 
 void Agent::loadFromFile(std::filesystem::path filePath)
 {
@@ -76,8 +76,9 @@ double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
       input(index+1) = cell.color == color ? 1.0 : cell.color == Board::Cell::Color::NONE ? 0.0 : -1.0;
     }
 
-  m_model.feedForward(std::move(input));
-  return m_model.output()(0);
+  m_model->input(std::move(input));
+  m_output = m_model->feedForward();
+  return m_output(0);
 }
 
 void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
@@ -88,14 +89,16 @@ void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
 
     Eigen::VectorXd expectedOutput(1);
     expectedOutput << (good ? 1.0 : 0.0);
-    m_model.backPropagate(expectedOutput);
+    m_model->outputGradient((m_output-expectedOutput)*2.0);
+    m_model->backPropagate();
   }
   {
     this->evaluateBoard(board.flipped(), otherColor);
 
     Eigen::VectorXd expectedOutput(1);
     expectedOutput << (good ? 1.0 : 0.0);
-    m_model.backPropagate(expectedOutput);
+    m_model->outputGradient((m_output-expectedOutput)*2.0);
+    m_model->backPropagate();
   }
 }
 
@@ -116,11 +119,11 @@ void Agent::learnFrom(Game& game, double learningRate)
     if(!game.undoMove())
       break;
   }
-  m_model.train(learningRate);
+  m_model->train(learningRate);
 }
 
 Agent Agent::cross(const Agent& lhs, const Agent& rhs, std::default_random_engine& engine, double mutationRate)
 {
-  return Agent(kann::Model::cross(lhs.m_model, rhs.m_model, engine, mutationRate));
+  return Agent(kann::Model::cross(*lhs.m_model, *rhs.m_model, engine, mutationRate));
 }
 

@@ -15,7 +15,9 @@ namespace kann
     size_t i;
     size_t size;
 
+    Eigen::VectorXd output;
     Eigen::VectorXd expectedOutput;
+
     double cost;
   };
   typedef std::function<bool(Info)> Callback;
@@ -28,6 +30,10 @@ namespace kann
 
     size_t i;
     size_t size;
+
+    Eigen::VectorXd GANOutput;
+    Eigen::VectorXd generatorOutput;
+    Eigen::VectorXd discriminatorOutput;
   };
   typedef std::function<bool(GANInfo)> GANCallback;
 
