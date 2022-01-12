@@ -49,7 +49,7 @@ namespace kann
     };
   }
 
-  void run(FunctionalModel& model, const DataSet& dataSet, size_t column, Callback callback)
+  void run(Model& model, const DataSet& dataSet, size_t column, Callback callback)
   {
     const auto size = dataSet.size();
 
@@ -72,7 +72,7 @@ namespace kann
     }
   }
 
-  void train(FunctionalModel& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback)
+  void train(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback)
   {
     const auto size = dataSet.size();
 
@@ -103,7 +103,7 @@ namespace kann
     }
   }
 
-  double test(FunctionalModel& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback)
+  double test(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback)
   {
     const auto size = dataSet.size();
 
@@ -135,7 +135,7 @@ namespace kann
     return correctness;
   }
 
-  void trainGAN(FunctionalModel& GANModel, FunctionalModel& generatorModel, FunctionalModel& discriminatorModel,
+  void trainGAN(Model& GANModel, Model& generatorModel, Model& discriminatorModel,
       const DataSet& dataSetLatent, const DataSet& dataSet,
       size_t columnLatent, size_t column,
       float learningRate, GANCallback callback)

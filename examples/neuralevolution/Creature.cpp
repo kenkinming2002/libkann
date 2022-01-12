@@ -9,7 +9,7 @@
 #include <cassert>
 #include <cmath>
 
-std::shared_ptr<kann::FunctionalModel> Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
+std::shared_ptr<kann::Model> Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
 {
   const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
 
@@ -37,7 +37,7 @@ std::shared_ptr<kann::FunctionalModel> Creature::makeNeuralNetork(const ModelCon
 static constexpr double ANGLE = M_PI / 12.0;
 
 Creature::Creature(b2World& world, const Config& config,
-    std::shared_ptr<kann::FunctionalModel> model, b2Vec2 position, double energy,
+    std::shared_ptr<kann::Model> model, b2Vec2 position, double energy,
     double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
     m_model(std::move(model)),

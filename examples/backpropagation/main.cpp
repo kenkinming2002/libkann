@@ -89,7 +89,7 @@ static void attachDeconvolutionActivationLayers(std::vector<std::shared_ptr<kann
   }
 }
 
-static void trainAndTestFeedForwardModel(kann::FunctionalModel& model,
+static void trainAndTestFeedForwardModel(kann::Model& model,
     const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet,
     size_t inputColumn, size_t outputColumn,
     std::filesystem::path outputPath)
@@ -108,7 +108,7 @@ static void trainAndTestFeedForwardModel(kann::FunctionalModel& model,
   std::cout << "correctness:" << correctness << std::endl;
 }
 
-static void trainAndRunAutoEncoder(kann::FunctionalModel& autoEncoderModel, kann::FunctionalModel& decoderModel,
+static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& decoderModel,
     const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet, size_t dataColumn,
     std::filesystem::path reconstructionOutputPath, std::filesystem::path outputPath, size_t featuresCount, size_t generateCount)
 {

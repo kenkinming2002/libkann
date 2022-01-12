@@ -63,7 +63,7 @@ namespace kann
       for(const auto& input : variable->inputs)
       {
         auto input_vertex_descriptor  = vertex_descriptors.at(input.variable);
-        auto connection = Connection{.layer = input.layer};
+        auto connection = Connection{.layerIndex = this->addLayer(input.layer)};
         boost::add_edge(input_vertex_descriptor, output_vertex_descriptor, std::move(connection), m_graph);
       }
 
@@ -117,7 +117,7 @@ namespace kann
 
     auto edgeWriter = [this](std::ostream& os, const auto& edge_descriptor){
       const Connection& connection = m_graph[edge_descriptor];
-      const Layer& layer = *connection.layer;
+      const Layer& layer = this->layer(connection.layerIndex);
       os << "[label=\"";
       os << demangle(typeid(layer).name()) << "\\n";
       os << "input_size=" << layer.inputSize() << "\\n";
@@ -128,35 +128,9 @@ namespace kann
     boost::write_graphviz(os, m_graph, vertexWriter, edgeWriter);
   }
 
-  std::unique_ptr<FunctionalModel> FunctionalModel::cross(const FunctionalModel& lhs, const FunctionalModel& rhs, std::default_random_engine& engine, double mutationRate)
-  {
-    return std::unique_ptr<FunctionalModel>(static_cast<FunctionalModel*>(Layer::cross(lhs, rhs, engine, mutationRate).release()));
-  }
-
-  void FunctionalModel::randomize(std::default_random_engine& engine)
-  {
-    for(auto [it, end] = boost::edges(m_graph); it != end; ++it)
-      m_graph[*it].layer->randomize(engine);
-  }
-
-  void FunctionalModel::train(double learningRate, unsigned tags)
-  {
-    for(auto [it, end] = boost::edges(m_graph); it != end; ++it)
-      if(m_graph[*it].layer->tag() & tags)
-        m_graph[*it].layer->train(learningRate);
-      else
-        m_graph[*it].layer->train(0.0); // Clear the gradient
-  }
-
   std::unique_ptr<Layer> FunctionalModel::clone() const
   {
-    auto result = std::make_unique<FunctionalModel>(*this);
-    for(auto [it, end] = boost::edges(result->m_graph); it !=  end; ++it)
-    {
-      Connection& connection = result->m_graph[*it];
-      connection.layer = connection.layer->clone();
-    }
-    return result;
+    return std::make_unique<FunctionalModel>(*this);
   }
 
   Eigen::VectorXd FunctionalModel::feedForward()
@@ -187,9 +161,10 @@ namespace kann
       {
         const auto& connection = m_graph[*begin];
         auto& outputNode = m_graph[boost::target(*begin, m_graph)];
+        auto& layer = this->layer(connection.layerIndex);
 
-        connection.layer->input(inputNode.data);
-        outputNode.data += connection.layer->feedForward();
+        layer.input(inputNode.data);
+        outputNode.data += layer.feedForward();
       }
     }
 
@@ -217,67 +192,16 @@ namespace kann
       {
         auto& connection = m_graph[*begin];
         auto& inputNode = m_graph[boost::source(*begin, m_graph)];
+        auto& layer = this->layer(connection.layerIndex);
 
-        connection.layer->outputGradient(outputNode.gradient);
-        inputNode.gradient += connection.layer->backPropagate();
+        layer.outputGradient(outputNode.gradient);
+        inputNode.gradient += layer.backPropagate();
       }
     }
     return m_graph[m_input_vertex_descriptor].gradient;
   }
 
-  std::vector<std::span<double>> FunctionalModel::params()
-  {
-    std::vector<std::span<double>> params;
-    for(auto [it, end] = boost::edges(m_graph); it !=  end; ++it)
-    {
-      Connection& connection = m_graph[*it];
-      auto paramsConnection = connection.layer->params();
-      params.insert(params.end(), std::move_iterator(paramsConnection.begin()), std::move_iterator(paramsConnection.end()));
-    }
-    return params;
-  }
-
-  std::vector<std::span<const double>> FunctionalModel::params() const
-  {
-    std::cout << "Begin:" << std::endl;
-    std::vector<std::span<const double>> params;
-    for(auto [it, end] = boost::edges(m_graph); it !=  end; ++it)
-    {
-      const Connection& connection = m_graph[*it];
-      std::cout << "Params:" << typeid(*connection.layer).name() << std::endl;
-      auto paramsConnection = connection.layer->params();
-      params.insert(params.end(), std::move_iterator(paramsConnection.begin()), std::move_iterator(paramsConnection.end()));
-    }
-    std::cout << "End:" << std::endl;
-    return params;
-  }
-
-
-  std::vector<std::span<double>> FunctionalModel::paramsGradient()
-  {
-    std::vector<std::span<double>> paramsGradient;
-    for(auto [it, end] = boost::edges(m_graph); it !=  end; ++it)
-    {
-      Connection& connection = m_graph[*it];
-      auto paramsGradientConnection = connection.layer->paramsGradient();
-      paramsGradient.insert(paramsGradient.end(), std::move_iterator(paramsGradientConnection.begin()), std::move_iterator(paramsGradientConnection.end()));
-    }
-    return paramsGradient;
-  }
-
-  std::vector<std::span<const double>> FunctionalModel::paramsGradient() const
-  {
-    std::vector<std::span<const double>> paramsGradient;
-    for(auto [it, end] = boost::edges(m_graph); it !=  end; ++it)
-    {
-      const Connection& connection = m_graph[*it];
-      auto paramsGradientConnection = connection.layer->paramsGradient();
-      paramsGradient.insert(paramsGradient.end(), std::move_iterator(paramsGradientConnection.begin()), std::move_iterator(paramsGradientConnection.end()));
-    }
-    return paramsGradient;
-  }
-
-  std::shared_ptr<FunctionalModel> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag)
+  std::shared_ptr<Model> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag)
   {
     auto input = Variable::constant(layers.front()->inputSize());
     auto output = input;
@@ -287,7 +211,7 @@ namespace kann
     return std::make_shared<FunctionalModel>(std::move(input), std::move(output));
   }
 
-  std::shared_ptr<FunctionalModel> buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag)
+  std::shared_ptr<Model> buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag)
   {
     const size_t inputSize  = layers.front()->inputSize();
     const size_t outputSize = layers.back()->outputSize();
@@ -313,12 +237,12 @@ namespace kann
     return std::make_shared<FunctionalModel>(std::move(realInput), std::move(realOutput), std::vector<FunctionalModel::FeedBack>{feedBack});
   }
 
-  std::pair<std::shared_ptr<FunctionalModel>, std::shared_ptr<FunctionalModel>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers)
+  std::pair<std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers)
   {
-    auto encoderModel = std::shared_ptr<FunctionalModel>(buildSimpleFeedForwardModel(std::move(encoderLayers)));
+    auto encoderModel = buildSimpleFeedForwardModel(std::move(encoderLayers));
     encoderModel->tag(TAG_ENCODDER);
 
-    auto decoderModel = std::shared_ptr<FunctionalModel>(buildSimpleFeedForwardModel(std::move(decoderLayers)));
+    auto decoderModel = buildSimpleFeedForwardModel(std::move(decoderLayers));
     decoderModel->tag(TAG_DECODDER);
 
     auto input = Variable::constant(encoderModel->inputSize());
@@ -330,12 +254,12 @@ namespace kann
     return {std::move(autoEncoderModel), std::move(decoderModel)};
   }
 
-  std::tuple<std::shared_ptr<FunctionalModel>, std::shared_ptr<FunctionalModel>, std::shared_ptr<FunctionalModel>> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers)
+  std::tuple<std::shared_ptr<Model>, std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers)
   {
-    auto generatorModel = std::shared_ptr<FunctionalModel>(buildSimpleFeedForwardModel(std::move(generatorLayers)));
+    auto generatorModel = buildSimpleFeedForwardModel(std::move(generatorLayers));
     generatorModel->tag(TAG_GAN_GENERATOR);
 
-    auto discriminatorModel = std::shared_ptr<FunctionalModel>(buildSimpleFeedForwardModel(std::move(discriminatorLayers)));
+    auto discriminatorModel = buildSimpleFeedForwardModel(std::move(discriminatorLayers));
     discriminatorModel->tag(TAG_GAN_DISCRIMINATOR);
 
     auto input = Variable::constant(generatorModel->inputSize());

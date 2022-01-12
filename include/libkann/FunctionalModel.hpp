@@ -1,6 +1,6 @@
 #pragma once
 
-#include <libkann/layers/Layer.hpp>
+#include <libkann/Model.hpp>
 #include <libkann/Variable.hpp>
 
 #include <libkann/serialization/Graph.hpp>
@@ -19,7 +19,7 @@
 
 namespace kann
 {
-  class FunctionalModel : public Layer
+  class FunctionalModel : public Model
   {
   public:
     struct FeedBack
@@ -38,14 +38,7 @@ namespace kann
     FunctionalModel(std::shared_ptr<const Variable> input, std::shared_ptr<const Variable> output, std::vector<FeedBack> feedBacks = {});
 
   public:
-    void write_graphviz(std::ostream& os) const;
-
-  public:
-    static std::unique_ptr<FunctionalModel> cross(const FunctionalModel& lhs, const FunctionalModel& rhs, std::default_random_engine& engine, double mutationRate);
-
-  public:
-    void randomize(std::default_random_engine& engine);
-    void train(double learningRate, unsigned tags = TAG_ALL);
+    void write_graphviz(std::ostream& os) const override;
 
   public:
     std::unique_ptr<Layer> clone() const override;
@@ -57,13 +50,6 @@ namespace kann
   public:
     Eigen::VectorXd feedForward() override;
     Eigen::VectorXd backPropagate() override;
-
-  public:
-    std::vector<std::span<double>> params() override;
-    std::vector<std::span<const double>> params() const override;
-
-    std::vector<std::span<double>> paramsGradient() override;
-    std::vector<std::span<const double>> paramsGradient() const override;
 
   private:
     struct Node
@@ -82,12 +68,12 @@ namespace kann
 
     struct Connection
     {
-      std::shared_ptr<Layer> layer;
+      size_t layerIndex;
 
       template<typename Archive>
       void serialize(Archive& archive)
       {
-        archive(layer);
+        archive(layerIndex);
       }
     };
 
@@ -107,7 +93,7 @@ namespace kann
     template<typename Archive>
     void save(Archive& archive) const
     {
-      archive(cereal::base_class<Layer>(this));
+      archive(cereal::base_class<Model>(this));
 
       GraphOutputSerializer graphOutputSerializer(m_graph);
       archive(graphOutputSerializer);
@@ -136,7 +122,7 @@ namespace kann
     template<typename Archive>
     void load(Archive& archive)
     {
-      archive(cereal::base_class<Layer>(this));
+      archive(cereal::base_class<Model>(this));
 
       GraphInputSerializer graphInputSerializer(m_graph);
       archive(graphInputSerializer);
@@ -170,8 +156,8 @@ namespace kann
     std::vector<vertex_descriptor_type> m_ordering;
   };
 
-  std::shared_ptr<FunctionalModel> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag = TAG_DEFAULT);
-  std::shared_ptr<FunctionalModel> buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag = TAG_DEFAULT);
+  std::shared_ptr<Model> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag = TAG_DEFAULT);
+  std::shared_ptr<Model> buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag = TAG_DEFAULT);
 
   /* The returned auto encoder model is used for training purposes
    * whereas random data can be feed into the decoder model to obtain output.
@@ -180,7 +166,7 @@ namespace kann
    * model could be reflected in the decoder model.
    *
    * @return [auto encoder model, decoder model] */
-  std::pair<std::shared_ptr<FunctionalModel>, std::shared_ptr<FunctionalModel>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers);
+  std::pair<std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers);
 
   /* The returned GAN and discriminator model is used for training purpose.
    *
@@ -188,8 +174,11 @@ namespace kann
    * reflected in the generator model.
    *
    * @return [GAN Model, generator model, discriminator model] */
-  std::tuple<std::shared_ptr<FunctionalModel>, std::shared_ptr<FunctionalModel>, std::shared_ptr<FunctionalModel>> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers);
+  std::tuple<std::shared_ptr<Model>, std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers);
 }
+
+CEREAL_REGISTER_TYPE(kann::FunctionalModel);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::Model, kann::FunctionalModel);
 
 namespace cereal
 {

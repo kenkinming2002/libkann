@@ -41,7 +41,7 @@ public:
     size_t memory;
   };
 
-  static std::shared_ptr<kann::FunctionalModel> makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine);
+  static std::shared_ptr<kann::Model> makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine);
 
   struct Config
   {
@@ -78,7 +78,7 @@ public:
 
   /* Create a default creature from config using engine. You should use
    * setters to further configure the creature if so needed. */
-  Creature(b2World& world, const Config& config, std::shared_ptr<kann::FunctionalModel>
+  Creature(b2World& world, const Config& config, std::shared_ptr<kann::Model>
       model, b2Vec2 position, double energy, double health);
 
 public:
@@ -114,7 +114,7 @@ public:
   auto statistics() const { return m_statistics; }
 
 private:
-  std::shared_ptr<kann::FunctionalModel> m_model;
+  std::shared_ptr<kann::Model> m_model;
   Eigen::VectorXd m_output;
 
 private:
