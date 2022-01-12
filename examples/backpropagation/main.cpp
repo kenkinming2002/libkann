@@ -10,7 +10,7 @@
 #include <libkann/datasets/RandomDataSet.hpp>
 #include <libkann/datasets/write.hpp>
 
-#include <libkann/Model.hpp>
+#include <libkann/FunctionalModel.hpp>
 #include <libkann/Algorithm.hpp>
 
 #include <cereal/archives/json.hpp>
@@ -89,7 +89,7 @@ static void attachDeconvolutionActivationLayers(std::vector<std::shared_ptr<kann
   }
 }
 
-static void trainAndTestFeedForwardModel(kann::Model& model,
+static void trainAndTestFeedForwardModel(kann::FunctionalModel& model,
     const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet,
     size_t inputColumn, size_t outputColumn,
     std::filesystem::path outputPath)
@@ -108,7 +108,7 @@ static void trainAndTestFeedForwardModel(kann::Model& model,
   std::cout << "correctness:" << correctness << std::endl;
 }
 
-static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& decoderModel,
+static void trainAndRunAutoEncoder(kann::FunctionalModel& autoEncoderModel, kann::FunctionalModel& decoderModel,
     const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet, size_t dataColumn,
     std::filesystem::path reconstructionOutputPath, std::filesystem::path outputPath, size_t featuresCount, size_t generateCount)
 {
@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
     }
 
     {
-      kann::Model model;
+      kann::FunctionalModel model;
       {
         std::ifstream file("output/model1.json");
         cereal::JSONInputArchive archive(file);

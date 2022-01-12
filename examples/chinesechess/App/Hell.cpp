@@ -1,7 +1,7 @@
 #include "Hell.hpp"
 
 #include "../utilities/lexical_cast.hpp"
-#include "libkann/Model.hpp"
+#include <libkann/FunctionalModel.hpp>
 
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>

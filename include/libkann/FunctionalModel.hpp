@@ -19,7 +19,7 @@
 
 namespace kann
 {
-  class Model : public Layer
+  class FunctionalModel : public Layer
   {
   public:
     struct FeedBack
@@ -34,14 +34,14 @@ namespace kann
     };
 
   public:
-    Model() = default;
-    Model(std::shared_ptr<const Variable> input, std::shared_ptr<const Variable> output, std::vector<FeedBack> feedBacks = {});
+    FunctionalModel() = default;
+    FunctionalModel(std::shared_ptr<const Variable> input, std::shared_ptr<const Variable> output, std::vector<FeedBack> feedBacks = {});
 
   public:
     void write_graphviz(std::ostream& os) const;
 
   public:
-    static std::unique_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
+    static std::unique_ptr<FunctionalModel> cross(const FunctionalModel& lhs, const FunctionalModel& rhs, std::default_random_engine& engine, double mutationRate);
 
   public:
     void randomize(std::default_random_engine& engine);
@@ -170,8 +170,8 @@ namespace kann
     std::vector<vertex_descriptor_type> m_ordering;
   };
 
-  std::shared_ptr<Model> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag = TAG_DEFAULT);
-  std::shared_ptr<Model> buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag = TAG_DEFAULT);
+  std::shared_ptr<FunctionalModel> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag = TAG_DEFAULT);
+  std::shared_ptr<FunctionalModel> buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag = TAG_DEFAULT);
 
   /* The returned auto encoder model is used for training purposes
    * whereas random data can be feed into the decoder model to obtain output.
@@ -180,7 +180,7 @@ namespace kann
    * model could be reflected in the decoder model.
    *
    * @return [auto encoder model, decoder model] */
-  std::pair<std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers);
+  std::pair<std::shared_ptr<FunctionalModel>, std::shared_ptr<FunctionalModel>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers);
 
   /* The returned GAN and discriminator model is used for training purpose.
    *
@@ -188,11 +188,11 @@ namespace kann
    * reflected in the generator model.
    *
    * @return [GAN Model, generator model, discriminator model] */
-  std::tuple<std::shared_ptr<Model>, std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers);
+  std::tuple<std::shared_ptr<FunctionalModel>, std::shared_ptr<FunctionalModel>, std::shared_ptr<FunctionalModel>> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers);
 }
 
 namespace cereal
 {
   template<typename Archive>
-  struct specialize<Archive, kann::Model, cereal::specialization::member_load_save> {};
+  struct specialize<Archive, kann::FunctionalModel, cereal::specialization::member_load_save> {};
 }

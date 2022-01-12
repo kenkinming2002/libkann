@@ -3,7 +3,7 @@
 #include "Board.hpp"
 #include "Game.hpp"
 
-#include <libkann/Model.hpp>
+#include <libkann/FunctionalModel.hpp>
 
 #include <optional>
 #include <filesystem>
@@ -16,7 +16,7 @@ public:
 
 public:
   Agent() = default;
-  Agent(std::shared_ptr<kann::Model> model);
+  Agent(std::shared_ptr<kann::FunctionalModel> model);
 
 public:
   void loadFromFile(std::filesystem::path filePath);
@@ -52,7 +52,7 @@ public:
   }
 
 private:
-  std::shared_ptr<kann::Model> m_model;
+  std::shared_ptr<kann::FunctionalModel> m_model;
   Eigen::VectorXd m_output;
   double m_score = 0.0;
 

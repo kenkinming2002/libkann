@@ -7,7 +7,7 @@
 #include <fstream>
 #include <filesystem>
 
-Agent::Agent(std::shared_ptr<kann::Model> model) : m_model(std::move(model)) {}
+Agent::Agent(std::shared_ptr<kann::FunctionalModel> model) : m_model(std::move(model)) {}
 
 void Agent::loadFromFile(std::filesystem::path filePath)
 {
@@ -124,6 +124,6 @@ void Agent::learnFrom(Game& game, double learningRate)
 
 Agent Agent::cross(const Agent& lhs, const Agent& rhs, std::default_random_engine& engine, double mutationRate)
 {
-  return Agent(kann::Model::cross(*lhs.m_model, *rhs.m_model, engine, mutationRate));
+  return Agent(kann::FunctionalModel::cross(*lhs.m_model, *rhs.m_model, engine, mutationRate));
 }
 

@@ -9,7 +9,7 @@
 #include <cassert>
 #include <cmath>
 
-std::shared_ptr<kann::Model> Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
+std::shared_ptr<kann::FunctionalModel> Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
 {
   const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
 
@@ -37,7 +37,7 @@ std::shared_ptr<kann::Model> Creature::makeNeuralNetork(const ModelConfig& confi
 static constexpr double ANGLE = M_PI / 12.0;
 
 Creature::Creature(b2World& world, const Config& config,
-    std::shared_ptr<kann::Model> model, b2Vec2 position, double energy,
+    std::shared_ptr<kann::FunctionalModel> model, b2Vec2 position, double energy,
     double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
     m_model(std::move(model)),
@@ -204,7 +204,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
         if(!takeEnergy(config.maxEnergy * 0.2) || !other->takeEnergy(config.maxEnergy * 0.2))
           continue;
 
-        auto newModel = kann::Model::cross(*m_model, *other->m_model, world.prng(), config.mutationRate);
+        auto newModel = kann::FunctionalModel::cross(*m_model, *other->m_model, world.prng(), config.mutationRate);
         auto newPosition = position();
         newPosition += other->position();
         newPosition *= 0.5;
