@@ -11,7 +11,7 @@
 #include <libkann/datasets/MNISTDataSet.hpp>
 #include <libkann/datasets/write.hpp>
 
-#include <libkann/FunctionalModel.hpp>
+#include <libkann/Build.hpp>
 #include <libkann/Algorithm.hpp>
 
 #include <libkann/utilities/random.hpp>

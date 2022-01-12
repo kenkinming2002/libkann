@@ -6,12 +6,13 @@
 #include <libkann/layers/ConvolutionalLayer.hpp>
 #include <libkann/layers/DeconvolutionalLayer.hpp>
 
+#include <libkann/Build.hpp>
+#include <libkann/Model.hpp>
+#include <libkann/Algorithm.hpp>
+
 #include <libkann/datasets/MNISTDataSet.hpp>
 #include <libkann/datasets/RandomDataSet.hpp>
 #include <libkann/datasets/write.hpp>
-
-#include <libkann/FunctionalModel.hpp>
-#include <libkann/Algorithm.hpp>
 
 #include <cereal/archives/json.hpp>
 #include <cereal/archives/binary.hpp>
@@ -191,7 +192,7 @@ int main(int argc, char* argv[])
     }
 
     {
-      kann::FunctionalModel model;
+      std::shared_ptr<kann::Model> model;
       {
         std::ifstream file("output/model1.json");
         cereal::JSONInputArchive archive(file);

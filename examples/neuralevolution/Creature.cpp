@@ -5,6 +5,7 @@
 
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
+#include <libkann/Build.hpp>
 
 #include <cassert>
 #include <cmath>
