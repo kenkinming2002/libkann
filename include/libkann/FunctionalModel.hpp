@@ -133,8 +133,8 @@ namespace kann
       boost::bidirectionalS,
       VertexProperty, EdgeProperty
     > graph_type;
-    typedef typename boost::graph_traits<graph_type>::vertex_descriptor vertex_type;
-    typedef typename boost::graph_traits<graph_type>::edge_descriptor edge_type;
+    typedef boost::graph_traits<graph_type>::vertex_descriptor vertex_type;
+    typedef boost::graph_traits<graph_type>::edge_descriptor edge_type;
 
   private:
     graph_type m_graph;
