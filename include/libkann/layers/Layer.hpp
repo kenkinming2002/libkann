@@ -90,6 +90,7 @@ namespace kann
   private:
     unsigned m_tag = TAG_DEFAULT;
 
+    // This two variables are not thread safe
     Eigen::VectorXd m_input;
     Eigen::VectorXd m_outputGradient;
   };

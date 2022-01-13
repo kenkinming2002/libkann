@@ -44,17 +44,46 @@ namespace kann
     std::unique_ptr<Layer> clone() const override;
 
   public:
-    size_t inputSize()  const override { return m_graph[m_input_vertex_descriptor].size; }
-    size_t outputSize() const override { return m_graph[m_output_vertex_descriptor].size; }
+    size_t inputSize()  const override { return node(m_inputNodeIndex).size; }
+    size_t outputSize() const override { return node(m_inputNodeIndex).size; }
 
   public:
     Eigen::VectorXd feedForward() override;
     Eigen::VectorXd backPropagate() override;
 
   private:
+    void build();
+
+  public:
+    template<typename Archive>
+    void save(Archive& archive) const
+    {
+      archive(cereal::base_class<Model>(this));
+
+      archive(m_nodes);
+      archive(m_inputNodeIndex, m_outputNodeIndex);
+      archive(m_feedBacksNodeIndices);
+
+      archive(GraphOutputSerializer(m_graph));
+    }
+
+    template<typename Archive>
+    void load(Archive& archive)
+    {
+      archive(cereal::base_class<Model>(this));
+
+      archive(m_nodes);
+      archive(m_inputNodeIndex, m_outputNodeIndex);
+      archive(m_feedBacksNodeIndices);
+
+      archive(GraphInputSerializer(m_graph));
+      build();
+    }
+
+  // Node
+  private:
     struct Node
     {
-      // TODO: Consider using a shared_ptr
       size_t size;
       Eigen::VectorXd data;
       Eigen::VectorXd gradient;
@@ -66,10 +95,32 @@ namespace kann
       }
     };
 
-    struct Connection
+  private:
+    Node& node(size_t index);
+    const Node& node(size_t index) const;
+
+  private:
+    std::vector<Node> m_nodes;
+
+  private:
+    size_t m_inputNodeIndex, m_outputNodeIndex;
+    std::vector<std::pair<size_t, size_t>> m_feedBacksNodeIndices;
+
+  // Graph
+  private:
+    struct VertexProperty
+    {
+      size_t nodeIndex;
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(nodeIndex);
+      }
+    };
+
+    struct EdgeProperty
     {
       size_t layerIndex;
-
       template<typename Archive>
       void serialize(Archive& archive)
       {
@@ -80,80 +131,14 @@ namespace kann
     typedef boost::adjacency_list<
       boost::vecS, boost::vecS,
       boost::bidirectionalS,
-      Node, Connection
+      VertexProperty, EdgeProperty
     > graph_type;
-    typedef typename boost::graph_traits<graph_type>::vertex_descriptor vertex_descriptor_type;
-
-    struct FeedBackVertexDescriptors
-    {
-      vertex_descriptor_type input_vertex_descriptor, output_vertex_descriptor;
-    };
-
-  public:
-    template<typename Archive>
-    void save(Archive& archive) const
-    {
-      archive(cereal::base_class<Model>(this));
-
-      GraphOutputSerializer graphOutputSerializer(m_graph);
-      archive(graphOutputSerializer);
-
-      size_t input, output;
-      input  = graphOutputSerializer.map(m_input_vertex_descriptor);
-      output = graphOutputSerializer.map(m_output_vertex_descriptor);
-      archive(input, output);
-
-      std::vector<std::pair<size_t, size_t>> m_feedBacks_indices;
-      std::transform(m_feedBacks_vertex_descriptors.begin(), m_feedBacks_vertex_descriptors.end(), std::back_inserter(m_feedBacks_indices), [&graphOutputSerializer](const auto& feedBack_vertex_descriptor){
-        return std::make_pair(
-          graphOutputSerializer.map(feedBack_vertex_descriptor.input_vertex_descriptor),
-          graphOutputSerializer.map(feedBack_vertex_descriptor.output_vertex_descriptor)
-        );
-      });
-      archive(m_feedBacks_indices);
-
-      std::vector<size_t> m_ordering_indices;
-      std::transform(m_ordering.begin(), m_ordering.end(), std::back_inserter(m_ordering_indices), [&graphOutputSerializer](vertex_descriptor_type vertex_descriptor){
-        return graphOutputSerializer.map(vertex_descriptor);
-      });
-      archive(m_ordering_indices);
-    }
-
-    template<typename Archive>
-    void load(Archive& archive)
-    {
-      archive(cereal::base_class<Model>(this));
-
-      GraphInputSerializer graphInputSerializer(m_graph);
-      archive(graphInputSerializer);
-
-      size_t input, output;
-      archive(input, output);
-      m_input_vertex_descriptor  = graphInputSerializer.map(input);
-      m_output_vertex_descriptor = graphInputSerializer.map(output);
-
-      std::vector<std::pair<size_t, size_t>> m_feedBacks_indices;
-      archive(m_feedBacks_indices);
-      std::transform(m_feedBacks_indices.begin(), m_feedBacks_indices.end(), std::back_inserter(m_feedBacks_vertex_descriptors), [&graphInputSerializer](const auto& feedBack_indices){
-        return FeedBackVertexDescriptors{
-          .input_vertex_descriptor  = graphInputSerializer.map(feedBack_indices.first),
-          .output_vertex_descriptor = graphInputSerializer.map(feedBack_indices.second)
-        };
-      });
-
-      std::vector<size_t> m_ordering_indices;
-      archive(m_ordering_indices);
-      std::transform(m_ordering_indices.begin(), m_ordering_indices.end(), std::back_inserter(m_ordering), [&graphInputSerializer](size_t index){
-        return graphInputSerializer.map(index);
-      });
-    }
+    typedef typename boost::graph_traits<graph_type>::vertex_descriptor vertex_type;
+    typedef typename boost::graph_traits<graph_type>::edge_descriptor edge_type;
 
   private:
     graph_type m_graph;
-
-    vertex_descriptor_type m_input_vertex_descriptor, m_output_vertex_descriptor;
-    std::vector<FeedBackVertexDescriptors> m_feedBacks_vertex_descriptors;
-    std::vector<vertex_descriptor_type> m_ordering;
+    std::vector<vertex_type> m_ordering;
   };
 }
 
