@@ -83,7 +83,7 @@ namespace kann
     }
   }
 
-  void Layer::train(double learningRate)
+  void Layer::train(double learningRate, unsigned /*tags*/)
   {
     auto params = this->params();
     auto paramsGradient = this->paramsGradient();

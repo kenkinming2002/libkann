@@ -19,8 +19,8 @@ namespace kann
     virtual void write_graphviz(std::ostream& os) const = 0;
 
   public:
-    void randomize(std::default_random_engine& engine);
-    void train(double learningRate, unsigned tags = TAG_ALL);
+    void randomize(std::default_random_engine& engine) override;
+    void train(double learningRate, unsigned tags = TAG_ALL) override;
 
   public:
     std::vector<std::span<double>> params() override final;

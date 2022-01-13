@@ -24,7 +24,7 @@ namespace kann
   {
     for(auto& layer : m_layers)
       if(layer->tag() & tags)
-        layer->train(learningRate);
+        layer->train(learningRate); // Tags only take effect in the first layer
       else
         layer->train(0.0); // Clear the gradient
   }

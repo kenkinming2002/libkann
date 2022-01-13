@@ -31,8 +31,8 @@ namespace kann
     static std::unique_ptr<Layer> cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutationRate);
 
   public:
-    void randomize(std::default_random_engine& engine);
-    void train(double learningRate);
+    virtual void randomize(std::default_random_engine& engine);
+    virtual void train(double learningRate, unsigned tags = TAG_ALL);
 
   public:
     unsigned tag() const { return m_tag; }
