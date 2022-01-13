@@ -83,6 +83,7 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
+      archive(m_tag);
       archive(m_input);
       archive(m_outputGradient);
     }
