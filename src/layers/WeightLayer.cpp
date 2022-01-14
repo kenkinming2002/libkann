@@ -5,7 +5,14 @@
 namespace kann
 {
   WeightLayer::WeightLayer(size_t inputSize, size_t outputSize)
-    : Layer(inputSize * outputSize + outputSize)/*weight+bias*/, m_inputSize(inputSize), m_outputSize(outputSize) {}
+    : m_inputSize(inputSize), m_outputSize(outputSize)
+  {
+    m_weight         = Eigen::MatrixXd::Zero(m_outputSize, m_inputSize);
+    m_weightGradient = Eigen::MatrixXd::Zero(m_outputSize, m_inputSize);
+
+    m_bias         = Eigen::VectorXd::Zero(m_outputSize);
+    m_biasGradient = Eigen::VectorXd::Zero(m_outputSize);
+  }
 
   std::unique_ptr<Layer> WeightLayer::clone() const
   {
@@ -22,19 +29,48 @@ namespace kann
     return m_outputSize;
   }
 
-  void WeightLayer::feedForward(const Eigen::VectorXd& input, Eigen::VectorXd& output) const
+  Eigen::VectorXd WeightLayer::feedForward()
   {
-    output = weight() * input + bias();
+    return m_weight * input() + m_bias;
   }
 
-  void WeightLayer::backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const
+  Eigen::VectorXd WeightLayer::backPropagate()
   {
-    layerGradient.resize(params().size());
+    m_weightGradient += outputGradient() * input().transpose();
+    m_biasGradient += outputGradient();
 
-    inputGradient = outputGradient * weight();
-
-    weightGradient(layerGradient) = (input * outputGradient).transpose();
-    biasGradient(layerGradient) = outputGradient.transpose();
+    return m_weight.transpose() * outputGradient();
   }
 
+  std::vector<std::span<double>> WeightLayer::params()
+  {
+    return {
+      std::span<double>(m_weight.data(), m_weight.size()),
+      std::span<double>(m_bias.data()  , m_bias.size())
+    };
+  }
+
+  std::vector<std::span<const double>> WeightLayer::params() const
+  {
+    return {
+      std::span<const double>(m_weight.data(), m_weight.size()),
+      std::span<const double>(m_bias.data()  , m_bias.size())
+    };
+  }
+
+  std::vector<std::span<double>> WeightLayer::paramsGradient()
+  {
+    return {
+      std::span<double>(m_weightGradient.data(), m_weightGradient.size()),
+      std::span<double>(m_biasGradient.data()  , m_biasGradient.size())
+    };
+  }
+
+  std::vector<std::span<const double>> WeightLayer::paramsGradient() const
+  {
+    return {
+      std::span<const double>(m_weightGradient.data(), m_weightGradient.size()),
+      std::span<const double>(m_biasGradient.data()  , m_biasGradient.size())
+    };
+  }
 }

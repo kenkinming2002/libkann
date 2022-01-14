@@ -42,8 +42,8 @@ namespace kann
   {
     return [=](GANInfo info){
       showProgressBar(name, info.i, info.size, " ",
-        "GAN Output(Fake image):",           info.GANModel.output()(0), ", ",
-        "Discriminator Output(Real image):", info.discriminatorModel.output()(0)
+        "GAN Output(Fake image):",           info.GANOutput(0), ", ",
+        "Discriminator Output(Real image):", info.discriminatorOutput(0)
       );
       return true;
     };
@@ -57,12 +57,15 @@ namespace kann
     for(size_t i=0; i<size; ++i)
     {
       dataSet.get(column,  i, input);
-      model.feedForward(input);
+
+      model.input(input);
+      Eigen::VectorXd output = model.feedForward();
 
       const bool result = callback(Info{
         .model = model,
         .i = i,
         .size = size,
+        .output = output
       });
       if(!result)
         break;
@@ -78,8 +81,14 @@ namespace kann
     {
       dataSet.get(inputColumn,  i, input);
       dataSet.get(outputColumn, i, expectedOutput);
-      model.feedForward(input);
-      model.backPropagate(expectedOutput);
+
+      model.input(input);
+      Eigen::VectorXd output = model.feedForward();
+      Eigen::VectorXd outputGradient = (output-expectedOutput) * 2.0;
+
+      model.outputGradient(outputGradient);
+      Eigen::VectorXd inputGradient = model.backPropagate();
+
       model.train(learningRate);
 
       const bool result = callback(Info{
@@ -87,7 +96,7 @@ namespace kann
         .i = i,
         .size = size,
         .expectedOutput = expectedOutput,
-        .cost = model.cost(expectedOutput)
+        .cost = outputGradient.squaredNorm()
       });
       if(!result)
         break;
@@ -105,16 +114,20 @@ namespace kann
       dataSet.get(inputColumn,  i, input);
       dataSet.get(outputColumn, i, expectedOutput);
 
-      model.feedForward(input);
-      correctness += dataSet.correctness(outputColumn, i, model.output());
+      model.input(input);
+      Eigen::VectorXd output = model.feedForward();
+      Eigen::VectorXd outputGradient = (output-expectedOutput) * 2.0;
+
+      correctness += dataSet.correctness(outputColumn, i, output);
 
       const bool result = callback(Info{
         .model = model,
         .i = i,
         .size = size,
         .expectedOutput = expectedOutput,
-        .cost = model.cost(expectedOutput)
+        .cost = outputGradient.squaredNorm()
       });
+
       if(!result)
         break;
     }
@@ -138,28 +151,42 @@ namespace kann
     {
       // Train on latent data set
       dataSetLatent.get(columnLatent, i, input);
-      GANModel.feedForward(input);
+      GANModel.input(input);
+      Eigen::VectorXd GANOutput = GANModel.feedForward();
+      {
+        expectedOutput(0) = 1.0;
+        Eigen::VectorXd outputGradient = (GANOutput-expectedOutput) * 2.0;
+        GANModel.outputGradient(outputGradient);
+        GANModel.backPropagate();
+        GANModel.train(learningRate * 0.5, TAG_GAN_GENERATOR);
+      }
 
-      expectedOutput(0) = 1.0;
-      GANModel.backPropagate(expectedOutput);
-      GANModel.train(learningRate * 0.5, TAG_GAN_GENERATOR);
-
-      expectedOutput(0) = 0.0;
-      GANModel.backPropagate(expectedOutput);
-      GANModel.train(learningRate, TAG_GAN_DISCRIMINATOR);
+      {
+        expectedOutput(0) = 0.0;
+        Eigen::VectorXd outputGradient = (GANOutput-expectedOutput) * 2.0;
+        GANModel.outputGradient(outputGradient);
+        GANModel.backPropagate();
+        GANModel.train(learningRate * 0.5, TAG_GAN_DISCRIMINATOR);
+      }
 
       /* Sample the generator
        * TODO: Optimize we are redoing the calculation done
        *       when we call GANModel.feedForward(input) */
-      generatorModel.feedForward(input);
+      generatorModel.input(input);
+      Eigen::VectorXd generatorOutput = generatorModel.feedForward();
+
 
       // Train on real data set
       dataSet.get(column, i, input);
-      discriminatorModel.feedForward(input);
-
-      expectedOutput(0) = 1.0;
-      discriminatorModel.backPropagate(expectedOutput);
-      discriminatorModel.train(learningRate * 0.5);
+      discriminatorModel.input(input);
+      Eigen::VectorXd discriminatorOutput = discriminatorModel.feedForward();
+      {
+        expectedOutput(0) = 1.0;
+        Eigen::VectorXd outputGradient = (discriminatorOutput-expectedOutput) * 2.0;
+        discriminatorModel.outputGradient(outputGradient);
+        discriminatorModel.backPropagate();
+        discriminatorModel.train(learningRate * 0.5);
+      }
 
       const bool result = callback(GANInfo{
         .GANModel = GANModel,
@@ -167,6 +194,9 @@ namespace kann
         .discriminatorModel = discriminatorModel,
         .i = i,
         .size = size,
+        .GANOutput = GANOutput,
+        .generatorOutput = generatorOutput,
+        .discriminatorOutput = discriminatorOutput
       });
       if(!result)
         break;

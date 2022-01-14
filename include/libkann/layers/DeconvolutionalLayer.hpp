@@ -28,40 +28,36 @@ namespace kann
     LIBKANN_SYMEXPORT size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT void feedForward(const Eigen::VectorXd& input, Eigen::VectorXd& output) const override;
-    LIBKANN_SYMEXPORT void backPropagate(const Eigen::VectorXd& input, const Eigen::RowVectorXd& outputGradient, Eigen::RowVectorXd& inputGradient, Eigen::ArrayXd& layerGradient) const override;
+    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward() override;
+    LIBKANN_SYMEXPORT Eigen::VectorXd backPropagate() override;
 
-  private:
-    auto kernel(size_t inputChannelIndex, size_t outputChannelIndex) const
-    {
-      const size_t index = outputChannelIndex * m_inputChannelCount + inputChannelIndex;
-      return Eigen::Map<const Eigen::MatrixXd>(params().data() + index * m_kernelSize * m_kernelSize, m_kernelSize, m_kernelSize);
-    }
+  protected:
+    LIBKANN_SYMEXPORT std::vector<std::span<double>> params() override;
+    LIBKANN_SYMEXPORT std::vector<std::span<const double>> params() const override;
 
-    auto kernelGradient(Eigen::ArrayXd& gradient, size_t inputChannelIndex, size_t outputChannelIndex) const
-    {
-      assert(gradient.size() == params().size());
-      const size_t index = outputChannelIndex * m_inputChannelCount + inputChannelIndex;
-      return Eigen::Map<Eigen::MatrixXd>(gradient.data() + index * m_kernelSize * m_kernelSize, m_kernelSize, m_kernelSize);
-    }
-
+    LIBKANN_SYMEXPORT std::vector<std::span<double>> paramsGradient() override;
+    LIBKANN_SYMEXPORT std::vector<std::span<const double>> paramsGradient() const override;
   public:
     template<typename Archive>
     void serialize(Archive& archive)
     {
       archive(cereal::base_class<Layer>(this));
 
-      archive(m_inputWidth);
-      archive(m_inputHeight);
-      archive(m_inputChannelCount);
-      archive(m_outputChannelCount);
+      archive(m_inputWidth, m_inputHeight);
+      archive(m_kernelSize);
+      archive(m_inputChannelCount, m_outputChannelCount);
+
+      archive(m_kernels);
+      archive(m_kernelsGradient);
     }
 
   private:
     size_t m_inputWidth,  m_inputHeight;
     size_t m_kernelSize;
-    size_t m_inputChannelCount;
-    size_t m_outputChannelCount;
+    size_t m_inputChannelCount, m_outputChannelCount;
+
+    std::vector<Eigen::MatrixXd> m_kernels;
+    std::vector<Eigen::MatrixXd> m_kernelsGradient;
   };
 }
 

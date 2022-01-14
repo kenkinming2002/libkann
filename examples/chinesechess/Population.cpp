@@ -4,6 +4,7 @@
 
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
+#include <libkann/Build.hpp>
 
 #include <cereal/archives/binary.hpp>
 #include <cereal/details/helpers.hpp>

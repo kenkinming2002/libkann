@@ -6,12 +6,13 @@
 #include <libkann/layers/ConvolutionalLayer.hpp>
 #include <libkann/layers/DeconvolutionalLayer.hpp>
 
+#include <libkann/Build.hpp>
+#include <libkann/Model.hpp>
+#include <libkann/Algorithm.hpp>
+
 #include <libkann/datasets/MNISTDataSet.hpp>
 #include <libkann/datasets/RandomDataSet.hpp>
 #include <libkann/datasets/write.hpp>
-
-#include <libkann/Model.hpp>
-#include <libkann/Algorithm.hpp>
 
 #include <cereal/archives/json.hpp>
 #include <cereal/archives/binary.hpp>
@@ -123,7 +124,7 @@ static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& d
 
   kann::run(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, [&reconstructionOutputPath](kann::Info info){
     std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(info.i)+std::string(".bmp"));
-    auto image = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    auto image = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
     image.saveToFile(filepath);
     return true;
   });
@@ -138,7 +139,7 @@ static void trainAndRunAutoEncoder(kann::Model& autoEncoderModel, kann::Model& d
   kann::RandomDataSet randomDataSet(featuresCount, generateCount);
   kann::run(decoderModel, randomDataSet, kann::RandomDataSet::COLUMN_DATA, [&outputPath](kann::Info info){
     std::filesystem::path filepath = outputPath / (std::string("result")+std::to_string(info.i)+std::string(".bmp"));
-    auto image = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    auto image = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
     image.saveToFile(filepath);
     return true;
   });
@@ -191,7 +192,7 @@ int main(int argc, char* argv[])
     }
 
     {
-      kann::Model model;
+      std::shared_ptr<kann::Model> model;
       {
         std::ifstream file("output/model1.json");
         cereal::JSONInputArchive archive(file);
@@ -217,7 +218,7 @@ int main(int argc, char* argv[])
       layer->randomize(engine);
 
     auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
-    trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/normal.dot");
+    trainAndTestFeedForwardModel(*model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/normal.dot");
   }
   else if(subcommand == "convolution")
   {
@@ -229,7 +230,7 @@ int main(int argc, char* argv[])
       layer->randomize(engine);
 
     auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
-    trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/convolution.dot");
+    trainAndTestFeedForwardModel(*model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/convolution.dot");
   }
   else if(subcommand == "recurrent")
   {
@@ -243,7 +244,7 @@ int main(int argc, char* argv[])
       layer->randomize(engine);
 
     auto model = kann::buildSimpleRecurrentModel(std::move(layers), MEMORY);
-    trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/recurrent.dot");
+    trainAndTestFeedForwardModel(*model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/recurrent.dot");
   }
   else if(subcommand == "autoencoder")
   {
@@ -260,7 +261,7 @@ int main(int argc, char* argv[])
       layer->randomize(engine);
 
     auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
-    trainAndRunAutoEncoder(autoEncoderModel, decoderModel, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE,
+    trainAndRunAutoEncoder(*autoEncoderModel, *decoderModel, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE,
       "output/autoencoder-reconstruction", "output/autoencoder",
       FEATURES_COUNT, 500
     );
@@ -287,7 +288,7 @@ int main(int argc, char* argv[])
       layer->randomize(engine);
 
     auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
-    trainAndRunAutoEncoder(autoEncoderModel, decoderModel, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE,
+    trainAndRunAutoEncoder(*autoEncoderModel, *decoderModel, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE,
       "output/autoencoder-convolutional-reconstruction", "output/autoencoder-convolutional",
       FEATURES_COUNT, 500
     );
@@ -310,17 +311,17 @@ int main(int argc, char* argv[])
     auto [GANModel, generatorModel, discriminatorModel] = kann::buildSimpleGANModel(std::move(generatorLayers), std::move(discriminatorLayers));
     {
       std::ofstream file("output/gan.dot");
-      GANModel.write_graphviz(file);
+      GANModel->write_graphviz(file);
     }
 
     {
       std::ofstream file("output/generator.dot");
-      GANModel.write_graphviz(file);
+      GANModel->write_graphviz(file);
     }
 
     {
       std::ofstream file("output/discriminator.dot");
-      GANModel.write_graphviz(file);
+      GANModel->write_graphviz(file);
     }
 
     std::filesystem::path outputDirectory("output/gan");
@@ -332,14 +333,14 @@ int main(int argc, char* argv[])
       auto callback = [&outputDirectory, &defaultGANCallback](kann::GANInfo info){
         std::ostringstream fileName;
         fileName << std::setfill('0') << std::setw(std::ceil(std::log10(info.size))) << info.i << ".png";
-        auto image = kann::toImage(info.generatorModel.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+        auto image = kann::toImage(info.generatorOutput, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
         image.saveToFile(outputDirectory / "Training" / fileName.str());
 
         return defaultGANCallback(info);
       };
 
       kann::RandomDataSet latentDataSet(FEATURES_COUNT, trainingDataSet.size());
-      kann::trainGAN(GANModel, generatorModel, discriminatorModel,
+      kann::trainGAN(*GANModel, *generatorModel, *discriminatorModel,
           latentDataSet, trainingDataSet,
           kann::RandomDataSet::COLUMN_DATA, kann::MNISTDataSet::COLUMN_IMAGE,
           LEARNING_RATE, callback);
@@ -350,14 +351,14 @@ int main(int argc, char* argv[])
       auto callback = [&outputDirectory, &defaultCallback](kann::Info info){
         std::ostringstream fileName;
         fileName << std::setfill('0') << std::setw(std::ceil(std::log10(info.size))) << info.i << ".png";
-        auto image = kann::toImage(info.model.output(), kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+        auto image = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
         image.saveToFile(outputDirectory / "Output" / fileName.str());
 
         return defaultCallback(info);
       };
 
       kann::RandomDataSet randomDataSet(FEATURES_COUNT, 1000);
-      kann::run(generatorModel, randomDataSet, kann::RandomDataSet::COLUMN_DATA, callback);
+      kann::run(*generatorModel, randomDataSet, kann::RandomDataSet::COLUMN_DATA, callback);
     }
   }
   else
