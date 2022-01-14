@@ -15,7 +15,10 @@ libkann_sources = [
   'FunctionalModel.cpp',
   'OldVariable.cpp',
   'Algorithm.cpp',
-  'ActivationFunction.cpp'
+  'ActivationFunction.cpp',
+  'Executor.cpp',
+  'operations/IdentityOperation.cpp',
+  'operations/ReduceOperation.cpp',
 ]
 
 eigen_dep = dependency('eigen3')
