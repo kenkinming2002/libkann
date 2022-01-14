@@ -8,7 +8,7 @@ namespace kann
 {
   std::shared_ptr<Model> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag)
   {
-    auto input = Variable::constant(layers.front()->inputSize());
+    auto input = OldVariable::constant(layers.front()->inputSize());
     auto output = input;
     for(auto& layer : layers)
       output = output | layer;
@@ -21,8 +21,8 @@ namespace kann
     const size_t inputSize  = layers.front()->inputSize();
     const size_t outputSize = layers.back()->outputSize();
 
-    auto realInput = Variable::constant(inputSize-memory);
-    auto memoryInput = Variable::constant(memory);
+    auto realInput = OldVariable::constant(inputSize-memory);
+    auto memoryInput = OldVariable::constant(memory);
 
     auto input1 = realInput   | std::make_shared<IdentityLayer>(inputSize - memory, inputSize, 0                 );
     auto input2 = memoryInput | std::make_shared<IdentityLayer>(memory            , inputSize, inputSize - memory);
@@ -50,7 +50,7 @@ namespace kann
     auto decoderModel = buildSimpleFeedForwardModel(std::move(decoderLayers));
     decoderModel->tag(TAG_DECODDER);
 
-    auto input = Variable::constant(encoderModel->inputSize());
+    auto input = OldVariable::constant(encoderModel->inputSize());
     auto middle = input | encoderModel;
     auto output = middle | decoderModel;
 
@@ -67,7 +67,7 @@ namespace kann
     auto discriminatorModel = buildSimpleFeedForwardModel(std::move(discriminatorLayers));
     discriminatorModel->tag(TAG_GAN_DISCRIMINATOR);
 
-    auto input = Variable::constant(generatorModel->inputSize());
+    auto input = OldVariable::constant(generatorModel->inputSize());
     auto middle = input | generatorModel;
     auto output = middle | discriminatorModel;
 

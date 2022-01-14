@@ -1,7 +1,7 @@
 #pragma once
 
 #include <libkann/Model.hpp>
-#include <libkann/Variable.hpp>
+#include <libkann/OldVariable.hpp>
 
 #include <libkann/serialization/Graph.hpp>
 #include <libkann/serialization/Eigen.hpp>
@@ -24,7 +24,7 @@ namespace kann
   public:
     struct FeedBack
     {
-      std::shared_ptr<const Variable> input, output;
+      std::shared_ptr<const OldVariable> input, output;
 
       template<typename Archive>
       void serialize(Archive& archive)
@@ -35,7 +35,7 @@ namespace kann
 
   public:
     FunctionalModel() = default;
-    FunctionalModel(std::shared_ptr<const Variable> input, std::shared_ptr<const Variable> output, std::vector<FeedBack> feedBacks = {});
+    FunctionalModel(std::shared_ptr<const OldVariable> input, std::shared_ptr<const OldVariable> output, std::vector<FeedBack> feedBacks = {});
 
   public:
     void write_graphviz(std::ostream& os) const override;
