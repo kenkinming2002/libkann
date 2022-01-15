@@ -73,7 +73,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
 
     auto inputVariable1 = std::make_shared<const kann::Variable>();
     auto inputVariable2 = std::make_shared<const kann::Variable>();
-    auto outputVariable = func({inputVariable1, inputVariable2});
+    auto outputVariable = func.invoke({inputVariable1, inputVariable2});
 
     kann::Executor executor({inputVariable1, inputVariable2}, {outputVariable});
     {
@@ -103,7 +103,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
 
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
-    auto c = f({a,b});
+    auto c = f.invoke({a,b});
 
     kann::Executor executor({a,b}, {c});
     {
@@ -133,7 +133,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
 
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
-    auto c = f({a,b});
+    auto c = f.invoke({a,b});
 
     kann::Executor executor({a,b}, {c});
     {
@@ -163,7 +163,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
 
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
-    auto c = f({a,b});
+    auto c = f.invoke({a,b});
 
     kann::Executor executor({a,b}, {c});
     {
@@ -193,7 +193,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
 
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
-    auto c = f({a,b});
+    auto c = f.invoke({a,b});
 
     kann::Executor executor({a,b}, {c});
     {
