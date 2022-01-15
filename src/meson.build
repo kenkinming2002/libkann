@@ -19,6 +19,8 @@ libkann_sources = [
   'Executor.cpp',
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',
+  'functions/IdentityFunction.cpp',
+  'functions/ReduceFunction.cpp',
 ]
 
 eigen_dep = dependency('eigen3')

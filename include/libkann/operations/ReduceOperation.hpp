@@ -11,6 +11,7 @@ namespace kann
 
   public:
     Tensor process(const std::vector<Tensor>& inputs) const override;
+    std::shared_ptr<const Function> function() const override;
 
   private:
     size_t m_inputCount;

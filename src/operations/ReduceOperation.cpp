@@ -1,5 +1,7 @@
 #include <libkann/operations/ReduceOperation.hpp>
 
+#include <libkann/functions/ReduceFunction.hpp>
+
 namespace kann
 {
   ReduceOperation::ReduceOperation(size_t inputCount)
@@ -17,5 +19,11 @@ namespace kann
       result.asArray() += input.asArray();
 
     return result;
+  }
+
+  std::shared_ptr<const Function> ReduceOperation::function() const
+  {
+    const auto reduceFunction = std::make_shared<ReduceFunction>(m_inputCount);
+    return reduceFunction;
   }
 }
