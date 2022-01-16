@@ -8,6 +8,7 @@ namespace kann
   {
   public:
     Tensor processImpl(const Tensor& input) const override;
+    VariableHandle gradientsImpl(VariableHandle gradient, VariableHandle) const override;
   };
 }
 

@@ -11,6 +11,7 @@ namespace kann
 
   public:
     Tensor process(const std::vector<Tensor>& inputs) const override;
+    VariableList gradients(VariableHandle gradient, VariableList inputs) const override;
 
   private:
     size_t m_inputCount;
