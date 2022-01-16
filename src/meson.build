@@ -17,6 +17,7 @@ libkann_sources = [
   'Algorithm.cpp',
   'ActivationFunction.cpp',
   'Executor.cpp',
+  'Differentiate.cpp',
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',
   'operations/MatrixMultiplyOperation.cpp',
