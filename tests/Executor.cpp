@@ -1,11 +1,12 @@
-#include "libkann/functions/MatrixMultiplyFunction.hpp"
-#include "libkann/operations/MatrixMultiplyOperation.hpp"
 #include <catch2/catch.hpp>
 
 #include <libkann/Variable.hpp>
 #include <libkann/Function.hpp>
+
 #include <libkann/operations/ReduceOperation.hpp>
 #include <libkann/operations/IdentityOperation.hpp>
+#include <libkann/operations/MatrixMultiplyOperation.hpp>
+
 #include <libkann/Executor.hpp>
 
 #include <fstream>
@@ -99,11 +100,11 @@ TEST_CASE("NewAPI", "[NewAPI]")
 
   SECTION("MatrixMultiply1")
   {
-    auto f = kann::MatrixMultiplyFunction(10, 30, 20, false, false);
+    auto op = std::make_shared<kann::MatrixMultiplyOperation>(10, 30, 20, false, false);
 
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
-    auto c = f.invoke({a,b});
+    auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
     kann::Executor executor({a,b}, {c});
     {
@@ -129,11 +130,11 @@ TEST_CASE("NewAPI", "[NewAPI]")
 
   SECTION("MatrixMultiply2")
   {
-    auto f = kann::MatrixMultiplyFunction(10, 30, 20, true, false);
+    auto op = std::make_shared<kann::MatrixMultiplyOperation>(10, 30, 20, true, false);
 
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
-    auto c = f.invoke({a,b});
+    auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
     kann::Executor executor({a,b}, {c});
     {
@@ -159,11 +160,11 @@ TEST_CASE("NewAPI", "[NewAPI]")
 
   SECTION("MatrixMultiply3")
   {
-    auto f = kann::MatrixMultiplyFunction(10, 30, 20, false, true);
+    auto op = std::make_shared<kann::MatrixMultiplyOperation>(10, 30, 20, false, true);
 
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
-    auto c = f.invoke({a,b});
+    auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
     kann::Executor executor({a,b}, {c});
     {
@@ -189,11 +190,11 @@ TEST_CASE("NewAPI", "[NewAPI]")
 
   SECTION("MatrixMultiply4")
   {
-    auto f = kann::MatrixMultiplyFunction(10, 30, 20, true, true);
+    auto op = std::make_shared<kann::MatrixMultiplyOperation>(10, 30, 20, true, true);
 
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
-    auto c = f.invoke({a,b});
+    auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
     kann::Executor executor({a,b}, {c});
     {

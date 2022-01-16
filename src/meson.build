@@ -20,9 +20,6 @@ libkann_sources = [
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',
   'operations/MatrixMultiplyOperation.cpp',
-  'functions/IdentityFunction.cpp',
-  'functions/ReduceFunction.cpp',
-  'functions/MatrixMultiplyFunction.cpp',
 ]
 
 eigen_dep = dependency('eigen3')

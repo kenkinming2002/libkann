@@ -17,7 +17,6 @@ namespace kann
 
   public:
     Tensor processImpl(const Tensor& a, const Tensor& b) const override;
-    std::shared_ptr<const Function> function() const override;
 
   private:
     size_t m_m, m_n, m_k;

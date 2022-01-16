@@ -1,7 +1,5 @@
 #include <libkann/operations/MatrixMultiplyOperation.hpp>
 
-#include <libkann/functions/MatrixMultiplyFunction.hpp>
-
 namespace kann
 {
   MatrixMultiplyOperation::MatrixMultiplyOperation(size_t m, size_t n, size_t k, bool transpose1, bool transpose2)
@@ -26,12 +24,6 @@ namespace kann
     }
 
     return result;
-  }
-
-  std::shared_ptr<const Function> MatrixMultiplyOperation::function() const
-  {
-    const auto matrixMultiplyFunction = std::make_shared<MatrixMultiplyFunction>(m_m, m_n, m_k, m_transpose1, m_transpose2);
-    return matrixMultiplyFunction;
   }
 }
 

@@ -16,7 +16,6 @@ namespace kann
 
   public:
     virtual Tensor process(const std::vector<Tensor>& inputs) const = 0;
-    virtual std::shared_ptr<const Function> function() const = 0;
   };
 
   class UnaryOperation : public Operation
