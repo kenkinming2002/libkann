@@ -10,13 +10,14 @@ namespace kann
     assert(m_inputCount != 0);
   }
 
-  Tensor ReduceOperation::process(const std::vector<Tensor>& inputs) const
+  Tensor ReduceOperation::process(std::vector<std::reference_wrapper<const Tensor>> inputs) const
   {
     assert(inputs.size() == m_inputCount);
-    Tensor result(inputs.front().size());
+
+    Tensor result(inputs.front().get().size());
     result.asArray().setZero();
-    for(const auto& input : inputs)
-      result.asArray() += input.asArray();
+    for(std::reference_wrapper<const Tensor> input : inputs)
+      result.asArray() += input.get().asArray();
 
     return result;
   }

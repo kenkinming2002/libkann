@@ -60,17 +60,19 @@ namespace kann
     for(size_t i=0; i<m_inputVertices.size(); ++i)
     {
       Node& inputNode = m_graph[m_inputVertices[i]];
-      inputNode.data = inputs[i];
+      inputNode.data = std::move(inputs[i]);
     }
+
+    // Evaluate
+    for(size_t i=0; i<m_outputVertices.size(); ++i)
+      evaluate(m_outputVertices[i]);
 
     // Output
     std::vector<Tensor> outputs(m_outputVertices.size());
     for(size_t i=0; i<m_outputVertices.size(); ++i)
     {
-      evaluate(m_outputVertices[i]);
-
       Node& outputNode = m_graph[m_outputVertices[i]];
-      outputs[i] = *outputNode.data;
+      outputs[i] = std::move(*outputNode.data);
     }
     return outputs;
   }
@@ -81,7 +83,7 @@ namespace kann
     if(node.data)
       return;
 
-    std::vector<Tensor> inputs(node.variable->inputs.size());
+    std::vector<const Tensor*> inputs_ptr(node.variable->inputs.size());
     for(auto [it, end] = boost::in_edges(vertex, m_graph); it != end; ++it)
     {
       const edge_type edge = *it;
@@ -92,8 +94,17 @@ namespace kann
 
       evaluate(inputVertex);
       assert(inputNode.data);
-      inputs[connection.id] = *inputNode.data;
+      inputs_ptr[connection.id] = &(*inputNode.data);
     }
+
+    std::vector<std::reference_wrapper<const Tensor>> inputs;
+    inputs.reserve(inputs_ptr.size());
+    std::transform(
+      inputs_ptr.begin(), inputs_ptr.end(),
+      std::back_inserter(inputs),
+      [](const Tensor* t) -> std::reference_wrapper<const Tensor> { return *t; }
+    );
+
     Tensor output = node.variable->op->process(inputs);
     node.data = std::move(output);
   }

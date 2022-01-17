@@ -1,8 +1,10 @@
 #pragma once
 
+#include <functional>
 #include <libkann/Tensor.hpp>
 
 #include <vector>
+#include <utility>
 #include <memory>
 
 namespace kann
@@ -19,14 +21,14 @@ namespace kann
     virtual ~Operation() = default;
 
   public:
-    virtual Tensor process(const std::vector<Tensor>& inputs) const = 0;
+    virtual Tensor process(std::vector<std::reference_wrapper<const Tensor>> inputs) const = 0;
     virtual VariableList gradients(VariableHandle gradient, VariableList inputs) const = 0;
   };
 
   class UnaryOperation : public Operation
   {
   public:
-    Tensor process(const std::vector<Tensor>& inputs) const override final
+    Tensor process(std::vector<std::reference_wrapper<const Tensor>> inputs) const override final
     {
       assert(inputs.size() == 1);
       return this->processImpl(inputs[0]);
@@ -47,7 +49,7 @@ namespace kann
   class BinaryOperation : public Operation
   {
   public:
-    Tensor process(const std::vector<Tensor>& inputs) const override final
+    Tensor process(std::vector<std::reference_wrapper<const Tensor>> inputs) const override final
     {
       assert(inputs.size() == 2);
       return this->processImpl(inputs[0], inputs[1]);
