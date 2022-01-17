@@ -56,6 +56,8 @@ namespace kann
     output = std::move(outputs[0]);
     newState.assign(std::move_iterator(outputs.begin()+1), std::move_iterator(outputs.end()));
 
+    m_state = std::move(newState);
+
     return output.asVector();
   }
 }
