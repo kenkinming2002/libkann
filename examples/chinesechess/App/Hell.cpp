@@ -109,7 +109,7 @@ namespace App
 
   namespace
   {
-    Agent makeAgent(Hell::seed_type seed, const std::vector<size_t>& agentHiddenLayers)
+    Agent makeAgent(Hell::seed_type seed, const std::vector<size_t>& agentHiddenLayers, double learningRate)
     {
       Hell::random_engine_type engine(seed);
 
@@ -131,18 +131,17 @@ namespace App
       }
 
       for(auto& layer : layers)
-        layer->randomize(engine);
+        kann::randomize(*layer, engine);
 
       auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
-      return Agent(std::move(model));
+      return Agent(std::move(model), learningRate);
     }
   }
 
   Hell::Hell(seed_type seed, const std::vector<size_t>& agentHiddenLayers, double agentLearningRate)
     : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), ""),
       m_renderer(m_window),
-      m_agent(makeAgent(seed, agentHiddenLayers)),
-      m_agentLearningRate(agentLearningRate) {}
+      m_agent(makeAgent(seed, agentHiddenLayers, agentLearningRate)) {}
 
   void Hell::run()
   {
@@ -181,7 +180,7 @@ namespace App
     // Check
     if(m_game.ended())
     {
-      m_agent.learnFrom(m_game, m_agentLearningRate);
+      m_agent.learnFrom(m_game);
       m_game = Game();
     }
 

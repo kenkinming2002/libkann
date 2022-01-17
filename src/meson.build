@@ -17,10 +17,15 @@ libkann_sources = [
   'Algorithm.cpp',
   'ActivationFunction.cpp',
   'Executor.cpp',
+  'Predictor.cpp',
+  'Optimizer.cpp',
   'Differentiate.cpp',
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',
   'operations/MatrixMultiplyOperation.cpp',
+  'operations/CWiseProductOperation.cpp',
+  'operations/MultiplyOperation.cpp',
+  'operations/SubtractOperation.cpp',
 ]
 
 eigen_dep = dependency('eigen3')

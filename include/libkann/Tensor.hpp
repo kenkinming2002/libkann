@@ -2,6 +2,8 @@
 
 #include <Eigen/Eigen>
 
+#include <cereal/types/vector.hpp>
+
 #include <vector>
 
 namespace kann
@@ -11,6 +13,7 @@ namespace kann
   public:
     Tensor() = default;
     Tensor(size_t size) : values(size) {}
+    Tensor(Eigen::VectorXd data);
 
   public:
     std::vector<double> values;
@@ -52,5 +55,17 @@ namespace kann
       assert(values.size() == rows * cols);
       return Eigen::MatrixXd::Map(values.data(), rows, cols);
     }
+
+  public:
+    template<typename Archive>
+    void serialize(Archive& archive)
+    {
+      archive(values);
+    }
   };
+
+  inline Tensor::Tensor(Eigen::VectorXd v) : Tensor(v.size())
+  {
+    asVector() = v;
+  }
 }

@@ -1,5 +1,7 @@
 #include <libkann/layers/IdentityLayer.hpp>
 
+#include <libkann/operations/IdentityOperation.hpp>
+
 namespace kann
 {
   using namespace std::placeholders;
@@ -22,46 +24,34 @@ namespace kann
     return m_outputSize;
   }
 
-  Eigen::VectorXd IdentityLayer::feedForward()
+  std::vector<std::shared_ptr<const Variable>> IdentityLayer::parametersVariables() const
   {
-    Eigen::VectorXd output = Eigen::VectorXd::Zero(m_outputSize);
-    if(m_inputSize >= m_outputSize)
-      output = input().segment(m_offset, m_outputSize);
+    return {};
+  }
+
+  std::vector<std::reference_wrapper<const Tensor>> IdentityLayer::parameters() const
+  {
+    return {};
+  }
+
+  std::vector<std::reference_wrapper<Tensor>> IdentityLayer::parameters()
+  {
+    return {};
+  }
+
+  auto IdentityLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
+  {
+    if(m_inputSize == m_outputSize)
+    {
+      // Fast path
+      auto output = std::move(input);
+      return std::make_pair(std::move(output), std::move(state));
+    }
     else
-      output.segment(m_offset, m_inputSize) = input();
-
-    return output;
-  }
-
-  Eigen::VectorXd IdentityLayer::backPropagate()
-  {
-    Eigen::VectorXd inputGradient = Eigen::RowVectorXd::Zero(m_inputSize);
-    if(m_inputSize >= m_outputSize)
-      inputGradient.segment(m_offset, m_outputSize) = outputGradient();
-    else
-      inputGradient = outputGradient().segment(m_offset, m_inputSize);
-
-    return inputGradient;
-  }
-
-  std::vector<std::span<double>> IdentityLayer::params()
-  {
-    return {};
-  }
-
-  std::vector<std::span<const double>> IdentityLayer::params() const
-  {
-    return {};
-  }
-
-  std::vector<std::span<double>> IdentityLayer::paramsGradient()
-  {
-    return {};
-  }
-
-  std::vector<std::span<const double>> IdentityLayer::paramsGradient() const
-  {
-    return {};
+    {
+      auto output = std::make_shared<const Variable>(std::vector{std::move(input)}, std::make_shared<IdentityOperation>(m_inputSize, m_outputSize, m_offset));
+      return std::make_pair(std::move(output), std::move(state));
+    }
   }
 }
 

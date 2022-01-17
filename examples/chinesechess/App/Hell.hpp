@@ -38,8 +38,5 @@ namespace App
     Game m_game;
     Agent m_agent;
     Human m_human;
-
-  private:
-    double m_agentLearningRate;
   };
 }

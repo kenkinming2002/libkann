@@ -10,6 +10,7 @@ namespace kann
   class Executor
   {
   public:
+    Executor() = default;
     Executor(std::vector<std::shared_ptr<const Variable>> inputs, std::vector<std::shared_ptr<const Variable>> outputs);
 
   public:

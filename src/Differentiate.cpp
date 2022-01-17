@@ -1,7 +1,6 @@
 #include <boost/graph/topological_sort.hpp>
 #include <libkann/Differentiate.hpp>
 
-#include <libkann/operations/IdentityOperation.hpp>
 #include <libkann/operations/ReduceOperation.hpp>
 
 #include <boost/graph/adjacency_list.hpp>
@@ -92,7 +91,7 @@ namespace kann
 
       assert(node.gradients.size() != 0);
       if(node.gradients.size() == 1)
-        node.gradient = std::make_shared<const Variable>(node.gradients, std::make_shared<IdentityOperation>());
+        node.gradient = node.gradients.front();
       else
         node.gradient = std::make_shared<const Variable>(node.gradients, std::make_shared<ReduceOperation>(node.gradients.size()));
 

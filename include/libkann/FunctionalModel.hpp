@@ -45,11 +45,14 @@ namespace kann
 
   public:
     size_t inputSize()  const override { return node(m_inputNodeIndex).size; }
-    size_t outputSize() const override { return node(m_inputNodeIndex).size; }
+    size_t outputSize() const override { return node(m_outputNodeIndex).size; }
 
   public:
-    Eigen::VectorXd feedForward() override;
-    Eigen::VectorXd backPropagate() override;
+    std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
+
+  public:
+    std::vector<std::shared_ptr<const Variable>> makeStateVariables() const override;
+    std::vector<Tensor> makeState() const override;
 
   private:
     void build();
@@ -85,13 +88,11 @@ namespace kann
     struct Node
     {
       size_t size;
-      Eigen::VectorXd data;
-      Eigen::VectorXd gradient;
 
       template<typename Archive>
       void serialize(Archive& archive)
       {
-        archive(size, data, gradient);
+        archive(size);
       }
     };
 

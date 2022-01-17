@@ -30,7 +30,7 @@ std::shared_ptr<kann::Model> Creature::makeNeuralNetork(const ModelConfig& confi
   }
 
   for(auto& layer : layers)
-    layer->randomize(engine);
+    kann::randomize(*layer, engine);
 
   return kann::buildSimpleRecurrentModel(layers, config.memory);
 }
@@ -42,6 +42,7 @@ Creature::Creature(b2World& world, const Config& config,
     double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
     m_model(std::move(model)),
+    m_predictor(m_model),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)},
     m_energy(energy), m_health(health) {}
 
@@ -74,8 +75,7 @@ void Creature::updateModel(const Config& config)
   input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / config.viewDistance;
   input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / config.viewDistance;
 
-  m_model->input(std::move(input));
-  m_output = m_model->feedForward();
+  m_output = m_predictor.predict(input);
 }
 
 // Working alone
@@ -205,7 +205,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
         if(!takeEnergy(config.maxEnergy * 0.2) || !other->takeEnergy(config.maxEnergy * 0.2))
           continue;
 
-        auto newModel = kann::FunctionalModel::cross(*m_model, *other->m_model, world.prng(), config.mutationRate);
+        auto newModel = kann::cross(*m_model, *other->m_model, world.prng(), config.mutationRate);
         auto newPosition = position();
         newPosition += other->position();
         newPosition *= 0.5;

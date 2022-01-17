@@ -1,4 +1,8 @@
 #include <libkann/Algorithm.hpp>
+
+#include <libkann/Optimizer.hpp>
+#include <libkann/Predictor.hpp>
+
 #include <limits>
 
 namespace kann
@@ -49,22 +53,22 @@ namespace kann
     };
   }
 
-  void run(Model& model, const DataSet& dataSet, size_t column, Callback callback)
+  void run(std::shared_ptr<Model> model, const DataSet& dataSet, size_t column, Callback callback)
   {
     const auto size = dataSet.size();
 
-    Eigen::VectorXd input;
+    Predictor predictor(model);
     for(size_t i=0; i<size; ++i)
     {
+      Eigen::VectorXd input;
       dataSet.get(column,  i, input);
-
-      model.input(input);
-      Eigen::VectorXd output = model.feedForward();
+      Eigen::VectorXd output = predictor.predict(input);
 
       const bool result = callback(Info{
         .model = model,
         .i = i,
         .size = size,
+        .input = input,
         .output = output
       });
       if(!result)
@@ -72,122 +76,105 @@ namespace kann
     }
   }
 
-  void train(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback)
+  void train(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback)
   {
     const auto size = dataSet.size();
 
-    Eigen::VectorXd input, expectedOutput;
+    Optimizer optimizer(model, learningRate);
+
     for(size_t i=0; i<size; ++i)
     {
+      Eigen::VectorXd input, expectedOutput;
       dataSet.get(inputColumn,  i, input);
       dataSet.get(outputColumn, i, expectedOutput);
 
-      model.input(input);
-      Eigen::VectorXd output = model.feedForward();
-      Eigen::VectorXd outputGradient = (output-expectedOutput) * 2.0;
+      const auto [output, cost] = optimizer.optimize(input, expectedOutput);
 
-      model.outputGradient(outputGradient);
-      Eigen::VectorXd inputGradient = model.backPropagate();
-
-      model.train(learningRate);
-
+      // TODO: Return real output somehow
       const bool result = callback(Info{
         .model = model,
         .i = i,
         .size = size,
+        .input = input,
+        .output = output,
         .expectedOutput = expectedOutput,
-        .cost = outputGradient.squaredNorm()
+        .cost = cost
       });
       if(!result)
         break;
     }
   }
 
-  double test(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback)
+  double test(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback)
   {
     const auto size = dataSet.size();
 
     double correctness = 0.0;
-    Eigen::VectorXd input, expectedOutput;
+
+    Predictor predictor(model);
     for(size_t i=0; i<size; ++i)
     {
+      Eigen::VectorXd input, expectedOutput;
       dataSet.get(inputColumn,  i, input);
       dataSet.get(outputColumn, i, expectedOutput);
 
-      model.input(input);
-      Eigen::VectorXd output = model.feedForward();
-      Eigen::VectorXd outputGradient = (output-expectedOutput) * 2.0;
-
+      Eigen::VectorXd output = predictor.predict(input);
       correctness += dataSet.correctness(outputColumn, i, output);
+
+      Eigen::VectorXd outputGradient = (output-expectedOutput) * 2.0;
+      double cost = outputGradient.squaredNorm();
 
       const bool result = callback(Info{
         .model = model,
         .i = i,
         .size = size,
+        .input = input,
+        .output = output,
         .expectedOutput = expectedOutput,
-        .cost = outputGradient.squaredNorm()
+        .cost = cost
       });
-
       if(!result)
         break;
     }
+
     correctness /= size;
     return correctness;
   }
 
-  void trainGAN(Model& GANModel, Model& generatorModel, Model& discriminatorModel,
+  void trainGAN(std::shared_ptr<Model> GANModel, std::shared_ptr<Model> generatorModel, std::shared_ptr<Model> discriminatorModel,
       const DataSet& dataSetLatent, const DataSet& dataSet,
       size_t columnLatent, size_t column,
       float learningRate, GANCallback callback)
   {
+    Optimizer GANOptimizer(GANModel, learningRate);
+
+    Predictor generatorPredictor(generatorModel);
+    Optimizer discriminatorOptimizer(discriminatorModel, learningRate);
+
     // TODO: Support if their size are not equal
     assert(dataSetLatent.size() == dataSet.size());
-
     const auto size = dataSetLatent.size();
-
-    Eigen::VectorXd input;
-    Eigen::VectorXd expectedOutput(1);
     for(size_t i=0; i<size; ++i)
     {
       // Train on latent data set
+      Eigen::VectorXd input;
+      Eigen::VectorXd expectedOutput(1);
       dataSetLatent.get(columnLatent, i, input);
-      GANModel.input(input);
-      Eigen::VectorXd GANOutput = GANModel.feedForward();
-      {
-        expectedOutput(0) = 1.0;
-        Eigen::VectorXd outputGradient = (GANOutput-expectedOutput) * 2.0;
-        GANModel.outputGradient(outputGradient);
-        GANModel.backPropagate();
-        GANModel.train(learningRate * 0.5, TAG_GAN_GENERATOR);
-      }
 
-      {
-        expectedOutput(0) = 0.0;
-        Eigen::VectorXd outputGradient = (GANOutput-expectedOutput) * 2.0;
-        GANModel.outputGradient(outputGradient);
-        GANModel.backPropagate();
-        GANModel.train(learningRate * 0.5, TAG_GAN_DISCRIMINATOR);
-      }
+      // Generator
+      expectedOutput(0) = 1.0;
+      const auto [GANOutput, GANCost] = GANOptimizer.optimize(input, expectedOutput/*, TAG_GENERATOR*/);
 
-      /* Sample the generator
-       * TODO: Optimize we are redoing the calculation done
-       *       when we call GANModel.feedForward(input) */
-      generatorModel.input(input);
-      Eigen::VectorXd generatorOutput = generatorModel.feedForward();
+      // Discriminator
+      expectedOutput(0) = 0.0;
+      const auto [discriminatorOutput, discriminiatorCost] = GANOptimizer.optimize(input, expectedOutput/*, TAG_DISCRIMINATOR*/);
 
+      // Sample the generator
+      const auto generatorOutput = generatorPredictor.predict(input);
 
       // Train on real data set
       dataSet.get(column, i, input);
-      discriminatorModel.input(input);
-      Eigen::VectorXd discriminatorOutput = discriminatorModel.feedForward();
-      {
-        expectedOutput(0) = 1.0;
-        Eigen::VectorXd outputGradient = (discriminatorOutput-expectedOutput) * 2.0;
-        discriminatorModel.outputGradient(outputGradient);
-        discriminatorModel.backPropagate();
-        discriminatorModel.train(learningRate * 0.5);
-      }
-
+      discriminatorOptimizer.optimize(input, expectedOutput);
       const bool result = callback(GANInfo{
         .GANModel = GANModel,
         .generatorModel     = generatorModel,
@@ -200,7 +187,6 @@ namespace kann
       });
       if(!result)
         break;
-
     }
   }
 }

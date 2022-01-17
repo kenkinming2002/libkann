@@ -21,8 +21,8 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
 
-    auto c = std::make_shared<const kann::Variable>(std::vector{a}, std::make_shared<kann::IdentityOperation>());
-    auto d = std::make_shared<const kann::Variable>(std::vector{b}, std::make_shared<kann::IdentityOperation>());
+    auto c = std::make_shared<const kann::Variable>(std::vector{a}, std::make_shared<kann::IdentityOperation>(SIZE, SIZE, 0));
+    auto d = std::make_shared<const kann::Variable>(std::vector{b}, std::make_shared<kann::IdentityOperation>(SIZE, SIZE, 0));
     auto e = std::make_shared<const kann::Variable>(std::vector{a, b}, std::make_shared<kann::ReduceOperation>(2));
 
     auto f = std::make_shared<const kann::Variable>(std::vector{c, d}, std::make_shared<kann::ReduceOperation>(2));
@@ -56,8 +56,8 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto a = std::make_shared<const kann::Variable>();
     auto b = std::make_shared<const kann::Variable>();
 
-    auto c = std::make_shared<const kann::Variable>(std::vector{a}, std::make_shared<kann::IdentityOperation>());
-    auto d = std::make_shared<const kann::Variable>(std::vector{b}, std::make_shared<kann::IdentityOperation>());
+    auto c = std::make_shared<const kann::Variable>(std::vector{a}, std::make_shared<kann::IdentityOperation>(SIZE, SIZE, 0));
+    auto d = std::make_shared<const kann::Variable>(std::vector{b}, std::make_shared<kann::IdentityOperation>(SIZE, SIZE, 0));
     auto e = std::make_shared<const kann::Variable>(std::vector{a, b}, std::make_shared<kann::ReduceOperation>(2));
 
     auto f = std::make_shared<const kann::Variable>(std::vector{c, d}, std::make_shared<kann::ReduceOperation>(2));
@@ -92,8 +92,8 @@ TEST_CASE("NewAPI", "[NewAPI]")
     protected:
       std::shared_ptr<const kann::Variable> impl(std::shared_ptr<const kann::Variable> a, std::shared_ptr<const kann::Variable> b) const override
       {
-        auto c = std::make_shared<const kann::Variable>(std::vector{a}, std::make_shared<kann::IdentityOperation>());
-        auto d = std::make_shared<const kann::Variable>(std::vector{b}, std::make_shared<kann::IdentityOperation>());
+        auto c = std::make_shared<const kann::Variable>(std::vector{a}, std::make_shared<kann::IdentityOperation>(SIZE,SIZE,0));
+        auto d = std::make_shared<const kann::Variable>(std::vector{b}, std::make_shared<kann::IdentityOperation>(SIZE,SIZE,0));
         auto e = std::make_shared<const kann::Variable>(std::vector{a, b}, std::make_shared<kann::ReduceOperation>(2));
 
         auto f = std::make_shared<const kann::Variable>(std::vector{c, d}, std::make_shared<kann::ReduceOperation>(2));

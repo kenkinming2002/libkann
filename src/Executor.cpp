@@ -121,7 +121,7 @@ namespace kann
       const Operation& op = *variable.op;
 
       os << "[label=\"";
-      os << "op=" << demangle(typeid(op).name()) << "\\n";
+      os << "op=" << demangle(typeid(op).name()).substr(0, 20) << "\\n";
       os << "\"]";
     };
 

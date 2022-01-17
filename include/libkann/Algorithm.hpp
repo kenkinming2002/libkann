@@ -10,11 +10,12 @@ namespace kann
   // We must pass the model explicitly because copy could have been made
   struct Info
   {
-    const Model& model;
+    const std::shared_ptr<Model> model;
 
     size_t i;
     size_t size;
 
+    Eigen::VectorXd input;
     Eigen::VectorXd output;
     Eigen::VectorXd expectedOutput;
 
@@ -24,9 +25,9 @@ namespace kann
 
   struct GANInfo
   {
-    const Model& GANModel;
-    const Model& generatorModel;
-    const Model& discriminatorModel;
+    const std::shared_ptr<Model> GANModel;
+    const std::shared_ptr<Model> generatorModel;
+    const std::shared_ptr<Model> discriminatorModel;
 
     size_t i;
     size_t size;
@@ -40,12 +41,12 @@ namespace kann
   Callback defaultCallback(std::string_view name);
   GANCallback defaultGANCallback(std::string_view name);
 
-  LIBKANN_SYMEXPORT void run(Model& model, const DataSet& dataSet, size_t column, Callback callback);
+  LIBKANN_SYMEXPORT void run(std::shared_ptr<Model> model, const DataSet& dataSet, size_t column, Callback callback);
 
-  LIBKANN_SYMEXPORT void train(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback = defaultCallback("Training"));
-  LIBKANN_SYMEXPORT double test(Model& model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback = defaultCallback("Testing"));
+  LIBKANN_SYMEXPORT void train(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback = defaultCallback("Training"));
+  LIBKANN_SYMEXPORT double test(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback = defaultCallback("Testing"));
 
-  LIBKANN_SYMEXPORT void trainGAN(Model& GANModel, Model& generatorModel, Model& discriminatorModel,
+  LIBKANN_SYMEXPORT void trainGAN(std::shared_ptr<Model> GANModel, std::shared_ptr<Model> generatorModel, std::shared_ptr<Model> discriminatorModel,
       const DataSet& dataSetLatent, const DataSet& dataSet,
       size_t columnLatent, size_t column,
       float learningRate, GANCallback callback = defaultGANCallback("Training"));

@@ -7,7 +7,11 @@
 #include <fstream>
 #include <filesystem>
 
-Agent::Agent(std::shared_ptr<kann::Model> model) : m_model(std::move(model)) {}
+Agent::Agent(std::shared_ptr<kann::Model> model, double learningRate)
+  : m_model(std::move(model)),
+    m_learningRate(learningRate),
+    m_predictor(m_model),
+    m_optimizer(m_model, learningRate) {}
 
 void Agent::loadFromFile(std::filesystem::path filePath)
 {
@@ -62,10 +66,10 @@ std::optional<Board::Move> Agent::selectMove(Board board, Board::Cell::Color col
   return possibleMoves[index];
 }
 
-double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
+static Eigen::VectorXd convert(const Board& board, Board::Cell::Color color)
 {
   // TODO: optimize this tight loop
-  Eigen::VectorXd input(INPUT_LAYER_SIZE);
+  Eigen::VectorXd input(Agent::INPUT_LAYER_SIZE);
   for(uint8_t y=0; y<Board::HEIGHT; ++y)
     for(uint8_t x=0; x<Board::WIDTH; ++x)
     {
@@ -76,33 +80,34 @@ double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
       input(index+1) = cell.color == color ? 1.0 : cell.color == Board::Cell::Color::NONE ? 0.0 : -1.0;
     }
 
-  m_model->input(std::move(input));
-  m_output = m_model->feedForward();
-  return m_output(0);
+  return input;
+}
+
+double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
+{
+  auto input = convert(board, color);
+  auto output = m_predictor.predict(std::move(input));
+  return output(0);
 }
 
 void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
 {
   auto otherColor = color == Board::Cell::Color::RED ? Board::Cell::Color::BLACK : Board::Cell::Color::RED;
   {
-    this->evaluateBoard(board, color);
-
+    auto input = convert(board, color);
     Eigen::VectorXd expectedOutput(1);
     expectedOutput << (good ? 1.0 : 0.0);
-    m_model->outputGradient((m_output-expectedOutput)*2.0);
-    m_model->backPropagate();
+    m_optimizer.optimize(input, expectedOutput);
   }
   {
-    this->evaluateBoard(board.flipped(), otherColor);
-
+    auto input = convert(board, otherColor);
     Eigen::VectorXd expectedOutput(1);
     expectedOutput << (good ? 1.0 : 0.0);
-    m_model->outputGradient((m_output-expectedOutput)*2.0);
-    m_model->backPropagate();
+    m_optimizer.optimize(input, expectedOutput);
   }
 }
 
-void Agent::learnFrom(Game& game, double learningRate)
+void Agent::learnFrom(Game& game)
 {
   if(game.winningColor() == Board::Cell::Color::NONE)
     return;
@@ -119,11 +124,11 @@ void Agent::learnFrom(Game& game, double learningRate)
     if(!game.undoMove())
       break;
   }
-  m_model->train(learningRate);
 }
 
 Agent Agent::cross(const Agent& lhs, const Agent& rhs, std::default_random_engine& engine, double mutationRate)
 {
-  return Agent(kann::Model::cross(*lhs.m_model, *rhs.m_model, engine, mutationRate));
+  assert(lhs.m_learningRate == rhs.m_learningRate);
+  return Agent(kann::cross(*lhs.m_model, *rhs.m_model, engine, mutationRate), lhs.m_learningRate);
 }
 

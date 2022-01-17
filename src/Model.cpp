@@ -9,69 +9,37 @@ namespace kann
       layer = layer->clone();
   }
 
-  std::unique_ptr<Model> Model::cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate)
+  std::vector<std::shared_ptr<const Variable>> Model::parametersVariables() const
   {
-    return std::unique_ptr<Model>(static_cast<Model*>(Layer::cross(lhs, rhs, engine, mutationRate).release()));
-  }
-
-  void Model::randomize(std::default_random_engine& engine)
-  {
-    for(auto& layer : m_layers)
-      layer->randomize(engine);
-  }
-
-  void Model::train(double learningRate, unsigned tags)
-  {
-    for(auto& layer : m_layers)
-      if(layer->tag() & tags)
-        layer->train(learningRate); // Tags only take effect in the first layer
-      else
-        layer->train(0.0); // Clear the gradient
-  }
-
-  std::vector<std::span<double>> Model::params()
-  {
-    std::vector<std::span<double>> params;
-    for(auto& layer : m_layers)
-    {
-      auto paramsLayer = layer->params();
-      params.insert(params.end(), paramsLayer.begin(), paramsLayer.end());
-    }
-    return params;
-  }
-
-  std::vector<std::span<const double>> Model::params() const
-  {
-    std::vector<std::span<const double>> params;
+    std::vector<std::shared_ptr<const Variable>> result;
     for(const auto& layer : m_layers)
     {
-      auto paramsLayer = layer->params();
-      params.insert(params.end(), paramsLayer.begin(), paramsLayer.end());
+      auto parameterVariables = layer->parametersVariables();
+      result.insert(result.end(), parameterVariables.begin(), parameterVariables.end());
     }
-    return params;
+    return result;
   }
 
-
-  std::vector<std::span<double>> Model::paramsGradient()
+  std::vector<std::reference_wrapper<const Tensor>> Model::parameters() const
   {
-    std::vector<std::span<double>> paramsGradient;
-    for(auto& layer : m_layers)
-    {
-      auto paramsGradientLayer = layer->paramsGradient();
-      paramsGradient.insert(paramsGradient.end(), paramsGradientLayer.begin(), paramsGradientLayer.end());
-    }
-    return paramsGradient;
-  }
-
-  std::vector<std::span<const double>> Model::paramsGradient() const
-  {
-    std::vector<std::span<const double>> paramsGradient;
+    std::vector<std::reference_wrapper<const Tensor>> result;
     for(const auto& layer : m_layers)
     {
-      auto paramsGradientLayer = layer->paramsGradient();
-      paramsGradient.insert(paramsGradient.end(), paramsGradientLayer.begin(), paramsGradientLayer.end());
+      auto parameter = layer->parameters();
+      result.insert(result.end(), parameter.begin(), parameter.end());
     }
-    return paramsGradient;
+    return result;
+  }
+
+  std::vector<std::reference_wrapper<Tensor>> Model::parameters()
+  {
+    std::vector<std::reference_wrapper<Tensor>> result;
+    for(auto& layer : m_layers)
+    {
+      auto parameter = layer->parameters();
+      result.insert(result.end(), parameter.begin(), parameter.end());
+    }
+    return result;
   }
 
   size_t Model::addLayer(std::shared_ptr<Layer> layer)
@@ -90,5 +58,12 @@ namespace kann
   {
     return *m_layers[index];
   }
+
+  std::unique_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate)
+  {
+    std::unique_ptr<Layer> result = cross(static_cast<const Layer&>(lhs), static_cast<const Layer&>(rhs), engine, mutationRate);
+    return std::unique_ptr<Model>(static_cast<Model*>(result.release()));
+  }
+
 }
 

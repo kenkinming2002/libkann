@@ -1,6 +1,7 @@
 #pragma once
 
 #include <libkann/export.hpp>
+#include <libkann/Variable.hpp>
 
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/archives/binary.hpp>
@@ -28,23 +29,11 @@ namespace kann
   class Layer
   {
   public:
-    static std::unique_ptr<Layer> cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutationRate);
-
-  public:
-    virtual void randomize(std::default_random_engine& engine);
-    virtual void train(double learningRate, unsigned tags = TAG_ALL);
+    typedef std::vector<std::shared_ptr<const Variable>> StateVariables;
 
   public:
     unsigned tag() const { return m_tag; }
     void tag(unsigned tag) { m_tag = tag; }
-
-  public:
-    void input(Eigen::VectorXd input);
-    void outputGradient(Eigen::VectorXd outputGradient);
-
-  public:
-    const Eigen::VectorXd& input() const;
-    const Eigen::VectorXd& outputGradient() const;
 
   public:
     virtual ~Layer() = default;
@@ -56,43 +45,35 @@ namespace kann
     virtual size_t inputSize() const = 0;
     virtual size_t outputSize() const = 0;
 
+  // Layer parameters
   public:
-    /* Given input, return output. Input is stored internally for use by
-     * backPropgate()
-     *
-     * TODO: Pass input by shared_ptr
-     *
-     * @return output */
-    virtual Eigen::VectorXd feedForward() = 0;
+    virtual std::vector<std::shared_ptr<const Variable>> parametersVariables() const = 0;
+    virtual std::vector<std::reference_wrapper<const Tensor>> parameters() const = 0;
+    virtual std::vector<std::reference_wrapper<Tensor>> parameters() = 0;
 
-    /* Return input gradient. Also compute params
-     * gradient, which is stored internally in unsepecified format.
-     *
-     * @return input gradient */
-    virtual Eigen::VectorXd backPropagate() = 0;
-
-  // We do not have reflection in c++, so that is the best we could do
+  // Layer may have hidden states
   public:
-    virtual std::vector<std::span<double>> params() = 0;
-    virtual std::vector<std::span<const double>> params() const = 0;
+    virtual std::vector<std::shared_ptr<const Variable>> makeStateVariables() const { return {}; }
+    virtual std::vector<Tensor> makeState() const { return {}; }
 
-    virtual std::vector<std::span<double>> paramsGradient() = 0;
-    virtual std::vector<std::span<const double>> paramsGradient() const = 0;
+    /* @param input input variable
+     * @param state old state variable
+     *
+     * @return [output variable, new state variable] */
+    virtual std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state = {}) const = 0;
 
   public:
     template<typename Archive>
     void serialize(Archive& archive)
     {
       archive(m_tag);
-      archive(m_input);
-      archive(m_outputGradient);
     }
 
   private:
     unsigned m_tag = TAG_DEFAULT;
-
-    // This two variables are not thread safe
-    Eigen::VectorXd m_input;
-    Eigen::VectorXd m_outputGradient;
   };
+
+  void randomize(Layer& layer, std::default_random_engine& engine);
+  std::unique_ptr<Layer> cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutationRate);
+
 }

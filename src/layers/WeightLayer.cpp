@@ -1,5 +1,8 @@
 #include <libkann/layers/WeightLayer.hpp>
 
+#include <libkann/operations/MatrixMultiplyOperation.hpp>
+#include <libkann/operations/ReduceOperation.hpp>
+
 #include <iostream>
 
 namespace kann
@@ -7,12 +10,14 @@ namespace kann
   WeightLayer::WeightLayer(size_t inputSize, size_t outputSize)
     : m_inputSize(inputSize), m_outputSize(outputSize)
   {
-    m_weight         = Eigen::MatrixXd::Zero(m_outputSize, m_inputSize);
-    m_weightGradient = Eigen::MatrixXd::Zero(m_outputSize, m_inputSize);
-
-    m_bias         = Eigen::VectorXd::Zero(m_outputSize);
-    m_biasGradient = Eigen::VectorXd::Zero(m_outputSize);
+    m_weight = Tensor(m_inputSize * m_outputSize);
+    m_bias   = Tensor(m_outputSize);
   }
+
+  // Do not copy variable
+  WeightLayer::WeightLayer(const WeightLayer& other)
+    : m_inputSize(other.m_inputSize), m_outputSize(other.m_outputSize),
+      m_weight(other.m_weight), m_bias(other.m_bias) {}
 
   std::unique_ptr<Layer> WeightLayer::clone() const
   {
@@ -29,48 +34,27 @@ namespace kann
     return m_outputSize;
   }
 
-  Eigen::VectorXd WeightLayer::feedForward()
+  std::vector<std::shared_ptr<const Variable>> WeightLayer::parametersVariables() const
   {
-    return m_weight * input() + m_bias;
+    return {m_weightVariable, m_biasVariable};
   }
 
-  Eigen::VectorXd WeightLayer::backPropagate()
+  std::vector<std::reference_wrapper<const Tensor>> WeightLayer::parameters() const
   {
-    m_weightGradient += outputGradient() * input().transpose();
-    m_biasGradient += outputGradient();
-
-    return m_weight.transpose() * outputGradient();
+    return {m_weight, m_bias};
   }
 
-  std::vector<std::span<double>> WeightLayer::params()
+  std::vector<std::reference_wrapper<Tensor>> WeightLayer::parameters()
   {
-    return {
-      std::span<double>(m_weight.data(), m_weight.size()),
-      std::span<double>(m_bias.data()  , m_bias.size())
-    };
+    return {m_weight, m_bias};
   }
 
-  std::vector<std::span<const double>> WeightLayer::params() const
+  auto WeightLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
   {
-    return {
-      std::span<const double>(m_weight.data(), m_weight.size()),
-      std::span<const double>(m_bias.data()  , m_bias.size())
-    };
+    // TODO: Fuse them into a single operation
+    auto prod = std::make_shared<const Variable>(std::vector{m_weightVariable, std::move(input)}, std::make_shared<MatrixMultiplyOperation>(m_outputSize, 1, m_inputSize, false, false));
+    auto output =  std::make_shared<const Variable>(std::vector{m_biasVariable, std::move(prod)}, std::make_shared<ReduceOperation>(2));
+    return std::make_pair(std::move(output), std::move(state));
   }
 
-  std::vector<std::span<double>> WeightLayer::paramsGradient()
-  {
-    return {
-      std::span<double>(m_weightGradient.data(), m_weightGradient.size()),
-      std::span<double>(m_biasGradient.data()  , m_biasGradient.size())
-    };
-  }
-
-  std::vector<std::span<const double>> WeightLayer::paramsGradient() const
-  {
-    return {
-      std::span<const double>(m_weightGradient.data(), m_weightGradient.size()),
-      std::span<const double>(m_biasGradient.data()  , m_biasGradient.size())
-    };
-  }
 }

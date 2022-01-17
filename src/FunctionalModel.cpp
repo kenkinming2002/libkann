@@ -1,5 +1,7 @@
 #include <libkann/FunctionalModel.hpp>
 
+#include <libkann/operations/ReduceOperation.hpp>
+
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/copy.hpp>
@@ -55,11 +57,7 @@ namespace kann
     // 2: Associate each variables with a node
     std::vector<Node> nodes(variables.size());
     for(size_t i=0; i<nodes.size(); ++i)
-      nodes[i] = Node{
-        .size     = variables[i]->size,
-        .data     = Eigen::VectorXd::Zero(variables[i]->size),
-        .gradient = Eigen::VectorXd::Zero(variables[i]->size),
-      };
+      nodes[i] = Node{.size = variables[i]->size};
 
     // 3: Associate each variables/nodes with a vertex
     std::vector<vertex_type> vertices(variables.size());
@@ -113,13 +111,7 @@ namespace kann
 
   void FunctionalModel::write_graphviz(std::ostream& os) const
   {
-    auto vertexWriter = [this](std::ostream& os, vertex_type vertex){
-      const Node& node = this->node(m_graph[vertex].nodeIndex);
-      os << "[label=\"";
-      os << "size=" << node.size << "\\n";
-      os << "\"]";
-    };
-
+    auto vertexWriter = [](std::ostream& os, vertex_type vertex){};
     auto edgeWriter = [this](std::ostream& os, edge_type edge){
       const Layer& layer = this->layer(m_graph[edge].layerIndex);
       os << "[label=\"";
@@ -137,59 +129,86 @@ namespace kann
     return std::make_unique<FunctionalModel>(*this);
   }
 
-  Eigen::VectorXd FunctionalModel::feedForward()
+  auto FunctionalModel::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
   {
-    // Zero all-pre-existing node data and handle feedBack
+    std::vector<std::shared_ptr<const Variable>> variables;
+    variables.resize(m_nodes.size());
+
+    // Input variables
+    variables[m_inputNodeIndex] = std::move(input);
+
+    // State variables
+    assert(state.size() == m_feedBacksNodeIndices.size());
+    for(size_t i=0; i<m_feedBacksNodeIndices.size(); ++i)
     {
-      std::map<size_t, Eigen::VectorXd> feedBackData;
-      for(auto [inputNodeIndex, outputNodeIndex] : m_feedBacksNodeIndices)
-        feedBackData.emplace(inputNodeIndex, node(outputNodeIndex).data);
-
-      for(auto& node : m_nodes)
-        node.data.setZero();
-
-      for(auto [inputNodeIndex, data] : feedBackData)
-        node(inputNodeIndex).data = std::move(data);
+      const auto [inputNodeIndex, outputNodeIndex] = m_feedBacksNodeIndices[i];
+      assert(!variables[inputNodeIndex]);
+      variables[inputNodeIndex] = std::move(state[i]);
     }
 
-    this->node(m_inputNodeIndex).data = input();
-    for(vertex_type inputVertex : m_ordering)
-      for(auto [it, end] = boost::out_edges(inputVertex, m_graph); it != end; ++it)
+    // Propagate
+    for(vertex_type vertex : m_ordering)
+    {
+      std::vector<std::shared_ptr<const Variable>> outputVariables;
+      for(auto [it, end] = boost::in_edges(vertex, m_graph); it != end; ++it)
       {
-        const auto& inputNode  = this->node(m_graph[boost::source(*it, m_graph)].nodeIndex);
-        auto& outputNode       = this->node(m_graph[boost::target(*it, m_graph)].nodeIndex);
+        const EdgeProperty& edgeProperty = m_graph[*it];
+        const Layer& layer = this->layer(edgeProperty.layerIndex) ;
 
-        auto& layer = this->layer(m_graph[*it].layerIndex);
+        vertex_type source = boost::source(*it, m_graph);
+        auto inputVariable = variables[m_graph[source].nodeIndex];
+        auto [outputVariable, state] = layer(inputVariable, StateVariables());
+        assert(state.empty());
 
-        layer.input(inputNode.data);
-        outputNode.data += layer.feedForward();
+        outputVariables.push_back(outputVariable);
       }
 
-    return this->node(m_outputNodeIndex).data;
+      auto& variable = variables[m_graph[vertex].nodeIndex];
+      switch(outputVariables.size())
+      {
+      case 0:
+        assert(variable);
+        break;
+      case 1:
+        variable = outputVariables.front();
+        break;
+      default:
+        variable = std::make_shared<const Variable>(outputVariables, std::make_shared<ReduceOperation>(outputVariables.size()));
+        break;
+      }
+    }
+
+    // State variables
+    assert(state.size() == m_feedBacksNodeIndices.size());
+    for(size_t i=0; i<m_feedBacksNodeIndices.size(); ++i)
+    {
+      const auto [inputNodeIndex, outputNodeIndex] = m_feedBacksNodeIndices[i];
+      assert(variables[outputNodeIndex]);
+      state[i] = variables[outputNodeIndex];
+    }
+
+    // Output variables
+    auto output = std::move(variables[m_outputNodeIndex]);
+
+    return std::make_pair(std::move(output), std::move(state));
   }
 
-  Eigen::VectorXd FunctionalModel::backPropagate()
+  std::vector<std::shared_ptr<const Variable>> FunctionalModel::makeStateVariables() const
   {
-    // TODO: Back propagation through time
+    return std::vector(m_feedBacksNodeIndices.size(), std::make_shared<const Variable>());
+  }
 
-    // Zero all pre-existing node gradients
-    for(auto& node : m_nodes)
-      node.gradient.setZero();
-
-    this->node(m_outputNodeIndex).gradient = outputGradient();
-    for(vertex_type inputVertex : m_ordering | std::views::reverse)
-      for(auto [it, end] = boost::in_edges(inputVertex, m_graph); it != end; ++it)
-      {
-        auto& inputNode        = this->node(m_graph[boost::source(*it, m_graph)].nodeIndex);
-        const auto& outputNode = this->node(m_graph[boost::target(*it, m_graph)].nodeIndex);
-
-        auto& layer = this->layer(m_graph[*it].layerIndex);
-
-        layer.outputGradient(outputNode.gradient);
-        inputNode.gradient += layer.backPropagate();
-      }
-
-    return this->node(m_inputNodeIndex).gradient;
+  std::vector<Tensor> FunctionalModel::makeState() const
+  {
+    std::vector<Tensor> result;
+    for(const auto& [inputNodeIndex, outputNodeIndex] : m_feedBacksNodeIndices)
+    {
+      assert(node(inputNodeIndex).size == node(outputNodeIndex).size);
+      const size_t size = node(inputNodeIndex).size;
+      result.emplace_back(size);
+      result.back().asArray().setZero();
+    }
+    return result;
   }
 
   void FunctionalModel::build()
