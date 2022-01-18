@@ -16,9 +16,9 @@ namespace kann
     size_t i;
     size_t size;
 
-    Tensor input;
-    Tensor output;
-    Tensor expectedOutput;
+    std::shared_ptr<const Tensor> input;
+    std::shared_ptr<const Tensor> output;
+    std::shared_ptr<const Tensor> expectedOutput;
 
     double cost;
   };
@@ -33,9 +33,9 @@ namespace kann
     size_t i;
     size_t size;
 
-    Tensor GANOutput;
-    Tensor generatorOutput;
-    Tensor discriminatorOutput;
+    std::shared_ptr<const Tensor> GANOutput;
+    std::shared_ptr<const Tensor> generatorOutput;
+    std::shared_ptr<const Tensor> discriminatorOutput;
   };
   typedef std::function<bool(GANInfo)> GANCallback;
 

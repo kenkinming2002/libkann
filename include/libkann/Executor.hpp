@@ -14,7 +14,7 @@ namespace kann
     Executor(std::vector<std::shared_ptr<const Variable>> inputs, std::vector<std::shared_ptr<const Variable>> outputs);
 
   public:
-    std::vector<Tensor> evaluate(std::vector<Tensor> inputs);
+    std::vector<std::shared_ptr<const Tensor>> evaluate(std::vector<std::shared_ptr<const Tensor>> inputs);
 
   public:
     void write_graphviz(std::ostream& os) const;
@@ -23,7 +23,7 @@ namespace kann
     struct Node
     {
       std::shared_ptr<const Variable> variable;
-      std::optional<Tensor> data;
+      std::shared_ptr<const Tensor> data;
     };
 
     struct Connection

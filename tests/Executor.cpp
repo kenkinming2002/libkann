@@ -37,18 +37,20 @@ TEST_CASE("NewAPI", "[NewAPI]")
     unsigned seed = GENERATE(take(100, random(0, INT_MAX)));
     srand(seed);
 
-    kann::Tensor input1(SIZE), input2(SIZE);
+    auto input1 = std::make_shared<kann::Tensor>(SIZE);
+    auto input2 = std::make_shared<kann::Tensor>(SIZE);
 
-    input1.asArray().setRandom();
-    input2.asArray().setRandom();
+    input1->asArray().setRandom();
+    input2->asArray().setRandom();
 
-    std::vector<kann::Tensor> inputs  = {input1, input2};
-    std::vector<kann::Tensor> outputs = executor.evaluate(inputs);
+    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
+    auto outputs = executor.evaluate(inputs);
 
-    kann::Tensor output1 = outputs[0], output2 = outputs[1];
+    auto output1 = outputs[0];
+    auto output2 = outputs[1];
 
-    REQUIRE(output1.asVector().isApprox(input1.asVector() + input2.asVector()));
-    REQUIRE(output2.asVector().isApprox(input1.asVector() + input2.asVector() * 2.0));
+    REQUIRE(output1->asVector().isApprox(input1->asVector() + input2->asVector()));
+    REQUIRE(output2->asVector().isApprox(input1->asVector() + input2->asVector() * 2.0));
   }
 
   SECTION("Gradients")
@@ -120,17 +122,18 @@ TEST_CASE("NewAPI", "[NewAPI]")
     unsigned seed = GENERATE(take(100, random(0, INT_MAX)));
     srand(seed);
 
-    kann::Tensor input1(SIZE), input2(SIZE);
+    auto input1 = std::make_shared<kann::Tensor>(SIZE);
+    auto input2 = std::make_shared<kann::Tensor>(SIZE);
 
-    input1.asArray().setRandom();
-    input2.asArray().setRandom();
+    input1->asArray().setRandom();
+    input2->asArray().setRandom();
 
-    std::vector<kann::Tensor> inputs  = {input1, input2};
-    std::vector<kann::Tensor> outputs = executor.evaluate(inputs);
+    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
+    auto outputs = executor.evaluate(inputs);
 
-    kann::Tensor output = outputs[0];
+    auto output = outputs[0];
 
-    REQUIRE(output.asVector().isApprox(input1.asVector() * 2.0 + input2.asVector() * 4.0));
+    REQUIRE(output->asVector().isApprox(input1->asVector() * 2.0 + input2->asVector() * 4.0));
   }
 
   SECTION("MatrixMultiply1")
@@ -150,17 +153,18 @@ TEST_CASE("NewAPI", "[NewAPI]")
     unsigned seed = GENERATE(take(100, random(0, INT_MAX)));
     srand(seed);
 
-    kann::Tensor input1(10*20), input2(20*30);
+    auto input1 = std::make_shared<kann::Tensor>(10 * 20);
+    auto input2 = std::make_shared<kann::Tensor>(20 * 30);
 
-    input1.asArray().setRandom();
-    input2.asArray().setRandom();
+    input1->asArray().setRandom();
+    input2->asArray().setRandom();
 
-    std::vector<kann::Tensor> inputs  = {input1, input2};
-    std::vector<kann::Tensor> outputs = executor.evaluate(inputs);
+    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
+    auto outputs = executor.evaluate(inputs);
 
-    kann::Tensor output = outputs[0];
+    auto output = outputs[0];
 
-    REQUIRE(output.asMatrix(10,30) == input1.asMatrix(10,20) * input2.asMatrix(20,30));
+    REQUIRE(output->asMatrix(10,30) == input1->asMatrix(10,20) * input2->asMatrix(20,30));
   }
 
   SECTION("MatrixMultiply2")
@@ -180,17 +184,18 @@ TEST_CASE("NewAPI", "[NewAPI]")
     unsigned seed = GENERATE(take(100, random(0, INT_MAX)));
     srand(seed);
 
-    kann::Tensor input1(10*20), input2(20*30);
+    auto input1 = std::make_shared<kann::Tensor>(10 * 20);
+    auto input2 = std::make_shared<kann::Tensor>(20 * 30);
 
-    input1.asArray().setRandom();
-    input2.asArray().setRandom();
+    input1->asArray().setRandom();
+    input2->asArray().setRandom();
 
-    std::vector<kann::Tensor> inputs  = {input1, input2};
-    std::vector<kann::Tensor> outputs = executor.evaluate(inputs);
+    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
+    auto outputs = executor.evaluate(inputs);
 
-    kann::Tensor output = outputs[0];
+    auto output = outputs[0];
 
-    REQUIRE(output.asMatrix(10,30) == input1.asMatrix(20,10).transpose() * input2.asMatrix(20,30));
+    REQUIRE(output->asMatrix(10,30) == input1->asMatrix(20,10).transpose() * input2->asMatrix(20,30));
   }
 
   SECTION("MatrixMultiply3")
@@ -210,17 +215,18 @@ TEST_CASE("NewAPI", "[NewAPI]")
     unsigned seed = GENERATE(take(100, random(0, INT_MAX)));
     srand(seed);
 
-    kann::Tensor input1(10*20), input2(20*30);
+    auto input1 = std::make_shared<kann::Tensor>(10 * 20);
+    auto input2 = std::make_shared<kann::Tensor>(20 * 30);
 
-    input1.asArray().setRandom();
-    input2.asArray().setRandom();
+    input1->asArray().setRandom();
+    input2->asArray().setRandom();
 
-    std::vector<kann::Tensor> inputs  = {input1, input2};
-    std::vector<kann::Tensor> outputs = executor.evaluate(inputs);
+    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
+    auto outputs = executor.evaluate(inputs);
 
-    kann::Tensor output = outputs[0];
+    auto output = outputs[0];
 
-    REQUIRE(output.asMatrix(10,30) == input1.asMatrix(10,20) * input2.asMatrix(30,20).transpose());
+    REQUIRE(output->asMatrix(10,30) == input1->asMatrix(10,20) * input2->asMatrix(30,20).transpose());
   }
 
   SECTION("MatrixMultiply4")
@@ -240,16 +246,17 @@ TEST_CASE("NewAPI", "[NewAPI]")
     unsigned seed = GENERATE(take(100, random(0, INT_MAX)));
     srand(seed);
 
-    kann::Tensor input1(10*20), input2(20*30);
+    auto input1 = std::make_shared<kann::Tensor>(10 * 20);
+    auto input2 = std::make_shared<kann::Tensor>(20 * 30);
 
-    input1.asArray().setRandom();
-    input2.asArray().setRandom();
+    input1->asArray().setRandom();
+    input2->asArray().setRandom();
 
-    std::vector<kann::Tensor> inputs  = {input1, input2};
-    std::vector<kann::Tensor> outputs = executor.evaluate(inputs);
+    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
+    auto outputs = executor.evaluate(inputs);
 
-    kann::Tensor output = outputs[0];
+    auto output = outputs[0];
 
-    REQUIRE(output.asMatrix(10,30) == input1.asMatrix(20,10).transpose() * input2.asMatrix(30,20).transpose());
+    REQUIRE(output->asMatrix(10,30) == input1->asMatrix(20,10).transpose() * input2->asMatrix(30,20).transpose());
   }
 }

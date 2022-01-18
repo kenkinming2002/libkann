@@ -31,16 +31,15 @@ namespace kann
     return {};
   }
 
-  std::vector<std::reference_wrapper<const Tensor>> ActivationLayer::parameters() const
+  std::vector<std::shared_ptr<const Tensor>> ActivationLayer::parameters() const
   {
     return {};
   }
 
-  std::vector<std::reference_wrapper<Tensor>> ActivationLayer::parameters()
+  void ActivationLayer::parameters(std::vector<std::shared_ptr<const Tensor>> parameters)
   {
-    return {};
+    assert(parameters.size() == 0);
   }
-
 
   auto ActivationLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
   {

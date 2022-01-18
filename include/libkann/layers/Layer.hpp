@@ -48,13 +48,13 @@ namespace kann
   // Layer parameters
   public:
     virtual std::vector<std::shared_ptr<const Variable>> parametersVariables() const = 0;
-    virtual std::vector<std::reference_wrapper<const Tensor>> parameters() const = 0;
-    virtual std::vector<std::reference_wrapper<Tensor>> parameters() = 0;
+    virtual std::vector<std::shared_ptr<const Tensor>> parameters() const = 0;
+    virtual void parameters(std::vector<std::shared_ptr<const Tensor>> parameters) = 0;
 
   // Layer may have hidden states
   public:
     virtual std::vector<std::shared_ptr<const Variable>> makeStateVariables() const { return {}; }
-    virtual std::vector<Tensor> makeState() const { return {}; }
+    virtual std::vector<std::shared_ptr<const Tensor>> makeState() const { return {}; }
 
     /* @param input input variable
      * @param state old state variable

@@ -36,10 +36,10 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
   Eigen::VectorXd data;
   for(size_t i = 0;  i<dataSet.size(); ++i)
   {
-    kann::Tensor data = dataSet.get(i, dataColumn);
+    auto data = dataSet.get(i, dataColumn);
 
     std::filesystem::path filepath = dirpath / (std::string("data")+std::to_string(i)+std::string(".bmp"));
-    auto image = kann::toImage(data, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    auto image = kann::toImage(*data, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
     image.saveToFile(filepath);
   }
 }
@@ -124,7 +124,7 @@ static void trainAndRunAutoEncoder(std::shared_ptr<kann::Model> autoEncoderModel
 
   kann::run(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, [&reconstructionOutputPath](kann::Info info){
     std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(info.i)+std::string(".bmp"));
-    auto image = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    auto image = kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
     image.saveToFile(filepath);
     return true;
   });
@@ -139,7 +139,7 @@ static void trainAndRunAutoEncoder(std::shared_ptr<kann::Model> autoEncoderModel
   kann::RandomDataSet randomDataSet(featuresCount, generateCount);
   kann::run(decoderModel, randomDataSet, kann::RandomDataSet::COLUMN_DATA, [&outputPath](kann::Info info){
     std::filesystem::path filepath = outputPath / (std::string("result")+std::to_string(info.i)+std::string(".bmp"));
-    auto image = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+    auto image = kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
     image.saveToFile(filepath);
     return true;
   });
@@ -333,7 +333,7 @@ int main(int argc, char* argv[])
       auto callback = [&outputDirectory, &defaultGANCallback](kann::GANInfo info){
         std::ostringstream fileName;
         fileName << std::setfill('0') << std::setw(std::ceil(std::log10(info.size))) << info.i << ".png";
-        auto image = kann::toImage(info.generatorOutput, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+        auto image = kann::toImage(*info.generatorOutput, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
         image.saveToFile(outputDirectory / "Training" / fileName.str());
 
         return defaultGANCallback(info);
@@ -351,7 +351,7 @@ int main(int argc, char* argv[])
       auto callback = [&outputDirectory, &defaultCallback](kann::Info info){
         std::ostringstream fileName;
         fileName << std::setfill('0') << std::setw(std::ceil(std::log10(info.size))) << info.i << ".png";
-        auto image = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+        auto image = kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
         image.saveToFile(outputDirectory / "Output" / fileName.str());
 
         return defaultCallback(info);

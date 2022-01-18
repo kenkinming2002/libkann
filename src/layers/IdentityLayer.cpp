@@ -29,14 +29,14 @@ namespace kann
     return {};
   }
 
-  std::vector<std::reference_wrapper<const Tensor>> IdentityLayer::parameters() const
+  std::vector<std::shared_ptr<const Tensor>> IdentityLayer::parameters() const
   {
     return {};
   }
 
-  std::vector<std::reference_wrapper<Tensor>> IdentityLayer::parameters()
+  void IdentityLayer::parameters(std::vector<std::shared_ptr<const Tensor>> parameters)
   {
-    return {};
+    assert(parameters.size() == 0);
   }
 
   auto IdentityLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>

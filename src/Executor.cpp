@@ -47,7 +47,7 @@ namespace kann
     });
   }
 
-  std::vector<Tensor> Executor::evaluate(std::vector<Tensor> inputs)
+  std::vector<std::shared_ptr<const Tensor>> Executor::evaluate(std::vector<std::shared_ptr<const Tensor>> inputs)
   {
     // Clear everything
     for(auto [it, end] = boost::vertices(m_graph); it != end; ++it)
@@ -68,11 +68,11 @@ namespace kann
       evaluate(m_outputVertices[i]);
 
     // Output
-    std::vector<Tensor> outputs(m_outputVertices.size());
+    std::vector<std::shared_ptr<const Tensor>> outputs(m_outputVertices.size());
     for(size_t i=0; i<m_outputVertices.size(); ++i)
     {
       Node& outputNode = m_graph[m_outputVertices[i]];
-      outputs[i] = std::move(*outputNode.data);
+      outputs[i] = std::move(outputNode.data);
     }
     return outputs;
   }
@@ -83,7 +83,7 @@ namespace kann
     if(node.data)
       return;
 
-    std::vector<const Tensor*> inputs_ptr(node.variable->inputs.size());
+    std::vector<std::shared_ptr<const Tensor>> inputs(node.variable->inputs.size());
     for(auto [it, end] = boost::in_edges(vertex, m_graph); it != end; ++it)
     {
       const edge_type edge = *it;
@@ -94,19 +94,10 @@ namespace kann
 
       evaluate(inputVertex);
       assert(inputNode.data);
-      inputs_ptr[connection.id] = &(*inputNode.data);
+      inputs[connection.id] = inputNode.data;
     }
 
-    std::vector<std::reference_wrapper<const Tensor>> inputs;
-    inputs.reserve(inputs_ptr.size());
-    std::transform(
-      inputs_ptr.begin(), inputs_ptr.end(),
-      std::back_inserter(inputs),
-      [](const Tensor* t) -> std::reference_wrapper<const Tensor> { return *t; }
-    );
-
-    Tensor output = node.variable->op->process(inputs);
-    node.data = std::move(output);
+    node.data = node.variable->op->process(inputs);
   }
 
   static std::string demangle(const char* mangledName)

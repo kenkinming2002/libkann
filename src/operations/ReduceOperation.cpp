@@ -10,14 +10,14 @@ namespace kann
     assert(m_inputCount != 0);
   }
 
-  Tensor ReduceOperation::process(std::vector<std::reference_wrapper<const Tensor>> inputs) const
+  std::shared_ptr<const Tensor> ReduceOperation::process(std::vector<std::shared_ptr<const Tensor>> inputs) const
   {
     assert(inputs.size() == m_inputCount);
 
-    Tensor result(inputs.front().get().size());
-    result.asArray().setZero();
-    for(std::reference_wrapper<const Tensor> input : inputs)
-      result.asArray() += input.get().asArray();
+    auto result = std::make_shared<Tensor>(inputs.front()->size());
+    result->asArray().setZero();
+    for(auto& input : inputs)
+      result->asArray() += input->asArray();
 
     return result;
   }

@@ -20,26 +20,31 @@ namespace kann
     return result;
   }
 
-  std::vector<std::reference_wrapper<const Tensor>> Model::parameters() const
+  std::vector<std::shared_ptr<const Tensor>> Model::parameters() const
   {
-    std::vector<std::reference_wrapper<const Tensor>> result;
+    std::vector<std::shared_ptr<const Tensor>> parameters;
     for(const auto& layer : m_layers)
     {
-      auto parameter = layer->parameters();
-      result.insert(result.end(), parameter.begin(), parameter.end());
+      auto layerParameters = layer->parameters();
+      parameters.insert(parameters.end(), layerParameters.begin(), layerParameters.end());
     }
-    return result;
+    return parameters;
   }
 
-  std::vector<std::reference_wrapper<Tensor>> Model::parameters()
+  void Model::parameters(std::vector<std::shared_ptr<const Tensor>> parameters)
   {
-    std::vector<std::reference_wrapper<Tensor>> result;
-    for(auto& layer : m_layers)
+    auto it = parameters.begin();
+    for(const auto& layer : m_layers)
     {
-      auto parameter = layer->parameters();
-      result.insert(result.end(), parameter.begin(), parameter.end());
+      // TODO: consider having a virtual function that returns the number of
+      //       parameters
+      size_t count = layer->parameters().size();
+      auto end = std::next(it, count);
+      auto layerParameters = std::vector(it, end);
+      layer->parameters(std::move(layerParameters));
+
+      it = end;
     }
-    return result;
   }
 
   size_t Model::addLayer(std::shared_ptr<Layer> layer)

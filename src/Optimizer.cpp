@@ -66,35 +66,35 @@ namespace kann
     m_executor.write_graphviz(file);
   }
 
-  std::pair<Tensor, double> Optimizer::optimize(Tensor input, Tensor expectedOutput)
+  std::pair<std::shared_ptr<const Tensor>, double> Optimizer::optimize(std::shared_ptr<const Tensor> input, std::shared_ptr<const Tensor> expectedOutput)
   {
     auto parameters = m_model->parameters();
 
-    std::vector<Tensor> inputs;
+    std::vector<std::shared_ptr<const Tensor>> inputs;
     {
-      inputs.push_back(std::move(input));
+      inputs.push_back(input);
       inputs.push_back(expectedOutput); // We cannot move expected output since that is used to calculate cost
       inputs.insert(inputs.end(), std::move_iterator(parameters.begin()), std::move_iterator(parameters.end()));
       inputs.insert(inputs.end(), m_state.begin(), m_state.end());
     }
 
-    std::vector<Tensor> outputs = m_executor.evaluate(inputs);
+    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor.evaluate(inputs);
 
-    Tensor output;
-    std::vector<Tensor> newParameters;
-    std::vector<Tensor> newState;
+    std::shared_ptr<const Tensor> output;
+    std::vector<std::shared_ptr<const Tensor>> newParameters;
+    std::vector<std::shared_ptr<const Tensor>> newState;
 
-    output = std::move(outputs[0]);
-    newParameters.assign(std::move_iterator(&outputs[1]), std::move_iterator(&outputs[1+parameters.size()]));
-    newState.assign(std::move_iterator(&outputs[1+parameters.size()]), std::move_iterator(&outputs[1+parameters.size()+m_state.size()]));
+    output = outputs[0];
+    newParameters.assign(&outputs[1], &outputs[1+parameters.size()]);
+    newState.assign(&outputs[1+parameters.size()], &outputs[1+parameters.size()+m_state.size()]);
 
-    for(size_t i=0; i<parameters.size(); ++i)
-      parameters[i].get() = std::move(newParameters[i]);
-
+    //for(size_t i=0; i<parameters.size(); ++i)
+    //  parameters[i].get() = std::move(newParameters[i]);
+    m_model->parameters(std::move(newParameters));
     m_state = std::move(newState);
 
     // TODO: May be also put that into the computational graph
-    const double cost = ((output.asVector()-expectedOutput.asVector()) * 2.0).squaredNorm();
+    const double cost = ((output->asVector()-expectedOutput->asVector()) * 2.0).squaredNorm();
     return std::make_pair(std::move(output), cost);
   }
 }

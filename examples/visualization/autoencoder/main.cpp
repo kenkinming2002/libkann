@@ -104,8 +104,8 @@ private:
 
     const char* label;
     auto callback = [this, &label](kann::Info info){
-      auto inputImage  = kann::toImage(info.input,  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
-      auto outputImage = kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      auto inputImage  = kann::toImage(*info.input,  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
+      auto outputImage = kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
 
       // Update state
       {

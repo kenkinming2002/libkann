@@ -11,13 +11,13 @@ namespace kann
 
   size_t RandomDataSet::size() const { return m_size; }
 
-  Tensor RandomDataSet::get(size_t column, size_t index) const
+  std::shared_ptr<const Tensor> RandomDataSet::get(size_t column, size_t index) const
   {
     if(column != COLUMN_DATA)
       throw std::runtime_error("Random Data Set - correctness() - Invalid column");
 
-    Tensor result(m_dataSize);
-    result.asArray().setRandom();
+    auto result = std::make_shared<Tensor>(m_dataSize);
+    result->asArray().setRandom();
     return result;
   }
 

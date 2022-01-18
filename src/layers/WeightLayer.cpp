@@ -10,8 +10,8 @@ namespace kann
   WeightLayer::WeightLayer(size_t inputSize, size_t outputSize)
     : m_inputSize(inputSize), m_outputSize(outputSize)
   {
-    m_weight = Tensor(m_inputSize * m_outputSize);
-    m_bias   = Tensor(m_outputSize);
+    m_weight = std::make_shared<const Tensor>(m_inputSize * m_outputSize);
+    m_bias   = std::make_shared<const Tensor>(m_outputSize);
   }
 
   // Do not copy variable
@@ -39,14 +39,16 @@ namespace kann
     return {m_weightVariable, m_biasVariable};
   }
 
-  std::vector<std::reference_wrapper<const Tensor>> WeightLayer::parameters() const
+  std::vector<std::shared_ptr<const Tensor>> WeightLayer::parameters() const
   {
     return {m_weight, m_bias};
   }
 
-  std::vector<std::reference_wrapper<Tensor>> WeightLayer::parameters()
+  void WeightLayer::parameters(std::vector<std::shared_ptr<const Tensor>> parameters)
   {
-    return {m_weight, m_bias};
+    assert(parameters.size() == 2);
+    m_weight = std::move(parameters[0]);
+    m_bias   = std::move(parameters[1]);
   }
 
   auto WeightLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>

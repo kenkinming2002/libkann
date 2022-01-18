@@ -26,7 +26,7 @@ namespace kann
     size_t size() const override;
 
   public:
-    Tensor get(size_t column, size_t index) const override;
+    std::shared_ptr<const Tensor> get(size_t column, size_t index) const override;
     double correctness(size_t column, size_t index, const Tensor& data) const override;
 
   private:

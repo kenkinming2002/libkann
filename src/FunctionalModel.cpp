@@ -198,15 +198,16 @@ namespace kann
     return std::vector(m_feedBacksNodeIndices.size(), std::make_shared<const Variable>());
   }
 
-  std::vector<Tensor> FunctionalModel::makeState() const
+  std::vector<std::shared_ptr<const Tensor>> FunctionalModel::makeState() const
   {
-    std::vector<Tensor> result;
+    std::vector<std::shared_ptr<const Tensor>> result;
     for(const auto& [inputNodeIndex, outputNodeIndex] : m_feedBacksNodeIndices)
     {
       assert(node(inputNodeIndex).size == node(outputNodeIndex).size);
       const size_t size = node(inputNodeIndex).size;
-      result.emplace_back(size);
-      result.back().asArray().setZero();
+      auto state = std::make_shared<Tensor>(size);
+      state->asArray().setZero();
+      result.push_back(std::move(state));
     }
     return result;
   }

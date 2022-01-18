@@ -29,8 +29,8 @@ namespace kann
 
   public:
     LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Variable>> parametersVariables() const override { assert(false && "Unimplmented"); }
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<const Tensor>> parameters() const override { assert(false && "Unimplmented"); }
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<Tensor>> parameters() override { assert(false && "Unimplmented"); }
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Tensor>> parameters() const override { assert(false && "Unimplmented"); }
+    LIBKANN_SYMEXPORT void parameters(std::vector<std::shared_ptr<const Tensor>> parameters) override { assert(false && "Unimplmented"); }
 
   public:
     LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;

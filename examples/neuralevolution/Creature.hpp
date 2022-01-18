@@ -117,7 +117,7 @@ public:
 private:
   std::shared_ptr<kann::Model> m_model;
   kann::Predictor m_predictor;
-  kann::Tensor m_output;
+  std::shared_ptr<const kann::Tensor> m_output;
 
 private:
   static constexpr size_t EYES_COUNT = 2;

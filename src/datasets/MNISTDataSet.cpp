@@ -53,22 +53,22 @@ namespace kann
     return m_data.size();
   }
 
-  Tensor MNISTDataSet::get(size_t column, size_t index) const
+  std::shared_ptr<const Tensor> MNISTDataSet::get(size_t column, size_t index) const
   {
     switch(column)
     {
     case COLUMN_IMAGE:
     {
-      Tensor result(IMAGE_SIZE);
+      auto result = std::make_shared<Tensor>(IMAGE_SIZE);
       for(size_t i=0; i<IMAGE_SIZE; ++i)
-        result.asArray()(i) = static_cast<double>(m_data[index].image[i])/255;
+        result->asArray()(i) = static_cast<double>(m_data[index].image[i])/255;
       return result;
     }
     case COLUMN_LABEL:
     {
-      Tensor result(10);
+      auto result = std::make_shared<Tensor>(10);
       for(uint8_t i=0; i<10; ++i)
-        result.asArray()(i) = i == m_data[index].label ? 1.0 : 0.0;
+        result->asArray()(i) = i == m_data[index].label ? 1.0 : 0.0;
       return result;
     }
     default:

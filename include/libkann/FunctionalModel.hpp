@@ -52,7 +52,7 @@ namespace kann
 
   public:
     std::vector<std::shared_ptr<const Variable>> makeStateVariables() const override;
-    std::vector<Tensor> makeState() const override;
+    std::vector<std::shared_ptr<const Tensor>> makeState() const override;
 
   private:
     void build();

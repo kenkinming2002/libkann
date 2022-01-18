@@ -37,24 +37,24 @@ namespace kann
     m_state = m_model->makeState();
   }
 
-  Tensor Predictor::predict(Tensor input)
+  std::shared_ptr<const Tensor> Predictor::predict(std::shared_ptr<const Tensor> input)
   {
     const auto parameters = m_model->parameters();
 
-    std::vector<Tensor> inputs;
+    std::vector<std::shared_ptr<const Tensor>> inputs;
     {
       inputs.push_back(std::move(input));
       inputs.insert(inputs.end(), std::move_iterator(parameters.begin()), std::move_iterator(parameters.end()));
       inputs.insert(inputs.end(), m_state.begin(), m_state.end());
     }
 
-    std::vector<Tensor> outputs = m_executor.evaluate(inputs);
+    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor.evaluate(inputs);
 
-    Tensor output;
-    std::vector<Tensor> newState;
+    std::shared_ptr<const Tensor> output;
+    std::vector<std::shared_ptr<const Tensor>> newState;
 
-    output = std::move(outputs[0]);
-    newState.assign(std::move_iterator(outputs.begin()+1), std::move_iterator(outputs.end()));
+    output = outputs[0];
+    newState.assign(outputs.begin()+1, outputs.end());
 
     m_state = std::move(newState);
 

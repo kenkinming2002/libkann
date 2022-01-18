@@ -18,8 +18,8 @@ namespace kann
   // Layer parameters
   public:
     std::vector<std::shared_ptr<const Variable>> parametersVariables() const override;
-    std::vector<std::reference_wrapper<const Tensor>> parameters() const override;
-    std::vector<std::reference_wrapper<Tensor>> parameters() override;
+    std::vector<std::shared_ptr<const Tensor>> parameters() const override;
+    void parameters(std::vector<std::shared_ptr<const Tensor>> parameters) override;
 
   protected:
     size_t addLayer(std::shared_ptr<Layer> layer);

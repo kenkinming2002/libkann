@@ -21,17 +21,17 @@ namespace kann
     virtual ~Operation() = default;
 
   public:
-    virtual Tensor process(std::vector<std::reference_wrapper<const Tensor>> inputs) const = 0;
+    virtual std::shared_ptr<const Tensor> process(std::vector<std::shared_ptr<const Tensor>> inputs) const = 0;
     virtual VariableList gradients(VariableHandle gradient, VariableList inputs) const = 0;
   };
 
   class UnaryOperation : public Operation
   {
   public:
-    Tensor process(std::vector<std::reference_wrapper<const Tensor>> inputs) const override final
+    std::shared_ptr<const Tensor> process(std::vector<std::shared_ptr<const Tensor>> inputs) const override final
     {
       assert(inputs.size() == 1);
-      return this->processImpl(inputs[0]);
+      return std::make_shared<const Tensor>(this->processImpl(*inputs[0]));
     }
 
     VariableList gradients(VariableHandle gradient, VariableList inputs) const override
@@ -49,10 +49,10 @@ namespace kann
   class BinaryOperation : public Operation
   {
   public:
-    Tensor process(std::vector<std::reference_wrapper<const Tensor>> inputs) const override final
+    std::shared_ptr<const Tensor> process(std::vector<std::shared_ptr<const Tensor>> inputs) const override final
     {
       assert(inputs.size() == 2);
-      return this->processImpl(inputs[0], inputs[1]);
+      return std::make_shared<const Tensor>(this->processImpl(*inputs[0], *inputs[1]));
     }
 
     VariableList gradients(VariableHandle gradient, VariableList inputs) const override

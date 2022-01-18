@@ -13,7 +13,7 @@ namespace kann
 
   public:
     /* @return [output, cost] */
-    std::pair<Tensor, double> optimize(Tensor input, Tensor expectedOutput);
+    std::pair<std::shared_ptr<const Tensor>, double> optimize(std::shared_ptr<const Tensor> input, std::shared_ptr<const Tensor> expectedOutput);
 
   private:
     std::shared_ptr<Model> m_model;
@@ -21,7 +21,7 @@ namespace kann
 
     Executor m_executor;
 
-    std::vector<Tensor> m_state;
+    std::vector<std::shared_ptr<const Tensor>> m_state;
   };
 }
 

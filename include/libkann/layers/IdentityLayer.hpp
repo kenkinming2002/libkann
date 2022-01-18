@@ -24,8 +24,8 @@ namespace kann
 
   public:
     LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Variable>> parametersVariables() const override;
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<const Tensor>> parameters() const override;
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<Tensor>> parameters() override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Tensor>> parameters() const override;
+    LIBKANN_SYMEXPORT void parameters(std::vector<std::shared_ptr<const Tensor>> parameters) override;
 
   public:
     LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;

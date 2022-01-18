@@ -12,13 +12,13 @@ namespace kann
     Predictor(std::shared_ptr<Model> model);
 
   public:
-    Tensor predict(Tensor input);
+    std::shared_ptr<const Tensor> predict(std::shared_ptr<const Tensor> input);
 
   private:
     std::shared_ptr<const Model> m_model;
     Executor m_executor;
 
-    std::vector<Tensor> m_state;
+    std::vector<std::shared_ptr<const Tensor>> m_state;
   };
 }
 
