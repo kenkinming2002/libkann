@@ -41,10 +41,8 @@ namespace kann
     typedef boost::graph_traits<graph_type>::edge_descriptor edge_type;
 
   private:
-    void evaluate(vertex_type vertex);
-
-  private:
     graph_type m_graph;
+    std::vector<vertex_type> m_ordering;
     std::vector<vertex_type> m_inputVertices;
     std::vector<vertex_type> m_outputVertices;
   };

@@ -1,6 +1,9 @@
 #include <libkann/Executor.hpp>
 
 #include <boost/graph/graphviz.hpp>
+#include <boost/graph/topological_sort.hpp>
+
+#include <iterator>
 
 namespace kann
 {
@@ -45,6 +48,9 @@ namespace kann
     std::transform(outputs.begin(), outputs.end(), std::back_inserter(m_outputVertices), [&](const auto& output){
         return verticesMap.at(output);
     });
+
+    boost::topological_sort(m_graph, std::back_inserter(m_ordering));
+    std::reverse(m_ordering.begin(), m_ordering.end());
   }
 
   std::vector<std::shared_ptr<const Tensor>> Executor::evaluate(std::vector<std::shared_ptr<const Tensor>> inputs)
@@ -63,9 +69,27 @@ namespace kann
       inputNode.data = std::move(inputs[i]);
     }
 
-    // Evaluate
-    for(size_t i=0; i<m_outputVertices.size(); ++i)
-      evaluate(m_outputVertices[i]);
+    for(vertex_type vertex : m_ordering)
+    {
+      Node& node = m_graph[vertex];
+      if(node.data)
+        continue; // One of the input vertex
+
+      std::vector<std::shared_ptr<const Tensor>> inputs(node.variable->inputs.size());
+      for(auto [it, end] = boost::in_edges(vertex, m_graph); it != end; ++it)
+      {
+        const edge_type edge = *it;
+        const vertex_type inputVertex = boost::source(edge, m_graph);
+
+        const Node& inputNode = m_graph[inputVertex];
+        const Connection& connection = m_graph[edge];
+
+        assert(inputNode.data);
+        inputs[connection.id] = inputNode.data;
+      }
+
+      node.data = node.variable->op->process(inputs);
+    }
 
     // Output
     std::vector<std::shared_ptr<const Tensor>> outputs(m_outputVertices.size());
@@ -75,29 +99,6 @@ namespace kann
       outputs[i] = std::move(outputNode.data);
     }
     return outputs;
-  }
-
-  void Executor::evaluate(vertex_type vertex)
-  {
-    Node& node = m_graph[vertex];
-    if(node.data)
-      return;
-
-    std::vector<std::shared_ptr<const Tensor>> inputs(node.variable->inputs.size());
-    for(auto [it, end] = boost::in_edges(vertex, m_graph); it != end; ++it)
-    {
-      const edge_type edge = *it;
-      const vertex_type inputVertex = boost::source(edge, m_graph);
-
-      const Node& inputNode = m_graph[inputVertex];
-      const Connection& connection = m_graph[edge];
-
-      evaluate(inputVertex);
-      assert(inputNode.data);
-      inputs[connection.id] = inputNode.data;
-    }
-
-    node.data = node.variable->op->process(inputs);
   }
 
   static std::string demangle(const char* mangledName)
