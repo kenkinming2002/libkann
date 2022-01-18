@@ -67,8 +67,8 @@ namespace kann
         .model = model,
         .i = i,
         .size = size,
-        .input = input,
-        .output = output
+        .input = std::move(input),
+        .output = std::move(output)
       });
       if(!result)
         break;
@@ -93,9 +93,9 @@ namespace kann
         .model = model,
         .i = i,
         .size = size,
-        .input = input,
-        .output = output,
-        .expectedOutput = expectedOutput,
+        .input = std::move(input),
+        .output = std::move(output),
+        .expectedOutput = std::move(expectedOutput),
         .cost = cost
       });
       if(!result)
@@ -125,9 +125,9 @@ namespace kann
         .model = model,
         .i = i,
         .size = size,
-        .input = input,
-        .output = output,
-        .expectedOutput = expectedOutput,
+        .input = std::move(input),
+        .output = std::move(output),
+        .expectedOutput = std::move(expectedOutput),
         .cost = cost
       });
       if(!result)
@@ -179,9 +179,9 @@ namespace kann
         .discriminatorModel = discriminatorModel,
         .i = i,
         .size = size,
-        .GANOutput = GANOutput,
-        .generatorOutput = generatorOutput,
-        .discriminatorOutput = discriminatorOutput
+        .GANOutput = std::move(GANOutput),
+        .generatorOutput = std::move(generatorOutput),
+        .discriminatorOutput = std::move(discriminatorOutput)
       });
       if(!result)
         break;
