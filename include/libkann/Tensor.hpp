@@ -45,6 +45,17 @@ namespace kann
     }
 
   public:
+    auto asRowVector() &
+    {
+      return Eigen::RowVectorXd::Map(m_values.get(), m_size);
+    }
+
+    auto asRowVector() const &
+    {
+      return Eigen::RowVectorXd::Map(m_values.get(), m_size);
+    }
+
+  public:
     auto asMatrix(size_t rows, size_t cols) &
     {
       assert(m_size == rows * cols);
