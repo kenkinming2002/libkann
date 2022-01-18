@@ -157,7 +157,7 @@ namespace kann
       std::shared_ptr<Tensor> expectedOutput = std::make_shared<Tensor>(1);
 
       // Train on latent data set
-      input = dataSet.get(columnLatent, i);
+      input = dataSetLatent.get(columnLatent, i);
 
       // Generator
       expectedOutput->asArray()(0) = 1.0;
