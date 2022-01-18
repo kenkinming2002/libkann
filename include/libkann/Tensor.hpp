@@ -4,7 +4,7 @@
 
 #include <cereal/types/vector.hpp>
 
-#include <vector>
+#include <memory>
 
 namespace kann
 {
@@ -12,56 +12,73 @@ namespace kann
   {
   public:
     Tensor() = default;
-    Tensor(size_t size) : values(size) {}
+    Tensor(size_t size) : m_size(size)
+    {
+      m_values = std::make_unique_for_overwrite<double[]>(m_size);
+    }
+
     Tensor(Eigen::VectorXd data);
 
   public:
-    std::vector<double> values;
-
-  public:
-    size_t size() const { return values.size(); }
+    size_t size() const { return m_size; }
 
   public:
     auto asArray() &
     {
-      return Eigen::ArrayXd::Map(values.data(), values.size());
+      return Eigen::ArrayXd::Map(m_values.get(), m_size);
     }
 
     auto asArray() const &
     {
-      return Eigen::ArrayXd::Map(values.data(), values.size());
+      return Eigen::ArrayXd::Map(m_values.get(), m_size);
     }
 
   public:
     auto asVector() &
     {
-      return Eigen::VectorXd::Map(values.data(), values.size());
+      return Eigen::VectorXd::Map(m_values.get(), m_size);
     }
 
     auto asVector() const &
     {
-      return Eigen::VectorXd::Map(values.data(), values.size());
+      return Eigen::VectorXd::Map(m_values.get(), m_size);
     }
 
   public:
     auto asMatrix(size_t rows, size_t cols) &
     {
-      assert(values.size() == rows * cols);
-      return Eigen::MatrixXd::Map(values.data(), rows, cols);
+      assert(m_size == rows * cols);
+      return Eigen::MatrixXd::Map(m_values.get(), rows, cols);
     }
 
     auto asMatrix(size_t rows, size_t cols) const &
     {
-      assert(values.size() == rows * cols);
-      return Eigen::MatrixXd::Map(values.data(), rows, cols);
+      assert(m_size == rows * cols);
+      return Eigen::MatrixXd::Map(m_values.get(), rows, cols);
     }
 
   public:
     template<typename Archive>
-    void serialize(Archive& archive)
+    void save(Archive& archive) const
     {
-      archive(values);
+      archive(cereal::make_size_tag(m_size));
+      for(size_t i=0; i<m_size; ++i)
+        archive(m_values[i]);
     }
+
+    template<typename Archive>
+    void load(Archive& archive)
+    {
+      archive(cereal::make_size_tag(m_size));
+      m_values = std::make_unique_for_overwrite<double[]>(m_size);
+      for(size_t i=0; i<m_size; ++i)
+        archive(m_values[i]);
+    }
+
+  public:
+    size_t m_size;
+    std::unique_ptr<double[]> m_values;
+
   };
 
   inline Tensor::Tensor(Eigen::VectorXd v) : Tensor(v.size())
