@@ -46,8 +46,8 @@ namespace kann
   {
     return [=](GANInfo info){
       showProgressBar(name, info.i, info.size, " ",
-        "GAN Output(Fake image):",           info.GANOutput(0), ", ",
-        "Discriminator Output(Real image):", info.discriminatorOutput(0)
+        "GAN Output(Fake image):",           info.GANOutput.asArray()(0), ", ",
+        "Discriminator Output(Real image):", info.discriminatorOutput.asArray()(0)
       );
       return true;
     };
@@ -60,9 +60,8 @@ namespace kann
     Predictor predictor(model);
     for(size_t i=0; i<size; ++i)
     {
-      Eigen::VectorXd input;
-      dataSet.get(column,  i, input);
-      Eigen::VectorXd output = predictor.predict(input);
+      Tensor input = dataSet.get(column,  i);
+      Tensor output = predictor.predict(input);
 
       const bool result = callback(Info{
         .model = model,
@@ -84,9 +83,8 @@ namespace kann
 
     for(size_t i=0; i<size; ++i)
     {
-      Eigen::VectorXd input, expectedOutput;
-      dataSet.get(inputColumn,  i, input);
-      dataSet.get(outputColumn, i, expectedOutput);
+      Tensor input          = dataSet.get(inputColumn, i);
+      Tensor expectedOutput = dataSet.get(outputColumn, i);
 
       const auto [output, cost] = optimizer.optimize(input, expectedOutput);
 
@@ -114,14 +112,13 @@ namespace kann
     Predictor predictor(model);
     for(size_t i=0; i<size; ++i)
     {
-      Eigen::VectorXd input, expectedOutput;
-      dataSet.get(inputColumn,  i, input);
-      dataSet.get(outputColumn, i, expectedOutput);
+      Tensor input          = dataSet.get(inputColumn, i);
+      Tensor expectedOutput = dataSet.get(outputColumn, i);
 
-      Eigen::VectorXd output = predictor.predict(input);
+      Tensor output = predictor.predict(input);
       correctness += dataSet.correctness(outputColumn, i, output);
 
-      Eigen::VectorXd outputGradient = (output-expectedOutput) * 2.0;
+      auto outputGradient = (output.asVector()-expectedOutput.asVector()) * 2.0;
       double cost = outputGradient.squaredNorm();
 
       const bool result = callback(Info{
@@ -156,24 +153,25 @@ namespace kann
     const auto size = dataSetLatent.size();
     for(size_t i=0; i<size; ++i)
     {
+      Tensor input;
+      Tensor expectedOutput(1);
+
       // Train on latent data set
-      Eigen::VectorXd input;
-      Eigen::VectorXd expectedOutput(1);
-      dataSetLatent.get(columnLatent, i, input);
+      input = dataSet.get(columnLatent, i);
 
       // Generator
-      expectedOutput(0) = 1.0;
+      expectedOutput.asArray()(0) = 1.0;
       const auto [GANOutput, GANCost] = GANOptimizer.optimize(input, expectedOutput/*, TAG_GENERATOR*/);
 
       // Discriminator
-      expectedOutput(0) = 0.0;
+      expectedOutput.asArray()(0) = 0.0;
       const auto [discriminatorOutput, discriminiatorCost] = GANOptimizer.optimize(input, expectedOutput/*, TAG_DISCRIMINATOR*/);
 
       // Sample the generator
       const auto generatorOutput = generatorPredictor.predict(input);
 
       // Train on real data set
-      dataSet.get(column, i, input);
+      input = dataSet.get(column, i);
       discriminatorOptimizer.optimize(input, expectedOutput);
       const bool result = callback(GANInfo{
         .GANModel = GANModel,

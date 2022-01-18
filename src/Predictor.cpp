@@ -37,13 +37,13 @@ namespace kann
     m_state = m_model->makeState();
   }
 
-  Eigen::VectorXd Predictor::predict(Eigen::VectorXd input)
+  Tensor Predictor::predict(Tensor input)
   {
     const auto parameters = m_model->parameters();
 
     std::vector<Tensor> inputs;
     {
-      inputs.emplace_back(input);
+      inputs.push_back(std::move(input));
       inputs.insert(inputs.end(), std::move_iterator(parameters.begin()), std::move_iterator(parameters.end()));
       inputs.insert(inputs.end(), m_state.begin(), m_state.end());
     }
@@ -58,6 +58,6 @@ namespace kann
 
     m_state = std::move(newState);
 
-    return output.asVector();
+    return output;
   }
 }

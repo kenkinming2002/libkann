@@ -36,7 +36,7 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
   Eigen::VectorXd data;
   for(size_t i = 0;  i<dataSet.size(); ++i)
   {
-    dataSet.get(i, dataColumn, data);
+    kann::Tensor data = dataSet.get(i, dataColumn);
 
     std::filesystem::path filepath = dirpath / (std::string("data")+std::to_string(i)+std::string(".bmp"));
     auto image = kann::toImage(data, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);

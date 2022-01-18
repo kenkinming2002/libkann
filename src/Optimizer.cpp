@@ -66,14 +66,14 @@ namespace kann
     m_executor.write_graphviz(file);
   }
 
-  std::pair<Eigen::VectorXd, double> Optimizer::optimize(Eigen::VectorXd input, Eigen::VectorXd expectedOutput)
+  std::pair<Tensor, double> Optimizer::optimize(Tensor input, Tensor expectedOutput)
   {
     auto parameters = m_model->parameters();
 
     std::vector<Tensor> inputs;
     {
-      inputs.emplace_back(input);
-      inputs.emplace_back(expectedOutput);
+      inputs.push_back(std::move(input));
+      inputs.push_back(expectedOutput); // We cannot move expected output since that is used to calculate cost
       inputs.insert(inputs.end(), std::move_iterator(parameters.begin()), std::move_iterator(parameters.end()));
       inputs.insert(inputs.end(), m_state.begin(), m_state.end());
     }
@@ -93,7 +93,8 @@ namespace kann
 
     m_state = std::move(newState);
 
-    const double cost = ((output.asVector()-expectedOutput) * 2.0).squaredNorm();
-    return std::make_pair(output.asVector(), cost);
+    // TODO: May be also put that into the computational graph
+    const double cost = ((output.asVector()-expectedOutput.asVector()) * 2.0).squaredNorm();
+    return std::make_pair(std::move(output), cost);
   }
 }

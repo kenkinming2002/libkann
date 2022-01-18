@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Eigen/Eigen>
+#include <libkann/Tensor.hpp>
 
 #include <SFML/Graphics/Image.hpp>
 
@@ -8,5 +8,5 @@
 
 namespace kann
 {
-  sf::Image toImage(const Eigen::VectorXd& data, size_t width, size_t height);
+  sf::Image toImage(const Tensor& data, size_t width, size_t height);
 }

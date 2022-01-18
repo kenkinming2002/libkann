@@ -13,7 +13,7 @@ namespace kann
 
   public:
     /* @return [output, cost] */
-    std::pair<Eigen::VectorXd, double> optimize(Eigen::VectorXd input, Eigen::VectorXd expectedOutput);
+    std::pair<Tensor, double> optimize(Tensor input, Tensor expectedOutput);
 
   private:
     std::shared_ptr<Model> m_model;

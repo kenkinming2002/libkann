@@ -66,18 +66,18 @@ std::optional<Board::Move> Agent::selectMove(Board board, Board::Cell::Color col
   return possibleMoves[index];
 }
 
-static Eigen::VectorXd convert(const Board& board, Board::Cell::Color color)
+static kann::Tensor convert(const Board& board, Board::Cell::Color color)
 {
   // TODO: optimize this tight loop
-  Eigen::VectorXd input(Agent::INPUT_LAYER_SIZE);
+  kann::Tensor input(Agent::INPUT_LAYER_SIZE);
   for(uint8_t y=0; y<Board::HEIGHT; ++y)
     for(uint8_t x=0; x<Board::WIDTH; ++x)
     {
       auto position = Board::Position{x, y};
       auto cell = board.cell(position);
       auto index = (y * Board::WIDTH + x) * 2;
-      input(index)   = static_cast<double>(cell.type);
-      input(index+1) = cell.color == color ? 1.0 : cell.color == Board::Cell::Color::NONE ? 0.0 : -1.0;
+      input.asArray()(index)   = static_cast<double>(cell.type);
+      input.asArray()(index+1) = cell.color == color ? 1.0 : cell.color == Board::Cell::Color::NONE ? 0.0 : -1.0;
     }
 
   return input;
@@ -87,7 +87,7 @@ double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
 {
   auto input = convert(board, color);
   auto output = m_predictor.predict(std::move(input));
-  return output(0);
+  return output.asArray()(0);
 }
 
 void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
@@ -95,15 +95,15 @@ void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
   auto otherColor = color == Board::Cell::Color::RED ? Board::Cell::Color::BLACK : Board::Cell::Color::RED;
   {
     auto input = convert(board, color);
-    Eigen::VectorXd expectedOutput(1);
-    expectedOutput << (good ? 1.0 : 0.0);
-    m_optimizer.optimize(input, expectedOutput);
+    kann::Tensor expectedOutput(1);
+    expectedOutput.asArray()(0) = (good ? 1.0 : 0.0);
+    m_optimizer.optimize(std::move(input), std::move(expectedOutput));
   }
   {
     auto input = convert(board, otherColor);
-    Eigen::VectorXd expectedOutput(1);
-    expectedOutput << (good ? 1.0 : 0.0);
-    m_optimizer.optimize(input, expectedOutput);
+    kann::Tensor expectedOutput(1);
+    expectedOutput.asArray()(0) = (good ? 1.0 : 0.0);
+    m_optimizer.optimize(std::move(input), std::move(expectedOutput));
   }
 }
 

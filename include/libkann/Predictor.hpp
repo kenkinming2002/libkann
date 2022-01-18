@@ -12,7 +12,7 @@ namespace kann
     Predictor(std::shared_ptr<Model> model);
 
   public:
-    Eigen::VectorXd predict(Eigen::VectorXd input);
+    Tensor predict(Tensor input);
 
   private:
     std::shared_ptr<const Model> m_model;

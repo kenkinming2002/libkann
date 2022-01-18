@@ -2,6 +2,7 @@
 
 #include <libkann/datasets/DataSet.hpp>
 #include <libkann/Model.hpp>
+#include <libkann/Tensor.hpp>
 
 #include <functional>
 
@@ -15,9 +16,9 @@ namespace kann
     size_t i;
     size_t size;
 
-    Eigen::VectorXd input;
-    Eigen::VectorXd output;
-    Eigen::VectorXd expectedOutput;
+    Tensor input;
+    Tensor output;
+    Tensor expectedOutput;
 
     double cost;
   };
@@ -32,9 +33,9 @@ namespace kann
     size_t i;
     size_t size;
 
-    Eigen::VectorXd GANOutput;
-    Eigen::VectorXd generatorOutput;
-    Eigen::VectorXd discriminatorOutput;
+    Tensor GANOutput;
+    Tensor generatorOutput;
+    Tensor discriminatorOutput;
   };
   typedef std::function<bool(GANInfo)> GANCallback;
 

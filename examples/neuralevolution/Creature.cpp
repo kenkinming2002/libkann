@@ -107,13 +107,13 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
     const float TEMPORARY_HACK = 1000.0f;
 
     // TODO: Rename configuration variable to suit the changes in their meaning
-    auto linearForceFactor = m_output(OUTPUT_LINEAR_FORCE_FACTOR);
+    auto linearForceFactor = m_output.asArray()(OUTPUT_LINEAR_FORCE_FACTOR);
     auto linearForceMultiplier = linearForceFactor >= 0.0 ?  config.forwardLinearSpeed : config.backwardLinearSpeed;
     auto linearForce = linearForceFactor * linearForceMultiplier * dt;
     this->applyForwardForce(linearForce * TEMPORARY_HACK);
 
     // TODO: Add config variable for angular force or not?
-    auto angularForceFactor = m_output(OUTPUT_ANGULAR_FORCE_FACTOR); // Map from (-1, 1) to (-PI, PI)
+    auto angularForceFactor = m_output.asArray()(OUTPUT_ANGULAR_FORCE_FACTOR); // Map from (-1, 1) to (-PI, PI)
     auto angularForce =  angularForceFactor * M_PI * dt;
     this->applyTorque(angularForce);
     this->takeEnergy(config.movementEnergyDrainMultiplier * linearForce * linearForce * dt);
@@ -133,7 +133,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
 
   // 4: Eating
   {
-    if(m_output(OUTPUT_EATING_DESIRE)>0.0 && m_eatingCooldown == 0.0)
+    if(m_output.asArray()(OUTPUT_EATING_DESIRE)>0.0 && m_eatingCooldown == 0.0)
     {
       takeEnergy(EATING_ENERGY_COST);
       m_eatingCooldown = config.eatingCooldown;
@@ -171,7 +171,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
 
   // 5: Mating
   {
-    if(m_output(OUTPUT_MATING_DESIRE)>0.0 && m_matingCooldown == 0.0)
+    if(m_output.asArray()(OUTPUT_MATING_DESIRE)>0.0 && m_matingCooldown == 0.0)
     {
       takeEnergy(MATING_ENERGY_COST);
       m_matingCooldown = config.matingCooldown;
@@ -191,7 +191,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
           continue;
 
         // Check if other have the same desire
-        if(other->m_output(OUTPUT_EATING_DESIRE)<0.0)
+        if(other->m_output.asArray()(OUTPUT_EATING_DESIRE)<0.0)
           continue; // Other do not want to mate
 
         if(other->m_matingCooldown != 0.0)
