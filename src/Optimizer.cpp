@@ -1,6 +1,7 @@
 #include <libkann/Optimizer.hpp>
 
 #include <libkann/Differentiate.hpp>
+#include <libkann/DefaultExecutor.hpp>
 
 #include <libkann/operations/SubtractOperation.hpp>
 #include <libkann/operations/MultiplyOperation.hpp>
@@ -57,13 +58,13 @@ namespace kann
       outputs.insert(outputs.end(), std::move_iterator(newStateVariables.begin()), std::move_iterator(newStateVariables.end()));
     }
 
-    m_executor = Executor(std::move(inputs), std::move(outputs));
+    m_executor = makeDefaultExecutor(std::move(inputs), std::move(outputs));
 
     // Create initial state
     m_state = m_model->makeState();
 
     std::ofstream file("output/optimizer.dot");
-    m_executor.write_graphviz(file);
+    m_executor->write_graphviz(file);
   }
 
   std::pair<std::shared_ptr<const Tensor>, double> Optimizer::optimize(std::shared_ptr<const Tensor> input, std::shared_ptr<const Tensor> expectedOutput)
@@ -78,7 +79,7 @@ namespace kann
       inputs.insert(inputs.end(), m_state.begin(), m_state.end());
     }
 
-    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor.evaluate(inputs);
+    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor->evaluate(inputs);
 
     std::shared_ptr<const Tensor> output;
     std::vector<std::shared_ptr<const Tensor>> newParameters;

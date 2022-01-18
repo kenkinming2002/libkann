@@ -16,7 +16,7 @@ libkann_sources = [
   'OldVariable.cpp',
   'Algorithm.cpp',
   'ActivationFunction.cpp',
-  'Executor.cpp',
+  'DefaultExecutor.cpp',
   'Predictor.cpp',
   'Optimizer.cpp',
   'Differentiate.cpp',
@@ -42,6 +42,6 @@ libkann_lib = static_library('libkann', libkann_sources,
 
 libkann_dep = declare_dependency(
   include_directories : ['../include'],
-  dependencies : [cereal_dep, eigen_dep, boost_dep, sfml_dep],
+  dependencies : [cereal_dep, eigen_dep, sfml_dep],
   link_with : libkann_lib,
 )

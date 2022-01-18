@@ -19,8 +19,7 @@ namespace kann
     std::shared_ptr<Model> m_model;
     double m_learningRate;
 
-    Executor m_executor;
-
+    std::unique_ptr<Executor> m_executor;
     std::vector<std::shared_ptr<const Tensor>> m_state;
   };
 }

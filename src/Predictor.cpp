@@ -1,5 +1,7 @@
 #include <libkann/Predictor.hpp>
 
+#include <libkann/DefaultExecutor.hpp>
+
 #include <iterator>
 
 namespace kann
@@ -31,7 +33,7 @@ namespace kann
       outputs.insert(outputs.end(), std::move_iterator(newStateVariables.begin()), std::move_iterator(newStateVariables.end()));
     }
 
-    m_executor = Executor(std::move(inputs), std::move(outputs));
+    m_executor = makeDefaultExecutor(std::move(inputs), std::move(outputs));
 
     // Create initial state
     m_state = m_model->makeState();
@@ -48,7 +50,7 @@ namespace kann
       inputs.insert(inputs.end(), m_state.begin(), m_state.end());
     }
 
-    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor.evaluate(inputs);
+    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor->evaluate(inputs);
 
     std::shared_ptr<const Tensor> output;
     std::vector<std::shared_ptr<const Tensor>> newState;

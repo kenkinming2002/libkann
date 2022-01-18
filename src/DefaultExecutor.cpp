@@ -1,5 +1,6 @@
-#include <libkann/Executor.hpp>
+#include <libkann/DefaultExecutor.hpp>
 
+#include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/topological_sort.hpp>
 
@@ -7,6 +8,52 @@
 
 namespace kann
 {
+  class DefaultExecutor : public Executor
+  {
+  public:
+    DefaultExecutor() = default;
+    DefaultExecutor(std::vector<std::shared_ptr<const Variable>> inputs, std::vector<std::shared_ptr<const Variable>> outputs);
+
+  public:
+    std::vector<std::shared_ptr<const Tensor>> evaluate(std::vector<std::shared_ptr<const Tensor>> inputs) override;
+
+  public:
+    void write_graphviz(std::ostream& os) const override;
+
+  private:
+    struct Node
+    {
+      std::shared_ptr<const Variable> variable;
+      std::shared_ptr<const Tensor> data;
+    };
+
+    struct Connection
+    {
+      size_t id;
+    };
+
+  private:
+    typedef boost::adjacency_list<
+      boost::vecS, boost::vecS,
+      boost::bidirectionalS,
+      Node, Connection
+    > graph_type;
+    typedef boost::graph_traits<graph_type>::vertex_descriptor vertex_type;
+    typedef boost::graph_traits<graph_type>::edge_descriptor edge_type;
+
+  private:
+    graph_type m_graph;
+    std::vector<vertex_type> m_ordering;
+    std::vector<vertex_type> m_inputVertices;
+    std::vector<vertex_type> m_outputVertices;
+  };
+
+  std::unique_ptr<Executor> makeDefaultExecutor(std::vector<std::shared_ptr<const Variable>> inputs, std::vector<std::shared_ptr<const Variable>> outputs)
+  {
+    return std::make_unique<DefaultExecutor>(std::move(inputs), std::move(outputs));
+  }
+
+
   template<typename Callback>
   static void walk(const std::shared_ptr<const Variable>& variable, const Callback& callback)
   {
@@ -17,7 +64,7 @@ namespace kann
       walk(input, callback);
   }
 
-  Executor::Executor(std::vector<std::shared_ptr<const Variable>> inputs, std::vector<std::shared_ptr<const Variable>> outputs)
+  DefaultExecutor::DefaultExecutor(std::vector<std::shared_ptr<const Variable>> inputs, std::vector<std::shared_ptr<const Variable>> outputs)
   {
     std::unordered_map<std::shared_ptr<const Variable>, vertex_type> verticesMap;
     for(const auto& output : outputs)
@@ -53,7 +100,7 @@ namespace kann
     std::reverse(m_ordering.begin(), m_ordering.end());
   }
 
-  std::vector<std::shared_ptr<const Tensor>> Executor::evaluate(std::vector<std::shared_ptr<const Tensor>> inputs)
+  std::vector<std::shared_ptr<const Tensor>> DefaultExecutor::evaluate(std::vector<std::shared_ptr<const Tensor>> inputs)
   {
     // Clear everything
     for(auto [it, end] = boost::vertices(m_graph); it != end; ++it)
@@ -113,7 +160,7 @@ namespace kann
     return result;
   }
 
-  void Executor::write_graphviz(std::ostream& os) const
+  void DefaultExecutor::write_graphviz(std::ostream& os) const
   {
     auto vertexWriter = [this](std::ostream& os, vertex_type vertex){
       const Node& node = m_graph[vertex];

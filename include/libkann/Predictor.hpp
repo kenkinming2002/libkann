@@ -16,7 +16,7 @@ namespace kann
 
   private:
     std::shared_ptr<const Model> m_model;
-    Executor m_executor;
+    std::unique_ptr<Executor> m_executor;
 
     std::vector<std::shared_ptr<const Tensor>> m_state;
   };
