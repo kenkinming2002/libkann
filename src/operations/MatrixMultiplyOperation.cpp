@@ -13,16 +13,16 @@ namespace kann
     if(m_transpose1)
     {
       if(m_transpose2)
-        result.asMatrix(m_m,m_n) = a.asMatrix(m_k, m_m).transpose() * b.asMatrix(m_n, m_k).transpose();
+        result.asMatrix(m_m,m_n).noalias() = a.asMatrix(m_k, m_m).transpose() * b.asMatrix(m_n, m_k).transpose();
       else
-        result.asMatrix(m_m,m_n) = a.asMatrix(m_k, m_m).transpose() * b.asMatrix(m_k, m_n);
+        result.asMatrix(m_m,m_n).noalias() = a.asMatrix(m_k, m_m).transpose() * b.asMatrix(m_k, m_n);
     }
     else
     {
       if(m_transpose2)
-        result.asMatrix(m_m,m_n) = a.asMatrix(m_m, m_k) * b.asMatrix(m_n, m_k).transpose();
+        result.asMatrix(m_m,m_n).noalias() = a.asMatrix(m_m, m_k) * b.asMatrix(m_n, m_k).transpose();
       else
-        result.asMatrix(m_m,m_n) = a.asMatrix(m_m, m_k) * b.asMatrix(m_k, m_n);
+        result.asMatrix(m_m,m_n).noalias() = a.asMatrix(m_m, m_k) * b.asMatrix(m_k, m_n);
     }
 
     return result;
