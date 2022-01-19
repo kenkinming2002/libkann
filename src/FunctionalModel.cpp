@@ -27,7 +27,7 @@ namespace kann
   {
   public:
     FunctionalModel() = default;
-    FunctionalModel(std::shared_ptr<const OldVariable> input, std::shared_ptr<const OldVariable> output, std::vector<FeedBack> feedBacks);
+    FunctionalModel(std::shared_ptr<const FunctionalVariable> input, std::shared_ptr<const FunctionalVariable> output, std::vector<FeedBack> feedBacks);
 
   public:
     void write_graphviz(std::ostream& os) const override;
@@ -134,7 +134,7 @@ namespace kann
     std::vector<vertex_type> m_ordering;
   };
 
-  std::shared_ptr<Model> makeFunctionalModel(std::shared_ptr<const OldVariable> input, std::shared_ptr<const OldVariable> output, std::vector<FeedBack> feedBacks)
+  std::shared_ptr<Model> makeFunctionalModel(std::shared_ptr<const FunctionalVariable> input, std::shared_ptr<const FunctionalVariable> output, std::vector<FeedBack> feedBacks)
   {
     return std::make_shared<FunctionalModel>(std::move(input), std::move(output), std::move(feedBacks));
   }
@@ -153,7 +153,7 @@ namespace cereal
 namespace kann
 {
   template<typename Callback>
-  static void walk(const std::shared_ptr<const OldVariable>& variable, const Callback& callback)
+  static void walk(const std::shared_ptr<const FunctionalVariable>& variable, const Callback& callback)
   {
     if(!callback(variable))
       return;
@@ -164,8 +164,8 @@ namespace kann
 
   template<typename Callback>
   static void walk(
-      const std::shared_ptr<const OldVariable>& input,
-      const std::shared_ptr<const OldVariable>& output,
+      const std::shared_ptr<const FunctionalVariable>& input,
+      const std::shared_ptr<const FunctionalVariable>& output,
       const std::vector<FeedBack>& feedBacks,
       const Callback& callback)
   {
@@ -174,13 +174,13 @@ namespace kann
       walk(feedBack.output, callback);
   }
 
-  FunctionalModel::FunctionalModel(std::shared_ptr<const OldVariable> input, std::shared_ptr<const OldVariable> output, std::vector<FeedBack> feedBacks)
+  FunctionalModel::FunctionalModel(std::shared_ptr<const FunctionalVariable> input, std::shared_ptr<const FunctionalVariable> output, std::vector<FeedBack> feedBacks)
   {
     // 1: Enumerate all varaibles in a well-defined order
-    std::vector<std::shared_ptr<const OldVariable>> variables;
+    std::vector<std::shared_ptr<const FunctionalVariable>> variables;
     {
-      std::set<std::shared_ptr<const OldVariable>> set;
-      walk(input, output, feedBacks, [&variables, &set](const std::shared_ptr<const OldVariable>& variable){
+      std::set<std::shared_ptr<const FunctionalVariable>> set;
+      walk(input, output, feedBacks, [&variables, &set](const std::shared_ptr<const FunctionalVariable>& variable){
         if(set.contains(variable))
           return false;
 
@@ -201,7 +201,7 @@ namespace kann
       vertices[i] = boost::add_vertex(VertexProperty{.nodeIndex = i}, m_graph);
 
     // 4: Establish a map between variable to index
-    std::unordered_map<std::shared_ptr<const OldVariable>, size_t> indicesMap;
+    std::unordered_map<std::shared_ptr<const FunctionalVariable>, size_t> indicesMap;
     for(size_t i=0; i<variables.size(); ++i)
       indicesMap.emplace(variables[i], i);
 

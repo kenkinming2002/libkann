@@ -12,15 +12,15 @@
 
 namespace kann
 {
-  struct OldVariable
+  struct FunctionalVariable
   {
   public:
-    static std::shared_ptr<OldVariable> constant(size_t size);
+    static std::shared_ptr<FunctionalVariable> constant(size_t size);
 
   public:
     struct Input
     {
-      std::shared_ptr<OldVariable> variable;
+      std::shared_ptr<FunctionalVariable> variable;
       std::shared_ptr<Layer> layer;
 
       template<typename Archive>
@@ -43,8 +43,8 @@ namespace kann
     }
   };
 
-  std::shared_ptr<OldVariable> operator|(std::shared_ptr<OldVariable> variable, std::shared_ptr<Layer> layer);
-  std::shared_ptr<OldVariable> operator+(std::shared_ptr<OldVariable> lhs, std::shared_ptr<OldVariable> rhs);
+  std::shared_ptr<FunctionalVariable> operator|(std::shared_ptr<FunctionalVariable> variable, std::shared_ptr<Layer> layer);
+  std::shared_ptr<FunctionalVariable> operator+(std::shared_ptr<FunctionalVariable> lhs, std::shared_ptr<FunctionalVariable> rhs);
 
 
 }

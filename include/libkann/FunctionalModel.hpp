@@ -1,7 +1,7 @@
 #pragma once
 
 #include <libkann/Model.hpp>
-#include <libkann/OldVariable.hpp>
+#include <libkann/FunctionalVariable.hpp>
 
 #include <memory>
 
@@ -9,7 +9,7 @@ namespace kann
 {
   struct FeedBack
   {
-    std::shared_ptr<const OldVariable> input, output;
+    std::shared_ptr<const FunctionalVariable> input, output;
 
     template<typename Archive>
     void serialize(Archive& archive)
@@ -18,5 +18,5 @@ namespace kann
     }
   };
 
-  std::shared_ptr<Model> makeFunctionalModel(std::shared_ptr<const OldVariable> input, std::shared_ptr<const OldVariable> output, std::vector<FeedBack> feedBacks = {});
+  std::shared_ptr<Model> makeFunctionalModel(std::shared_ptr<const FunctionalVariable> input, std::shared_ptr<const FunctionalVariable> output, std::vector<FeedBack> feedBacks = {});
 }
