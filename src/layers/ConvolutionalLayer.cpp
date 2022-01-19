@@ -1,5 +1,10 @@
 #include <libkann/layers/ConvolutionalLayer.hpp>
 
+#include <libkann/operations/IdentityOperation.hpp>
+#include <libkann/operations/ConvolutionOperation.hpp>
+#include <libkann/operations/ReduceOperation.hpp>
+
+#include <algorithm>
 #include <assert.h>
 
 namespace kann
@@ -9,13 +14,20 @@ namespace kann
       m_kernelSize(kernelSize),
       m_inputChannelCount(inputChannelCount), m_outputChannelCount(outputChannelCount)
   {
-    /* Unsigned overflow is well-defined behavior so we could safely do the check
-     * afterwards */
-    assert(m_inputWidth  >= m_kernelSize);
-    assert(m_inputHeight >= m_kernelSize);
+    initializeVariables();
 
-    m_kernels.resize(m_inputChannelCount * m_outputChannelCount, Eigen::MatrixXd::Zero(m_kernelSize, m_kernelSize));
-    m_kernelsGradient.resize(m_inputChannelCount * m_outputChannelCount, Eigen::MatrixXd::Zero(m_kernelSize, m_kernelSize));
+    m_kernels.resize(m_inputChannelCount * m_outputChannelCount);
+    std::generate(m_kernels.begin(), m_kernels.end(), [this](){
+      return std::make_shared<const Tensor>(m_kernelSize * m_kernelSize);
+    });
+  }
+
+  void ConvolutionalLayer::initializeVariables()
+  {
+    m_kernelsVariable.resize(m_inputChannelCount * m_outputChannelCount);
+    std::generate(m_kernelsVariable.begin(), m_kernelsVariable.end(), [](){
+      return std::make_shared<const Variable>();
+    });
   }
 
   std::unique_ptr<Layer> ConvolutionalLayer::clone() const
@@ -35,6 +47,69 @@ namespace kann
 
   auto ConvolutionalLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
   {
-    assert(false && "Unimplemented");
+    /* TODO: Consider marking them as override final */
+    const size_t outputWidth = m_inputWidth - m_kernelSize + 1;
+    const size_t outputHeight = m_inputHeight - m_kernelSize + 1;
+
+    // Split input into channels
+    std::vector<std::shared_ptr<const Variable>> inputChannels(m_inputChannelCount);
+    for(size_t i=0; i<m_inputChannelCount; ++i)
+      inputChannels[i] = std::make_shared<const Variable>(
+        std::vector{input},
+        std::make_shared<IdentityOperation>(
+          m_inputWidth * m_inputHeight * m_inputChannelCount,
+          m_inputWidth * m_inputHeight,
+          m_inputWidth * m_inputHeight * i
+        )
+      );
+
+    std::vector<std::shared_ptr<const Variable>> outputChannels(m_outputChannelCount);
+    for(size_t i=0; i<m_outputChannelCount; ++i)
+    {
+      std::vector<std::shared_ptr<const Variable>> results(m_inputChannelCount);
+      for(size_t j=0; j<m_inputChannelCount; ++j)
+        results[j] = std::make_shared<const Variable>(
+          std::vector{inputChannels[j], m_kernelsVariable[i * m_inputChannelCount + j]},
+          std::make_shared<ConvolutionOperation>(m_inputWidth, m_inputHeight, m_kernelSize)
+        );
+
+      outputChannels[i] = std::make_shared<const Variable>(
+        std::move(results),
+        std::make_shared<ReduceOperation>(m_inputChannelCount)
+      );
+    }
+
+    // Concat output channels
+    for(size_t i=0; i<m_outputChannelCount; ++i)
+      outputChannels[i] = std::make_shared<const Variable>(
+        std::vector{std::move(outputChannels[i])},
+        std::make_shared<IdentityOperation>(
+          outputWidth * outputHeight,
+          outputWidth * outputHeight * m_outputChannelCount,
+          outputWidth * outputHeight * i
+        )
+      );
+
+    auto output = std::make_shared<const Variable>(
+        std::move(outputChannels),
+        std::make_shared<ReduceOperation>(m_outputChannelCount)
+    );
+
+    return std::make_pair(std::move(output), std::move(state));
+  }
+
+  std::vector<std::shared_ptr<const Variable>> ConvolutionalLayer::parametersVariables() const
+  {
+    return m_kernelsVariable;
+  }
+
+  std::vector<std::shared_ptr<const Tensor>> ConvolutionalLayer::parameters() const
+  {
+    return m_kernels;
+  }
+
+  void ConvolutionalLayer::parameters(std::vector<std::shared_ptr<const Tensor>> parameters)
+  {
+    m_kernels = parameters;
   }
 }

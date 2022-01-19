@@ -26,6 +26,8 @@ libkann_sources = [
   'operations/CWiseProductOperation.cpp',
   'operations/MultiplyOperation.cpp',
   'operations/SubtractOperation.cpp',
+  'operations/ConvolutionOperation.cpp',
+  'operations/DeconvolutionOperation.cpp',
 ]
 
 eigen_dep = dependency('eigen3')
