@@ -33,6 +33,8 @@ namespace kann
     {
       std::shared_ptr<const Variable> variable;
       std::shared_ptr<const Tensor> data;
+
+      std::optional<std::string> name;
     };
 
     struct Connection
@@ -96,6 +98,14 @@ namespace kann
           verticesMap.emplace(variable, vertex);
           return true;
         });
+
+    for(const auto& [name, inputVariables] : m_inputVariablesMap)
+      for(const auto& inputVariable : inputVariables)
+        m_graph[verticesMap.at(inputVariable)].name = name;
+
+    for(const auto& [name, outputVariables] : m_outputVariablesMap)
+      for(const auto& outputVariable : outputVariables)
+        m_graph[verticesMap.at(outputVariable)].name = name;
 
     // 2: Create edges
     for(const auto& [variable, vertex] : verticesMap)
@@ -211,13 +221,16 @@ namespace kann
     auto vertexWriter = [this](std::ostream& os, vertex_type vertex){
       const Node& node = m_graph[vertex];
       const Variable& variable = *node.variable;
-      if(!variable.op)
-        return;
-
       const Operation& op = *variable.op;
 
       os << "[label=\"";
-      os << "op=" << demangle(typeid(op).name()).substr(0, 20) << "\\n";
+
+      if(variable.op)
+        os << "op=" << demangle(typeid(op).name()).substr(0, 20) << "\\n";
+
+      if(node.name)
+        os << "name=" << *node.name << "\\n";
+
       os << "\"]";
     };
 
