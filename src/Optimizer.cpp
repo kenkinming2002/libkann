@@ -15,57 +15,56 @@ namespace kann
   Optimizer::Optimizer(std::shared_ptr<Model> model, double learningRate)
     : m_model(std::move(model)), m_learningRate(learningRate)
   {
-    std::shared_ptr<const Variable> input, output;
-    std::vector<std::shared_ptr<const Variable>> parametersVariables, parametersGradientVariables, newParametersVariables;
-    std::vector<std::shared_ptr<const Variable>> stateVariables, newStateVariables;
+    // 1: Create Executor
+    m_executor = makeDefaultExecutor();
 
-    input = std::make_shared<const Variable>();
-    parametersVariables = m_model->parametersVariables(TAG_ALL);
-    stateVariables      = m_model->makeStateVariables();
-    std::tie(output, newStateVariables) = (*m_model)(input, stateVariables);
+    auto inputVariable = std::make_shared<const Variable>();
+    m_executor->addInput("input", {inputVariable});
 
-    const auto expectedOutput = std::make_shared<const Variable>();
-    const auto tmp            = std::make_shared<const Variable>(std::vector{output,expectedOutput}, std::make_shared<SubtractOperation>());
-    const auto outputGradient = std::make_shared<const Variable>(std::vector{tmp}, std::make_shared<MultiplyOperation>(2.0));
+    auto expectedOutputVariable = std::make_shared<const Variable>();
+    m_executor->addInput("expected output", {expectedOutputVariable});
 
-    parametersVariables = m_model->parametersVariables(TAG_ALL);
+    auto parametersVariables = m_model->parametersVariables(TAG_ALL);
+    m_executor->addInput("parameters", parametersVariables);
+
+    auto stateVariables = m_model->makeStateVariables();
+    m_executor->addInput("state", stateVariables);
+
+    auto [outputVariable, newStateVariables] = (*m_model)(inputVariable, stateVariables);
+    m_executor->addOutput("output", {outputVariable});
+    m_executor->addOutput("new state", newStateVariables);
+
+    auto outputGradientVariable = std::make_shared<const Variable>(
+      std::vector{std::make_shared<const Variable>(
+        std::vector{outputVariable,expectedOutputVariable},
+        std::make_shared<SubtractOperation>()
+      )},
+      std::make_shared<MultiplyOperation>(2.0)
+    );
+
+    std::vector<std::shared_ptr<const Variable>> parametersGradientVariables;
     {
-      const auto gradientsMap = differentiate({output}, {outputGradient});
-      std::transform(parametersVariables.begin(), parametersVariables.end(), std::back_inserter(parametersGradientVariables), [&gradientsMap](const auto& variable){
-          return gradientsMap.at(variable);
-      });
+      auto gradientVariablesMap = differentiate({outputVariable}, {outputGradientVariable});
+      for(auto& v : parametersVariables)
+        parametersGradientVariables.push_back(gradientVariablesMap.at(v));
     }
 
+    std::vector<std::shared_ptr<const Variable>> newParametersVariables;
     for(size_t i=0; i<parametersVariables.size(); ++i)
     {
-      const auto tmp = std::make_shared<const Variable>(std::vector{parametersGradientVariables[i]}, std::make_shared<MultiplyOperation>(learningRate));
-      const auto result = std::make_shared<const Variable>(std::vector{parametersVariables[i], std::move(tmp)}, std::make_shared<SubtractOperation>());
+      auto tmp = std::make_shared<const Variable>(std::vector{parametersGradientVariables[i]}, std::make_shared<MultiplyOperation>(learningRate));
+      auto result = std::make_shared<const Variable>(std::vector{parametersVariables[i], std::move(tmp)}, std::make_shared<SubtractOperation>());
       newParametersVariables.push_back(std::move(result));
     }
 
-    std::vector<std::shared_ptr<const Variable>> inputs;
-    {
-      inputs.push_back(input);
-      inputs.push_back(expectedOutput);
+    m_executor->addOutput("new parameters", newParametersVariables);
 
-      inputs.insert(inputs.end(), std::move_iterator(parametersVariables.begin()), std::move_iterator(parametersVariables.end()));
-      inputs.insert(inputs.end(), std::move_iterator(stateVariables.begin()), std::move_iterator(stateVariables.end()));
+    m_executor->build();
 
-    }
-
-    std::vector<std::shared_ptr<const Variable>> outputs;
-    {
-      outputs.push_back(output);
-
-      outputs.insert(outputs.end(), std::move_iterator(newParametersVariables.begin()), std::move_iterator(newParametersVariables.end()));
-      outputs.insert(outputs.end(), std::move_iterator(newStateVariables.begin()), std::move_iterator(newStateVariables.end()));
-    }
-
-    m_executor = makeDefaultExecutor(std::move(inputs), std::move(outputs));
-
-    // Create initial state
+    // 2: Create initial state
     m_state = m_model->makeState();
 
+    // 3: DEBUG
     std::ofstream file("output/optimizer.dot");
     m_executor->write_graphviz(file);
   }
@@ -75,42 +74,33 @@ namespace kann
     auto parameters = m_model->parameters(TAG_ALL);
 
     // 1: Input
-    std::vector<std::shared_ptr<const Tensor>> inputs;
-    {
-      inputs.push_back(input);
-      inputs.push_back(expectedOutput);
+    m_executor->input("input", {input});
+    m_executor->input("expected output", {expectedOutput});
+    m_executor->input("state", m_state);
 
-      inputs.insert(inputs.end(), m_state.begin(), m_state.end());
-      inputs.insert(inputs.end(), std::move_iterator(parameters.begin()), std::move_iterator(parameters.end()));
+    std::vector<std::shared_ptr<const Tensor>> tmp;
+    for(std::reference_wrapper parameter : parameters)
+      tmp.push_back(parameter);
+
+    m_executor->input("parameters", std::move(tmp));
+
+    // 2: Output
+    auto output = m_executor->output("output").front();
+
+    auto newParameters = m_executor->output("new parameters");
+    {
+      std::unordered_set<std::shared_ptr<const Tensor>*> trainableParametersSet;
+      for(std::reference_wrapper trainableParameter : m_model->parameters(tag))
+        trainableParametersSet.insert(&trainableParameter.get());
+
+      // Only update trainable parameters
+      for(size_t i=0; i<parameters.size(); ++i)
+        if(trainableParametersSet.contains(&parameters[i].get()))
+          parameters[i].get() = std::move(newParameters[i]);
     }
 
-    // 2: Outputs
-    // TODO: Support partial evaluation
-    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor->evaluate(std::move(inputs));
-
-
-    // 3: Parsing the output
-    size_t i = 0;
-
-    std::shared_ptr<const Tensor> output = outputs[i++];
-
-    std::vector<std::shared_ptr<const Tensor>> newParameters(parameters.size());
-    for(auto& parameter : newParameters)
-      parameter = std::move(outputs[i++]);
-
-    std::vector<std::shared_ptr<const Tensor>> newState(m_state.size());
-    for(auto& state : newState)
-      state = std::move(outputs[i++]);
-
-    // 4: Updating
-    std::unordered_set<std::shared_ptr<const Tensor>*> trainableParametersSet;
-    for(std::reference_wrapper trainableParameter : m_model->parameters(tag))
-      trainableParametersSet.insert(&trainableParameter.get());
-
-    // Only update trainable parameters
-    for(size_t i=0; i<parameters.size(); ++i)
-      if(trainableParametersSet.contains(&parameters[i].get()))
-        parameters[i].get() = std::move(newParameters[i]);
+    auto newState = m_executor->output("new state");
+    m_state = std::move(newState);
 
     // 5: Return
     // TODO: May be also put that into the computational graph

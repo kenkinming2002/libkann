@@ -28,7 +28,11 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto f = std::make_shared<const kann::Variable>(std::vector{c, d}, std::make_shared<kann::ReduceOperation>(2));
     auto g = std::make_shared<const kann::Variable>(std::vector{d, e}, std::make_shared<kann::ReduceOperation>(2));
 
-    auto executor = kann::makeDefaultExecutor({a, b}, {f, g});
+    auto executor = kann::makeDefaultExecutor();
+    executor->addInput("input", {a, b});
+    executor->addOutput("output", {f, g});
+    executor->build();
+
     {
       std::ofstream file("output/executor1.dot");
       executor->write_graphviz(file);
@@ -43,8 +47,8 @@ TEST_CASE("NewAPI", "[NewAPI]")
     input1->asArray().setRandom();
     input2->asArray().setRandom();
 
-    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
-    auto outputs = executor->evaluate(inputs);
+    executor->input("input", {input1, input2});
+    auto outputs = executor->output("output");
 
     auto output1 = outputs[0];
     auto output2 = outputs[1];
@@ -80,7 +84,11 @@ TEST_CASE("NewAPI", "[NewAPI]")
     outputs.push_back(gradientsMap.at(b));
     outputs.push_back(h);
 
-    auto executor = kann::makeDefaultExecutor(inputs, outputs);
+    auto executor = kann::makeDefaultExecutor();
+    executor->addInput("input", inputs);
+    executor->addOutput("output", outputs);
+    executor->build();
+
     {
       std::ofstream file("output/executor_gradients.dot");
       executor->write_graphviz(file);
@@ -113,7 +121,10 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto inputVariable2 = std::make_shared<const kann::Variable>();
     auto outputVariable = func.invoke({inputVariable1, inputVariable2});
 
-    auto executor = kann::makeDefaultExecutor({inputVariable1, inputVariable2}, {outputVariable});
+    auto executor = kann::makeDefaultExecutor();
+    executor->addInput("input", {inputVariable1, inputVariable2});
+    executor->addOutput("output", {outputVariable});
+    executor->build();
     {
       std::ofstream file("output/executor2.dot");
       executor->write_graphviz(file);
@@ -128,8 +139,8 @@ TEST_CASE("NewAPI", "[NewAPI]")
     input1->asArray().setRandom();
     input2->asArray().setRandom();
 
-    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
-    auto outputs = executor->evaluate(inputs);
+    executor->input("input", {input1, input2});
+    auto outputs = executor->output("output");
 
     auto output = outputs[0];
 
@@ -144,7 +155,10 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto b = std::make_shared<const kann::Variable>();
     auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
-    auto executor = kann::makeDefaultExecutor({a,b}, {c});
+    auto executor = kann::makeDefaultExecutor();
+    executor->addInput("input", {a,b});
+    executor->addOutput("output", {c});
+    executor->build();
     {
       std::ofstream file("output/executor3.dot");
       executor->write_graphviz(file);
@@ -159,8 +173,8 @@ TEST_CASE("NewAPI", "[NewAPI]")
     input1->asArray().setRandom();
     input2->asArray().setRandom();
 
-    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
-    auto outputs = executor->evaluate(inputs);
+    executor->input("input", {input1, input2});
+    auto outputs = executor->output("output");
 
     auto output = outputs[0];
 
@@ -175,7 +189,10 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto b = std::make_shared<const kann::Variable>();
     auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
-    auto executor = kann::makeDefaultExecutor({a,b}, {c});
+    auto executor = kann::makeDefaultExecutor();
+    executor->addInput("input", {a,b});
+    executor->addOutput("output", {c});
+    executor->build();
     {
       std::ofstream file("output/executor4.dot");
       executor->write_graphviz(file);
@@ -190,8 +207,8 @@ TEST_CASE("NewAPI", "[NewAPI]")
     input1->asArray().setRandom();
     input2->asArray().setRandom();
 
-    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
-    auto outputs = executor->evaluate(inputs);
+    executor->input("input", {input1, input2});
+    auto outputs = executor->output("output");
 
     auto output = outputs[0];
 
@@ -206,7 +223,10 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto b = std::make_shared<const kann::Variable>();
     auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
-    auto executor = kann::makeDefaultExecutor({a,b}, {c});
+    auto executor = kann::makeDefaultExecutor();
+    executor->addInput("input", {a,b});
+    executor->addOutput("output", {c});
+    executor->build();
     {
       std::ofstream file("output/executor5.dot");
       executor->write_graphviz(file);
@@ -221,8 +241,8 @@ TEST_CASE("NewAPI", "[NewAPI]")
     input1->asArray().setRandom();
     input2->asArray().setRandom();
 
-    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
-    auto outputs = executor->evaluate(inputs);
+    executor->input("input", {input1, input2});
+    auto outputs = executor->output("output");
 
     auto output = outputs[0];
 
@@ -237,7 +257,10 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto b = std::make_shared<const kann::Variable>();
     auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
-    auto executor = kann::makeDefaultExecutor({a,b}, {c});
+    auto executor = kann::makeDefaultExecutor();
+    executor->addInput("input", {a,b});
+    executor->addOutput("output", {c});
+    executor->build();
     {
       std::ofstream file("output/executor6.dot");
       executor->write_graphviz(file);
@@ -252,8 +275,8 @@ TEST_CASE("NewAPI", "[NewAPI]")
     input1->asArray().setRandom();
     input2->asArray().setRandom();
 
-    auto inputs  = std::vector<std::shared_ptr<const kann::Tensor>>{input1, input2};
-    auto outputs = executor->evaluate(inputs);
+    executor->input("input", {input1, input2});
+    auto outputs = executor->output("output");
 
     auto output = outputs[0];
 

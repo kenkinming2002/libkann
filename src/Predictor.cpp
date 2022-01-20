@@ -2,6 +2,7 @@
 
 #include <libkann/DefaultExecutor.hpp>
 
+#include <fstream>
 #include <iterator>
 
 namespace kann
@@ -9,55 +10,50 @@ namespace kann
   Predictor::Predictor(std::shared_ptr<Model> model)
     : m_model(std::move(model))
   {
-    std::shared_ptr<const Variable> input, output;
-    std::vector<std::shared_ptr<const Variable>> parametersVariables;
-    std::vector<std::shared_ptr<const Variable>> stateVariables, newStateVariables;
+    // 1: Create Executor
+    m_executor = makeDefaultExecutor();
 
-    // Initialize
-    input = std::make_shared<const Variable>();
-    parametersVariables = m_model->parametersVariables(TAG_ALL);
-    stateVariables      = m_model->makeStateVariables();
-    std::tie(output, newStateVariables) = (*m_model)(input, stateVariables);
+    auto inputVariable = std::make_shared<const Variable>();
+    m_executor->addInput("input", {inputVariable});
 
-    // Create executor
-    std::vector<std::shared_ptr<const Variable>> inputs;
-    {
-      inputs.push_back(input);
-      inputs.insert(inputs.end(), std::move_iterator(parametersVariables.begin()), std::move_iterator(parametersVariables.end()));
-      inputs.insert(inputs.end(), std::move_iterator(stateVariables.begin()),      std::move_iterator(stateVariables.end()));
-    }
+    auto parametersVariables = m_model->parametersVariables(TAG_ALL);
+    m_executor->addInput("parameters", parametersVariables);
 
-    std::vector<std::shared_ptr<const Variable>> outputs;
-    {
-      outputs.push_back(output);
-      outputs.insert(outputs.end(), std::move_iterator(newStateVariables.begin()), std::move_iterator(newStateVariables.end()));
-    }
+    auto stateVariables = m_model->makeStateVariables();
+    m_executor->addInput("state", stateVariables);
 
-    m_executor = makeDefaultExecutor(std::move(inputs), std::move(outputs));
+    auto [outputVariable, newStateVariables] = (*m_model)(inputVariable, stateVariables);
+    m_executor->addOutput("output", {outputVariable});
+    m_executor->addOutput("new state", newStateVariables);
 
-    // Create initial state
+    m_executor->build();
+
+    // 2: Create initial state
     m_state = m_model->makeState();
+
+    // 3: DEBUG
+    std::ofstream file("output/optimizer.dot");
+    m_executor->write_graphviz(file);
   }
 
   std::shared_ptr<const Tensor> Predictor::predict(std::shared_ptr<const Tensor> input)
   {
-    const auto parameters = m_model->parameters(TAG_ALL);
+    auto parameters = m_model->parameters(TAG_ALL);
 
-    std::vector<std::shared_ptr<const Tensor>> inputs;
-    {
-      inputs.push_back(std::move(input));
-      inputs.insert(inputs.end(), std::move_iterator(parameters.begin()), std::move_iterator(parameters.end()));
-      inputs.insert(inputs.end(), m_state.begin(), m_state.end());
-    }
+    // 1: Input
+    m_executor->input("input", {input});
+    m_executor->input("state", m_state);
 
-    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor->evaluate(inputs);
+    std::vector<std::shared_ptr<const Tensor>> tmp;
+    for(std::reference_wrapper parameter : parameters)
+      tmp.push_back(parameter);
 
-    std::shared_ptr<const Tensor> output;
-    std::vector<std::shared_ptr<const Tensor>> newState;
+    m_executor->input("parameters", std::move(tmp));
 
-    output = outputs[0];
-    newState.assign(outputs.begin()+1, outputs.end());
+    // 2: Output
+    auto output = m_executor->output("output").front();
 
+    auto newState = m_executor->output("new state");
     m_state = std::move(newState);
 
     return output;
