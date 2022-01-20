@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <libkann/export.hpp>
 #include <libkann/Variable.hpp>
 
@@ -47,9 +48,10 @@ namespace kann
 
   // Layer parameters
   public:
-    virtual std::vector<std::shared_ptr<const Variable>> parametersVariables() const = 0;
-    virtual std::vector<std::shared_ptr<const Tensor>> parameters() const = 0;
-    virtual void parameters(std::vector<std::shared_ptr<const Tensor>> parameters) = 0;
+    virtual std::vector<std::shared_ptr<const Variable>> parametersVariables(unsigned tags) const = 0;
+
+    virtual std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> parameters(unsigned tags) const = 0;
+    virtual std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> parameters(unsigned tags) = 0;
 
   // Layer may have hidden states
   public:

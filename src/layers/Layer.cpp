@@ -8,17 +8,15 @@ namespace kann
     const double range = std::sqrt(2.0 / layer.inputSize());
     std::uniform_real_distribution distWeight(-range, range);
 
-    auto parameters = layer.parameters();
-    for(auto& parameter : parameters)
+    auto parameters = layer.parameters(TAG_ALL);
+    for(std::reference_wrapper parameter : parameters)
     {
-      auto newParameter = std::make_shared<Tensor>(parameter->size());
+      auto newParameter = std::make_shared<Tensor>(parameter.get()->size());
       newParameter->asArray() = Eigen::ArrayXd::NullaryExpr(newParameter->size(), [&](){
         return distWeight(engine);
       });
-
-      parameter = newParameter;
+      parameter.get() = newParameter;
     }
-    layer.parameters(std::move(parameters));
   }
 
   static std::shared_ptr<const Tensor> cross(const Tensor& lhs, const Tensor& rhs, std::default_random_engine& engine, double mutationRate, double range)
@@ -38,27 +36,29 @@ namespace kann
     return result;
   }
 
-  static auto cross(std::vector<std::shared_ptr<const Tensor>> lhs, std::vector<std::shared_ptr<const Tensor>> rhs, std::default_random_engine& engine, double mutationRate, double range)
+  static void cross(
+      std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> lhs,
+      std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> rhs,
+      std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> result,
+      std::default_random_engine& engine, double mutationRate, double range)
   {
     assert(lhs.size() == rhs.size());
-    std::vector<std::shared_ptr<const Tensor>> result(lhs.size());
     for(size_t i=0; i<result.size(); ++i)
-      result[i] = cross(*lhs[i], *rhs[i], engine, mutationRate, range);
-
-    return result;
+      result[i].get() = cross(*lhs[i].get(), *rhs[i].get(), engine, mutationRate, range);
   }
 
   std::unique_ptr<Layer> cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutationRate)
   {
+    auto result = lhs.clone();
+
     assert(lhs.inputSize() == rhs.inputSize());
     const double range = std::sqrt(2.0 / lhs.inputSize());
 
-    const auto lhsParameters = lhs.parameters();
-    const auto rhsParameters = rhs.parameters();
-    auto parameters = cross(lhsParameters, rhsParameters, engine, mutationRate, range);
+    const auto lhsParameters = lhs.parameters(TAG_ALL);
+    const auto rhsParameters = rhs.parameters(TAG_ALL);
+    auto parameters = result->parameters(TAG_ALL);
+    cross(lhsParameters, rhsParameters, parameters, engine, mutationRate, range);
 
-    std::unique_ptr<Layer> result = lhs.clone();
-    result->parameters(std::move(parameters));
     return result;
   }
 }

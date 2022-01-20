@@ -24,19 +24,19 @@ namespace kann
     return m_outputSize;
   }
 
-  std::vector<std::shared_ptr<const Variable>> IdentityLayer::parametersVariables() const
+  std::vector<std::shared_ptr<const Variable>> IdentityLayer::parametersVariables(unsigned tags) const
   {
     return {};
   }
 
-  std::vector<std::shared_ptr<const Tensor>> IdentityLayer::parameters() const
+  std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> IdentityLayer::parameters(unsigned tags) const
   {
     return {};
   }
 
-  void IdentityLayer::parameters(std::vector<std::shared_ptr<const Tensor>> parameters)
+  std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> IdentityLayer::parameters(unsigned tags)
   {
-    assert(parameters.size() == 0);
+    return {};
   }
 
   auto IdentityLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>

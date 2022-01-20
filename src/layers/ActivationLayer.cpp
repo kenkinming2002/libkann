@@ -26,19 +26,19 @@ namespace kann
     return m_size;
   }
 
-  std::vector<std::shared_ptr<const Variable>> ActivationLayer::parametersVariables() const
+  std::vector<std::shared_ptr<const Variable>> ActivationLayer::parametersVariables(unsigned tags) const
   {
     return {};
   }
 
-  std::vector<std::shared_ptr<const Tensor>> ActivationLayer::parameters() const
+  std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> ActivationLayer::parameters(unsigned tags) const
   {
     return {};
   }
 
-  void ActivationLayer::parameters(std::vector<std::shared_ptr<const Tensor>> parameters)
+  std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> ActivationLayer::parameters(unsigned tags)
   {
-    assert(parameters.size() == 0);
+    return {};
   }
 
   auto ActivationLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>

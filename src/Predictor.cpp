@@ -15,7 +15,7 @@ namespace kann
 
     // Initialize
     input = std::make_shared<const Variable>();
-    parametersVariables = m_model->parametersVariables();
+    parametersVariables = m_model->parametersVariables(TAG_ALL);
     stateVariables      = m_model->makeStateVariables();
     std::tie(output, newStateVariables) = (*m_model)(input, stateVariables);
 
@@ -41,7 +41,7 @@ namespace kann
 
   std::shared_ptr<const Tensor> Predictor::predict(std::shared_ptr<const Tensor> input)
   {
-    const auto parameters = m_model->parameters();
+    const auto parameters = m_model->parameters(TAG_ALL);
 
     std::vector<std::shared_ptr<const Tensor>> inputs;
     {

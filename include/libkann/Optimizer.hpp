@@ -13,7 +13,7 @@ namespace kann
 
   public:
     /* @return [output, cost] */
-    std::pair<std::shared_ptr<const Tensor>, double> optimize(std::shared_ptr<const Tensor> input, std::shared_ptr<const Tensor> expectedOutput);
+    std::pair<std::shared_ptr<const Tensor>, double> optimize(std::shared_ptr<const Tensor> input, std::shared_ptr<const Tensor> expectedOutput, unsigned tag = TAG_ALL);
 
   private:
     std::shared_ptr<Model> m_model;

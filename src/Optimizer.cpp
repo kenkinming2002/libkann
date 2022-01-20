@@ -1,3 +1,4 @@
+#include <functional>
 #include <libkann/Optimizer.hpp>
 
 #include <libkann/Differentiate.hpp>
@@ -19,7 +20,7 @@ namespace kann
     std::vector<std::shared_ptr<const Variable>> stateVariables, newStateVariables;
 
     input = std::make_shared<const Variable>();
-    parametersVariables = m_model->parametersVariables();
+    parametersVariables = m_model->parametersVariables(TAG_ALL);
     stateVariables      = m_model->makeStateVariables();
     std::tie(output, newStateVariables) = (*m_model)(input, stateVariables);
 
@@ -27,7 +28,7 @@ namespace kann
     const auto tmp            = std::make_shared<const Variable>(std::vector{output,expectedOutput}, std::make_shared<SubtractOperation>());
     const auto outputGradient = std::make_shared<const Variable>(std::vector{tmp}, std::make_shared<MultiplyOperation>(2.0));
 
-    parametersVariables = m_model->parametersVariables();
+    parametersVariables = m_model->parametersVariables(TAG_ALL);
     {
       const auto gradientsMap = differentiate({output}, {outputGradient});
       std::transform(parametersVariables.begin(), parametersVariables.end(), std::back_inserter(parametersGradientVariables), [&gradientsMap](const auto& variable){
@@ -46,6 +47,7 @@ namespace kann
     {
       inputs.push_back(input);
       inputs.push_back(expectedOutput);
+
       inputs.insert(inputs.end(), std::move_iterator(parametersVariables.begin()), std::move_iterator(parametersVariables.end()));
       inputs.insert(inputs.end(), std::move_iterator(stateVariables.begin()), std::move_iterator(stateVariables.end()));
 
@@ -54,6 +56,7 @@ namespace kann
     std::vector<std::shared_ptr<const Variable>> outputs;
     {
       outputs.push_back(output);
+
       outputs.insert(outputs.end(), std::move_iterator(newParametersVariables.begin()), std::move_iterator(newParametersVariables.end()));
       outputs.insert(outputs.end(), std::move_iterator(newStateVariables.begin()), std::move_iterator(newStateVariables.end()));
     }
@@ -67,33 +70,49 @@ namespace kann
     m_executor->write_graphviz(file);
   }
 
-  std::pair<std::shared_ptr<const Tensor>, double> Optimizer::optimize(std::shared_ptr<const Tensor> input, std::shared_ptr<const Tensor> expectedOutput)
+  std::pair<std::shared_ptr<const Tensor>, double> Optimizer::optimize(std::shared_ptr<const Tensor> input, std::shared_ptr<const Tensor> expectedOutput, unsigned tag)
   {
-    auto parameters = m_model->parameters();
+    auto parameters = m_model->parameters(TAG_ALL);
 
+    // 1: Input
     std::vector<std::shared_ptr<const Tensor>> inputs;
     {
       inputs.push_back(input);
-      inputs.push_back(expectedOutput); // We cannot move expected output since that is used to calculate cost
-      inputs.insert(inputs.end(), std::move_iterator(parameters.begin()), std::move_iterator(parameters.end()));
+      inputs.push_back(expectedOutput);
+
       inputs.insert(inputs.end(), m_state.begin(), m_state.end());
+      inputs.insert(inputs.end(), std::move_iterator(parameters.begin()), std::move_iterator(parameters.end()));
     }
 
-    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor->evaluate(inputs);
+    // 2: Outputs
+    // TODO: Support partial evaluation
+    std::vector<std::shared_ptr<const Tensor>> outputs = m_executor->evaluate(std::move(inputs));
 
-    std::shared_ptr<const Tensor> output;
-    std::vector<std::shared_ptr<const Tensor>> newParameters;
-    std::vector<std::shared_ptr<const Tensor>> newState;
 
-    output = outputs[0];
-    newParameters.assign(&outputs[1], &outputs[1+parameters.size()]);
-    newState.assign(&outputs[1+parameters.size()], &outputs[1+parameters.size()+m_state.size()]);
+    // 3: Parsing the output
+    size_t i = 0;
 
-    //for(size_t i=0; i<parameters.size(); ++i)
-    //  parameters[i].get() = std::move(newParameters[i]);
-    m_model->parameters(std::move(newParameters));
-    m_state = std::move(newState);
+    std::shared_ptr<const Tensor> output = outputs[i++];
 
+    std::vector<std::shared_ptr<const Tensor>> newParameters(parameters.size());
+    for(auto& parameter : newParameters)
+      parameter = std::move(outputs[i++]);
+
+    std::vector<std::shared_ptr<const Tensor>> newState(m_state.size());
+    for(auto& state : newState)
+      state = std::move(outputs[i++]);
+
+    // 4: Updating
+    std::unordered_set<std::shared_ptr<const Tensor>*> trainableParametersSet;
+    for(std::reference_wrapper trainableParameter : m_model->parameters(tag))
+      trainableParametersSet.insert(&trainableParameter.get());
+
+    // Only update trainable parameters
+    for(size_t i=0; i<parameters.size(); ++i)
+      if(trainableParametersSet.contains(&parameters[i].get()))
+        parameters[i].get() = std::move(newParameters[i]);
+
+    // 5: Return
     // TODO: May be also put that into the computational graph
     const double cost = ((output->asVector()-expectedOutput->asVector()) * 2.0).squaredNorm();
     return std::make_pair(std::move(output), cost);

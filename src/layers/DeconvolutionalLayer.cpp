@@ -98,18 +98,28 @@ namespace kann
     return std::make_pair(std::move(output), std::move(state));
   }
 
-  std::vector<std::shared_ptr<const Variable>> DeconvolutionalLayer::parametersVariables() const
+  std::vector<std::shared_ptr<const Variable>> DeconvolutionalLayer::parametersVariables(unsigned tags) const
   {
     return m_kernelsVariable;
   }
 
-  std::vector<std::shared_ptr<const Tensor>> DeconvolutionalLayer::parameters() const
+  std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> DeconvolutionalLayer::parameters(unsigned tags) const
   {
-    return m_kernels;
+    std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> result;
+    result.reserve(m_kernels.size());
+    for(const auto& kernel : m_kernels)
+      result.push_back(kernel);
+
+    return result;
   }
 
-  void DeconvolutionalLayer::parameters(std::vector<std::shared_ptr<const Tensor>> parameters)
+  std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> DeconvolutionalLayer::parameters(unsigned tags)
   {
-    m_kernels = parameters;
+    std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> result;
+    result.reserve(m_kernels.size());
+    for(auto& kernel : m_kernels)
+      result.push_back(kernel);
+
+    return result;
   }
 }

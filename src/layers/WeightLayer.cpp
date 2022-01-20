@@ -34,21 +34,19 @@ namespace kann
     return m_outputSize;
   }
 
-  std::vector<std::shared_ptr<const Variable>> WeightLayer::parametersVariables() const
+  std::vector<std::shared_ptr<const Variable>> WeightLayer::parametersVariables(unsigned tags) const
   {
     return {m_weightVariable, m_biasVariable};
   }
 
-  std::vector<std::shared_ptr<const Tensor>> WeightLayer::parameters() const
+  std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> WeightLayer::parameters(unsigned tags) const
   {
     return {m_weight, m_bias};
   }
 
-  void WeightLayer::parameters(std::vector<std::shared_ptr<const Tensor>> parameters)
+  std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> WeightLayer::parameters(unsigned tags)
   {
-    assert(parameters.size() == 2);
-    m_weight = std::move(parameters[0]);
-    m_bias   = std::move(parameters[1]);
+    return {m_weight, m_bias};
   }
 
   auto WeightLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>

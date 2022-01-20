@@ -156,22 +156,24 @@ namespace kann
       std::shared_ptr<const Tensor> input;
       std::shared_ptr<Tensor> expectedOutput = std::make_shared<Tensor>(1);
 
-      // Train on latent data set
+      // 1. Train on latent data set
       input = dataSetLatent.get(columnLatent, i);
 
       // Generator
       expectedOutput->asArray()(0) = 1.0;
-      const auto [GANOutput, GANCost] = GANOptimizer.optimize(input, expectedOutput/*, TAG_GENERATOR*/);
+      const auto [GANOutput, GANCost] = GANOptimizer.optimize(input, expectedOutput, TAG_GAN_GENERATOR);
 
       // Discriminator
       expectedOutput->asArray()(0) = 0.0;
-      const auto [discriminatorOutput, discriminiatorCost] = GANOptimizer.optimize(input, expectedOutput/*, TAG_DISCRIMINATOR*/);
+      const auto [discriminatorOutput, discriminiatorCost] = GANOptimizer.optimize(input, expectedOutput, TAG_GAN_DISCRIMINATOR);
 
       // Sample the generator
       const auto generatorOutput = generatorPredictor.predict(input);
 
-      // Train on real data set
+      // 2: Train on real data set
       input = dataSet.get(column, i);
+
+      expectedOutput->asArray()(0) = 1.0;
       discriminatorOptimizer.optimize(input, expectedOutput);
       const bool result = callback(GANInfo{
         .GANModel = GANModel,
