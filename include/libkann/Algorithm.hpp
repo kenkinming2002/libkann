@@ -44,7 +44,7 @@ namespace kann
 
   LIBKANN_SYMEXPORT void run(std::shared_ptr<Model> model, const DataSet& dataSet, size_t column, Callback callback);
 
-  LIBKANN_SYMEXPORT void train(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback = defaultCallback("Training"));
+  LIBKANN_SYMEXPORT void train(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, size_t batchSize = 1, Callback callback = defaultCallback("Training"));
   LIBKANN_SYMEXPORT double test(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback = defaultCallback("Testing"));
 
   LIBKANN_SYMEXPORT void trainGAN(std::shared_ptr<Model> GANModel, std::shared_ptr<Model> generatorModel, std::shared_ptr<Model> discriminatorModel,

@@ -132,7 +132,7 @@ private:
     label = "Training";
 
     std::filesystem::create_directories(m_outputDirectory / label);
-    kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, callback);
+    kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, 50, callback);
 
     label = "Testing";
 

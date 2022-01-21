@@ -77,7 +77,9 @@ namespace kann
     for(const auto& variable : parametersVariables)
     {
       auto gradient = gradientMap.at(variable);
-      gradient = std::make_shared<const Variable>(std::vector{std::move(gradient)}, std::make_shared<MultiplyOperation>(learningRate));
+
+      // FIXME: How should batchSize affect learningRate
+      gradient = std::make_shared<const Variable>(std::vector{std::move(gradient)}, std::make_shared<MultiplyOperation>(m_learningRate * 0.5 * std::sqrt(m_batchSize)));
       auto newVariable = std::make_shared<const Variable>(std::vector{variable, std::move(gradient)}, std::make_shared<SubtractOperation>());
       newParametersVariables.push_back(std::move(newVariable));
     }

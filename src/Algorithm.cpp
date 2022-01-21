@@ -75,31 +75,41 @@ namespace kann
     }
   }
 
-  void train(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback)
+  void train(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, size_t batchSize, Callback callback)
   {
-    const auto size = dataSet.size();
+    const auto size = dataSet.size() / batchSize * batchSize;
 
-    Optimizer optimizer(model, learningRate);
-
-    for(size_t i=0; i<size; ++i)
+    Optimizer optimizer(model, learningRate, batchSize);
+    for(size_t i=0; i<size; i+=batchSize)
     {
-      auto input          = dataSet.get(inputColumn, i);
-      auto expectedOutput = dataSet.get(outputColumn, i);
+      std::vector<std::shared_ptr<const Tensor>> inputs;
+      std::vector<std::shared_ptr<const Tensor>> expectedOutputs;
+      for(size_t j=0; j<batchSize; ++j)
+      {
+        inputs.push_back(dataSet.get(inputColumn, i+j));
+        expectedOutputs.push_back(dataSet.get(outputColumn, i+j));
+      }
 
-      auto [output, cost] = optimizer.optimize({input}, {expectedOutput}).front();
+      auto result = optimizer.optimize(inputs, expectedOutputs);
 
-      // TODO: Return real output somehow
-      const bool result = callback(Info{
-        .model = model,
-        .i = i,
-        .size = size,
-        .input = std::move(input),
-        .output = std::move(output),
-        .expectedOutput = std::move(expectedOutput),
-        .cost = cost
-      });
-      if(!result)
-        break;
+      for(size_t j=0; j<batchSize; ++j)
+      {
+        auto& input          = inputs[j];
+        auto& expectedOutput = expectedOutputs[j];
+        auto& [output, cost] = result[j];
+
+        const bool result = callback(Info{
+          .model = model,
+          .i = i,
+          .size = size,
+          .input = std::move(input),
+          .output = std::move(output),
+          .expectedOutput = std::move(expectedOutput),
+          .cost = cost
+        });
+        if(!result)
+          break;
+      }
     }
   }
 

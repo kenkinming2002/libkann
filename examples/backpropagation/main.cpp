@@ -103,7 +103,7 @@ static void trainAndTestFeedForwardModel(std::shared_ptr<kann::Model> model,
   correctness = kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
   std::cout << "correctness:" << correctness << std::endl;
 
-  kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE);
+  kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE, 10);
 
   correctness = kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
   std::cout << "correctness:" << correctness << std::endl;
