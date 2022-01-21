@@ -3,6 +3,8 @@
 #include "Board.hpp"
 #include "Game.hpp"
 
+#include <libkann/Optimizer.hpp>
+#include <libkann/Predictor.hpp>
 #include <libkann/FunctionalModel.hpp>
 
 #include <optional>
@@ -16,7 +18,7 @@ public:
 
 public:
   Agent() = default;
-  Agent(std::shared_ptr<kann::Model> model);
+  Agent(std::shared_ptr<kann::Model> model, double learningRate);
 
 public:
   void loadFromFile(std::filesystem::path filePath);
@@ -32,7 +34,7 @@ public:
 
 public:
   void learnFrom(const Board& board, Board::Cell::Color color, bool good);
-  void learnFrom(Game& game, double learnigRate);
+  void learnFrom(Game& game);
 
 public:
   static Agent cross(const Agent& lhs, const Agent& rhs, std::default_random_engine& engine, double mutationRate);
@@ -46,14 +48,28 @@ public:
 
 public:
   template<typename Archive>
-  void serialize(Archive& archive)
+  void save(Archive& archive) const
   {
     archive(m_model);
+    archive(m_learningRate);
+  }
+
+  template<typename Archive>
+  void load(Archive& archive)
+  {
+    archive(m_model);
+    archive(m_learningRate);
+    m_predictor = kann::Predictor(m_model);
+    m_optimizer = kann::Optimizer(m_model, m_learningRate);
   }
 
 private:
   std::shared_ptr<kann::Model> m_model;
-  Eigen::VectorXd m_output;
+  double m_learningRate;
+
+  kann::Predictor m_predictor;
+  kann::Optimizer m_optimizer;
+
   double m_score = 0.0;
 
 private:

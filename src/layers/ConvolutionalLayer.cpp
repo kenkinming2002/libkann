@@ -1,5 +1,11 @@
+#include <iterator>
 #include <libkann/layers/ConvolutionalLayer.hpp>
 
+#include <libkann/operations/IdentityOperation.hpp>
+#include <libkann/operations/ConvolutionOperation.hpp>
+#include <libkann/operations/ReduceOperation.hpp>
+
+#include <algorithm>
 #include <assert.h>
 
 namespace kann
@@ -9,13 +15,31 @@ namespace kann
       m_kernelSize(kernelSize),
       m_inputChannelCount(inputChannelCount), m_outputChannelCount(outputChannelCount)
   {
-    /* Unsigned overflow is well-defined behavior so we could safely do the check
-     * afterwards */
-    assert(m_inputWidth  >= m_kernelSize);
-    assert(m_inputHeight >= m_kernelSize);
+    m_kernels.reserve(m_inputChannelCount * m_outputChannelCount);
+    for(size_t i=0; i<m_inputChannelCount * m_outputChannelCount; ++i)
+      m_kernels.push_back(std::make_shared<Parameter>(m_kernelSize * m_kernelSize));
+  }
 
-    m_kernels.resize(m_inputChannelCount * m_outputChannelCount, Eigen::MatrixXd::Zero(m_kernelSize, m_kernelSize));
-    m_kernelsGradient.resize(m_inputChannelCount * m_outputChannelCount, Eigen::MatrixXd::Zero(m_kernelSize, m_kernelSize));
+  ConvolutionalLayer::ConvolutionalLayer(const ConvolutionalLayer& other)
+  {
+    *this = other;
+  }
+
+  ConvolutionalLayer& ConvolutionalLayer::operator=(const ConvolutionalLayer& other)
+  {
+    Layer::operator=(other);
+
+    m_inputWidth         = other.m_inputWidth;
+    m_inputHeight        = other.m_inputHeight;
+    m_kernelSize         = other.m_kernelSize;
+    m_inputChannelCount  = other.m_inputChannelCount;
+    m_outputChannelCount = other.m_outputChannelCount;
+
+    m_kernels.reserve(other.m_kernels.size());
+    for(const auto& kernel : other.m_kernels)
+      m_kernels.push_back(std::make_shared<Parameter>(*kernel));
+
+    return *this;
   }
 
   std::unique_ptr<Layer> ConvolutionalLayer::clone() const
@@ -33,91 +57,66 @@ namespace kann
     return (m_inputWidth-m_kernelSize+1) * (m_inputHeight-m_kernelSize+1) * m_outputChannelCount;
   }
 
-  Eigen::VectorXd ConvolutionalLayer::feedForward()
+  std::vector<std::shared_ptr<const Parameter>> ConvolutionalLayer::parameters(unsigned tags) const
   {
-    Eigen::VectorXd output = Eigen::VectorXd::Zero(this->outputSize());
-
-    // Well, we do convolutions
-    for(size_t inputChannelIndex = 0; inputChannelIndex<m_inputChannelCount; ++inputChannelIndex)
-      for(size_t outputChannelIndex = 0; outputChannelIndex<m_outputChannelCount; ++outputChannelIndex)
-      {
-        const auto outputWidth = m_inputWidth-m_kernelSize+1;
-        const auto outputHeight = m_inputHeight-m_kernelSize+1;
-
-        Eigen::Map<const Eigen::MatrixXd> inputChannel (input().data() + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
-        Eigen::Map<Eigen::MatrixXd>       outputChannel(output.data()  + outputChannelIndex * outputWidth  * outputHeight,  outputHeight,  outputWidth);
-
-        const auto& kernel = m_kernels[inputChannelIndex * m_outputChannelCount + outputChannelIndex];
-
-        for(size_t i=0; i<outputWidth; ++i)
-          for(size_t j=0; j<outputHeight; ++j)
-            outputChannel(j,i) += inputChannel.block(j,i,m_kernelSize,m_kernelSize).cwiseProduct(kernel).sum();
-      }
-
-    return output;
+    return std::vector<std::shared_ptr<const Parameter>>(m_kernels.begin(), m_kernels.end());
   }
 
-  Eigen::VectorXd ConvolutionalLayer::backPropagate()
+  std::vector<std::shared_ptr<Parameter>> ConvolutionalLayer::parameters(unsigned tags)
   {
-    Eigen::VectorXd inputGradient = Eigen::VectorXd::Zero(this->inputSize());
-
-    for(size_t inputChannelIndex = 0; inputChannelIndex<m_inputChannelCount; ++inputChannelIndex)
-      for(size_t outputChannelIndex = 0; outputChannelIndex<m_outputChannelCount; ++outputChannelIndex)
-      {
-        const auto outputWidth = m_inputWidth-m_kernelSize+1;
-        const auto outputHeight = m_inputHeight-m_kernelSize+1;
-
-        Eigen::Map<const Eigen::MatrixXd> inputChannel         (input().data()          + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
-        Eigen::Map<Eigen::MatrixXd>       inputGradientChannel (inputGradient.data()    + inputChannelIndex  * m_inputWidth * m_inputHeight, m_inputHeight, m_inputWidth);
-        Eigen::Map<const Eigen::MatrixXd> outputGradientChannel(outputGradient().data() + outputChannelIndex * outputWidth  * outputHeight,  outputHeight,  outputWidth);
-
-        const auto& kernel   = m_kernels[inputChannelIndex * m_outputChannelCount + outputChannelIndex];
-        auto& kernelGradient = m_kernelsGradient[inputChannelIndex * m_outputChannelCount + outputChannelIndex];
-
-        for(size_t i=0; i<outputWidth; ++i)
-          for(size_t j=0; j<outputHeight; ++j)
-          {
-            inputGradientChannel.block(j,i,m_kernelSize,m_kernelSize) += outputGradientChannel(j,i) * kernel;
-            kernelGradient                                            += outputGradientChannel(j,i) * inputChannel.block(j,i,m_kernelSize,m_kernelSize);
-          }
-      }
-
-    return inputGradient;
+    return m_kernels;
   }
 
-  std::vector<std::span<double>> ConvolutionalLayer::params()
+  auto ConvolutionalLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
   {
-    std::vector<std::span<double>> params;
-    std::transform(m_kernels.begin(), m_kernels.end(), std::back_inserter(params), [](Eigen::MatrixXd& kernel) {
-      return std::span<double>(kernel.data(), kernel.size());
-    });
-    return params;
-  }
+    /* TODO: Consider marking them as override final */
+    const size_t outputWidth = m_inputWidth - m_kernelSize + 1;
+    const size_t outputHeight = m_inputHeight - m_kernelSize + 1;
 
-  std::vector<std::span<const double>> ConvolutionalLayer::params() const
-  {
-    std::vector<std::span<const double>> params;
-    std::transform(m_kernels.begin(), m_kernels.end(), std::back_inserter(params), [](const Eigen::MatrixXd& kernel) {
-      return std::span<const double>(kernel.data(), kernel.size());
-    });
-    return params;
-  }
+    // Split input into channels
+    std::vector<std::shared_ptr<const Variable>> inputChannels(m_inputChannelCount);
+    for(size_t i=0; i<m_inputChannelCount; ++i)
+      inputChannels[i] = std::make_shared<const Variable>(
+        std::vector{input},
+        std::make_shared<IdentityOperation>(
+          m_inputWidth * m_inputHeight * m_inputChannelCount,
+          m_inputWidth * m_inputHeight,
+          m_inputWidth * m_inputHeight * i
+        )
+      );
 
-  std::vector<std::span<double>> ConvolutionalLayer::paramsGradient()
-  {
-    std::vector<std::span<double>> paramsGradient;
-    std::transform(m_kernelsGradient.begin(), m_kernelsGradient.end(), std::back_inserter(paramsGradient), [](Eigen::MatrixXd& kernelGradient) {
-      return std::span<double>(kernelGradient.data(), kernelGradient.size());
-    });
-    return paramsGradient;
-  }
+    std::vector<std::shared_ptr<const Variable>> outputChannels(m_outputChannelCount);
+    for(size_t i=0; i<m_outputChannelCount; ++i)
+    {
+      std::vector<std::shared_ptr<const Variable>> results(m_inputChannelCount);
+      for(size_t j=0; j<m_inputChannelCount; ++j)
+        results[j] = std::make_shared<const Variable>(
+          std::vector{inputChannels[j], m_kernels[i * m_inputChannelCount + j]->variable},
+          std::make_shared<ConvolutionOperation>(m_inputWidth, m_inputHeight, m_kernelSize)
+        );
 
-  std::vector<std::span<const double>> ConvolutionalLayer::paramsGradient() const
-  {
-    std::vector<std::span<const double>> paramsGradient;
-    std::transform(m_kernelsGradient.begin(), m_kernelsGradient.end(), std::back_inserter(paramsGradient), [](const Eigen::MatrixXd& kernelGradient) {
-      return std::span<const double>(kernelGradient.data(), kernelGradient.size());
-    });
-    return paramsGradient;
+      outputChannels[i] = std::make_shared<const Variable>(
+        std::move(results),
+        std::make_shared<ReduceOperation>(m_inputChannelCount)
+      );
+    }
+
+    // Concat output channels
+    for(size_t i=0; i<m_outputChannelCount; ++i)
+      outputChannels[i] = std::make_shared<const Variable>(
+        std::vector{std::move(outputChannels[i])},
+        std::make_shared<IdentityOperation>(
+          outputWidth * outputHeight,
+          outputWidth * outputHeight * m_outputChannelCount,
+          outputWidth * outputHeight * i
+        )
+      );
+
+    auto output = std::make_shared<const Variable>(
+        std::move(outputChannels),
+        std::make_shared<ReduceOperation>(m_outputChannelCount)
+    );
+
+    return std::make_pair(std::move(output), std::move(state));
   }
 }

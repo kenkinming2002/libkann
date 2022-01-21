@@ -35,10 +35,10 @@ Population::Population(seed_type seed, size_t size, const std::vector<size_t>& a
     }
 
     for(auto& layer : layers)
-      layer->randomize(m_generator);
+      kann::randomize(*layer, m_generator);
 
     auto model = kann::buildSimpleFeedForwardModel(layers);
-    return Agent(std::move(model));
+    return Agent(std::move(model), 0.0);
   });
 }
 

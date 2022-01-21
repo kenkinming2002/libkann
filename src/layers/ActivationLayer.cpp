@@ -1,5 +1,7 @@
 #include <libkann/layers/ActivationLayer.hpp>
 
+#include <libkann/operations/CWiseOperation.hpp>
+
 #include <functional>
 
 namespace kann
@@ -24,33 +26,27 @@ namespace kann
     return m_size;
   }
 
-  Eigen::VectorXd ActivationLayer::feedForward()
-  {
-    return input().unaryExpr(std::bind(&ActivationFunction::normal, &m_activationFunction, _1));
-  }
-
-  Eigen::VectorXd ActivationLayer::backPropagate()
-  {
-    return input().unaryExpr(std::bind(&ActivationFunction::derivative, &m_activationFunction, _1)).cwiseProduct(outputGradient());
-  }
-
-  std::vector<std::span<double>> ActivationLayer::params()
+  std::vector<std::shared_ptr<const Parameter>> ActivationLayer::parameters(unsigned tags) const
   {
     return {};
   }
 
-  std::vector<std::span<const double>> ActivationLayer::params() const
+  std::vector<std::shared_ptr<Parameter>> ActivationLayer::parameters(unsigned tags)
   {
     return {};
   }
 
-  std::vector<std::span<double>> ActivationLayer::paramsGradient()
+  auto ActivationLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
   {
-    return {};
-  }
+    const auto activationFunction = m_activationFunction;
+    const auto normal     = [=](double val){ return activationFunction.normal(val); };
+    const auto derivative = [=](double val){ return activationFunction.derivative(val); };
 
-  std::vector<std::span<const double>> ActivationLayer::paramsGradient() const
-  {
-    return {};
+    auto output = std::make_shared<const Variable>(
+      std::vector{std::move(input)},
+      std::make_shared<CWiseOperation<decltype(normal), decltype(derivative)>>(normal, derivative)
+    );
+
+    return std::make_pair(std::move(output), std::move(state));
   }
 }

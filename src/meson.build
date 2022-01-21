@@ -13,9 +13,21 @@ libkann_sources = [
   'Model.cpp',
   'Build.cpp',
   'FunctionalModel.cpp',
-  'Variable.cpp',
+  'FunctionalVariable.cpp',
   'Algorithm.cpp',
-  'ActivationFunction.cpp'
+  'ActivationFunction.cpp',
+  'DefaultExecutor.cpp',
+  'Predictor.cpp',
+  'Optimizer.cpp',
+  'Differentiate.cpp',
+  'operations/IdentityOperation.cpp',
+  'operations/ReduceOperation.cpp',
+  'operations/MatrixMultiplyOperation.cpp',
+  'operations/CWiseProductOperation.cpp',
+  'operations/MultiplyOperation.cpp',
+  'operations/SubtractOperation.cpp',
+  'operations/ConvolutionOperation.cpp',
+  'operations/DeconvolutionOperation.cpp',
 ]
 
 eigen_dep = dependency('eigen3')
@@ -32,6 +44,6 @@ libkann_lib = static_library('libkann', libkann_sources,
 
 libkann_dep = declare_dependency(
   include_directories : ['../include'],
-  dependencies : [cereal_dep, eigen_dep, boost_dep, sfml_dep],
+  dependencies : [cereal_dep, eigen_dep, sfml_dep],
   link_with : libkann_lib,
 )

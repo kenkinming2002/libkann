@@ -1,50 +1,23 @@
 #pragma once
 
-#include <libkann/layers/Layer.hpp>
+#include <libkann/Tensor.hpp>
+#include <libkann/Operation.hpp>
 
-#include <Eigen/Eigen>
-
-#include <cereal/types/vector.hpp>
-
-#include <memory>
-#include <vector>
 #include <optional>
 
 namespace kann
 {
+  /* A variable could be an adjustable constant or result of applying operation
+   * on a list of other variables */
   struct Variable
   {
   public:
-    static std::shared_ptr<Variable> constant(size_t size);
+    Variable() = default;
+    Variable(std::vector<std::shared_ptr<const Variable>> inputs, std::shared_ptr<const Operation> op)
+      : inputs(std::move(inputs)), op(std::move(op)) {}
 
   public:
-    struct Input
-    {
-      std::shared_ptr<Variable> variable;
-      std::shared_ptr<Layer> layer;
-
-      template<typename Archive>
-      void serialize(Archive& archive)
-      {
-        archive(variable);
-        archive(layer);
-      }
-    };
-
-  public:
-    size_t size;
-    std::vector<Input> inputs;
-
-  public:
-    template<typename Archive>
-    void serialize(Archive& archive)
-    {
-      archive(inputs);
-    }
+    std::vector<std::shared_ptr<const Variable>> inputs;
+    std::shared_ptr<const Operation> op;
   };
-
-  std::shared_ptr<Variable> operator|(std::shared_ptr<Variable> variable, std::shared_ptr<Layer> layer);
-  std::shared_ptr<Variable> operator+(std::shared_ptr<Variable> lhs, std::shared_ptr<Variable> rhs);
-
-
 }

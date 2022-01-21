@@ -30,7 +30,7 @@ std::shared_ptr<kann::Model> Creature::makeNeuralNetork(const ModelConfig& confi
   }
 
   for(auto& layer : layers)
-    layer->randomize(engine);
+    kann::randomize(*layer, engine);
 
   return kann::buildSimpleRecurrentModel(layers, config.memory);
 }
@@ -42,6 +42,7 @@ Creature::Creature(b2World& world, const Config& config,
     double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
     m_model(std::move(model)),
+    m_predictor(m_model),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)},
     m_energy(energy), m_health(health) {}
 
@@ -67,15 +68,14 @@ void Creature::updatePerception(const Config& config, float dt)
 
 void Creature::updateModel(const Config& config)
 {
-  Eigen::VectorXd input(INPUT_COUNT);
+  auto input = std::make_shared<kann::Tensor>(INPUT_COUNT);
 
-  input(INPUT_ENERGY)          = m_energy / config.maxEnergy;
-  input(INPUT_HEALTH)          = m_health / config.maxHealth;
-  input(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / config.viewDistance;
-  input(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / config.viewDistance;
+  input->asArray()(INPUT_ENERGY)          = m_energy / config.maxEnergy;
+  input->asArray()(INPUT_HEALTH)          = m_health / config.maxHealth;
+  input->asArray()(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / config.viewDistance;
+  input->asArray()(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / config.viewDistance;
 
-  m_model->input(std::move(input));
-  m_output = m_model->feedForward();
+  m_output = m_predictor.predict(std::move(input));
 }
 
 // Working alone
@@ -107,13 +107,13 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
     const float TEMPORARY_HACK = 1000.0f;
 
     // TODO: Rename configuration variable to suit the changes in their meaning
-    auto linearForceFactor = m_output(OUTPUT_LINEAR_FORCE_FACTOR);
+    auto linearForceFactor = m_output->asArray()(OUTPUT_LINEAR_FORCE_FACTOR);
     auto linearForceMultiplier = linearForceFactor >= 0.0 ?  config.forwardLinearSpeed : config.backwardLinearSpeed;
     auto linearForce = linearForceFactor * linearForceMultiplier * dt;
     this->applyForwardForce(linearForce * TEMPORARY_HACK);
 
     // TODO: Add config variable for angular force or not?
-    auto angularForceFactor = m_output(OUTPUT_ANGULAR_FORCE_FACTOR); // Map from (-1, 1) to (-PI, PI)
+    auto angularForceFactor = m_output->asArray()(OUTPUT_ANGULAR_FORCE_FACTOR); // Map from (-1, 1) to (-PI, PI)
     auto angularForce =  angularForceFactor * M_PI * dt;
     this->applyTorque(angularForce);
     this->takeEnergy(config.movementEnergyDrainMultiplier * linearForce * linearForce * dt);
@@ -133,7 +133,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
 
   // 4: Eating
   {
-    if(m_output(OUTPUT_EATING_DESIRE)>0.0 && m_eatingCooldown == 0.0)
+    if(m_output->asArray()(OUTPUT_EATING_DESIRE)>0.0 && m_eatingCooldown == 0.0)
     {
       takeEnergy(EATING_ENERGY_COST);
       m_eatingCooldown = config.eatingCooldown;
@@ -171,7 +171,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
 
   // 5: Mating
   {
-    if(m_output(OUTPUT_MATING_DESIRE)>0.0 && m_matingCooldown == 0.0)
+    if(m_output->asArray()(OUTPUT_MATING_DESIRE)>0.0 && m_matingCooldown == 0.0)
     {
       takeEnergy(MATING_ENERGY_COST);
       m_matingCooldown = config.matingCooldown;
@@ -191,7 +191,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
           continue;
 
         // Check if other have the same desire
-        if(other->m_output(OUTPUT_EATING_DESIRE)<0.0)
+        if(other->m_output->asArray()(OUTPUT_EATING_DESIRE)<0.0)
           continue; // Other do not want to mate
 
         if(other->m_matingCooldown != 0.0)
@@ -205,7 +205,7 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
         if(!takeEnergy(config.maxEnergy * 0.2) || !other->takeEnergy(config.maxEnergy * 0.2))
           continue;
 
-        auto newModel = kann::FunctionalModel::cross(*m_model, *other->m_model, world.prng(), config.mutationRate);
+        auto newModel = kann::cross(*m_model, *other->m_model, world.prng(), config.mutationRate);
         auto newPosition = position();
         newPosition += other->position();
         newPosition *= 0.5;

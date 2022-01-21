@@ -21,6 +21,10 @@ namespace kann
     LIBKANN_SYMEXPORT ConvolutionalLayer(size_t inputWidth, size_t inputHeight, size_t kernelSize, size_t inputChannelCount, size_t outputChannelCount);
 
   public:
+    LIBKANN_SYMEXPORT ConvolutionalLayer(const ConvolutionalLayer& other);
+    LIBKANN_SYMEXPORT ConvolutionalLayer& operator=(const ConvolutionalLayer& other);
+
+  public:
     LIBKANN_SYMEXPORT std::unique_ptr<Layer> clone() const override;
 
   public:
@@ -28,15 +32,11 @@ namespace kann
     LIBKANN_SYMEXPORT size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward() override;
-    LIBKANN_SYMEXPORT Eigen::VectorXd backPropagate() override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
 
-  protected:
-    LIBKANN_SYMEXPORT std::vector<std::span<double>> params() override;
-    LIBKANN_SYMEXPORT std::vector<std::span<const double>> params() const override;
-
-    LIBKANN_SYMEXPORT std::vector<std::span<double>> paramsGradient() override;
-    LIBKANN_SYMEXPORT std::vector<std::span<const double>> paramsGradient() const override;
+  public:
+    LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
 
   public:
     template<typename Archive>
@@ -49,7 +49,6 @@ namespace kann
       archive(m_inputChannelCount, m_outputChannelCount);
 
       archive(m_kernels);
-      archive(m_kernelsGradient);
     }
 
   private:
@@ -57,8 +56,8 @@ namespace kann
     size_t m_kernelSize;
     size_t m_inputChannelCount, m_outputChannelCount;
 
-    std::vector<Eigen::MatrixXd> m_kernels;
-    std::vector<Eigen::MatrixXd> m_kernelsGradient;
+  private:
+    std::vector<std::shared_ptr<Parameter>> m_kernels;
   };
 }
 

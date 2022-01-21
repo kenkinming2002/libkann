@@ -1,8 +1,17 @@
 #include <libkann/FunctionalModel.hpp>
 
+#include <libkann/operations/ReduceOperation.hpp>
+
+#include <libkann/serialization/Graph.hpp>
+#include <libkann/serialization/Eigen.hpp>
+
+#include <cereal/specialize.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/utility.hpp>
+
+#include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/graphviz.hpp>
-#include <boost/graph/copy.hpp>
 
 #include <iterator>
 #include <memory>
@@ -14,8 +23,136 @@
 
 namespace kann
 {
+  class FunctionalModel : public Model
+  {
+  public:
+    FunctionalModel() = default;
+    FunctionalModel(std::shared_ptr<const FunctionalVariable> input, std::shared_ptr<const FunctionalVariable> output, std::vector<FeedBack> feedBacks);
+
+  public:
+    void write_graphviz(std::ostream& os) const override;
+
+  public:
+    std::unique_ptr<Layer> clone() const override;
+
+  public:
+    size_t inputSize()  const override { return node(m_inputNodeIndex).size; }
+    size_t outputSize() const override { return node(m_outputNodeIndex).size; }
+
+  public:
+    std::vector<std::shared_ptr<Parameter>> makeStates() const override;
+
+  public:
+    std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
+
+  private:
+    void build();
+
+  public:
+    template<typename Archive>
+    void save(Archive& archive) const
+    {
+      archive(cereal::base_class<Model>(this));
+
+      archive(m_nodes);
+      archive(m_inputNodeIndex, m_outputNodeIndex);
+      archive(m_feedBacksNodeIndices);
+
+      archive(GraphOutputSerializer(m_graph));
+    }
+
+    template<typename Archive>
+    void load(Archive& archive)
+    {
+      archive(cereal::base_class<Model>(this));
+
+      archive(m_nodes);
+      archive(m_inputNodeIndex, m_outputNodeIndex);
+      archive(m_feedBacksNodeIndices);
+
+      archive(GraphInputSerializer(m_graph));
+      build();
+    }
+
+  // Node
+  private:
+    struct Node
+    {
+      size_t size;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(size);
+      }
+    };
+
+  private:
+    Node& node(size_t index);
+    const Node& node(size_t index) const;
+
+  private:
+    std::vector<Node> m_nodes;
+
+  private:
+    size_t m_inputNodeIndex, m_outputNodeIndex;
+    std::vector<std::pair<size_t, size_t>> m_feedBacksNodeIndices;
+
+  // Graph
+  private:
+    struct VertexProperty
+    {
+      size_t nodeIndex;
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(nodeIndex);
+      }
+    };
+
+    struct EdgeProperty
+    {
+      size_t layerIndex;
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(layerIndex);
+      }
+    };
+
+    typedef boost::adjacency_list<
+      boost::vecS, boost::vecS,
+      boost::bidirectionalS,
+      VertexProperty, EdgeProperty
+    > graph_type;
+    typedef boost::graph_traits<graph_type>::vertex_descriptor vertex_type;
+    typedef boost::graph_traits<graph_type>::edge_descriptor edge_type;
+
+  private:
+    graph_type m_graph;
+    std::vector<vertex_type> m_ordering;
+  };
+
+  std::shared_ptr<Model> makeFunctionalModel(std::shared_ptr<const FunctionalVariable> input, std::shared_ptr<const FunctionalVariable> output, std::vector<FeedBack> feedBacks)
+  {
+    return std::make_shared<FunctionalModel>(std::move(input), std::move(output), std::move(feedBacks));
+  }
+}
+
+
+CEREAL_REGISTER_TYPE(kann::FunctionalModel);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::Model, kann::FunctionalModel);
+
+namespace cereal
+{
+  template<typename Archive>
+  struct specialize<Archive, kann::FunctionalModel, cereal::specialization::member_load_save> {};
+}
+
+namespace kann
+{
   template<typename Callback>
-  static void walk(const std::shared_ptr<const Variable>& variable, const Callback& callback)
+  static void walk(const std::shared_ptr<const FunctionalVariable>& variable, const Callback& callback)
   {
     if(!callback(variable))
       return;
@@ -26,9 +163,9 @@ namespace kann
 
   template<typename Callback>
   static void walk(
-      const std::shared_ptr<const Variable>& input,
-      const std::shared_ptr<const Variable>& output,
-      const std::vector<FunctionalModel::FeedBack>& feedBacks,
+      const std::shared_ptr<const FunctionalVariable>& input,
+      const std::shared_ptr<const FunctionalVariable>& output,
+      const std::vector<FeedBack>& feedBacks,
       const Callback& callback)
   {
     walk(output, callback);
@@ -36,13 +173,13 @@ namespace kann
       walk(feedBack.output, callback);
   }
 
-  FunctionalModel::FunctionalModel(std::shared_ptr<const Variable> input, std::shared_ptr<const Variable> output, std::vector<FeedBack> feedBacks)
+  FunctionalModel::FunctionalModel(std::shared_ptr<const FunctionalVariable> input, std::shared_ptr<const FunctionalVariable> output, std::vector<FeedBack> feedBacks)
   {
     // 1: Enumerate all varaibles in a well-defined order
-    std::vector<std::shared_ptr<const Variable>> variables;
+    std::vector<std::shared_ptr<const FunctionalVariable>> variables;
     {
-      std::set<std::shared_ptr<const Variable>> set;
-      walk(input, output, feedBacks, [&variables, &set](const std::shared_ptr<const Variable>& variable){
+      std::set<std::shared_ptr<const FunctionalVariable>> set;
+      walk(input, output, feedBacks, [&variables, &set](const std::shared_ptr<const FunctionalVariable>& variable){
         if(set.contains(variable))
           return false;
 
@@ -55,11 +192,7 @@ namespace kann
     // 2: Associate each variables with a node
     std::vector<Node> nodes(variables.size());
     for(size_t i=0; i<nodes.size(); ++i)
-      nodes[i] = Node{
-        .size     = variables[i]->size,
-        .data     = Eigen::VectorXd::Zero(variables[i]->size),
-        .gradient = Eigen::VectorXd::Zero(variables[i]->size),
-      };
+      nodes[i] = Node{.size = variables[i]->size};
 
     // 3: Associate each variables/nodes with a vertex
     std::vector<vertex_type> vertices(variables.size());
@@ -67,7 +200,7 @@ namespace kann
       vertices[i] = boost::add_vertex(VertexProperty{.nodeIndex = i}, m_graph);
 
     // 4: Establish a map between variable to index
-    std::unordered_map<std::shared_ptr<const Variable>, size_t> indicesMap;
+    std::unordered_map<std::shared_ptr<const FunctionalVariable>, size_t> indicesMap;
     for(size_t i=0; i<variables.size(); ++i)
       indicesMap.emplace(variables[i], i);
 
@@ -113,13 +246,7 @@ namespace kann
 
   void FunctionalModel::write_graphviz(std::ostream& os) const
   {
-    auto vertexWriter = [this](std::ostream& os, vertex_type vertex){
-      const Node& node = this->node(m_graph[vertex].nodeIndex);
-      os << "[label=\"";
-      os << "size=" << node.size << "\\n";
-      os << "\"]";
-    };
-
+    auto vertexWriter = [](std::ostream& os, vertex_type vertex){};
     auto edgeWriter = [this](std::ostream& os, edge_type edge){
       const Layer& layer = this->layer(m_graph[edge].layerIndex);
       os << "[label=\"";
@@ -137,59 +264,80 @@ namespace kann
     return std::make_unique<FunctionalModel>(*this);
   }
 
-  Eigen::VectorXd FunctionalModel::feedForward()
+  std::vector<std::shared_ptr<Parameter>> FunctionalModel::makeStates() const
   {
-    // Zero all-pre-existing node data and handle feedBack
+    std::vector<std::shared_ptr<Parameter>> result;
+    result.reserve(m_feedBacksNodeIndices.size());
+    for(const auto& [inputNodeIndex, outputNodeIndex] : m_feedBacksNodeIndices)
     {
-      std::map<size_t, Eigen::VectorXd> feedBackData;
-      for(auto [inputNodeIndex, outputNodeIndex] : m_feedBacksNodeIndices)
-        feedBackData.emplace(inputNodeIndex, node(outputNodeIndex).data);
-
-      for(auto& node : m_nodes)
-        node.data.setZero();
-
-      for(auto [inputNodeIndex, data] : feedBackData)
-        node(inputNodeIndex).data = std::move(data);
+      assert(node(inputNodeIndex).size == node(outputNodeIndex).size);
+      result.push_back(std::make_shared<Parameter>(node(inputNodeIndex).size));
     }
-
-    this->node(m_inputNodeIndex).data = input();
-    for(vertex_type inputVertex : m_ordering)
-      for(auto [it, end] = boost::out_edges(inputVertex, m_graph); it != end; ++it)
-      {
-        const auto& inputNode  = this->node(m_graph[boost::source(*it, m_graph)].nodeIndex);
-        auto& outputNode       = this->node(m_graph[boost::target(*it, m_graph)].nodeIndex);
-
-        auto& layer = this->layer(m_graph[*it].layerIndex);
-
-        layer.input(inputNode.data);
-        outputNode.data += layer.feedForward();
-      }
-
-    return this->node(m_outputNodeIndex).data;
+    return result;
   }
 
-  Eigen::VectorXd FunctionalModel::backPropagate()
+  auto FunctionalModel::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
   {
-    // TODO: Back propagation through time
+    std::vector<std::shared_ptr<const Variable>> variables;
+    variables.resize(m_nodes.size());
 
-    // Zero all pre-existing node gradients
-    for(auto& node : m_nodes)
-      node.gradient.setZero();
+    // Input variables
+    variables[m_inputNodeIndex] = std::move(input);
 
-    this->node(m_outputNodeIndex).gradient = outputGradient();
-    for(vertex_type inputVertex : m_ordering | std::views::reverse)
-      for(auto [it, end] = boost::in_edges(inputVertex, m_graph); it != end; ++it)
+    // State variables
+    assert(state.size() == m_feedBacksNodeIndices.size());
+    for(size_t i=0; i<m_feedBacksNodeIndices.size(); ++i)
+    {
+      const auto [inputNodeIndex, outputNodeIndex] = m_feedBacksNodeIndices[i];
+      assert(!variables[inputNodeIndex]);
+      variables[inputNodeIndex] = std::move(state[i]);
+    }
+
+    // Propagate
+    for(vertex_type vertex : m_ordering)
+    {
+      std::vector<std::shared_ptr<const Variable>> outputVariables;
+      for(auto [it, end] = boost::in_edges(vertex, m_graph); it != end; ++it)
       {
-        auto& inputNode        = this->node(m_graph[boost::source(*it, m_graph)].nodeIndex);
-        const auto& outputNode = this->node(m_graph[boost::target(*it, m_graph)].nodeIndex);
+        const EdgeProperty& edgeProperty = m_graph[*it];
+        const Layer& layer = this->layer(edgeProperty.layerIndex) ;
 
-        auto& layer = this->layer(m_graph[*it].layerIndex);
+        vertex_type source = boost::source(*it, m_graph);
+        auto inputVariable = variables[m_graph[source].nodeIndex];
+        auto [outputVariable, state] = layer(inputVariable, StateVariables());
+        assert(state.empty());
 
-        layer.outputGradient(outputNode.gradient);
-        inputNode.gradient += layer.backPropagate();
+        outputVariables.push_back(outputVariable);
       }
 
-    return this->node(m_inputNodeIndex).gradient;
+      auto& variable = variables[m_graph[vertex].nodeIndex];
+      switch(outputVariables.size())
+      {
+      case 0:
+        assert(variable);
+        break;
+      case 1:
+        variable = outputVariables.front();
+        break;
+      default:
+        variable = std::make_shared<const Variable>(outputVariables, std::make_shared<ReduceOperation>(outputVariables.size()));
+        break;
+      }
+    }
+
+    // State variables
+    assert(state.size() == m_feedBacksNodeIndices.size());
+    for(size_t i=0; i<m_feedBacksNodeIndices.size(); ++i)
+    {
+      const auto [inputNodeIndex, outputNodeIndex] = m_feedBacksNodeIndices[i];
+      assert(variables[outputNodeIndex]);
+      state[i] = variables[outputNodeIndex];
+    }
+
+    // Output variables
+    auto output = std::move(variables[m_outputNodeIndex]);
+
+    return std::make_pair(std::move(output), std::move(state));
   }
 
   void FunctionalModel::build()

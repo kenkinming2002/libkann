@@ -24,8 +24,10 @@ namespace kann
 
   public:
     size_t size() const override;
-    void get(size_t column, size_t index, Eigen::VectorXd& data) const override;
-    double correctness(size_t column, size_t index, const Eigen::VectorXd& data) const override;
+
+  public:
+    std::shared_ptr<const Tensor> get(size_t column, size_t index) const override;
+    double correctness(size_t column, size_t index, const Tensor& data) const override;
 
   private:
     struct Data

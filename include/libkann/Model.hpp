@@ -13,21 +13,12 @@ namespace kann
     Model(const Model& other);
 
   public:
-    static std::unique_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
-
-  public:
     virtual void write_graphviz(std::ostream& os) const = 0;
 
+  // Layer parameters
   public:
-    void randomize(std::default_random_engine& engine) override;
-    void train(double learningRate, unsigned tags = TAG_ALL) override;
-
-  public:
-    std::vector<std::span<double>> params() override final;
-    std::vector<std::span<const double>> params() const override final;
-
-    std::vector<std::span<double>> paramsGradient() override final;
-    std::vector<std::span<const double>> paramsGradient() const override final;
+    std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
+    std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
 
   protected:
     size_t addLayer(std::shared_ptr<Layer> layer);
@@ -44,4 +35,6 @@ namespace kann
   private:
     std::vector<std::shared_ptr<Layer>> m_layers;
   };
+
+  std::unique_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 }

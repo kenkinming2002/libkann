@@ -11,15 +11,17 @@ namespace kann
 
   size_t RandomDataSet::size() const { return m_size; }
 
-  void RandomDataSet::get(size_t column, size_t /*index*/, Eigen::VectorXd& data) const
+  std::shared_ptr<const Tensor> RandomDataSet::get(size_t column, size_t index) const
   {
     if(column != COLUMN_DATA)
       throw std::runtime_error("Random Data Set - correctness() - Invalid column");
 
-    data = Eigen::VectorXd::Random(m_dataSize);
+    auto result = std::make_shared<Tensor>(m_dataSize);
+    result->asArray().setRandom();
+    return result;
   }
 
-  double RandomDataSet::correctness(size_t column, size_t /*index*/, const Eigen::VectorXd& data) const
+  double RandomDataSet::correctness(size_t column, size_t index, const Tensor& data) const
   {
     throw std::runtime_error("Random Data Set - correctness() - Invalid operation");
   }

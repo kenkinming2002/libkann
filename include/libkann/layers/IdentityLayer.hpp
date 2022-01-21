@@ -23,15 +23,11 @@ namespace kann
     LIBKANN_SYMEXPORT size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT Eigen::VectorXd feedForward() override;
-    LIBKANN_SYMEXPORT Eigen::VectorXd backPropagate() override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
 
-  protected:
-    LIBKANN_SYMEXPORT std::vector<std::span<double>> params() override;
-    LIBKANN_SYMEXPORT std::vector<std::span<const double>> params() const override;
-
-    LIBKANN_SYMEXPORT std::vector<std::span<double>> paramsGradient() override;
-    LIBKANN_SYMEXPORT std::vector<std::span<const double>> paramsGradient() const override;
+  public:
+    LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
 
   public:
     template<typename Archive>
