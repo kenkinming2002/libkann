@@ -20,6 +20,7 @@ namespace kann
 
   public:
     LIBKANN_SYMEXPORT WeightLayer(const WeightLayer& other);
+    LIBKANN_SYMEXPORT WeightLayer& operator=(const WeightLayer& other);
 
   public:
     LIBKANN_SYMEXPORT std::unique_ptr<Layer> clone() const override;
@@ -29,10 +30,8 @@ namespace kann
     LIBKANN_SYMEXPORT size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Variable>> parametersVariables(unsigned tags) const override;
-
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> parameters(unsigned tags) const override;
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> parameters(unsigned tags) override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
 
   public:
     LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
@@ -50,9 +49,8 @@ namespace kann
     size_t m_inputSize, m_outputSize;
 
   private:
-    std::shared_ptr<const Variable> m_weightVariable = std::make_shared<const Variable>();
-    std::shared_ptr<const Variable> m_biasVariable   = std::make_shared<const Variable>();
-    std::shared_ptr<const Tensor> m_weight, m_bias;
+    std::shared_ptr<Parameter> m_weight;
+    std::shared_ptr<Parameter> m_bias;
   };
 
 }

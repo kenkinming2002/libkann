@@ -15,20 +15,31 @@ namespace kann
       m_kernelSize(kernelSize),
       m_inputChannelCount(inputChannelCount), m_outputChannelCount(outputChannelCount)
   {
-    initializeVariables();
-
-    m_kernels.resize(m_inputChannelCount * m_outputChannelCount);
-    std::generate(m_kernels.begin(), m_kernels.end(), [this](){
-      return std::make_shared<const Tensor>(m_kernelSize * m_kernelSize);
-    });
+    m_kernels.reserve(m_inputChannelCount * m_outputChannelCount);
+    for(size_t i=0; i<m_inputChannelCount * m_outputChannelCount; ++i)
+      m_kernels.push_back(std::make_shared<Parameter>(m_kernelSize * m_kernelSize));
   }
 
-  void ConvolutionalLayer::initializeVariables()
+  ConvolutionalLayer::ConvolutionalLayer(const ConvolutionalLayer& other)
   {
-    m_kernelsVariable.resize(m_inputChannelCount * m_outputChannelCount);
-    std::generate(m_kernelsVariable.begin(), m_kernelsVariable.end(), [](){
-      return std::make_shared<const Variable>();
-    });
+    *this = other;
+  }
+
+  ConvolutionalLayer& ConvolutionalLayer::operator=(const ConvolutionalLayer& other)
+  {
+    Layer::operator=(other);
+
+    m_inputWidth         = other.m_inputWidth;
+    m_inputHeight        = other.m_inputHeight;
+    m_kernelSize         = other.m_kernelSize;
+    m_inputChannelCount  = other.m_inputChannelCount;
+    m_outputChannelCount = other.m_outputChannelCount;
+
+    m_kernels.reserve(other.m_kernels.size());
+    for(const auto& kernel : other.m_kernels)
+      m_kernels.push_back(std::make_shared<Parameter>(*kernel));
+
+    return *this;
   }
 
   std::unique_ptr<Layer> ConvolutionalLayer::clone() const
@@ -44,6 +55,16 @@ namespace kann
   size_t ConvolutionalLayer::outputSize() const
   {
     return (m_inputWidth-m_kernelSize+1) * (m_inputHeight-m_kernelSize+1) * m_outputChannelCount;
+  }
+
+  std::vector<std::shared_ptr<const Parameter>> ConvolutionalLayer::parameters(unsigned tags) const
+  {
+    return std::vector<std::shared_ptr<const Parameter>>(m_kernels.begin(), m_kernels.end());
+  }
+
+  std::vector<std::shared_ptr<Parameter>> ConvolutionalLayer::parameters(unsigned tags)
+  {
+    return m_kernels;
   }
 
   auto ConvolutionalLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
@@ -70,7 +91,7 @@ namespace kann
       std::vector<std::shared_ptr<const Variable>> results(m_inputChannelCount);
       for(size_t j=0; j<m_inputChannelCount; ++j)
         results[j] = std::make_shared<const Variable>(
-          std::vector{inputChannels[j], m_kernelsVariable[i * m_inputChannelCount + j]},
+          std::vector{inputChannels[j], m_kernels[i * m_inputChannelCount + j]->variable},
           std::make_shared<ConvolutionOperation>(m_inputWidth, m_inputHeight, m_kernelSize)
         );
 
@@ -97,30 +118,5 @@ namespace kann
     );
 
     return std::make_pair(std::move(output), std::move(state));
-  }
-
-  std::vector<std::shared_ptr<const Variable>> ConvolutionalLayer::parametersVariables(unsigned tags) const
-  {
-    return m_kernelsVariable;
-  }
-
-  std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> ConvolutionalLayer::parameters(unsigned tags) const
-  {
-    std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> result;
-    result.reserve(m_kernels.size());
-    for(const auto& kernel : m_kernels)
-      result.push_back(kernel);
-
-    return result;
-  }
-
-  std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> ConvolutionalLayer::parameters(unsigned tags)
-  {
-    std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> result;
-    result.reserve(m_kernels.size());
-    for(auto& kernel : m_kernels)
-      result.push_back(kernel);
-
-    return result;
   }
 }

@@ -23,10 +23,8 @@ namespace kann
     LIBKANN_SYMEXPORT size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Variable>> parametersVariables(unsigned tags) const override;
-
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> parameters(unsigned tags) const override;
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> parameters(unsigned tags) override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
 
   public:
     LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;

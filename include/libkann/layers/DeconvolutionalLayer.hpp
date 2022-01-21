@@ -20,8 +20,9 @@ namespace kann
     LIBKANN_SYMEXPORT DeconvolutionalLayer() = default;
     LIBKANN_SYMEXPORT DeconvolutionalLayer(size_t inputWidth, size_t inputHeight, size_t kernelSize, size_t inputChannelCount, size_t outputChannelCount);
 
-  private:
-    LIBKANN_SYMEXPORT void initializeVariables();
+  public:
+    LIBKANN_SYMEXPORT DeconvolutionalLayer(const DeconvolutionalLayer& other);
+    LIBKANN_SYMEXPORT DeconvolutionalLayer& operator=(const DeconvolutionalLayer& other);
 
   public:
     LIBKANN_SYMEXPORT std::unique_ptr<Layer> clone() const override;
@@ -31,37 +32,21 @@ namespace kann
     LIBKANN_SYMEXPORT size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Variable>> parametersVariables(unsigned tags) const override;
-
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> parameters(unsigned tags) const override;
-    LIBKANN_SYMEXPORT std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> parameters(unsigned tags) override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
+    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
 
   public:
     LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
 
   public:
     template<typename Archive>
-    void save(Archive& archive) const
+    void serialize(Archive& archive)
     {
       archive(cereal::base_class<Layer>(this));
 
       archive(m_inputWidth, m_inputHeight);
       archive(m_kernelSize);
       archive(m_inputChannelCount, m_outputChannelCount);
-
-      archive(m_kernels);
-    }
-
-    template<typename Archive>
-    void load(Archive& archive)
-    {
-      archive(cereal::base_class<Layer>(this));
-
-      archive(m_inputWidth, m_inputHeight);
-      archive(m_kernelSize);
-      archive(m_inputChannelCount, m_outputChannelCount);
-
-      initializeVariables();
 
       archive(m_kernels);
     }
@@ -72,8 +57,7 @@ namespace kann
     size_t m_inputChannelCount, m_outputChannelCount;
 
   private:
-    std::vector<std::shared_ptr<const Variable>> m_kernelsVariable;
-    std::vector<std::shared_ptr<const Tensor>>   m_kernels;
+    std::vector<std::shared_ptr<Parameter>> m_kernels;
   };
 }
 

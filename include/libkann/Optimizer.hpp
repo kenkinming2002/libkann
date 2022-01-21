@@ -20,7 +20,7 @@ namespace kann
     double m_learningRate;
 
     std::unique_ptr<Executor> m_executor;
-    std::vector<std::shared_ptr<const Tensor>> m_state;
+    std::vector<std::shared_ptr<const Tensor>> m_statesValues;
   };
 }
 

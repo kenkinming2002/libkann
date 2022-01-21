@@ -40,11 +40,10 @@ namespace kann
     size_t outputSize() const override { return node(m_outputNodeIndex).size; }
 
   public:
-    std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
+    std::vector<std::shared_ptr<Parameter>> makeStates() const override;
 
   public:
-    std::vector<std::shared_ptr<const Variable>> makeStateVariables() const override;
-    std::vector<std::shared_ptr<const Tensor>> makeState() const override;
+    std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
 
   private:
     void build();
@@ -265,6 +264,18 @@ namespace kann
     return std::make_unique<FunctionalModel>(*this);
   }
 
+  std::vector<std::shared_ptr<Parameter>> FunctionalModel::makeStates() const
+  {
+    std::vector<std::shared_ptr<Parameter>> result;
+    result.reserve(m_feedBacksNodeIndices.size());
+    for(const auto& [inputNodeIndex, outputNodeIndex] : m_feedBacksNodeIndices)
+    {
+      assert(node(inputNodeIndex).size == node(outputNodeIndex).size);
+      result.push_back(std::make_shared<Parameter>(node(inputNodeIndex).size));
+    }
+    return result;
+  }
+
   auto FunctionalModel::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
   {
     std::vector<std::shared_ptr<const Variable>> variables;
@@ -327,25 +338,6 @@ namespace kann
     auto output = std::move(variables[m_outputNodeIndex]);
 
     return std::make_pair(std::move(output), std::move(state));
-  }
-
-  std::vector<std::shared_ptr<const Variable>> FunctionalModel::makeStateVariables() const
-  {
-    return std::vector(m_feedBacksNodeIndices.size(), std::make_shared<const Variable>());
-  }
-
-  std::vector<std::shared_ptr<const Tensor>> FunctionalModel::makeState() const
-  {
-    std::vector<std::shared_ptr<const Tensor>> result;
-    for(const auto& [inputNodeIndex, outputNodeIndex] : m_feedBacksNodeIndices)
-    {
-      assert(node(inputNodeIndex).size == node(outputNodeIndex).size);
-      const size_t size = node(inputNodeIndex).size;
-      auto state = std::make_shared<Tensor>(size);
-      state->asArray().setZero();
-      result.push_back(std::move(state));
-    }
-    return result;
   }
 
   void FunctionalModel::build()

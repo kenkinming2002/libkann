@@ -27,6 +27,43 @@ namespace kann
     TAG_ALL = 0xFFFFFFFF
   };
 
+  struct Parameter
+  {
+  public:
+    Parameter() = default;
+    Parameter(size_t size)
+    {
+      variable = std::make_shared<const Variable>();
+      value    = std::make_shared<const Tensor>(size);
+      value->asArray().setZero();
+    }
+
+  public:
+    Parameter(const Parameter& other)
+    {
+      variable = std::make_shared<const Variable>();
+      value    = other.value;
+    }
+
+  public:
+    std::shared_ptr<const Variable> variable;
+    std::shared_ptr<const Tensor> value;
+
+  public:
+    template<typename Archive>
+    void save(Archive& archive) const
+    {
+      archive(value);
+    }
+
+    template<typename Archive>
+    void load(Archive& archive)
+    {
+      variable = std::make_shared<const Variable>();
+      archive(value);
+    }
+  };
+
   class Layer
   {
   public:
@@ -46,17 +83,11 @@ namespace kann
     virtual size_t inputSize() const = 0;
     virtual size_t outputSize() const = 0;
 
-  // Layer parameters
   public:
-    virtual std::vector<std::shared_ptr<const Variable>> parametersVariables(unsigned tags) const = 0;
+    virtual std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const = 0;
+    virtual std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) = 0;
 
-    virtual std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> parameters(unsigned tags) const = 0;
-    virtual std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> parameters(unsigned tags) = 0;
-
-  // Layer may have hidden states
-  public:
-    virtual std::vector<std::shared_ptr<const Variable>> makeStateVariables() const { return {}; }
-    virtual std::vector<std::shared_ptr<const Tensor>> makeState() const { return {}; }
+    virtual std::vector<std::shared_ptr<Parameter>> makeStates() const { return {}; }
 
     /* @param input input variable
      * @param state old state variable

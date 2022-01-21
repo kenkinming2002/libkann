@@ -1,3 +1,4 @@
+#include <iterator>
 #include <libkann/Model.hpp>
 
 namespace kann
@@ -9,43 +10,36 @@ namespace kann
       layer = layer->clone();
   }
 
-  std::vector<std::shared_ptr<const Variable>> Model::parametersVariables(unsigned tags) const
+  std::vector<std::shared_ptr<const Parameter>> Model::parameters(unsigned tags) const
   {
-    std::vector<std::shared_ptr<const Variable>> result;
+    std::vector<std::shared_ptr<const Parameter>> result;
     for(const auto& layer : m_layers)
       if(layer->tag() & tags)
       {
-        auto parameterVariables = layer->parametersVariables(TAG_ALL);
-        result.insert(result.end(), parameterVariables.begin(), parameterVariables.end());
+        auto parameters = layer->parameters(TAG_ALL);
+        result.insert(result.end(),
+          std::move_iterator(parameters.begin()),
+          std::move_iterator(parameters.end())
+        );
       }
 
     return result;
   }
 
-  std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> Model::parameters(unsigned tags) const
+  std::vector<std::shared_ptr<Parameter>> Model::parameters(unsigned tags)
   {
-    std::vector<std::reference_wrapper<const std::shared_ptr<const Tensor>>> parameters;
+    std::vector<std::shared_ptr<Parameter>> result;
     for(const auto& layer : m_layers)
       if(layer->tag() & tags)
       {
-        auto layerParameters = layer->parameters(TAG_ALL);
-        parameters.insert(parameters.end(), layerParameters.begin(), layerParameters.end());
+        auto parameters = layer->parameters(TAG_ALL);
+        result.insert(result.end(),
+          std::move_iterator(parameters.begin()),
+          std::move_iterator(parameters.end())
+        );
       }
 
-    return parameters;
-  }
-
-  std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> Model::parameters(unsigned tags)
-  {
-    std::vector<std::reference_wrapper<std::shared_ptr<const Tensor>>> parameters;
-    for(const auto& layer : m_layers)
-      if(layer->tag() & tags)
-      {
-        auto layerParameters = layer->parameters(TAG_ALL);
-        parameters.insert(parameters.end(), layerParameters.begin(), layerParameters.end());
-      }
-
-    return parameters;
+    return result;
   }
 
   size_t Model::addLayer(std::shared_ptr<Layer> layer)

@@ -12,9 +12,23 @@
 
 namespace kann
 {
+  template<typename U, typename UnaryFunc, typename T = std::result_of_t<UnaryFunc(const U&)>>
+  static std::vector<T> convert(const std::vector<U>& in, const UnaryFunc& f)
+  {
+    std::vector<T> out;
+    out.reserve(in.size());
+    for(const auto& v : in)
+      out.push_back(f(v));
+
+    return out;
+  }
+
   Optimizer::Optimizer(std::shared_ptr<Model> model, double learningRate)
     : m_model(std::move(model)), m_learningRate(learningRate)
   {
+    auto parameters = m_model->parameters(TAG_ALL);
+    auto states     = m_model->makeStates();
+
     // 1: Create Executor
     m_executor = makeDefaultExecutor();
 
@@ -24,15 +38,15 @@ namespace kann
     auto expectedOutputVariable = std::make_shared<const Variable>();
     m_executor->addInput("expected output", {expectedOutputVariable});
 
-    auto parametersVariables = m_model->parametersVariables(TAG_ALL);
+    auto parametersVariables = convert(parameters, [](const std::shared_ptr<Parameter>& parameter){ return parameter->variable; });
     m_executor->addInput("parameters", parametersVariables);
 
-    auto stateVariables = m_model->makeStateVariables();
-    m_executor->addInput("state", stateVariables);
+    auto statesVariables = convert(states, [](const std::shared_ptr<Parameter>& parameter){ return parameter->variable; });
+    m_executor->addInput("states", statesVariables);
 
-    auto [outputVariable, newStateVariables] = (*m_model)(inputVariable, stateVariables);
+    auto [outputVariable, newStatesVariables] = (*m_model)(inputVariable, statesVariables);
     m_executor->addOutput("output", {outputVariable});
-    m_executor->addOutput("new state", newStateVariables);
+    m_executor->addOutput("new states", newStatesVariables);
 
     auto outputGradientVariable = std::make_shared<const Variable>(
       std::vector{std::make_shared<const Variable>(
@@ -62,7 +76,8 @@ namespace kann
     m_executor->build();
 
     // 2: Create initial state
-    m_state = m_model->makeState();
+    auto statesValues = convert(states, [](const std::shared_ptr<Parameter>& parameter){ return parameter->value; });
+    m_statesValues = std::move(statesValues);
 
     // 3: DEBUG
     std::ofstream file("output/optimizer.dot");
@@ -71,36 +86,35 @@ namespace kann
 
   std::pair<std::shared_ptr<const Tensor>, double> Optimizer::optimize(std::shared_ptr<const Tensor> input, std::shared_ptr<const Tensor> expectedOutput, unsigned tag)
   {
-    auto parameters = m_model->parameters(TAG_ALL);
+    auto parameters          = m_model->parameters(TAG_ALL);
+    auto trainableParameters = m_model->parameters(tag);
 
     // 1: Input
     m_executor->input("input", {input});
     m_executor->input("expected output", {expectedOutput});
-    m_executor->input("state", m_state);
+    m_executor->input("states", m_statesValues);
 
-    std::vector<std::shared_ptr<const Tensor>> tmp;
-    for(std::reference_wrapper parameter : parameters)
-      tmp.push_back(parameter);
-
-    m_executor->input("parameters", std::move(tmp));
+    auto parametersValues = convert(parameters, [](const std::shared_ptr<Parameter>& parameter){ return parameter->value; });
+    m_executor->input("parameters", std::move(parametersValues));
 
     // 2: Output
     auto output = m_executor->output("output").front();
 
-    auto newParameters = m_executor->output("new parameters");
-    {
-      std::unordered_set<std::shared_ptr<const Tensor>*> trainableParametersSet;
-      for(std::reference_wrapper trainableParameter : m_model->parameters(tag))
-        trainableParametersSet.insert(&trainableParameter.get());
+    // Parameters
+    auto newParametersValues = m_executor->output("new parameters");
 
-      // Only update trainable parameters
-      for(size_t i=0; i<parameters.size(); ++i)
-        if(trainableParametersSet.contains(&parameters[i].get()))
-          parameters[i].get() = std::move(newParameters[i]);
-    }
+    std::unordered_set<std::shared_ptr<Parameter>> trainableParametersSet;
+    for(auto& trainableParameter : trainableParameters)
+      trainableParametersSet.insert(trainableParameter);
 
-    auto newState = m_executor->output("new state");
-    m_state = std::move(newState);
+    // Only update trainable parameters
+    for(size_t i=0; i<parameters.size(); ++i)
+      if(trainableParametersSet.contains(parameters[i]))
+        parameters[i]->value = newParametersValues[i];
+
+    // States
+    auto newStatesValues = m_executor->output("new states");
+    m_statesValues = std::move(newStatesValues);
 
     // 5: Return
     // TODO: May be also put that into the computational graph
