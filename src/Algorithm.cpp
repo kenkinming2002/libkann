@@ -86,7 +86,7 @@ namespace kann
       auto input          = dataSet.get(inputColumn, i);
       auto expectedOutput = dataSet.get(outputColumn, i);
 
-      const auto [output, cost] = optimizer.optimize(input, expectedOutput);
+      auto [output, cost] = optimizer.optimize({input}, {expectedOutput}).front();
 
       // TODO: Return real output somehow
       const bool result = callback(Info{
@@ -161,11 +161,11 @@ namespace kann
 
       // Generator
       expectedOutput->asArray()(0) = 1.0;
-      const auto [GANOutput, GANCost] = GANOptimizer.optimize(input, expectedOutput, TAG_GAN_GENERATOR);
+      const auto [GANOutput, GANCost] = GANOptimizer.optimize({input}, {expectedOutput}, TAG_GAN_GENERATOR).front();
 
       // Discriminator
       expectedOutput->asArray()(0) = 0.0;
-      const auto [discriminatorOutput, discriminiatorCost] = GANOptimizer.optimize(input, expectedOutput, TAG_GAN_DISCRIMINATOR);
+      const auto [discriminatorOutput, discriminiatorCost] = GANOptimizer.optimize({input}, {expectedOutput}, TAG_GAN_DISCRIMINATOR).front();
 
       // Sample the generator
       const auto generatorOutput = generatorPredictor.predict(input);
@@ -174,7 +174,7 @@ namespace kann
       input = dataSet.get(column, i);
 
       expectedOutput->asArray()(0) = 1.0;
-      discriminatorOptimizer.optimize(input, expectedOutput);
+      discriminatorOptimizer.optimize({input}, {expectedOutput});
       const bool result = callback(GANInfo{
         .GANModel = GANModel,
         .generatorModel     = generatorModel,
