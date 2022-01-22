@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
     auto task = test();
     while(!task.step())
     {
-      auto& info = task.info();
+      auto info = task.info();
       std::cout << "Info:" << info.i << '\n';
     }
 
