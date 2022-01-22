@@ -97,13 +97,13 @@ void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
     auto input = convert(board, color);
     auto expectedOutput = std::make_shared<kann::Tensor>(1);
     expectedOutput->asArray()(0) = (good ? 1.0 : 0.0);
-    m_optimizer.optimize(std::move(input), std::move(expectedOutput));
+    m_optimizer.optimize({std::move(input)}, {std::move(expectedOutput)});
   }
   {
     auto input = convert(board, otherColor);
     auto expectedOutput = std::make_shared<kann::Tensor>(1);
     expectedOutput->asArray()(0) = (good ? 1.0 : 0.0);
-    m_optimizer.optimize(std::move(input), std::move(expectedOutput));
+    m_optimizer.optimize({std::move(input)}, {std::move(expectedOutput)});
   }
 }
 

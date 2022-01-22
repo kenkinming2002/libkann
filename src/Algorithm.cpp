@@ -7,6 +7,17 @@
 
 namespace kann
 {
+  template<typename U, typename UnaryFunc, typename T = std::result_of_t<UnaryFunc(const U&)>>
+  static std::vector<T> convert(const std::vector<U>& in, const UnaryFunc& f)
+  {
+    std::vector<T> out;
+    out.reserve(in.size());
+    for(const auto& v : in)
+      out.push_back(f(v));
+
+    return out;
+  }
+
   template<typename... Args>
   static void showProgressBar(std::string_view name, size_t count, size_t total, const Args&... args)
   {
@@ -53,140 +64,165 @@ namespace kann
     };
   }
 
-  void run(std::shared_ptr<Model> model, const DataSet& dataSet, size_t column, Callback callback)
+  std::vector<std::shared_ptr<const Tensor>> load(const DataSet& dataSet, size_t column)
   {
-    const auto size = dataSet.size();
+    const size_t size = dataSet.size();
 
-    Predictor predictor(model);
+    std::vector<std::shared_ptr<const Tensor>> result;
+    result.reserve(dataSet.size());
     for(size_t i=0; i<size; ++i)
-    {
-      auto input = dataSet.get(column,  i);
-      auto output = predictor.predict(input);
+      result.push_back(dataSet.get(column, i));
 
-      const bool result = callback(Info{
+    return result;
+  }
+
+  void run(std::shared_ptr<const Model> model,
+      std::vector<std::shared_ptr<const Tensor>> inputs,
+      Callback callback)
+  {
+    Predictor predictor(model);
+    for(size_t i=0; i<inputs.size(); ++i)
+    {
+      auto output = predictor.predict(inputs[i]);
+      auto info = Info{
         .model = model,
         .i = i,
-        .size = size,
-        .input = std::move(input),
+        .size = inputs.size(),
+        .input  = std::move(inputs[i]),
         .output = std::move(output)
-      });
-      if(!result)
-        break;
+      };
+      if(auto result = callback(info); !result)
+        return;
     }
   }
 
-  void train(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, float learningRate, Callback callback)
+  void train(std::shared_ptr<Model> model,
+      std::vector<std::shared_ptr<const Tensor>> inputs,
+      std::vector<std::shared_ptr<const Tensor>> expectedOutputs,
+      double learningRate, size_t batchSize,
+      Callback callback)
   {
-    const auto size = dataSet.size();
+    assert(inputs.size() == expectedOutputs.size());
+    const size_t size = inputs.size() / batchSize * batchSize;
 
-    Optimizer optimizer(model, learningRate);
-
-    for(size_t i=0; i<size; ++i)
+    Optimizer optimizer(model, learningRate, batchSize);
+    for(size_t i=0; i<size; i+=batchSize)
     {
-      auto input          = dataSet.get(inputColumn, i);
-      auto expectedOutput = dataSet.get(outputColumn, i);
+      auto inputsBatch          = std::vector<std::shared_ptr<const Tensor>>(&inputs[i],          &inputs[i+batchSize]);
+      auto expectedOutputsBatch = std::vector<std::shared_ptr<const Tensor>>(&expectedOutputs[i], &expectedOutputs[i+batchSize]);
+      auto result = optimizer.optimize(inputsBatch, expectedOutputsBatch, TAG_ALL);
 
-      const auto [output, cost] = optimizer.optimize(input, expectedOutput);
-
-      // TODO: Return real output somehow
-      const bool result = callback(Info{
-        .model = model,
-        .i = i,
-        .size = size,
-        .input = std::move(input),
-        .output = std::move(output),
-        .expectedOutput = std::move(expectedOutput),
-        .cost = cost
-      });
-      if(!result)
-        break;
+      for(size_t j=0; j<batchSize; ++j)
+      {
+        auto info = Info{
+          .model = model,
+          .i = i,
+          .size = size,
+          .input = std::move(inputsBatch[j]),
+          .output = std::move(result[j].first),
+          .expectedOutput = std::move(expectedOutputsBatch[j]),
+          .cost = result[j].second
+        };
+      if(auto result = callback(info); !result)
+        return;
+      }
     }
   }
 
-  double test(std::shared_ptr<Model> model, const DataSet& dataSet, size_t inputColumn, size_t outputColumn, Callback callback)
+  void trainGAN(std::shared_ptr<Model> model,
+      std::shared_ptr<Model> generatorModel,
+      std::shared_ptr<Model> discriminatorModel,
+      std::vector<std::shared_ptr<const Tensor>> inputs,
+      std::vector<std::shared_ptr<const Tensor>> latentInputs,
+      double learningRate, size_t batchSize,
+      GANCallback callback)
   {
-    const auto size = dataSet.size();
+    assert(latentInputs.size() == inputs.size());
+    const size_t size = inputs.size() / batchSize * batchSize;
 
-    double correctness = 0.0;
+    Optimizer optimizer(model, learningRate, batchSize);
+
+    Optimizer discriminatorOptimizer(discriminatorModel, learningRate, batchSize);
+    Predictor generatorPredictor(generatorModel);
+
+    auto zero = std::make_shared<const Tensor>(1);
+    zero->asArray()(0) = 0.0;
+
+    auto one = std::make_shared<const Tensor>(1);
+    one->asArray()(0) = 1.0;
+
+    auto zeroBatch = std::vector(batchSize, zero);
+    auto oneBatch  = std::vector(batchSize, one);
+
+    for(size_t i=0; i<size; i+=batchSize)
+    {
+      auto inputsBatch = std::vector<std::shared_ptr<const Tensor>>(&inputs[i], &inputs[i+batchSize]);
+      auto latentInputsBatch = std::vector<std::shared_ptr<const Tensor>>(&latentInputs[i], &latentInputs[i+batchSize]);
+
+      // Train on real data set
+      auto discriminatorResult = discriminatorOptimizer.optimize(inputsBatch, oneBatch);
+
+      // Predict on latent data set
+      auto generatorResult = convert(latentInputsBatch, [&generatorPredictor](const std::shared_ptr<const Tensor>& input){ return generatorPredictor.predict(input);});
+
+      // Train on latent data set
+      auto discriminatorCombinedResult = optimizer.optimize(latentInputsBatch, zeroBatch, TAG_GAN_DISCRIMINATOR);
+      auto generatorCombinedResult     = optimizer.optimize(latentInputsBatch, oneBatch,  TAG_GAN_GENERATOR);
+
+      for(size_t j=0; j<batchSize; ++j)
+      {
+        auto info = GANInfo{
+          .GANModel = model,
+          .generatorModel = generatorModel,
+          .discriminatorModel = discriminatorModel,
+          .i = i,
+          .size = size,
+          .GANOutput           = discriminatorCombinedResult[j].first,
+          .generatorOutput     = generatorResult[j],
+          .discriminatorOutput = discriminatorResult[j].first,
+        };
+        if(auto result = callback(info); !result)
+          return;
+      }
+    }
+  }
+
+  double test(std::shared_ptr<const Model> model,
+      std::vector<std::shared_ptr<const Tensor>> inputs,
+      std::vector<std::shared_ptr<const Tensor>> expectedOutputs,
+      Callback callback)
+  {
+    // How do we inplement correctness
+    assert(inputs.size() == expectedOutputs.size());
+    const size_t size = inputs.size();
+    size_t correct = 0;
 
     Predictor predictor(model);
     for(size_t i=0; i<size; ++i)
     {
-      auto input          = dataSet.get(inputColumn, i);
-      auto expectedOutput = dataSet.get(outputColumn, i);
+      auto output = predictor.predict(inputs[i]);
 
-      auto output = predictor.predict(input);
-      correctness += dataSet.correctness(outputColumn, i, *output);
+      size_t index1, index2;
+      output->asArray().maxCoeff(&index1);
+      expectedOutputs[i]->asArray().maxCoeff(&index2);
+      if(index1 == index2)
+        ++correct;
 
-      auto outputGradient = (output->asVector()-expectedOutput->asVector()) * 2.0;
-      double cost = outputGradient.squaredNorm();
+      auto cost = (2.0 * (output->asVector() - expectedOutputs[i]->asVector())).squaredNorm();
 
-      const bool result = callback(Info{
+      auto info = Info{
         .model = model,
         .i = i,
         .size = size,
-        .input = std::move(input),
+        .input  = std::move(inputs[i]),
         .output = std::move(output),
-        .expectedOutput = std::move(expectedOutput),
         .cost = cost
-      });
-      if(!result)
+      };
+      if(auto result = callback(info); !result)
         break;
     }
 
-    correctness /= size;
-    return correctness;
+    return (double)correct / size;
   }
 
-  void trainGAN(std::shared_ptr<Model> GANModel, std::shared_ptr<Model> generatorModel, std::shared_ptr<Model> discriminatorModel,
-      const DataSet& dataSetLatent, const DataSet& dataSet,
-      size_t columnLatent, size_t column,
-      float learningRate, GANCallback callback)
-  {
-    Optimizer GANOptimizer(GANModel, learningRate);
-
-    Predictor generatorPredictor(generatorModel);
-    Optimizer discriminatorOptimizer(discriminatorModel, learningRate);
-
-    // TODO: Support if their size are not equal
-    assert(dataSetLatent.size() == dataSet.size());
-    const auto size = dataSetLatent.size();
-    for(size_t i=0; i<size; ++i)
-    {
-      std::shared_ptr<const Tensor> input;
-      std::shared_ptr<Tensor> expectedOutput = std::make_shared<Tensor>(1);
-
-      // 1. Train on latent data set
-      input = dataSetLatent.get(columnLatent, i);
-
-      // Generator
-      expectedOutput->asArray()(0) = 1.0;
-      const auto [GANOutput, GANCost] = GANOptimizer.optimize(input, expectedOutput, TAG_GAN_GENERATOR);
-
-      // Discriminator
-      expectedOutput->asArray()(0) = 0.0;
-      const auto [discriminatorOutput, discriminiatorCost] = GANOptimizer.optimize(input, expectedOutput, TAG_GAN_DISCRIMINATOR);
-
-      // Sample the generator
-      const auto generatorOutput = generatorPredictor.predict(input);
-
-      // 2: Train on real data set
-      input = dataSet.get(column, i);
-
-      expectedOutput->asArray()(0) = 1.0;
-      discriminatorOptimizer.optimize(input, expectedOutput);
-      const bool result = callback(GANInfo{
-        .GANModel = GANModel,
-        .generatorModel     = generatorModel,
-        .discriminatorModel = discriminatorModel,
-        .i = i,
-        .size = size,
-        .GANOutput = std::move(GANOutput),
-        .generatorOutput = std::move(generatorOutput),
-        .discriminatorOutput = std::move(discriminatorOutput)
-      });
-      if(!result)
-        break;
-    }
-  }
 }

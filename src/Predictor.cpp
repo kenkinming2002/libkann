@@ -18,7 +18,7 @@ namespace kann
     return out;
   }
 
-  Predictor::Predictor(std::shared_ptr<Model> model)
+  Predictor::Predictor(std::shared_ptr<const Model> model)
     : m_model(std::move(model))
   {
     auto parameters = m_model->parameters(TAG_ALL);
