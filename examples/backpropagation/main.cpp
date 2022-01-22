@@ -98,14 +98,20 @@ static void trainAndTestFeedForwardModel(std::shared_ptr<kann::Model> model,
   std::ofstream file(outputPath);
   model->write_graphviz(file);
 
+  auto trainingInputs  = kann::load(trainingDataSet, inputColumn);
+  auto trainingOutputs = kann::load(trainingDataSet, outputColumn);
+
+  auto testingInputs  = kann::load(testingDataSet, inputColumn);
+  auto testingOutputs = kann::load(testingDataSet, outputColumn);
+
   double correctness;
 
-  correctness = kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
+  correctness = kann::test(model, testingInputs, testingOutputs);
   std::cout << "correctness:" << correctness << std::endl;
 
-  kann::train(model, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, LEARNING_RATE, 10);
+  kann::train(model, trainingInputs, trainingOutputs, LEARNING_RATE, 10);
 
-  correctness = kann::test(model, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL);
+  correctness = kann::test(model, testingInputs, testingOutputs);
   std::cout << "correctness:" << correctness << std::endl;
 }
 
@@ -113,7 +119,10 @@ static void trainAndRunAutoEncoder(std::shared_ptr<kann::Model> autoEncoderModel
     const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet, size_t dataColumn,
     std::filesystem::path reconstructionOutputPath, std::filesystem::path outputPath, size_t featuresCount, size_t generateCount)
 {
-  kann::train(autoEncoderModel, trainingDataSet, dataColumn, dataColumn, LEARNING_RATE);
+  auto trainingData = kann::load(trainingDataSet, dataColumn);
+  auto testingData  = kann::load(testingDataSet, dataColumn); // Not used
+
+  kann::train(autoEncoderModel, trainingData, trainingData, LEARNING_RATE, 10);
 
   // Reconstruction
   if(!std::filesystem::create_directories(reconstructionOutputPath))
@@ -122,7 +131,7 @@ static void trainAndRunAutoEncoder(std::shared_ptr<kann::Model> autoEncoderModel
     return;
   }
 
-  kann::run(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, [&reconstructionOutputPath](kann::Info info){
+  kann::run(autoEncoderModel, trainingData, [&reconstructionOutputPath](kann::Info info){
     std::filesystem::path filepath = reconstructionOutputPath / (std::string("result")+std::to_string(info.i)+std::string(".bmp"));
     auto image = kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
     image.saveToFile(filepath);
@@ -137,7 +146,9 @@ static void trainAndRunAutoEncoder(std::shared_ptr<kann::Model> autoEncoderModel
   }
 
   kann::RandomDataSet randomDataSet(featuresCount, generateCount);
-  kann::run(decoderModel, randomDataSet, kann::RandomDataSet::COLUMN_DATA, [&outputPath](kann::Info info){
+  auto randomData = kann::load(randomDataSet, kann::RandomDataSet::COLUMN_DATA);
+
+  kann::run(decoderModel, randomData, [&outputPath](kann::Info info){
     std::filesystem::path filepath = outputPath / (std::string("result")+std::to_string(info.i)+std::string(".bmp"));
     auto image = kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH);
     image.saveToFile(filepath);
@@ -340,10 +351,11 @@ int main(int argc, char* argv[])
       };
 
       kann::RandomDataSet latentDataSet(FEATURES_COUNT, trainingDataSet.size());
-      kann::trainGAN(GANModel, generatorModel, discriminatorModel,
-          latentDataSet, trainingDataSet,
-          kann::RandomDataSet::COLUMN_DATA, kann::MNISTDataSet::COLUMN_IMAGE,
-          LEARNING_RATE, callback);
+
+      auto trainingData = kann::load(trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
+      auto latentData   = kann::load(latentDataSet, kann::RandomDataSet::COLUMN_DATA);
+
+      kann::trainGAN(GANModel, generatorModel, discriminatorModel, trainingData, latentData, LEARNING_RATE, 10, callback);
     }
 
     {
@@ -357,8 +369,10 @@ int main(int argc, char* argv[])
         return defaultCallback(info);
       };
 
-      kann::RandomDataSet randomDataSet(FEATURES_COUNT, 1000);
-      kann::run(generatorModel, randomDataSet, kann::RandomDataSet::COLUMN_DATA, callback);
+      kann::RandomDataSet latentDataSet(FEATURES_COUNT, 1000);
+      auto latentData   = kann::load(latentDataSet, kann::RandomDataSet::COLUMN_DATA);
+
+      kann::run(generatorModel, latentData, callback);
     }
   }
   else

@@ -130,14 +130,20 @@ private:
     auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
 
     label = "Training";
+    {
+      auto trainingImages = kann::load(trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
 
-    std::filesystem::create_directories(m_outputDirectory / label);
-    kann::train(autoEncoderModel, trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_IMAGE, LEARNING_RATE, 50, callback);
+      std::filesystem::create_directories(m_outputDirectory / label);
+      kann::train(autoEncoderModel, trainingImages, trainingImages, LEARNING_RATE, 50, callback);
+    }
 
     label = "Testing";
+    {
+      auto testingImages = kann::load(testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
 
-    std::filesystem::create_directories(m_outputDirectory / label);
-    kann::run(autoEncoderModel, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, callback);
+      std::filesystem::create_directories(m_outputDirectory / label);
+      kann::run(autoEncoderModel, testingImages, callback);
+    }
   }
 
 public:

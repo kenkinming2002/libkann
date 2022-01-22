@@ -9,7 +9,7 @@ namespace kann
   {
   public:
     Predictor() = default;
-    Predictor(std::shared_ptr<Model> model);
+    Predictor(std::shared_ptr<const Model> model);
 
   public:
     std::shared_ptr<const Tensor> predict(std::shared_ptr<const Tensor> input);
