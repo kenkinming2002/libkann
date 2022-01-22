@@ -4,6 +4,8 @@
 #include <libkann/Model.hpp>
 #include <libkann/Tensor.hpp>
 
+#include <libkann/Task.hpp>
+
 #include <functional>
 
 namespace kann

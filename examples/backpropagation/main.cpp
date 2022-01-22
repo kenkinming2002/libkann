@@ -156,6 +156,28 @@ static void trainAndRunAutoEncoder(std::shared_ptr<kann::Model> autoEncoderModel
   });
 }
 
+struct Info
+{
+  int i;
+};
+
+struct Result
+{
+  int sum;
+};
+
+[[gnu::noinline]] kann::Task<Result, Info> test()
+{
+  int sum = 0;
+  for(int i=0; i<100; ++i)
+  {
+    sum += i;
+    co_yield Info{.i = i};
+  }
+
+  co_return Result{.sum = sum};
+}
+
 int main(int argc, char* argv[])
 {
   std::default_random_engine engine(random<std::mt19937::result_type>());
@@ -183,6 +205,17 @@ int main(int argc, char* argv[])
     // Try to write out the data set
     writeDataSet("output/training", trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
     writeDataSet("output/testing",  testingDataSet,  kann::MNISTDataSet::COLUMN_IMAGE);
+  }
+  else if(subcommand == "task")
+  {
+    auto task = test();
+    while(!task.step())
+    {
+      auto& info = task.info();
+      std::cout << "Info:" << info.i << '\n';
+    }
+
+    std::cout << "Result:" << task.get().sum << '\n';
   }
   else if(subcommand == "serialize")
   {
