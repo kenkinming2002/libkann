@@ -57,8 +57,7 @@ namespace kann
       archive(m_nodes);
       archive(m_inputNodeIndex, m_outputNodeIndex);
       archive(m_feedBacksNodeIndices);
-
-      archive(GraphOutputSerializer(m_graph));
+      archive(m_graph);
     }
 
     template<typename Archive>
@@ -69,8 +68,8 @@ namespace kann
       archive(m_nodes);
       archive(m_inputNodeIndex, m_outputNodeIndex);
       archive(m_feedBacksNodeIndices);
+      archive(m_graph);
 
-      archive(GraphInputSerializer(m_graph));
       build();
     }
 
