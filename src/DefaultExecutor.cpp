@@ -221,12 +221,14 @@ namespace kann
     auto vertexWriter = [this](std::ostream& os, vertex_type vertex){
       const Node& node = m_graph[vertex];
       const Variable& variable = *node.variable;
-      const Operation& op = *variable.op;
 
       os << "[label=\"";
 
       if(variable.op)
+      {
+        const Operation& op = *variable.op;
         os << "op=" << demangle(typeid(op).name()).substr(0, 20) << "\\n";
+      }
 
       if(node.name)
         os << "name=" << *node.name << "\\n";
