@@ -134,7 +134,9 @@ private:
       auto trainingImages = kann::load(trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
 
       std::filesystem::create_directories(m_outputDirectory / label);
-      kann::train(autoEncoderModel, trainingImages, trainingImages, LEARNING_RATE, 50, callback);
+      auto task = kann::train(autoEncoderModel, trainingImages, trainingImages, LEARNING_RATE, 10);
+      while(!m_stop.load() && !task.step())
+        callback(task.info());
     }
 
     label = "Testing";
@@ -142,7 +144,9 @@ private:
       auto testingImages = kann::load(testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
 
       std::filesystem::create_directories(m_outputDirectory / label);
-      kann::run(autoEncoderModel, testingImages, callback);
+      auto task = kann::run(autoEncoderModel, testingImages);
+      while(!m_stop.load() && !task.step())
+        callback(task.info());
     }
   }
 

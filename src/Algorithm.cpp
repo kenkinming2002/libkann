@@ -7,6 +7,21 @@
 
 namespace kann
 {
+  /* Note: In the implementation, we have the following pattern
+   * ```
+   *  auto info = Info{...};
+   *  co_yield info;
+   * ```
+   *
+   * In reality, we should be able to do directly
+   * ```
+   *  co_yield Info{...};
+   * ```
+   *
+   * but that leads to double-free/use-after-free error in GCC as reported in
+   * GCC Bug 103909 - co_yield of aggregate-initialized temporaries leads to
+   * segmentation faults(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103909)
+   */
   template<typename U, typename UnaryFunc, typename T = std::result_of_t<UnaryFunc(const U&)>>
   static std::vector<T> convert(const std::vector<U>& in, const UnaryFunc& f)
   {
@@ -45,23 +60,17 @@ namespace kann
       std::cout << std::endl;
   }
 
-  Callback defaultCallback(std::string_view name)
+  void displayInfo(std::string_view name, const Info& info)
   {
-    return [=](Info info){
-      showProgressBar(name, info.i, info.size, "Cost:", info.cost);
-      return true;
-    };
+    showProgressBar(name, info.i, info.size, "Cost:", info.cost);
   }
 
-  GANCallback defaultGANCallback(std::string_view name)
+  void displayInfo(std::string_view name, const GANInfo& info)
   {
-    return [=](GANInfo info){
-      showProgressBar(name, info.i, info.size, " ",
-        "GAN Output(Fake image):",           info.GANOutput->asArray()(0), ", ",
-        "Discriminator Output(Real image):", info.discriminatorOutput->asArray()(0)
-      );
-      return true;
-    };
+    showProgressBar(name, info.i, info.size, " ",
+      "GAN Output(Fake image):",           info.GANOutput->asArray()(0), ", ",
+      "Discriminator Output(Real image):", info.discriminatorOutput->asArray()(0)
+    );
   }
 
   std::vector<std::shared_ptr<const Tensor>> load(const DataSet& dataSet, size_t column)
@@ -76,9 +85,8 @@ namespace kann
     return result;
   }
 
-  void run(std::shared_ptr<const Model> model,
-      std::vector<std::shared_ptr<const Tensor>> inputs,
-      Callback callback)
+  Task<void, Info> run(std::shared_ptr<const Model> model,
+      std::vector<std::shared_ptr<const Tensor>> inputs)
   {
     Predictor predictor(model);
     for(size_t i=0; i<inputs.size(); ++i)
@@ -91,16 +99,14 @@ namespace kann
         .input  = std::move(inputs[i]),
         .output = std::move(output)
       };
-      if(auto result = callback(info); !result)
-        return;
+      co_yield info;
     }
   }
 
-  void train(std::shared_ptr<Model> model,
+  Task<void, Info> train(std::shared_ptr<Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs,
-      double learningRate, size_t batchSize,
-      Callback callback)
+      double learningRate, size_t batchSize)
   {
     assert(inputs.size() == expectedOutputs.size());
     const size_t size = inputs.size() / batchSize * batchSize;
@@ -123,19 +129,17 @@ namespace kann
           .expectedOutput = std::move(expectedOutputsBatch[j]),
           .cost = result[j].second
         };
-      if(auto result = callback(info); !result)
-        return;
+        co_yield info;
       }
     }
   }
 
-  void trainGAN(std::shared_ptr<Model> model,
+  Task<void, GANInfo> trainGAN(std::shared_ptr<Model> model,
       std::shared_ptr<Model> generatorModel,
       std::shared_ptr<Model> discriminatorModel,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> latentInputs,
-      double learningRate, size_t batchSize,
-      GANCallback callback)
+      double learningRate, size_t batchSize)
   {
     assert(latentInputs.size() == inputs.size());
     const size_t size = inputs.size() / batchSize * batchSize;
@@ -181,16 +185,14 @@ namespace kann
           .generatorOutput     = generatorResult[j],
           .discriminatorOutput = discriminatorResult[j].first,
         };
-        if(auto result = callback(info); !result)
-          return;
+        co_yield info;
       }
     }
   }
 
-  double test(std::shared_ptr<const Model> model,
+  Task<double, Info> test(std::shared_ptr<const Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs,
-      std::vector<std::shared_ptr<const Tensor>> expectedOutputs,
-      Callback callback)
+      std::vector<std::shared_ptr<const Tensor>> expectedOutputs)
   {
     // How do we inplement correctness
     assert(inputs.size() == expectedOutputs.size());
@@ -218,11 +220,10 @@ namespace kann
         .output = std::move(output),
         .cost = cost
       };
-      if(auto result = callback(info); !result)
-        break;
+      co_yield info;
     }
 
-    return (double)correct / size;
+    co_return (double)correct / size;
   }
 
 }

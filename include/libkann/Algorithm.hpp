@@ -4,15 +4,15 @@
 #include <libkann/Model.hpp>
 #include <libkann/Tensor.hpp>
 
+#include <libkann/Task.hpp>
+
 #include <functional>
 
 namespace kann
 {
-  // FIXME: Replace callbacks with something like coroutine
-
   struct Info
   {
-    const std::shared_ptr<const Model> model;
+    std::shared_ptr<const Model> model;
 
     size_t i;
     size_t size;
@@ -23,13 +23,12 @@ namespace kann
 
     double cost;
   };
-  typedef std::function<bool(Info)> Callback;
 
   struct GANInfo
   {
-    const std::shared_ptr<Model> GANModel;
-    const std::shared_ptr<Model> generatorModel;
-    const std::shared_ptr<Model> discriminatorModel;
+    std::shared_ptr<Model> GANModel;
+    std::shared_ptr<Model> generatorModel;
+    std::shared_ptr<Model> discriminatorModel;
 
     size_t i;
     size_t size;
@@ -38,35 +37,30 @@ namespace kann
     std::shared_ptr<const Tensor> generatorOutput;
     std::shared_ptr<const Tensor> discriminatorOutput;
   };
-  typedef std::function<bool(GANInfo)> GANCallback;
 
-  Callback defaultCallback(std::string_view name);
-  GANCallback defaultGANCallback(std::string_view name);
+  LIBKANN_SYMEXPORT void displayInfo(std::string_view name, const Info& info);
+  LIBKANN_SYMEXPORT void displayInfo(std::string_view name, const GANInfo& info);
 
   // New API
   LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Tensor>> load(const DataSet& dataSet, size_t column);
 
-  LIBKANN_SYMEXPORT void run(std::shared_ptr<const Model> model,
-      std::vector<std::shared_ptr<const Tensor>> inputs,
-      Callback callback);
+  LIBKANN_SYMEXPORT Task<void, Info> run(std::shared_ptr<const Model> model,
+      std::vector<std::shared_ptr<const Tensor>> inputs);
 
-  LIBKANN_SYMEXPORT void train(std::shared_ptr<Model> model,
+  LIBKANN_SYMEXPORT Task<void, Info> train(std::shared_ptr<Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs,
-      double learningRate, size_t batchSize,
-      Callback callback = defaultCallback("Training"));
+      double learningRate, size_t batchSize);
 
-  LIBKANN_SYMEXPORT void trainGAN(std::shared_ptr<Model> model,
+  LIBKANN_SYMEXPORT Task<void, GANInfo> trainGAN(std::shared_ptr<Model> model,
       std::shared_ptr<Model> generatorModel,
       std::shared_ptr<Model> discriminatorModel,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> latentInputs,
-      double learningRate, size_t batchSize,
-      GANCallback callback = defaultGANCallback("Training"));
+      double learningRate, size_t batchSize);
 
-  LIBKANN_SYMEXPORT double test(std::shared_ptr<const Model> model,
+  LIBKANN_SYMEXPORT Task<double, Info> test(std::shared_ptr<const Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs,
-      std::vector<std::shared_ptr<const Tensor>> expectedOutputs,
-      Callback callback = defaultCallback("Testing"));
+      std::vector<std::shared_ptr<const Tensor>> expectedOutputs);
 
 }
