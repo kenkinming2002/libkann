@@ -36,10 +36,9 @@ boost_dep = dependency('boost', modules : ['graph'])
 # TODO: Make this optional
 sfml_dep = dependency('sfml-graphics')
 
-libkann_lib = static_library('libkann', libkann_sources,
+libkann_lib = library('kann', libkann_sources,
   include_directories : ['../include'],
-  dependencies        : [cereal_dep, eigen_dep, boost_dep, sfml_dep],
-  cpp_args            : ['-fvisibility=hidden']
+  dependencies        : [cereal_dep, eigen_dep, boost_dep, sfml_dep]
 )
 
 libkann_dep = declare_dependency(

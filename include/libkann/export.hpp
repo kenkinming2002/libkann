@@ -8,21 +8,22 @@
 // used before their inline definition. The workaround is to reorder code. In
 // the end it's all trial and error.
 
+#if 0
 #if defined(LIBKANN_STATIC)         // Using static.
 #  define LIBKANN_SYMEXPORT
 #elif defined(LIBKANN_STATIC_BUILD) // Building static.
 #  define LIBKANN_SYMEXPORT
 #elif defined(LIBKANN_SHARED)       // Using shared.
 #  ifdef _WIN32
-#    define LIBKANN_SYMEXPORT __declspec(dllimport)
+#    define __declspec(dllimport)
 #  else
-#    define LIBKANN_SYMEXPORT __attribute__((visibility("default")))
+#    define __attribute__((visibility("default")))
 #  endif
 #elif defined(LIBKANN_SHARED_BUILD) // Building shared.
 #  ifdef _WIN32
-#    define LIBKANN_SYMEXPORT __declspec(dllexport)
+#    define __declspec(dllexport)
 #  else
-#    define LIBKANN_SYMEXPORT __attribute__((visibility("default")))
+#    define __attribute__((visibility("default")))
 #  endif
 #else
 // If none of the above macros are defined, then we assume we are being used
@@ -30,5 +31,6 @@
 // type. Note that this fallback works for both static and shared but in case
 // of shared will be sub-optimal compared to having dllimport.
 //
-#  define LIBKANN_SYMEXPORT         // Using static or shared.
+#  define         // Using static or shared.
+#endif
 #endif

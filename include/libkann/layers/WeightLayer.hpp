@@ -15,26 +15,26 @@ namespace kann
   class WeightLayer : public Layer
   {
   public:
-    LIBKANN_SYMEXPORT WeightLayer() = default;
-    LIBKANN_SYMEXPORT WeightLayer(size_t inputSize, size_t outputSize);
+    WeightLayer() = default;
+    WeightLayer(size_t inputSize, size_t outputSize);
 
   public:
-    LIBKANN_SYMEXPORT WeightLayer(const WeightLayer& other);
-    LIBKANN_SYMEXPORT WeightLayer& operator=(const WeightLayer& other);
+    WeightLayer(const WeightLayer& other);
+    WeightLayer& operator=(const WeightLayer& other);
 
   public:
-    LIBKANN_SYMEXPORT std::unique_ptr<Layer> clone() const override;
+    std::unique_ptr<Layer> clone() const override;
 
   public:
-    LIBKANN_SYMEXPORT size_t inputSize() const override;
-    LIBKANN_SYMEXPORT size_t outputSize() const override;
+    size_t inputSize() const override;
+    size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
-    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
+    std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
+    std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
 
   public:
-    LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
+    std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
 
   public:
     template<typename Archive>

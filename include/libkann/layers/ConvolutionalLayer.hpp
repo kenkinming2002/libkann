@@ -17,26 +17,26 @@ namespace kann
   class ConvolutionalLayer : public Layer
   {
   public:
-    LIBKANN_SYMEXPORT ConvolutionalLayer() = default;
-    LIBKANN_SYMEXPORT ConvolutionalLayer(size_t inputWidth, size_t inputHeight, size_t kernelSize, size_t inputChannelCount, size_t outputChannelCount);
+    ConvolutionalLayer() = default;
+    ConvolutionalLayer(size_t inputWidth, size_t inputHeight, size_t kernelSize, size_t inputChannelCount, size_t outputChannelCount);
 
   public:
-    LIBKANN_SYMEXPORT ConvolutionalLayer(const ConvolutionalLayer& other);
-    LIBKANN_SYMEXPORT ConvolutionalLayer& operator=(const ConvolutionalLayer& other);
+    ConvolutionalLayer(const ConvolutionalLayer& other);
+    ConvolutionalLayer& operator=(const ConvolutionalLayer& other);
 
   public:
-    LIBKANN_SYMEXPORT std::unique_ptr<Layer> clone() const override;
+    std::unique_ptr<Layer> clone() const override;
 
   public:
-    LIBKANN_SYMEXPORT size_t inputSize() const override;
-    LIBKANN_SYMEXPORT size_t outputSize() const override;
+    size_t inputSize() const override;
+    size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
-    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
+    std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
+    std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
 
   public:
-    LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
+    std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
 
   public:
     template<typename Archive>

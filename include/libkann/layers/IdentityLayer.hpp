@@ -12,22 +12,22 @@ namespace kann
   class IdentityLayer : public Layer
   {
   public:
-    LIBKANN_SYMEXPORT IdentityLayer() = default;
-    LIBKANN_SYMEXPORT IdentityLayer(size_t inputSize, size_t outputSize, size_t offset);
+    IdentityLayer() = default;
+    IdentityLayer(size_t inputSize, size_t outputSize, size_t offset);
 
   public:
-    LIBKANN_SYMEXPORT std::unique_ptr<Layer> clone() const override;
+    std::unique_ptr<Layer> clone() const override;
 
   public:
-    LIBKANN_SYMEXPORT size_t inputSize() const override;
-    LIBKANN_SYMEXPORT size_t outputSize() const override;
+    size_t inputSize() const override;
+    size_t outputSize() const override;
 
   public:
-    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
-    LIBKANN_SYMEXPORT std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
+    std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
+    std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
 
   public:
-    LIBKANN_SYMEXPORT std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
+    std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
 
   public:
     template<typename Archive>
