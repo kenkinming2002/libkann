@@ -1,4 +1,4 @@
-#include <libkann/DefaultExecutor.hpp>
+#include <libkann/executors/DefaultExecutor.hpp>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graphviz.hpp>

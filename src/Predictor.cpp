@@ -1,6 +1,6 @@
 #include <libkann/Predictor.hpp>
 
-#include <libkann/DefaultExecutor.hpp>
+#include <libkann/executors/DefaultExecutor.hpp>
 
 #include <fstream>
 #include <iterator>

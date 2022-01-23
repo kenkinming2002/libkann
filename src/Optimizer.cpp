@@ -2,7 +2,7 @@
 #include <libkann/Optimizer.hpp>
 
 #include <libkann/Differentiate.hpp>
-#include <libkann/DefaultExecutor.hpp>
+#include <libkann/executors/DefaultExecutor.hpp>
 
 #include <libkann/operations/SubtractOperation.hpp>
 #include <libkann/operations/MultiplyOperation.hpp>
