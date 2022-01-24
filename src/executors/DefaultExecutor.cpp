@@ -7,107 +7,32 @@
 
 namespace kann
 {
-  void DefaultExecutor::addInput(std::string name, std::vector<std::shared_ptr<const Variable>> variables)
-  {
-    auto [_, success] = m_inputVariablesMap.emplace(std::move(name), std::move(variables));
-    assert(success);
-  }
-
-  void DefaultExecutor::addOutput(std::string name, std::vector<std::shared_ptr<const Variable>> variables)
-  {
-    auto [_, success] = m_outputVariablesMap.emplace(std::move(name), std::move(variables));
-    assert(success);
-  }
-
-  template<typename Callback>
-  static void walk(const std::shared_ptr<const Variable>& variable, const Callback& callback)
-  {
-    if(!callback(variable))
-      return;
-
-    for(const auto& input : variable->inputs)
-      walk(input, callback);
-  }
-
   void DefaultExecutor::build()
   {
-    // 1: Create vertices
-    std::unordered_map<std::shared_ptr<const Variable>, vertex_type> verticesMap;
-    for(const auto& [name, outputVariables] : m_outputVariablesMap)
-      for(const auto& outputVariable : outputVariables)
-        walk(outputVariable, [&](const auto& variable){
-          auto it = verticesMap.find(variable);
-          if(it != verticesMap.end())
-            return false;
+    GraphExecutor::build();
 
-          auto vertex = boost::add_vertex(Node{.variable = variable}, m_graph);
-          verticesMap.emplace(variable, vertex);
-          return true;
-        });
-
-    for(const auto& [name, inputVariables] : m_inputVariablesMap)
-      for(const auto& inputVariable : inputVariables)
-        m_graph[verticesMap.at(inputVariable)].name = name;
-
-    for(const auto& [name, outputVariables] : m_outputVariablesMap)
-      for(const auto& outputVariable : outputVariables)
-        m_graph[verticesMap.at(outputVariable)].name = name;
-
-    // 2: Create edges
-    for(const auto& [variable, vertex] : verticesMap)
-      for(size_t i=0; i<variable->inputs.size(); ++i)
-      {
-        const auto& inputVariable = variable->inputs[i];
-        const auto& inputVertex = verticesMap.at(inputVariable);
-        boost::add_edge(inputVertex, vertex, Connection{.id = i}, m_graph);
-      }
-
-    // 3: Save necessary association
-    for(const auto& [name, inputVariables] : m_inputVariablesMap)
-    {
-      std::vector<vertex_type> inputVertices;
-      inputVertices.reserve(inputVariables.size());
-      for(const auto& inputVariable : inputVariables)
-        inputVertices.push_back(verticesMap.at(inputVariable));
-
-      m_inputVerticesMap.emplace(name, std::move(inputVertices));
-    }
-
-    for(const auto& [name, outputVariables] : m_outputVariablesMap)
-    {
-      std::vector<vertex_type> outputVertices;
-      outputVertices.reserve(outputVariables.size());
-      for(const auto& outputVariable : outputVariables)
-        outputVertices.push_back(verticesMap.at(outputVariable));
-
-      m_outputVerticesMap.emplace(name, std::move(outputVertices));
-    }
-
-    boost::topological_sort(m_graph, std::back_inserter(m_ordering));
+    m_ordering.reserve(boost::num_vertices(graph()));
+    boost::topological_sort(graph(), std::back_inserter(m_ordering));
     std::reverse(m_ordering.begin(), m_ordering.end());
+
+    m_data.resize(boost::num_vertices(graph()));
   }
 
   void DefaultExecutor::input(std::string name, std::vector<std::shared_ptr<const Tensor>> input)
   {
     if(!m_dirty)
     {
-      // Clear cache
-      for(auto [it, end] = boost::vertices(m_graph); it != end; ++it)
-      {
-        Node& node = m_graph[*it];
-        node.data.reset();
-      }
+      for(auto& datum : m_data)
+        datum.reset();
+
       m_dirty = true;
     }
 
-    const auto& inputVertices = m_inputVerticesMap.at(name);
+    const auto& inputVertices = this->inputVertices(name);
 
     assert(inputVertices.size() == input.size());
-    for(size_t i=0; i<inputVertices.size(); ++i)
-    {
-      Node& inputNode = m_graph[inputVertices[i]];
-      inputNode.data = input[i];
-    }
+    for(size_t i=0; i<input.size(); ++i)
+      datum(inputVertices[i]) = std::move(input[i]);
   }
 
   std::vector<std::shared_ptr<const Tensor>> DefaultExecutor::output(std::string name)
@@ -117,78 +42,33 @@ namespace kann
       // Evaluate
       for(vertex_type vertex : m_ordering)
       {
-        Node& node = m_graph[vertex];
-        if(node.data)
+        if(datum(vertex))
           continue; // One of the input vertex
 
-        std::vector<std::shared_ptr<const Tensor>> inputs(node.variable->inputs.size());
-        for(auto [it, end] = boost::in_edges(vertex, m_graph); it != end; ++it)
+        const Node& node = graph()[vertex];
+
+        std::vector<std::shared_ptr<const Tensor>> inputs(node.inputCount);
+        for(auto [it, end] = boost::in_edges(vertex, graph()); it != end; ++it)
         {
-          const edge_type edge = *it;
-          const vertex_type inputVertex = boost::source(edge, m_graph);
+          edge_type edge = *it;
+          vertex_type inputVertex = boost::source(edge, graph());
 
-          const Node& inputNode = m_graph[inputVertex];
-          const Connection& connection = m_graph[edge];
-
-          assert(inputNode.data);
-          inputs[connection.id] = inputNode.data;
+          const Connection& connection = graph()[edge];
+          inputs[connection.i] = datum(inputVertex);
         }
 
-        node.data = node.variable->op->process(inputs);
+        datum(vertex) = node.op->process(std::move(inputs));
       }
       m_dirty = false;
     }
 
-    const auto& outputVertices = m_outputVerticesMap.at(name);
+    const auto& outputVertices = this->outputVertices(name);
 
     std::vector<std::shared_ptr<const Tensor>> outputs(outputVertices.size());
     for(size_t i=0; i<outputVertices.size(); ++i)
-    {
-      Node& outputNode = m_graph[outputVertices[i]];
-      outputs[i] = outputNode.data;
-    }
+      outputs[i] = datum(outputVertices[i]);
+
     return outputs;
-  }
-
-  static std::string demangle(const char* mangledName)
-  {
-    int status;
-    char* demangledName = abi::__cxa_demangle(mangledName, nullptr, 0, &status);
-    if(status != 0)
-      return mangledName;
-
-    std::string result = demangledName;
-    free(demangledName);
-    return result;
-  }
-
-  void DefaultExecutor::write_graphviz(std::ostream& os) const
-  {
-    auto vertexWriter = [this](std::ostream& os, vertex_type vertex){
-      const Node& node = m_graph[vertex];
-      const Variable& variable = *node.variable;
-
-      os << "[label=\"";
-
-      if(variable.op)
-      {
-        const Operation& op = *variable.op;
-        os << "op=" << demangle(typeid(op).name()).substr(0, 20) << "\\n";
-      }
-
-      if(node.name)
-        os << "name=" << *node.name << "\\n";
-
-      os << "\"]";
-    };
-
-    auto edgeWriter = [this](std::ostream& os, edge_type edge){
-      const Connection& connection = m_graph[edge];
-      os << "[label=\"";
-      os << "id=" << connection.id << "\\n";
-      os << "\"]";
-    };
-    boost::write_graphviz(os, m_graph, vertexWriter, edgeWriter);
   }
 }
 

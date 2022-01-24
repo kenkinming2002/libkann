@@ -17,6 +17,7 @@ libkann_sources = [
   'Algorithm.cpp',
   'ActivationFunction.cpp',
   'Executor.cpp',
+  'executors/GraphExecutor.cpp',
   'executors/DefaultExecutor.cpp',
   'Predictor.cpp',
   'Optimizer.cpp',
