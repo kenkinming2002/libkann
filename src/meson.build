@@ -16,6 +16,7 @@ libkann_sources = [
   'FunctionalVariable.cpp',
   'Algorithm.cpp',
   'ActivationFunction.cpp',
+  'Executor.cpp',
   'executors/DefaultExecutor.cpp',
   'Predictor.cpp',
   'Optimizer.cpp',
