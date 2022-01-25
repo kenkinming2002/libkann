@@ -34,4 +34,5 @@ namespace kann
   };
 
   std::unique_ptr<Executor> makeDefaultExecutor();
+  std::unique_ptr<Executor> makeThreadedExecutor();
 }

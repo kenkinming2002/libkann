@@ -25,7 +25,7 @@ namespace kann
     auto states     = m_model->makeStates();
 
     // 1: Create Executor
-    m_executor = makeDefaultExecutor();
+    m_executor = makeThreadedExecutor();
 
     auto inputVariable = std::make_shared<const Variable>();
     m_executor->addInput("input", {inputVariable});

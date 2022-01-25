@@ -19,6 +19,7 @@ libkann_sources = [
   'Executor.cpp',
   'executors/GraphExecutor.cpp',
   'executors/DefaultExecutor.cpp',
+  'executors/ThreadedExecutor.cpp',
   'Predictor.cpp',
   'Optimizer.cpp',
   'Differentiate.cpp',
@@ -34,13 +35,14 @@ libkann_sources = [
 
 eigen_dep = dependency('eigen3')
 boost_dep = dependency('boost', modules : ['graph'])
+threads_dep = dependency('threads')
 
 # TODO: Make this optional
 sfml_dep = dependency('sfml-graphics')
 
 libkann_lib = library('kann', libkann_sources,
   include_directories : ['../include'],
-  dependencies        : [cereal_dep, eigen_dep, boost_dep, sfml_dep]
+  dependencies        : [cereal_dep, eigen_dep, boost_dep, sfml_dep, threads_dep]
 )
 
 libkann_dep = declare_dependency(
