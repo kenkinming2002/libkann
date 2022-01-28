@@ -47,14 +47,14 @@ namespace kann
 
         const Node& node = graph()[vertex];
 
-        std::vector<std::shared_ptr<const Tensor>> inputs(node.inputCount);
+        std::vector<const Tensor*> inputs(node.inputCount);
         for(auto [it, end] = boost::in_edges(vertex, graph()); it != end; ++it)
         {
           edge_type edge = *it;
           vertex_type inputVertex = boost::source(edge, graph());
 
           const Connection& connection = graph()[edge];
-          inputs[connection.i] = datum(inputVertex);
+          inputs[connection.i] = datum(inputVertex).get();
         }
 
         datum(vertex) = node.op->process(std::move(inputs));

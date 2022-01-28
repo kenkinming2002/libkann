@@ -183,7 +183,7 @@ namespace kann
       const auto& connection = graph()[edge];
       auto& childDatum = this->datum(childVertex);
 
-      childDatum.inputs[connection.i] = datum.output;
+      childDatum.inputs[connection.i] = datum.output.get();
       if(++childDatum.finishedCount == childDatum.inputs.size())
         submit(childVertex);
     }

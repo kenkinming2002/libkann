@@ -33,7 +33,7 @@ namespace kann
     {
       std::atomic<size_t> finishedCount;
 
-      std::vector<std::shared_ptr<const Tensor>> inputs;
+      std::vector<const Tensor*> inputs;
       std::shared_ptr<const Tensor> output;
     };
     std::vector<Datum> m_data;
