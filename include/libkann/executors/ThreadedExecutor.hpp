@@ -32,9 +32,7 @@ namespace kann
     struct Datum
     {
       std::atomic<size_t> finishedCount;
-
-      std::vector<const Tensor*> inputs;
-      std::shared_ptr<const Tensor> output;
+      std::shared_ptr<const Tensor> value;
     };
     std::vector<Datum> m_data;
   };

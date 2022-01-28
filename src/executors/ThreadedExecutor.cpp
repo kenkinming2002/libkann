@@ -106,16 +106,7 @@ namespace kann
     std::reverse(ordering.begin(), ordering.end());
 
     m_dirty = false;
-
     m_data = std::vector<Datum>(boost::num_vertices(graph()));
-
-    for(auto [it, end] = boost::vertices(graph()); it != end; ++it)
-    {
-      vertex_type vertex = *it;
-      const auto& node = graph()[vertex];
-      auto& datum = this->datum(vertex);
-      datum.inputs.resize(node.inputCount);
-    }
   }
 
   /* We submit work when calling input and wait for them to complete when we
@@ -137,7 +128,7 @@ namespace kann
     for(size_t i=0; i<input.size(); ++i)
     {
       vertex_type vertex = inputVertices[i];
-      datum(vertex).output = std::move(input[i]);
+      datum(vertex).value = std::move(input[i]);
       publish(vertex); // Execution may have already started here
     }
   }
@@ -157,7 +148,7 @@ namespace kann
     std::vector<std::shared_ptr<const Tensor>> outputs(outputVertices.size());
     for(size_t i=0; i<outputVertices.size(); ++i)
     {
-      outputs[i] = datum(outputVertices[i]).output; // Each output could only be retrived once
+      outputs[i] = std::move(datum(outputVertices[i]).value); // Each output could only be retrived once
       assert(outputs[i]);
     }
 
@@ -166,25 +157,37 @@ namespace kann
 
   void ThreadedExecutor::process(vertex_type vertex)
   {
-    const auto& node = graph()[vertex];
-    auto& datum = this->datum(vertex);
-    datum.output = node.op->process(datum.inputs);
+    const Node& node = graph()[vertex];
+
+    std::vector<const Tensor*> inputs;
+    inputs.resize(node.inputCount);
+    for(auto [it, end] = boost::in_edges(vertex, graph()); it != end; ++it)
+    {
+      edge_type edge = *it;
+      vertex_type parentVertex = boost::source(edge, graph());
+
+      const Connection& connection = graph()[edge];
+      const Datum& parentDatum = this->datum(parentVertex);
+
+      inputs[connection.i] = parentDatum.value.get();
+    }
+
+    Datum& datum = this->datum(vertex);
+    datum.value = node.op->process(std::move(inputs));
     publish(vertex);
   }
 
   void ThreadedExecutor::publish(vertex_type vertex)
   {
-    const auto& datum = this->datum(vertex);
     for(auto [it, end] = boost::out_edges(vertex, graph()); it != end; ++it)
     {
       edge_type edge = *it;
       vertex_type childVertex = boost::target(edge, graph());
 
-      const auto& connection = graph()[edge];
-      auto& childDatum = this->datum(childVertex);
+      const Node& childNode = graph()[childVertex];
+      Datum& childDatum = this->datum(childVertex);
 
-      childDatum.inputs[connection.i] = datum.output.get();
-      if(++childDatum.finishedCount == childDatum.inputs.size())
+      if(++childDatum.finishedCount == childNode.inputCount)
         submit(childVertex);
     }
 
