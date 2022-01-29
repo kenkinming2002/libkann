@@ -119,6 +119,8 @@ namespace kann
       for(auto& datum : m_data)
         datum.finishedCount.store(0);
 
+      m_latch.emplace(boost::num_vertices(graph()));
+
       m_dirty = true;
     }
 
@@ -137,9 +139,7 @@ namespace kann
   {
     if(m_dirty)
     {
-      for(size_t i=0; i<boost::num_vertices(graph()); ++i)
-        m_sem.acquire();
-
+      m_latch->wait();
       m_dirty = false;
     }
 
@@ -191,7 +191,7 @@ namespace kann
         submit(childVertex);
     }
 
-    m_sem.release();
+    m_latch->count_down();
   }
 
   void ThreadedExecutor::submit(vertex_type vertex)

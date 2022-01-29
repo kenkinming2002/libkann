@@ -5,6 +5,7 @@
 #include <boost/graph/adjacency_list.hpp>
 
 #include <semaphore>
+#include <latch>
 
 namespace kann
 {
@@ -27,7 +28,7 @@ namespace kann
 
   private:
     bool m_dirty = false;
-    std::counting_semaphore<> m_sem{0};
+    std::optional<std::latch> m_latch;
 
     struct Datum
     {
