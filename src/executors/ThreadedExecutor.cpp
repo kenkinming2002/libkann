@@ -1,100 +1,16 @@
 #include <libkann/executors/ThreadedExecutor.hpp>
 
+#include <libkann/executors/details/ThreadPool.hpp>
+
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/topological_sort.hpp>
 
-#include <thread>
-
 #include <unordered_map>
-#include <queue>
 
 #include <iterator>
 
-#include <condition_variable>
-#include <mutex>
-#include <semaphore>
-
 namespace kann
 {
-  /* What if thread pool is global,
-   * but before using it, we have create single use light-weight context
-   *
-   * Then, upon context destruction, we can ensure that every function submitted
-   * to the context is completed, and thus is free from lifetime issues.
-   *
-   * Specifically, it is should no longer possible for thread pool to contain
-   * reference to destructed objects who have submitted the work.
-   * */
-  struct ThreadPool
-  {
-  public:
-    ThreadPool()
-    {
-      unsigned count = std::thread::hardware_concurrency()-1;
-      for(unsigned i=0; i<count; ++i)
-        m_workers.emplace_back(std::bind(&ThreadPool::run, this, std::placeholders::_1));
-    }
-
-    ~ThreadPool()
-    {
-      for(auto& worker : m_workers)
-        worker.request_stop();
-
-      m_sem.release(m_workers.size());
-    }
-
-  public:
-    void submit(std::function<void()> task)
-    {
-      {
-        std::unique_lock lk(m_mutex);
-        m_tasksQueue.push(std::move(task));
-      }
-
-      m_sem.release();
-    }
-
-  private:
-    void run(std::stop_token stop_token)
-    {
-      for(;;)
-      {
-        m_sem.acquire();
-
-        // Stop
-        if(stop_token.stop_requested())
-          break;
-
-        // Retrive task
-        std::function<void()> task;
-        {
-          std::unique_lock lk(m_mutex);
-
-          task = std::move(m_tasksQueue.front());
-          m_tasksQueue.pop();
-        }
-
-        // Run task
-        task();
-      }
-    }
-
-  private:
-    std::counting_semaphore<> m_sem{0};
-
-    std::mutex m_mutex;
-    std::queue<std::function<void()>> m_tasksQueue;
-
-    std::vector<std::jthread> m_workers;
-  };
-
-  class Context
-  {
-  public:
-    void submit();
-    void wait();
-  };
-
   void ThreadedExecutor::build()
   {
     GraphExecutor::build();
@@ -107,6 +23,12 @@ namespace kann
 
     m_dirty = false;
     m_data = std::vector<Datum>(boost::num_vertices(graph()));
+
+    auto [begin, end] = boost::vertices(graph());
+    m_taskCount = std::count_if(begin, end, [this](vertex_type vertex){
+      const Node& node = graph()[vertex];
+      return node.op;
+    });
   }
 
   /* We submit work when calling input and wait for them to complete when we
@@ -116,12 +38,15 @@ namespace kann
   {
     if(!m_dirty)
     {
-      for(auto& datum : m_data)
-        datum.finishedCount.store(0);
-
-      m_latch.emplace(boost::num_vertices(graph()));
-
       m_dirty = true;
+
+      for(auto& datum : m_data)
+      {
+        datum.finishedCount.store(0);
+        datum.value.reset();
+      }
+
+      m_taskSet.emplace(m_taskCount);
     }
 
     const auto& inputVertices = this->inputVertices(name);
@@ -139,8 +64,19 @@ namespace kann
   {
     if(m_dirty)
     {
-      m_latch->wait();
       m_dirty = false;
+
+      static const auto threadCount = std::thread::hardware_concurrency();
+      static ThreadPool threadPool(threadCount);
+
+      // 1: Submit tasks to thread pool
+      std::vector<std::function<void()>> tasks;
+      for(unsigned i=0; i<threadCount; ++i)
+        tasks.emplace_back([this](){
+          m_taskSet->run();
+        });
+
+      threadPool.run(std::move(tasks));
     }
 
     const auto& outputVertices = this->outputVertices(name);
@@ -190,14 +126,11 @@ namespace kann
       if(++childDatum.finishedCount == childNode.inputCount)
         submit(childVertex);
     }
-
-    m_latch->count_down();
   }
 
   void ThreadedExecutor::submit(vertex_type vertex)
   {
-    static ThreadPool threadPool;
-    threadPool.submit(std::bind(&ThreadedExecutor::process, this, vertex));
+    m_taskSet->submit(std::bind(&ThreadedExecutor::process, this, vertex));
   }
 }
 

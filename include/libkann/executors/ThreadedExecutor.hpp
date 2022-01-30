@@ -1,6 +1,7 @@
 #pragma once
 
 #include <libkann/executors/GraphExecutor.hpp>
+#include <libkann/executors/details/TaskSet.hpp>
 
 #include <boost/graph/adjacency_list.hpp>
 
@@ -28,7 +29,6 @@ namespace kann
 
   private:
     bool m_dirty = false;
-    std::optional<std::latch> m_latch;
 
     struct Datum
     {
@@ -36,5 +36,8 @@ namespace kann
       std::shared_ptr<const Tensor> value;
     };
     std::vector<Datum> m_data;
+
+    size_t m_taskCount;
+    std::optional<TaskSet> m_taskSet;
   };
 }
