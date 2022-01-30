@@ -8,7 +8,7 @@
 #include <libkann/operations/MatrixMultiplyOperation.hpp>
 
 #include <libkann/Differentiate.hpp>
-#include <libkann/DefaultExecutor.hpp>
+#include <libkann/Executor.hpp>
 
 #include <fstream>
 

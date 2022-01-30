@@ -2,7 +2,7 @@
 #include <libkann/Optimizer.hpp>
 
 #include <libkann/Differentiate.hpp>
-#include <libkann/DefaultExecutor.hpp>
+#include <libkann/executors/DefaultExecutor.hpp>
 
 #include <libkann/operations/SubtractOperation.hpp>
 #include <libkann/operations/MultiplyOperation.hpp>
@@ -30,7 +30,7 @@ namespace kann
     auto states     = m_model->makeStates();
 
     // 1: Create Executor
-    m_executor = makeDefaultExecutor();
+    m_executor = makeThreadedExecutor();
 
     // Internal states and paramteres
     auto parametersVariables = convert(parameters, [](const std::shared_ptr<Parameter>& parameter){ return parameter->variable; });
