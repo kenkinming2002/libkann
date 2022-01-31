@@ -1,11 +1,12 @@
 #pragma once
 
-#include <libkann/NewParameter.hpp>
+#include <libkann/LayerVariable.hpp>
+#include <libkann/Scope.hpp>
 
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
+#include <assert.h>
 #include <stddef.h>
 
 namespace kann
@@ -18,15 +19,6 @@ namespace kann
     TAG_GAN_GENERATOR     = 1u << 3,
     TAG_GAN_DISCRIMINATOR = 1u << 4,
     TAG_ALL = 0xFFFFFFFF
-  };
-
-  struct Variable;
-  struct LayerVariable
-  {
-    std::shared_ptr<const Variable> variable;
-
-    std::unordered_map<std::string, std::shared_ptr<const Variable>> parameterVariables;
-    std::unordered_map<std::string, std::shared_ptr<const Variable>> stateVariables;
   };
 
   class NewLayer
@@ -46,7 +38,7 @@ namespace kann
     virtual std::vector<NewParameter> parameters() const { return {}; }
     virtual std::vector<NewParameter> stateParameters() const { return {}; }
 
-    virtual LayerVariable operator()(LayerVariable) const = 0;
+    virtual LayerVariable operator()(Scope scope, LayerVariable) const = 0;
 
   public:
     template<typename Archive>

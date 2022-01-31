@@ -29,8 +29,11 @@ namespace kann
     for(const auto& layer : m_layers)
     {
       auto layerParameters = layer->parameters();
-      for(auto& parameter : layerParameters)
-        result.push_back(parameter.withPrefix("layer"+std::to_string(i)).withPrefix("sequential"));
+      for(const auto& parameter : layerParameters)
+      {
+        auto layerScope = this->layerScope(i);
+        result.push_back(parameter.inScope(layerScope));
+      }
     }
     return result;
   }
@@ -43,17 +46,25 @@ namespace kann
     for(const auto& layer : m_layers)
     {
       auto layerStateParameters = layer->stateParameters();
-      for(auto& parameter : layerStateParameters)
-        result.push_back(parameter.withPrefix("layer"+std::to_string(i)).withPrefix("sequential"));
+      for(const auto& parameter : layerStateParameters)
+      {
+        auto layerScope = this->layerScope(i);
+        result.push_back(parameter.inScope(layerScope));
+      }
     }
     return result;
   }
 
-  LayerVariable SequentialLayer::operator()(LayerVariable input) const
+  LayerVariable SequentialLayer::operator()(Scope scope, LayerVariable input) const
   {
     auto output = std::move(input);
+
+    size_t i = 0;
     for(const auto& layer : m_layers)
-      output = (*layer)(std::move(output));
+    {
+      auto layerScope = this->layerScope(i);
+      output = (*layer)(scope+layerScope, std::move(output));
+    }
 
     return output;
   }

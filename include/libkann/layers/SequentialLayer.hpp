@@ -17,7 +17,13 @@ namespace kann
     std::vector<NewParameter> parameters() const override;
     std::vector<NewParameter> stateParameters() const override;
 
-    LayerVariable operator()(LayerVariable) const override;
+    LayerVariable operator()(Scope scope, LayerVariable) const override;
+
+  private:
+    static Scope layerScope(size_t i)
+    {
+      return Scope("layer"+std::to_string(i));
+    }
 
   private:
     std::vector<std::shared_ptr<const NewLayer>> m_layers;
