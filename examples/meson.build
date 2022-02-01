@@ -2,4 +2,4 @@
 subdir('backpropagation')
 #subdir('chinesechess')
 #
-#subdir('visualization/autoencoder')
+subdir('visualization/autoencoder')
