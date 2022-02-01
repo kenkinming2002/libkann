@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libkann/Variable.hpp>
 #include <libkann/NewParameter.hpp>
 
 #include <unordered_map>
@@ -7,7 +8,6 @@
 
 namespace kann
 {
-  struct Variable;
   struct LayerVariable
   {
   public:

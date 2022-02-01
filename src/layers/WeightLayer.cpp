@@ -3,38 +3,10 @@
 #include <libkann/operations/MatrixMultiplyOperation.hpp>
 #include <libkann/operations/ReduceOperation.hpp>
 
-#include <iostream>
-
 namespace kann
 {
   WeightLayer::WeightLayer(size_t inputSize, size_t outputSize)
-    : m_inputSize(inputSize), m_outputSize(outputSize)
-  {
-    m_weight = std::make_shared<Parameter>(m_inputSize * m_outputSize);
-    m_bias   = std::make_shared<Parameter>(m_outputSize);
-  }
-
-  WeightLayer::WeightLayer(const WeightLayer& other)
-  {
-    *this = other;
-  }
-
-  WeightLayer& WeightLayer::operator=(const WeightLayer& other)
-  {
-    Layer::operator=(other);
-
-    m_inputSize  = other.m_inputSize;
-    m_outputSize = other.m_outputSize;
-    m_weight = std::make_shared<Parameter>(*other.m_weight);
-    m_bias   = std::make_shared<Parameter>(*other.m_bias);
-
-    return *this;
-  }
-
-  std::unique_ptr<Layer> WeightLayer::clone() const
-  {
-    return std::make_unique<WeightLayer>(*this);
-  }
+    : m_inputSize(inputSize), m_outputSize(outputSize) {}
 
   size_t WeightLayer::inputSize() const
   {
@@ -46,23 +18,54 @@ namespace kann
     return m_outputSize;
   }
 
-  std::vector<std::shared_ptr<const Parameter>> WeightLayer::parameters(unsigned tags) const
+  std::vector<NewParameter> WeightLayer::parameters() const
   {
-    return {m_weight, m_bias};
+    auto weightParameter = NewParameter{
+      .name = "weight",
+      .size = m_inputSize * m_outputSize
+    };
+
+    auto biasParameter = NewParameter{
+      .name = "bias",
+      .size = m_outputSize
+    };
+
+    return {weightParameter, biasParameter};
   }
 
-  std::vector<std::shared_ptr<Parameter>> WeightLayer::parameters(unsigned tags)
+  LayerVariable WeightLayer::operator()(Scope scope, LayerVariable input) const
   {
-    return {m_weight, m_bias};
-  }
+    auto inputVariable = std::move(input.variable);
 
+    auto weightParameter = NewParameter{
+      .scope = scope,
+      .name = "weight",
+      .size = m_inputSize * m_outputSize
+    };
 
-  auto WeightLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
-  {
+    auto biasParameter = NewParameter{
+      .scope = scope,
+      .name = "bias",
+      .size = m_outputSize
+    };
+
+    auto weightVariable = input.lookup(LayerVariable::Type::PARAMETER, weightParameter);
+    auto biasVariable   = input.lookup(LayerVariable::Type::PARAMETER, biasParameter);
+
     // TODO: Fuse them into a single operation
-    auto prod = std::make_shared<const Variable>(std::vector{m_weight->variable, std::move(input)}, std::make_shared<MatrixMultiplyOperation>(m_outputSize, 1, m_inputSize, false, false));
-    auto output =  std::make_shared<const Variable>(std::vector{m_bias->variable, std::move(prod)}, std::make_shared<ReduceOperation>(2));
-    return std::make_pair(std::move(output), std::move(state));
+    auto prodVariable = std::make_shared<const Variable>(
+      std::vector{std::move(weightVariable), std::move(inputVariable)},
+      std::make_shared<MatrixMultiplyOperation>(m_outputSize, 1, m_inputSize, false, false)
+    );
+
+    auto outputVariable = std::make_shared<const Variable>(
+      std::vector{std::move(biasVariable), std::move(prodVariable)},
+      std::make_shared<ReduceOperation>(2)
+    );
+
+    auto output = std::move(input);
+    output.variable = std::move(outputVariable);
+    return output;
   }
 
 }

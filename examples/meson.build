@@ -1,5 +1,5 @@
-subdir('neuralevolution')
+#subdir('neuralevolution')
 subdir('backpropagation')
-subdir('chinesechess')
-
-subdir('visualization/autoencoder')
+#subdir('chinesechess')
+#
+#subdir('visualization/autoencoder')

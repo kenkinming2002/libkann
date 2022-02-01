@@ -12,7 +12,11 @@ namespace kann
   class NewModel
   {
   public:
+    NewModel() = default;
     NewModel(std::shared_ptr<const NewLayer> layer);
+
+  public:
+    void randomize();
 
   public:
     std::shared_ptr<const Tensor> predict(std::shared_ptr<const Tensor> input);
@@ -26,11 +30,21 @@ namespace kann
   private:
     Executor& optimizeExecutor(double learningRate, unsigned tags, size_t batchSize);
 
+  public:
+    template<typename Archive>
+    void serialize(Archive& archive)
+    {
+      archive(m_layer);
+      archive(m_parameters);
+      archive(m_states);
+    }
+
   private:
     std::shared_ptr<const NewLayer> m_layer;
 
     std::vector<std::shared_ptr<const Tensor>> m_parameters;
     std::vector<std::shared_ptr<const Tensor>> m_states;
+
 
   private:
     std::unique_ptr<Executor> m_predictExecutor;

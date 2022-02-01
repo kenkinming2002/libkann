@@ -28,12 +28,10 @@ namespace kann
     size_t i = 0;
     for(const auto& layer : m_layers)
     {
+      auto layerScope = this->layerScope(i++);
       auto layerParameters = layer->parameters();
       for(const auto& parameter : layerParameters)
-      {
-        auto layerScope = this->layerScope(i);
         result.push_back(parameter.inScope(layerScope));
-      }
     }
     return result;
   }
@@ -45,12 +43,10 @@ namespace kann
     size_t i = 0;
     for(const auto& layer : m_layers)
     {
+      auto layerScope = this->layerScope(i++);
       auto layerStateParameters = layer->stateParameters();
       for(const auto& parameter : layerStateParameters)
-      {
-        auto layerScope = this->layerScope(i);
         result.push_back(parameter.inScope(layerScope));
-      }
     }
     return result;
   }
@@ -62,8 +58,8 @@ namespace kann
     size_t i = 0;
     for(const auto& layer : m_layers)
     {
-      auto layerScope = this->layerScope(i);
-      output = (*layer)(scope+layerScope, std::move(output));
+      auto layerScope = this->layerScope(i++);
+      output = (*layer)(scope+layerScope, output);
     }
 
     return output;

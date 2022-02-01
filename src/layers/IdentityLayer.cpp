@@ -9,11 +9,6 @@ namespace kann
   IdentityLayer::IdentityLayer(size_t inputSize, size_t outputSize, size_t offset)
     : m_inputSize(inputSize), m_outputSize(outputSize), m_offset(offset) {}
 
-  std::unique_ptr<Layer> IdentityLayer::clone() const
-  {
-    return std::make_unique<IdentityLayer>(*this);
-  }
-
   size_t IdentityLayer::inputSize() const
   {
     return m_inputSize;
@@ -24,29 +19,21 @@ namespace kann
     return m_outputSize;
   }
 
-  std::vector<std::shared_ptr<const Parameter>> IdentityLayer::parameters(unsigned tags) const
+  LayerVariable IdentityLayer::operator()(Scope scope, LayerVariable input) const
   {
-    return {};
-  }
-
-  std::vector<std::shared_ptr<Parameter>> IdentityLayer::parameters(unsigned tags)
-  {
-    return {};
-  }
-
-  auto IdentityLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
-  {
+    // Fast path
     if(m_inputSize == m_outputSize)
-    {
-      // Fast path
-      auto output = std::move(input);
-      return std::make_pair(std::move(output), std::move(state));
-    }
-    else
-    {
-      auto output = std::make_shared<const Variable>(std::vector{std::move(input)}, std::make_shared<IdentityOperation>(m_inputSize, m_outputSize, m_offset));
-      return std::make_pair(std::move(output), std::move(state));
-    }
+      return input;
+
+    auto inputVariable = std::move(input.variable);
+    auto outputVariable = std::make_shared<const Variable>(
+      std::vector{inputVariable},
+      std::make_shared<IdentityOperation>(m_inputSize, m_outputSize, m_offset)
+    );
+
+    auto output = std::move(input);
+    output.variable = std::move(outputVariable);
+    return output;
   }
 }
 

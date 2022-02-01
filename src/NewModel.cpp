@@ -30,6 +30,15 @@ namespace kann
       value->asArray().setZero();
   }
 
+  void NewModel::randomize()
+  {
+    for(auto& value : m_parameters)
+      value->asArray().setRandom();
+
+    for(auto& value : m_states)
+      value->asArray().setRandom();
+  }
+
   std::shared_ptr<const Tensor> NewModel::predict(std::shared_ptr<const Tensor> input)
   {
     if(!m_predictExecutor)
@@ -42,12 +51,12 @@ namespace kann
       inputLayerVariable.variable = std::make_shared<const Variable>();
 
       for(auto& parameter : parameters)
-        inputLayerVariable.insert(LayerVariable::Type::PARAMETER, std::move(parameter));
+        inputLayerVariable.insert(LayerVariable::Type::PARAMETER, parameter);
 
       for(auto& parameter : stateParameters)
-        inputLayerVariable.insert(LayerVariable::Type::STATE, std::move(parameter));
+        inputLayerVariable.insert(LayerVariable::Type::STATE, parameter);
 
-      LayerVariable outputLayerVariable = (*m_layer)(Scope(), std::move(inputLayerVariable));
+      LayerVariable outputLayerVariable = (*m_layer)(Scope(), inputLayerVariable);
 
       // 2: Retrieve variables
       auto inputVariable  = inputLayerVariable.variable;
@@ -86,6 +95,8 @@ namespace kann
 
       m_predictExecutor->addInput("input",   {inputVariable});
       m_predictExecutor->addOutput("output", {outputVariable});
+
+      m_predictExecutor->build();
     }
 
     m_predictExecutor->input("parameters", m_parameters);
@@ -108,6 +119,7 @@ namespace kann
     size_t batchSize = inputs.size();
     auto& optimizeExecutor = this->optimizeExecutor(learningRate, tags, batchSize);
 
+
     optimizeExecutor.input("inputs", inputs);
     optimizeExecutor.input("expected outputs", expectedOutputs);
     optimizeExecutor.input("states", m_states);
@@ -122,7 +134,7 @@ namespace kann
     costs.reserve(outputs.size());
 
     for(size_t i=0; i<outputs.size(); ++i)
-      costs[i] = ((outputs[i]->asVector() - expectedOutputs[i]->asVector()) * 2.0).squaredNorm();
+      costs.push_back(((outputs[i]->asVector() - expectedOutputs[i]->asVector()) * 2.0).squaredNorm());
 
     return {outputs, costs};
   }
@@ -172,19 +184,12 @@ namespace kann
     {
       // 1: Pass variables through layer
       LayerVariable inputLayerVariable;
-      LayerVariable outputLayerVariable;
 
       inputLayerVariable.variable = std::make_shared<const Variable>();
       inputLayerVariable.parameterVariables = parameterVariablesMap;
       inputLayerVariable.stateVariables     = std::move(stateVariablesMap);
 
-      for(auto& parameter : parameters)
-        inputLayerVariable.insert(LayerVariable::Type::PARAMETER, std::move(parameter));
-
-      for(auto& parameter : stateParameters)
-        inputLayerVariable.insert(LayerVariable::Type::STATE, std::move(parameter));
-
-      outputLayerVariable = (*m_layer)(Scope(), outputLayerVariable);
+      LayerVariable outputLayerVariable = (*m_layer)(Scope(), inputLayerVariable);
 
       // 2: Create expected output variable and compute gradient
       auto inputVariable  = inputLayerVariable.variable;
@@ -240,6 +245,8 @@ namespace kann
 
     executor->addOutput("new states"    , std::move(newStateVariables));
     executor->addOutput("new parameters", std::move(newParametersVariables));
+
+    executor->build();
 
     auto [it, success] = m_optimizeExecutors.emplace(config, std::move(executor));
     assert(success);

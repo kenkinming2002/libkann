@@ -15,8 +15,6 @@ libkann_sources = [
   'Model.cpp',
   'NewModel.cpp',
   'Build.cpp',
-  'FunctionalModel.cpp',
-  'FunctionalVariable.cpp',
   'Algorithm.cpp',
   'ActivationFunction.cpp',
   'Executor.cpp',

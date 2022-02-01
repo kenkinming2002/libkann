@@ -1,6 +1,7 @@
 #pragma once
 
 #include <coroutine>
+#include <exception>
 
 namespace kann
 {
@@ -77,7 +78,10 @@ namespace kann
       auto initial_suspend() noexcept { return std::suspend_always{}; }
       auto final_suspend()   noexcept { return std::suspend_always{}; }
 
-      void unhandled_exception() {}
+      void unhandled_exception()
+      {
+        throw;
+      }
     };
 
   public:

@@ -3,6 +3,9 @@
 #include <libkann/LayerVariable.hpp>
 #include <libkann/Scope.hpp>
 
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/archives/binary.hpp>
+
 #include <memory>
 #include <vector>
 
@@ -11,14 +14,14 @@
 
 namespace kann
 {
-  enum Tag
+  enum NewTag
   {
-    TAG_DEFAULT           = 1u << 0,
-    TAG_ENCODDER          = 1u << 1,
-    TAG_DECODDER          = 1u << 2,
-    TAG_GAN_GENERATOR     = 1u << 3,
-    TAG_GAN_DISCRIMINATOR = 1u << 4,
-    TAG_ALL = 0xFFFFFFFF
+    NEW_TAG_DEFAULT           = 1u << 0,
+    NEW_TAG_ENCODDER          = 1u << 1,
+    NEW_TAG_DECODDER          = 1u << 2,
+    NEW_TAG_GAN_GENERATOR     = 1u << 3,
+    NEW_TAG_GAN_DISCRIMINATOR = 1u << 4,
+    NEW_TAG_ALL = 0xFFFFFFFF
   };
 
   class NewLayer
@@ -38,7 +41,7 @@ namespace kann
     virtual std::vector<NewParameter> parameters() const { return {}; }
     virtual std::vector<NewParameter> stateParameters() const { return {}; }
 
-    virtual LayerVariable operator()(Scope scope, LayerVariable) const = 0;
+    virtual LayerVariable operator()(Scope scope, LayerVariable input) const = 0;
 
   public:
     template<typename Archive>
@@ -48,6 +51,6 @@ namespace kann
     }
 
   private:
-    unsigned m_tag = TAG_DEFAULT;
+    unsigned m_tag = NEW_TAG_DEFAULT;
   };
 }
