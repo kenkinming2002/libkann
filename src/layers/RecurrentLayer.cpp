@@ -18,13 +18,13 @@ namespace kann
   size_t RecurrentLayer::inputSize() const
   {
     assert(!m_layers.empty());
-    return m_layers.front()->inputSize();
+    return m_layers.front()->inputSize() - m_memory;
   }
 
   size_t RecurrentLayer::outputSize() const
   {
     assert(!m_layers.empty());
-    return m_layers.back()->outputSize();
+    return m_layers.back()->outputSize() - m_memory;
   }
 
   std::vector<NewParameter> RecurrentLayer::parameters() const
