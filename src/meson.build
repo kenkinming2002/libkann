@@ -1,7 +1,6 @@
 
 libkann_sources = [
   'LayerVariable.cpp',
-  'layers/Layer.cpp',
   'layers/SequentialLayer.cpp',
   'layers/RecurrentLayer.cpp',
   'layers/IdentityLayer.cpp',
@@ -13,7 +12,6 @@ libkann_sources = [
   'datasets/MNISTDataSet.cpp',
   'datasets/RandomDataSet.cpp',
   'datasets/write.cpp',
-  'Model.cpp',
   'NewModel.cpp',
   'Build.cpp',
   'Algorithm.cpp',
@@ -22,8 +20,6 @@ libkann_sources = [
   'executors/GraphExecutor.cpp',
   'executors/DefaultExecutor.cpp',
   'executors/ThreadedExecutor.cpp',
-  'Predictor.cpp',
-  'Optimizer.cpp',
   'Differentiate.cpp',
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',

@@ -1,8 +1,5 @@
 #include <libkann/Algorithm.hpp>
 
-#include <libkann/Optimizer.hpp>
-#include <libkann/Predictor.hpp>
-
 #include <limits>
 
 namespace kann
@@ -169,8 +166,8 @@ namespace kann
       auto generatorResult = convert(latentInputsBatch, [&generatorModel](const auto& input){ return generatorModel->predict(input);});
 
       // Train on latent data set
-      auto [discriminatorCombinedResult, discriminatorCombinedCost] = model->optimize(learningRate, TAG_GAN_DISCRIMINATOR, latentInputsBatch, zeroBatch);
-      auto [generatorCombinedResult,     generatorCombinedCost]     = model->optimize(learningRate, TAG_GAN_GENERATOR,     latentInputsBatch, oneBatch);
+      auto [discriminatorCombinedResult, discriminatorCombinedCost] = model->optimize(learningRate, NEW_TAG_GAN_DISCRIMINATOR, latentInputsBatch, zeroBatch);
+      auto [generatorCombinedResult,     generatorCombinedCost]     = model->optimize(learningRate, NEW_TAG_GAN_GENERATOR,     latentInputsBatch, oneBatch);
 
       for(size_t j=0; j<batchSize; ++j)
       {
