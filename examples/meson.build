@@ -1,4 +1,4 @@
-#subdir('neuralevolution')
+subdir('neuralevolution')
 subdir('backpropagation')
 #subdir('chinesechess')
 #

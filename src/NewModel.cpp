@@ -253,4 +253,34 @@ namespace kann
     return *it->second;
   }
 
+  static std::shared_ptr<const Tensor> cross(const std::shared_ptr<const Tensor>& lhs, const std::shared_ptr<const Tensor>& rhs, std::default_random_engine& engine, double mutationRate)
+  {
+    assert(lhs->size() == rhs->size());
+
+    // FIXME: Somehow determine the range
+    std::uniform_real_distribution distWeight(-1.0, 1.0);
+    std::uniform_real_distribution distMutation(0.0,1.0);
+    std::uniform_int_distribution distSelection(0,1);
+
+    auto result = std::make_shared<Tensor>(lhs->size());
+    result->asArray() = lhs->asArray().binaryExpr(rhs->asArray(), [&](double a, double b){
+      if(distMutation(engine)>=mutationRate)
+        return distWeight(engine);
+      else
+        return distSelection(engine) == 0 ? a : b;
+    });
+    return result;
+  }
+
+  std::shared_ptr<NewModel> cross(const NewModel& lhs, const NewModel& rhs, std::default_random_engine& engine, double mutationRate)
+  {
+    // They have to have the same underlying structure for cross to work
+    assert(lhs.m_layer.get() == rhs.m_layer.get());
+
+    auto result = std::make_shared<NewModel>(lhs.m_layer);
+    for(size_t i=0; i<result->m_parameters.size(); ++i)
+      result->m_parameters[i] = cross(lhs.m_parameters[i], rhs.m_parameters[i], engine, mutationRate);
+
+    return result;
+  }
 }

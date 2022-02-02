@@ -4,6 +4,7 @@
 #include <libkann/NewLayer.hpp>
 #include <libkann/Executor.hpp>
 
+#include <random>
 #include <vector>
 #include <memory>
 
@@ -27,8 +28,8 @@ namespace kann
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs);
 
-  private:
-    Executor& optimizeExecutor(double learningRate, unsigned tags, size_t batchSize);
+  public:
+    friend std::shared_ptr<NewModel> cross(const NewModel& lhs, const NewModel& rhs, std::default_random_engine& engine, double mutationRate);
 
   public:
     template<typename Archive>
@@ -40,11 +41,13 @@ namespace kann
     }
 
   private:
+    Executor& optimizeExecutor(double learningRate, unsigned tags, size_t batchSize);
+
+  private:
     std::shared_ptr<const NewLayer> m_layer;
 
     std::vector<std::shared_ptr<const Tensor>> m_parameters;
     std::vector<std::shared_ptr<const Tensor>> m_states;
-
 
   private:
     std::unique_ptr<Executor> m_predictExecutor;
@@ -59,4 +62,6 @@ namespace kann
     };
     std::map<OptimizeConfig, std::unique_ptr<Executor>> m_optimizeExecutors;
   };
+
+  std::shared_ptr<NewModel> cross(const NewModel& lhs, const NewModel& rhs, std::default_random_engine& engine, double mutationRate);
 }
