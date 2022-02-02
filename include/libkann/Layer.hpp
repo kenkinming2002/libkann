@@ -38,8 +38,8 @@ namespace kann
     virtual size_t outputSize() const = 0;
 
   public:
-    virtual std::vector<Parameter> parameters() const { return {}; }
-    virtual std::vector<Parameter> stateParameters() const { return {}; }
+    virtual std::vector<Parameter> parameters(Scope scope) const { return {}; }
+    virtual std::vector<Parameter> stateParameters(Scope scope) const { return {}; }
 
     virtual LayerVariable operator()(Scope scope, LayerVariable input) const = 0;
 

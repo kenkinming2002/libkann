@@ -14,7 +14,7 @@ namespace kann
     : m_layer(std::move(layer))
   {
     // Parameters
-    auto parameters = m_layer->parameters();
+    auto parameters = m_layer->parameters(Scope());
     for(const auto& parameter : parameters)
       m_parameters.push_back(std::make_shared<const Tensor>(parameter.size));
 
@@ -22,7 +22,7 @@ namespace kann
       value->asArray().setZero();
 
     // State Parameters
-    auto stateParameters = m_layer->stateParameters();
+    auto stateParameters = m_layer->stateParameters(Scope());
     for(const auto& parameter : stateParameters)
       m_states.push_back(std::make_shared<const Tensor>(parameter.size));
 
@@ -43,8 +43,8 @@ namespace kann
   {
     if(!m_predictExecutor)
     {
-      auto parameters      = m_layer->parameters();
-      auto stateParameters = m_layer->stateParameters();
+      auto parameters      = m_layer->parameters(Scope());
+      auto stateParameters = m_layer->stateParameters(Scope());
 
       // 1: Pass variables through layer
       LayerVariable inputLayerVariable;
@@ -151,8 +151,8 @@ namespace kann
       return *it->second;
 
     // Create it
-    auto parameters      = m_layer->parameters();
-    auto stateParameters = m_layer->stateParameters();
+    auto parameters      = m_layer->parameters(Scope());
+    auto stateParameters = m_layer->stateParameters(Scope());
 
     // 1: Parameters and states variables
     std::unordered_map<Parameter, std::shared_ptr<const Variable>> parameterVariablesMap;

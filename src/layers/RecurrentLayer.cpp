@@ -27,7 +27,7 @@ namespace kann
     return m_layers.back()->outputSize() - m_memory;
   }
 
-  std::vector<Parameter> RecurrentLayer::parameters() const
+  std::vector<Parameter> RecurrentLayer::parameters(Scope scope) const
   {
     std::vector<Parameter> result;
 
@@ -35,14 +35,13 @@ namespace kann
     for(const auto& layer : m_layers)
     {
       auto layerScope = this->layerScope(i++);
-      auto layerParameters = layer->parameters();
-      for(const auto& parameter : layerParameters)
-        result.push_back(parameter.inScope(layerScope));
+      auto layerParameters = layer->parameters(scope + layerScope);
+      result.insert(result.end(), layerParameters.begin(), layerParameters.end());
     }
     return result;
   }
 
-  std::vector<Parameter> RecurrentLayer::stateParameters() const
+  std::vector<Parameter> RecurrentLayer::stateParameters(Scope scope) const
   {
     std::vector<Parameter> result;
 
@@ -50,9 +49,8 @@ namespace kann
     for(const auto& layer : m_layers)
     {
       auto layerScope = this->layerScope(i++);
-      auto layerStateParameters = layer->stateParameters();
-      for(const auto& parameter : layerStateParameters)
-        result.push_back(parameter.inScope(layerScope));
+      auto layerStateParameters = layer->stateParameters(scope + layerScope);
+      result.insert(result.end(), layerStateParameters.begin(), layerStateParameters.end());
     }
 
     auto memoryParameter = Parameter{
