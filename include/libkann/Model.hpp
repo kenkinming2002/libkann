@@ -1,7 +1,7 @@
 #pragma once
 
 #include <libkann/Tensor.hpp>
-#include <libkann/NewLayer.hpp>
+#include <libkann/Layer.hpp>
 #include <libkann/Executor.hpp>
 
 #include <random>
@@ -10,11 +10,11 @@
 
 namespace kann
 {
-  class NewModel
+  class Model
   {
   public:
-    NewModel() = default;
-    NewModel(std::shared_ptr<const NewLayer> layer);
+    Model() = default;
+    Model(std::shared_ptr<const Layer> layer);
 
   public:
     void randomize();
@@ -29,7 +29,7 @@ namespace kann
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs);
 
   public:
-    friend std::shared_ptr<NewModel> cross(const NewModel& lhs, const NewModel& rhs, std::default_random_engine& engine, double mutationRate);
+    friend std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 
   public:
     template<typename Archive>
@@ -44,7 +44,7 @@ namespace kann
     Executor& optimizeExecutor(double learningRate, unsigned tags, size_t batchSize);
 
   private:
-    std::shared_ptr<const NewLayer> m_layer;
+    std::shared_ptr<const Layer> m_layer;
 
     std::vector<std::shared_ptr<const Tensor>> m_parameters;
     std::vector<std::shared_ptr<const Tensor>> m_states;
@@ -63,5 +63,5 @@ namespace kann
     std::map<OptimizeConfig, std::unique_ptr<Executor>> m_optimizeExecutors;
   };
 
-  std::shared_ptr<NewModel> cross(const NewModel& lhs, const NewModel& rhs, std::default_random_engine& engine, double mutationRate);
+  std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 }

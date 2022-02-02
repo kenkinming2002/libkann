@@ -31,7 +31,7 @@ static constexpr unsigned WINDOW_HEIGHT = 600;
 static constexpr size_t FEATURES_COUNT = 64;
 static constexpr double LEARNING_RATE = 0.05;
 
-static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::NewLayer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
+static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
 {
   const auto activationFunction = kann::ActivationFunction(activationType);
   for(size_t i=0; i < topology.size()-1; ++i)
@@ -91,10 +91,10 @@ private:
       "datasets/mnist/t10k-labels-idx1-ubyte"
     );
 
-    std::vector<std::shared_ptr<kann::NewLayer>> encoderLayers;
+    std::vector<std::shared_ptr<kann::Layer>> encoderLayers;
     attachWeightActivationLayers(encoderLayers, {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
 
-    std::vector<std::shared_ptr<kann::NewLayer>> decoderLayers;
+    std::vector<std::shared_ptr<kann::Layer>> decoderLayers;
     attachWeightActivationLayers(decoderLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
 
     const char* label;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <libkann/NewLayer.hpp>
+#include <libkann/Layer.hpp>
 #include <libkann/ActivationFunction.hpp>
 
 namespace kann
 {
-  class ActivationLayer : public NewLayer
+  class ActivationLayer : public Layer
   {
   public:
     ActivationLayer() = default;
@@ -22,7 +22,7 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
-      archive(cereal::base_class<NewLayer>(this));
+      archive(cereal::base_class<Layer>(this));
       archive(m_size);
       archive(m_activationFunction);
     }
@@ -34,4 +34,4 @@ namespace kann
 }
 
 CEREAL_REGISTER_TYPE(kann::ActivationLayer);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::NewLayer, kann::ActivationLayer);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::Layer, kann::ActivationLayer);

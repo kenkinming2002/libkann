@@ -7,7 +7,7 @@
 #include <fstream>
 #include <filesystem>
 
-Agent::Agent(std::shared_ptr<kann::NewModel> model, double learningRate)
+Agent::Agent(std::shared_ptr<kann::Model> model, double learningRate)
   : m_model(std::move(model)),
     m_learningRate(learningRate) {}
 
@@ -95,13 +95,13 @@ void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
     auto input = convert(board, color);
     auto expectedOutput = std::make_shared<kann::Tensor>(1);
     expectedOutput->asArray()(0) = (good ? 1.0 : 0.0);
-    m_model->optimize(m_learningRate, kann::NEW_TAG_ALL, {std::move(input)}, {std::move(expectedOutput)});
+    m_model->optimize(m_learningRate, kann::TAG_ALL, {std::move(input)}, {std::move(expectedOutput)});
   }
   {
     auto input = convert(board, otherColor);
     auto expectedOutput = std::make_shared<kann::Tensor>(1);
     expectedOutput->asArray()(0) = (good ? 1.0 : 0.0);
-    m_model->optimize(m_learningRate, kann::NEW_TAG_ALL, {std::move(input)}, {std::move(expectedOutput)});
+    m_model->optimize(m_learningRate, kann::TAG_ALL, {std::move(input)}, {std::move(expectedOutput)});
   }
 }
 

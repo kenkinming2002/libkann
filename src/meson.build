@@ -12,7 +12,7 @@ libkann_sources = [
   'datasets/MNISTDataSet.cpp',
   'datasets/RandomDataSet.cpp',
   'datasets/write.cpp',
-  'NewModel.cpp',
+  'Model.cpp',
   'Build.cpp',
   'Algorithm.cpp',
   'ActivationFunction.cpp',

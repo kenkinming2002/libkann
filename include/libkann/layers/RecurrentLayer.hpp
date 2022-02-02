@@ -1,25 +1,25 @@
 #pragma once
 
-#include <libkann/NewLayer.hpp>
+#include <libkann/Layer.hpp>
 
 namespace kann
 {
-  class RecurrentLayer : public NewLayer
+  class RecurrentLayer : public Layer
   {
   public:
     RecurrentLayer() = default;
     RecurrentLayer(size_t memory);
 
   public:
-    void addLayer(std::shared_ptr<const NewLayer> layer);
+    void addLayer(std::shared_ptr<const Layer> layer);
 
   public:
     size_t inputSize() const override;
     size_t outputSize() const override;
 
   public:
-    std::vector<NewParameter> parameters() const override;
-    std::vector<NewParameter> stateParameters() const override;
+    std::vector<Parameter> parameters() const override;
+    std::vector<Parameter> stateParameters() const override;
 
     LayerVariable operator()(Scope scope, LayerVariable) const override;
 
@@ -27,7 +27,7 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
-      archive(cereal::base_class<NewLayer>(this));
+      archive(cereal::base_class<Layer>(this));
       archive(m_memory);
       archive(m_layers);
     }
@@ -40,10 +40,10 @@ namespace kann
 
   private:
     size_t m_memory;
-    std::vector<std::shared_ptr<const NewLayer>> m_layers;
+    std::vector<std::shared_ptr<const Layer>> m_layers;
   };
 }
 
 CEREAL_REGISTER_TYPE(kann::RecurrentLayer);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::NewLayer, kann::RecurrentLayer);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::Layer, kann::RecurrentLayer);
 

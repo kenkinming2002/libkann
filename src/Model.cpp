@@ -1,8 +1,8 @@
-#include <libkann/NewModel.hpp>
+#include <libkann/Model.hpp>
 
 #include <libkann/Differentiate.hpp>
 
-#include <libkann/NewLayer.hpp>
+#include <libkann/Layer.hpp>
 #include <libkann/LayerVariable.hpp>
 
 #include <libkann/operations/SubtractOperation.hpp>
@@ -10,7 +10,7 @@
 
 namespace kann
 {
-  NewModel::NewModel(std::shared_ptr<const NewLayer> layer)
+  Model::Model(std::shared_ptr<const Layer> layer)
     : m_layer(std::move(layer))
   {
     // Parameters
@@ -30,7 +30,7 @@ namespace kann
       value->asArray().setZero();
   }
 
-  void NewModel::randomize()
+  void Model::randomize()
   {
     for(auto& value : m_parameters)
       value->asArray().setRandom();
@@ -39,7 +39,7 @@ namespace kann
       value->asArray().setRandom();
   }
 
-  std::shared_ptr<const Tensor> NewModel::predict(std::shared_ptr<const Tensor> input)
+  std::shared_ptr<const Tensor> Model::predict(std::shared_ptr<const Tensor> input)
   {
     if(!m_predictExecutor)
     {
@@ -110,7 +110,7 @@ namespace kann
     return output;
   }
 
-  std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> NewModel::optimize(
+  std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> Model::optimize(
     double learningRate, unsigned tags,
     std::vector<std::shared_ptr<const Tensor>> inputs,
     std::vector<std::shared_ptr<const Tensor>> expectedOutputs)
@@ -139,7 +139,7 @@ namespace kann
     return {outputs, costs};
   }
 
-  Executor& NewModel::optimizeExecutor(double learningRate, unsigned tags, size_t batchSize)
+  Executor& Model::optimizeExecutor(double learningRate, unsigned tags, size_t batchSize)
   {
     auto config = OptimizeConfig{
       .learningRate = learningRate,
@@ -155,7 +155,7 @@ namespace kann
     auto stateParameters = m_layer->stateParameters();
 
     // 1: Parameters and states variables
-    std::unordered_map<NewParameter, std::shared_ptr<const Variable>> parameterVariablesMap;
+    std::unordered_map<Parameter, std::shared_ptr<const Variable>> parameterVariablesMap;
     std::vector<std::shared_ptr<const Variable>> parameterVariables;
     for(const auto& parameter : parameters)
     {
@@ -164,7 +164,7 @@ namespace kann
       parameterVariables.push_back(it->second);
     }
 
-    std::unordered_map<NewParameter, std::shared_ptr<const Variable>> stateVariablesMap;
+    std::unordered_map<Parameter, std::shared_ptr<const Variable>> stateVariablesMap;
     std::vector<std::shared_ptr<const Variable>> stateVariables;
     for(const auto& parameter : stateParameters)
     {
@@ -272,12 +272,12 @@ namespace kann
     return result;
   }
 
-  std::shared_ptr<NewModel> cross(const NewModel& lhs, const NewModel& rhs, std::default_random_engine& engine, double mutationRate)
+  std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate)
   {
     // They have to have the same underlying structure for cross to work
     assert(lhs.m_layer.get() == rhs.m_layer.get());
 
-    auto result = std::make_shared<NewModel>(lhs.m_layer);
+    auto result = std::make_shared<Model>(lhs.m_layer);
     for(size_t i=0; i<result->m_parameters.size(); ++i)
       result->m_parameters[i] = cross(lhs.m_parameters[i], rhs.m_parameters[i], engine, mutationRate);
 

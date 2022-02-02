@@ -114,7 +114,7 @@ namespace App
     {
       Hell::random_engine_type engine(seed);
 
-      static std::shared_ptr<kann::NewLayer> layer = [&agentHiddenLayers]()
+      static std::shared_ptr<kann::Layer> layer = [&agentHiddenLayers]()
       {
         const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
 
@@ -135,7 +135,7 @@ namespace App
         return layer;
       }();
 
-      auto model = std::make_shared<kann::NewModel>(layer);
+      auto model = std::make_shared<kann::Model>(layer);
       model->randomize();
       return Agent(std::move(model), learningRate);
     }

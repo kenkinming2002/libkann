@@ -7,7 +7,7 @@
 #include <libkann/layers/DeconvolutionalLayer.hpp>
 
 #include <libkann/Build.hpp>
-#include <libkann/NewModel.hpp>
+#include <libkann/Model.hpp>
 #include <libkann/Algorithm.hpp>
 
 #include <libkann/datasets/MNISTDataSet.hpp>
@@ -44,7 +44,7 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
   }
 }
 
-static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::NewLayer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
+static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
 {
   const auto activationFunction = kann::ActivationFunction(activationType);
   for(size_t i=0; i < topology.size()-1; ++i)
@@ -56,7 +56,7 @@ static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::NewLa
   }
 }
 
-static void attachConvolutionActivationLayers(std::vector<std::shared_ptr<kann::NewLayer>>& layers, const std::vector<size_t>& topology, size_t& width, size_t& height, size_t kernelSize, kann::ActivationFunction::Type activationType)
+static void attachConvolutionActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, size_t& width, size_t& height, size_t kernelSize, kann::ActivationFunction::Type activationType)
 {
   const auto activationFunction = kann::ActivationFunction(activationType);
   for(size_t i=0; i < topology.size()-1; ++i)
@@ -74,7 +74,7 @@ static void attachConvolutionActivationLayers(std::vector<std::shared_ptr<kann::
   }
 }
 
-static void attachDeconvolutionActivationLayers(std::vector<std::shared_ptr<kann::NewLayer>>& layers, const std::vector<size_t>& topology, size_t& width, size_t& height, size_t kernelSize, kann::ActivationFunction::Type activationType)
+static void attachDeconvolutionActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, size_t& width, size_t& height, size_t kernelSize, kann::ActivationFunction::Type activationType)
 {
   const auto activationFunction = kann::ActivationFunction(activationType);
   for(size_t i=0; i < topology.size()-1; ++i)
@@ -90,7 +90,7 @@ static void attachDeconvolutionActivationLayers(std::vector<std::shared_ptr<kann
   }
 }
 
-static void trainAndTestFeedForwardModel(std::shared_ptr<kann::NewModel> model,
+static void trainAndTestFeedForwardModel(std::shared_ptr<kann::Model> model,
     const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet,
     size_t inputColumn, size_t outputColumn,
     std::filesystem::path outputPath)
@@ -131,7 +131,7 @@ static void trainAndTestFeedForwardModel(std::shared_ptr<kann::NewModel> model,
   }
 }
 
-static void trainAndRunAutoEncoder(std::shared_ptr<kann::NewModel> autoEncoderModel, std::shared_ptr<kann::NewModel> decoderModel,
+static void trainAndRunAutoEncoder(std::shared_ptr<kann::Model> autoEncoderModel, std::shared_ptr<kann::Model> decoderModel,
     const kann::DataSet& trainingDataSet, const kann::DataSet& testingDataSet, size_t dataColumn,
     std::filesystem::path reconstructionOutputPath, std::filesystem::path outputPath, size_t featuresCount, size_t generateCount)
 {
@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
   else if(subcommand == "serialize")
   {
     {
-      std::vector<std::shared_ptr<kann::NewLayer>> layers;
+      std::vector<std::shared_ptr<kann::Layer>> layers;
       layers.push_back(std::make_shared<kann::IdentityLayer>(kann::MNISTDataSet::IMAGE_SIZE, kann::MNISTDataSet::IMAGE_SIZE, 0));
       attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
       layers.push_back(std::make_shared<kann::IdentityLayer>(10, 10, 0));
@@ -232,7 +232,7 @@ int main(int argc, char* argv[])
     }
 
     {
-      std::shared_ptr<kann::NewModel> model;
+      std::shared_ptr<kann::Model> model;
       {
         std::ifstream file("output/model1.json");
         cereal::JSONInputArchive archive(file);
@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
   else if(subcommand == "normal")
   {
     // Normal Neural Network
-    std::vector<std::shared_ptr<kann::NewLayer>> layers;
+    std::vector<std::shared_ptr<kann::Layer>> layers;
     layers.push_back(std::make_shared<kann::IdentityLayer>(kann::MNISTDataSet::IMAGE_SIZE, kann::MNISTDataSet::IMAGE_SIZE, 0));
     attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
     layers.push_back(std::make_shared<kann::IdentityLayer>(10, 10, 0));
@@ -261,7 +261,7 @@ int main(int argc, char* argv[])
   }
   else if(subcommand == "convolution")
   {
-    std::vector<std::shared_ptr<kann::NewLayer>> layers;
+    std::vector<std::shared_ptr<kann::Layer>> layers;
     size_t width = kann::MNISTDataSet::IMAGE_WIDTH, height = kann::MNISTDataSet::IMAGE_WIDTH;
     attachConvolutionActivationLayers(layers, {1, 3, 3, 1}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
     attachWeightActivationLayers(layers, {layers.back()->outputSize(), 10}, kann::ActivationFunction::Type::SIGMOID);
@@ -276,7 +276,7 @@ int main(int argc, char* argv[])
     // Normal Neural Network
     const size_t MEMORY = 20;
 
-    std::vector<std::shared_ptr<kann::NewLayer>> layers;
+    std::vector<std::shared_ptr<kann::Layer>> layers;
     attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE+MEMORY, 30, 30, 30, 10+MEMORY}, kann::ActivationFunction::Type::SIGMOID);
 
     auto model = kann::buildSimpleRecurrentModel(std::move(layers), MEMORY);
@@ -288,10 +288,10 @@ int main(int argc, char* argv[])
   {
     static constexpr size_t FEATURES_COUNT = 64;
 
-    std::vector<std::shared_ptr<kann::NewLayer>> encoderLayers;
+    std::vector<std::shared_ptr<kann::Layer>> encoderLayers;
     attachWeightActivationLayers(encoderLayers, {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
 
-    std::vector<std::shared_ptr<kann::NewLayer>> decoderLayers;
+    std::vector<std::shared_ptr<kann::Layer>> decoderLayers;
     attachWeightActivationLayers(decoderLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
 
     auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
@@ -308,13 +308,13 @@ int main(int argc, char* argv[])
     static constexpr size_t FEATURES_COUNT = 64;
 
     size_t width = kann::MNISTDataSet::IMAGE_WIDTH, height = kann::MNISTDataSet::IMAGE_WIDTH;
-    std::vector<std::shared_ptr<kann::NewLayer>> encoderLayers;
+    std::vector<std::shared_ptr<kann::Layer>> encoderLayers;
 
     attachConvolutionActivationLayers(encoderLayers, {1, 5}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
     const auto size = encoderLayers.back()->outputSize();
     attachWeightActivationLayers(encoderLayers, {size, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
 
-    std::vector<std::shared_ptr<kann::NewLayer>> decoderLayers;
+    std::vector<std::shared_ptr<kann::Layer>> decoderLayers;
     attachWeightActivationLayers(decoderLayers, {FEATURES_COUNT, size}, kann::ActivationFunction::Type::SIGMOID);
     attachDeconvolutionActivationLayers(decoderLayers, {5, 1}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
 
@@ -333,10 +333,10 @@ int main(int argc, char* argv[])
   {
     static constexpr size_t FEATURES_COUNT = 128;
 
-    std::vector<std::shared_ptr<kann::NewLayer>> generatorLayers;
+    std::vector<std::shared_ptr<kann::Layer>> generatorLayers;
     attachWeightActivationLayers(generatorLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
 
-    std::vector<std::shared_ptr<kann::NewLayer>> discriminatorLayers;
+    std::vector<std::shared_ptr<kann::Layer>> discriminatorLayers;
     attachWeightActivationLayers(discriminatorLayers, {kann::MNISTDataSet::IMAGE_SIZE, 512, 128, 1}, kann::ActivationFunction::Type::SIGMOID);
 
 

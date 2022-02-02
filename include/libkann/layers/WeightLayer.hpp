@@ -1,10 +1,10 @@
 #pragma once
 
-#include <libkann/NewLayer.hpp>
+#include <libkann/Layer.hpp>
 
 namespace kann
 {
-  class WeightLayer : public NewLayer
+  class WeightLayer : public Layer
   {
   public:
     WeightLayer() = default;
@@ -15,7 +15,7 @@ namespace kann
     size_t outputSize() const override;
 
   public:
-    std::vector<NewParameter> parameters() const override;
+    std::vector<Parameter> parameters() const override;
 
   public:
     LayerVariable operator()(Scope scope, LayerVariable input) const override;
@@ -24,7 +24,7 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
-      archive(cereal::base_class<NewLayer>(this));
+      archive(cereal::base_class<Layer>(this));
       archive(m_inputSize, m_outputSize);
     }
 
@@ -35,4 +35,4 @@ namespace kann
 }
 
 CEREAL_REGISTER_TYPE(kann::WeightLayer);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::NewLayer, kann::WeightLayer);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::Layer, kann::WeightLayer);

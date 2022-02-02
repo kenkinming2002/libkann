@@ -14,20 +14,20 @@
 
 namespace kann
 {
-  enum NewTag
+  enum Tag
   {
-    NEW_TAG_DEFAULT           = 1u << 0,
-    NEW_TAG_ENCODDER          = 1u << 1,
-    NEW_TAG_DECODDER          = 1u << 2,
-    NEW_TAG_GAN_GENERATOR     = 1u << 3,
-    NEW_TAG_GAN_DISCRIMINATOR = 1u << 4,
-    NEW_TAG_ALL = 0xFFFFFFFF
+    TAG_DEFAULT           = 1u << 0,
+    TAG_ENCODER           = 1u << 1,
+    TAG_DECODER           = 1u << 2,
+    TAG_GAN_GENERATOR     = 1u << 3,
+    TAG_GAN_DISCRIMINATOR = 1u << 4,
+    TAG_ALL = 0xFFFFFFFF
   };
 
-  class NewLayer
+  class Layer
   {
   public:
-    virtual ~NewLayer() = default;
+    virtual ~Layer() = default;
 
   public:
     unsigned tag() const { return m_tag; }
@@ -38,8 +38,8 @@ namespace kann
     virtual size_t outputSize() const = 0;
 
   public:
-    virtual std::vector<NewParameter> parameters() const { return {}; }
-    virtual std::vector<NewParameter> stateParameters() const { return {}; }
+    virtual std::vector<Parameter> parameters() const { return {}; }
+    virtual std::vector<Parameter> stateParameters() const { return {}; }
 
     virtual LayerVariable operator()(Scope scope, LayerVariable input) const = 0;
 
@@ -51,6 +51,6 @@ namespace kann
     }
 
   private:
-    unsigned m_tag = NEW_TAG_DEFAULT;
+    unsigned m_tag = TAG_DEFAULT;
   };
 }

@@ -8,12 +8,12 @@
 
 namespace kann
 {
-  struct NewParameter
+  struct Parameter
   {
   public:
-    NewParameter inScope(Scope scope) const
+    Parameter inScope(Scope scope) const
     {
-      return NewParameter{
+      return Parameter{
         .scope = scope + this->scope,
         .name  = this->name,
         .size  = this->size
@@ -26,7 +26,7 @@ namespace kann
     }
 
   public:
-    auto operator<=>(const NewParameter&) const = default;
+    auto operator<=>(const Parameter&) const = default;
 
   public:
     Scope scope;
@@ -44,9 +44,9 @@ namespace kann
 
 
 template<>
-struct std::hash<kann::NewParameter>
+struct std::hash<kann::Parameter>
 {
-  size_t operator()(const kann::NewParameter& parameter) const
+  size_t operator()(const kann::Parameter& parameter) const
   {
     size_t hash1 = std::hash<kann::Scope>{}(parameter.scope);
     size_t hash2 = std::hash<std::string>{}(parameter.name);

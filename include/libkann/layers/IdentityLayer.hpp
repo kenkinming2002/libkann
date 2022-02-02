@@ -1,10 +1,10 @@
 #pragma once
 
-#include <libkann/NewLayer.hpp>
+#include <libkann/Layer.hpp>
 
 namespace kann
 {
-  class IdentityLayer : public NewLayer
+  class IdentityLayer : public Layer
   {
   public:
     IdentityLayer() = default;
@@ -21,7 +21,7 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
-      archive(cereal::base_class<NewLayer>(this));
+      archive(cereal::base_class<Layer>(this));
       archive(m_inputSize);
       archive(m_outputSize);
       archive(m_offset);
@@ -35,5 +35,5 @@ namespace kann
 }
 
 CEREAL_REGISTER_TYPE(kann::IdentityLayer);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::NewLayer, kann::IdentityLayer);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::Layer, kann::IdentityLayer);
 

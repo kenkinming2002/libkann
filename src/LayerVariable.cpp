@@ -32,7 +32,7 @@ namespace kann
     }
   }
 
-  std::shared_ptr<const Variable> LayerVariable::insert(Type type, NewParameter parameter)
+  std::shared_ptr<const Variable> LayerVariable::insert(Type type, Parameter parameter)
   {
     auto& map = this->map(type);
     auto [it, success] = map.emplace(std::move(parameter), std::make_shared<const Variable>());
@@ -40,13 +40,13 @@ namespace kann
     return it->second;
   }
 
-  std::shared_ptr<const Variable> LayerVariable::lookup(Type type, NewParameter parameter) const
+  std::shared_ptr<const Variable> LayerVariable::lookup(Type type, Parameter parameter) const
   {
     auto& map = this->map(type);
     return map.at(parameter);
   }
 
-  void LayerVariable::assign(Type type, NewParameter parameter, std::shared_ptr<const Variable> variable)
+  void LayerVariable::assign(Type type, Parameter parameter, std::shared_ptr<const Variable> variable)
   {
     auto& map = this->map(type);
     map.at(parameter) = std::move(variable);

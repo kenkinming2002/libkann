@@ -3,7 +3,7 @@
 #include "Board.hpp"
 #include "Game.hpp"
 
-#include <libkann/NewModel.hpp>
+#include <libkann/Model.hpp>
 
 #include <optional>
 #include <filesystem>
@@ -16,7 +16,7 @@ public:
 
 public:
   Agent() = default;
-  Agent(std::shared_ptr<kann::NewModel> model, double learningRate);
+  Agent(std::shared_ptr<kann::Model> model, double learningRate);
 
 public:
   void loadFromFile(std::filesystem::path filePath);
@@ -60,7 +60,7 @@ public:
   }
 
 private:
-  std::shared_ptr<kann::NewModel> m_model;
+  std::shared_ptr<kann::Model> m_model;
   double m_learningRate;
 
   double m_score = 0.0;

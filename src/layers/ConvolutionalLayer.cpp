@@ -21,14 +21,14 @@ namespace kann
     return (m_inputWidth-m_kernelSize+1) * (m_inputHeight-m_kernelSize+1) * m_outputChannelCount;
   }
 
-  std::vector<NewParameter> ConvolutionalLayer::parameters() const
+  std::vector<Parameter> ConvolutionalLayer::parameters() const
   {
-    std::vector<NewParameter> results;
+    std::vector<Parameter> results;
     results.reserve(m_inputChannelCount * m_outputChannelCount);
 
     for(size_t j=0; j<m_outputChannelCount; ++j)
       for(size_t i=0; i<m_inputChannelCount; ++i)
-        results.push_back(NewParameter{
+        results.push_back(Parameter{
           .name = "kernel"+std::to_string(i)+"_"+std::to_string(j),
           .size = m_kernelSize * m_kernelSize
         });
@@ -68,7 +68,7 @@ namespace kann
       for(size_t i=0; i<m_inputChannelCount; ++i)
       {
         auto inputChannelVariable = inputChannelVariables[i];
-        auto kernelParameter = NewParameter{
+        auto kernelParameter = Parameter{
           .scope = scope,
           .name = "kernel"+std::to_string(i)+"_"+std::to_string(j),
           .size = m_kernelSize * m_kernelSize

@@ -82,7 +82,7 @@ namespace kann
     return result;
   }
 
-  Task<void, Info> run(std::shared_ptr<NewModel> model,
+  Task<void, Info> run(std::shared_ptr<Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs)
   {
     for(size_t i=0; i<inputs.size(); ++i)
@@ -99,7 +99,7 @@ namespace kann
     }
   }
 
-  Task<void, Info> train(std::shared_ptr<NewModel> model,
+  Task<void, Info> train(std::shared_ptr<Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs,
       double learningRate, size_t batchSize)
@@ -112,7 +112,7 @@ namespace kann
       auto inputsBatch          = std::vector<std::shared_ptr<const Tensor>>(&inputs[i],          &inputs[i+batchSize]);
       auto expectedOutputsBatch = std::vector<std::shared_ptr<const Tensor>>(&expectedOutputs[i], &expectedOutputs[i+batchSize]);
 
-      auto [outputsBatch, costs] = model->optimize(learningRate, NEW_TAG_ALL, inputsBatch, expectedOutputsBatch);
+      auto [outputsBatch, costs] = model->optimize(learningRate, TAG_ALL, inputsBatch, expectedOutputsBatch);
 
       assert(inputsBatch.size()          == batchSize);
       assert(expectedOutputsBatch.size() == batchSize);
@@ -135,9 +135,9 @@ namespace kann
     }
   }
 
-  Task<void, GANInfo> trainGAN(std::shared_ptr<NewModel> model,
-      std::shared_ptr<NewModel> generatorModel,
-      std::shared_ptr<NewModel> discriminatorModel,
+  Task<void, GANInfo> trainGAN(std::shared_ptr<Model> model,
+      std::shared_ptr<Model> generatorModel,
+      std::shared_ptr<Model> discriminatorModel,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> latentInputs,
       double learningRate, size_t batchSize)
@@ -160,14 +160,14 @@ namespace kann
       auto latentInputsBatch = std::vector<std::shared_ptr<const Tensor>>(&latentInputs[i], &latentInputs[i+batchSize]);
 
       // Train on real data set
-      auto [discriminatorResult, discriminatorCost] = discriminatorModel->optimize(learningRate, NEW_TAG_ALL, inputsBatch, oneBatch);
+      auto [discriminatorResult, discriminatorCost] = discriminatorModel->optimize(learningRate, TAG_ALL, inputsBatch, oneBatch);
 
       // Predict on latent data set
       auto generatorResult = convert(latentInputsBatch, [&generatorModel](const auto& input){ return generatorModel->predict(input);});
 
       // Train on latent data set
-      auto [discriminatorCombinedResult, discriminatorCombinedCost] = model->optimize(learningRate, NEW_TAG_GAN_DISCRIMINATOR, latentInputsBatch, zeroBatch);
-      auto [generatorCombinedResult,     generatorCombinedCost]     = model->optimize(learningRate, NEW_TAG_GAN_GENERATOR,     latentInputsBatch, oneBatch);
+      auto [discriminatorCombinedResult, discriminatorCombinedCost] = model->optimize(learningRate, TAG_GAN_DISCRIMINATOR, latentInputsBatch, zeroBatch);
+      auto [generatorCombinedResult,     generatorCombinedCost]     = model->optimize(learningRate, TAG_GAN_GENERATOR,     latentInputsBatch, oneBatch);
 
       for(size_t j=0; j<batchSize; ++j)
       {
@@ -186,7 +186,7 @@ namespace kann
     }
   }
 
-  Task<double, Info> test(std::shared_ptr<NewModel> model,
+  Task<double, Info> test(std::shared_ptr<Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs)
   {

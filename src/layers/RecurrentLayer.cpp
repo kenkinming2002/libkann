@@ -10,7 +10,7 @@ namespace kann
   RecurrentLayer::RecurrentLayer(size_t memory)
     : m_memory(memory) {}
 
-  void RecurrentLayer::addLayer(std::shared_ptr<const NewLayer> layer)
+  void RecurrentLayer::addLayer(std::shared_ptr<const Layer> layer)
   {
     m_layers.push_back(std::move(layer));
   }
@@ -27,9 +27,9 @@ namespace kann
     return m_layers.back()->outputSize() - m_memory;
   }
 
-  std::vector<NewParameter> RecurrentLayer::parameters() const
+  std::vector<Parameter> RecurrentLayer::parameters() const
   {
-    std::vector<NewParameter> result;
+    std::vector<Parameter> result;
 
     size_t i = 0;
     for(const auto& layer : m_layers)
@@ -42,9 +42,9 @@ namespace kann
     return result;
   }
 
-  std::vector<NewParameter> RecurrentLayer::stateParameters() const
+  std::vector<Parameter> RecurrentLayer::stateParameters() const
   {
-    std::vector<NewParameter> result;
+    std::vector<Parameter> result;
 
     size_t i = 0;
     for(const auto& layer : m_layers)
@@ -55,7 +55,7 @@ namespace kann
         result.push_back(parameter.inScope(layerScope));
     }
 
-    auto memoryParameter = NewParameter{
+    auto memoryParameter = Parameter{
       .name = "memory",
       .size = m_memory
     };
@@ -66,7 +66,7 @@ namespace kann
 
   LayerVariable RecurrentLayer::operator()(Scope scope, LayerVariable input) const
   {
-    auto memoryParameter = NewParameter{
+    auto memoryParameter = Parameter{
       .scope = scope,
       .name = "memory",
       .size = m_memory

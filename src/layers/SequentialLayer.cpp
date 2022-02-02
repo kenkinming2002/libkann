@@ -4,7 +4,7 @@
 
 namespace kann
 {
-  void SequentialLayer::addLayer(std::shared_ptr<const NewLayer> layer)
+  void SequentialLayer::addLayer(std::shared_ptr<const Layer> layer)
   {
     m_layers.push_back(std::move(layer));
   }
@@ -21,9 +21,9 @@ namespace kann
     return m_layers.back()->outputSize();
   }
 
-  std::vector<NewParameter> SequentialLayer::parameters() const
+  std::vector<Parameter> SequentialLayer::parameters() const
   {
-    std::vector<NewParameter> result;
+    std::vector<Parameter> result;
 
     size_t i = 0;
     for(const auto& layer : m_layers)
@@ -36,9 +36,9 @@ namespace kann
     return result;
   }
 
-  std::vector<NewParameter> SequentialLayer::stateParameters() const
+  std::vector<Parameter> SequentialLayer::stateParameters() const
   {
-    std::vector<NewParameter> result;
+    std::vector<Parameter> result;
 
     size_t i = 0;
     for(const auto& layer : m_layers)

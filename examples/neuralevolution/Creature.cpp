@@ -6,17 +6,17 @@
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
 #include <libkann/layers/RecurrentLayer.hpp>
-#include <libkann/NewModel.hpp>
+#include <libkann/Model.hpp>
 
 #include <cassert>
 #include <cmath>
 
-std::shared_ptr<kann::NewModel> Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
+std::shared_ptr<kann::Model> Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
 {
   /* Note: Model refer to Layer but has their own parameters and states To be
    *       able to cross different model, they have to have the same underlying
    *       layer. */
-  static std::shared_ptr<kann::NewLayer> layer = [&config]()
+  static std::shared_ptr<kann::Layer> layer = [&config]()
   {
 
     // TODO: do not create a vector for this
@@ -38,7 +38,7 @@ std::shared_ptr<kann::NewModel> Creature::makeNeuralNetork(const ModelConfig& co
     return layer;
   }();
 
-  auto model = std::make_shared<kann::NewModel>(layer);
+  auto model = std::make_shared<kann::Model>(layer);
   model->randomize();
   return model;
 }
@@ -46,7 +46,7 @@ std::shared_ptr<kann::NewModel> Creature::makeNeuralNetork(const ModelConfig& co
 static constexpr double ANGLE = M_PI / 12.0;
 
 Creature::Creature(b2World& world, const Config& config,
-    std::shared_ptr<kann::NewModel> model, b2Vec2 position, double energy,
+    std::shared_ptr<kann::Model> model, b2Vec2 position, double energy,
     double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
     m_model(std::move(model)),
