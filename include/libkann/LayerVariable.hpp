@@ -18,6 +18,7 @@ namespace kann
 
     std::shared_ptr<const Variable> insert(Type type, NewParameter parameter);
     std::shared_ptr<const Variable> lookup(Type type, NewParameter parameter) const;
+    void assign(Type type, NewParameter parameter, std::shared_ptr<const Variable> variable);
 
   public:
     std::shared_ptr<const Variable> variable;

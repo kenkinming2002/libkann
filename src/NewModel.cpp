@@ -84,7 +84,7 @@ namespace kann
       {
         // Lookup new state from outputLayerVariable
         auto variable = outputLayerVariable.lookup(LayerVariable::Type::STATE, parameter);
-        stateVariables.push_back(std::move(variable));
+        newStateVariables.push_back(std::move(variable));
       }
 
       m_predictExecutor = makeDefaultExecutor();

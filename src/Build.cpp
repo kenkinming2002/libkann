@@ -2,6 +2,7 @@
 
 #include <libkann/layers/IdentityLayer.hpp>
 #include <libkann/layers/SequentialLayer.hpp>
+#include <libkann/layers/RecurrentLayer.hpp>
 
 #include <libkann/NewModel.hpp>
 
@@ -16,6 +17,15 @@ namespace kann
     return result;
   }
 
+  std::shared_ptr<NewLayer> buildSimpleRecurrentLayer(std::vector<std::shared_ptr<NewLayer>> layers, size_t memory)
+  {
+    auto result = std::make_shared<RecurrentLayer>(memory);
+    for(auto& layer : layers)
+      result->addLayer(std::move(layer));
+
+    return result;
+  }
+
   std::shared_ptr<NewModel> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<NewLayer>> layers)
   {
     auto resultLayer = buildSimpleFeedForwardLayer(std::move(layers));
@@ -24,7 +34,8 @@ namespace kann
 
   std::shared_ptr<NewModel> buildSimpleRecurrentModel(std::vector<std::shared_ptr<NewLayer>> layers, size_t memory)
   {
-    assert(false && "Unimplemented");
+    auto resultLayer = buildSimpleRecurrentLayer(std::move(layers), memory);
+    return std::make_shared<NewModel>(std::move(resultLayer));
   }
 
   std::pair<std::shared_ptr<NewModel>, std::shared_ptr<NewModel>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<NewLayer>> encoderLayers, std::vector<std::shared_ptr<NewLayer>> decoderLayers)

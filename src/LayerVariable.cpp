@@ -45,4 +45,10 @@ namespace kann
     auto& map = this->map(type);
     return map.at(parameter);
   }
+
+  void LayerVariable::assign(Type type, NewParameter parameter, std::shared_ptr<const Variable> variable)
+  {
+    auto& map = this->map(type);
+    map.at(parameter) = std::move(variable);
+  }
 }
