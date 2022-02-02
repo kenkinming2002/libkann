@@ -11,15 +11,6 @@ namespace kann
   struct Parameter
   {
   public:
-    Parameter inScope(Scope scope) const
-    {
-      return Parameter{
-        .scope = scope + this->scope,
-        .name  = this->name,
-        .size  = this->size
-      };
-    }
-
     std::string qualifiedName() const
     {
       return scope.qualifiedName(name);
