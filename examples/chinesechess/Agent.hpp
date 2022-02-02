@@ -3,9 +3,7 @@
 #include "Board.hpp"
 #include "Game.hpp"
 
-#include <libkann/Optimizer.hpp>
-#include <libkann/Predictor.hpp>
-#include <libkann/FunctionalModel.hpp>
+#include <libkann/NewModel.hpp>
 
 #include <optional>
 #include <filesystem>
@@ -18,7 +16,7 @@ public:
 
 public:
   Agent() = default;
-  Agent(std::shared_ptr<kann::Model> model, double learningRate);
+  Agent(std::shared_ptr<kann::NewModel> model, double learningRate);
 
 public:
   void loadFromFile(std::filesystem::path filePath);
@@ -59,16 +57,11 @@ public:
   {
     archive(m_model);
     archive(m_learningRate);
-    m_predictor = kann::Predictor(m_model);
-    m_optimizer = kann::Optimizer(m_model, m_learningRate);
   }
 
 private:
-  std::shared_ptr<kann::Model> m_model;
+  std::shared_ptr<kann::NewModel> m_model;
   double m_learningRate;
-
-  kann::Predictor m_predictor;
-  kann::Optimizer m_optimizer;
 
   double m_score = 0.0;
 

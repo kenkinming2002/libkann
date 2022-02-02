@@ -2,6 +2,7 @@
 
 #include "../utilities/lexical_cast.hpp"
 
+#include <libkann/layers/SequentialLayer.hpp>
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
 
@@ -113,27 +114,29 @@ namespace App
     {
       Hell::random_engine_type engine(seed);
 
-      const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
-
-      std::vector<size_t> topology;
-
-      topology.push_back(Agent::INPUT_LAYER_SIZE);
-      topology.insert(topology.end(), agentHiddenLayers.begin(), agentHiddenLayers.end());
-      topology.push_back(Agent::OUTPUT_LAYER_SIZE);
-
-      std::vector<std::shared_ptr<kann::Layer>> layers;
-      for(size_t i=0; i < topology.size()-1; ++i)
+      static std::shared_ptr<kann::NewLayer> layer = [&agentHiddenLayers]()
       {
-        size_t prevSize = topology[i];
-        size_t nextSize = topology[i+1];
-        layers.push_back(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
-        layers.push_back(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
-      }
+        const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
 
-      for(auto& layer : layers)
-        kann::randomize(*layer, engine);
+        std::vector<size_t> topology;
 
-      auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
+        topology.push_back(Agent::INPUT_LAYER_SIZE);
+        topology.insert(topology.end(), agentHiddenLayers.begin(), agentHiddenLayers.end());
+        topology.push_back(Agent::OUTPUT_LAYER_SIZE);
+
+        auto layer = std::make_shared<kann::SequentialLayer>();
+        for(size_t i=0; i < topology.size()-1; ++i)
+        {
+          size_t prevSize = topology[i];
+          size_t nextSize = topology[i+1];
+          layer->addLayer(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
+          layer->addLayer(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
+        }
+        return layer;
+      }();
+
+      auto model = std::make_shared<kann::NewModel>(layer);
+      model->randomize();
       return Agent(std::move(model), learningRate);
     }
   }

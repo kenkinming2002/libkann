@@ -19,6 +19,14 @@ namespace kann
 
     LayerVariable operator()(Scope scope, LayerVariable) const override;
 
+  public:
+    template<typename Archive>
+    void serialize(Archive& archive)
+    {
+      archive(cereal::base_class<NewLayer>(this));
+      archive(m_layers);
+    }
+
   private:
     static Scope layerScope(size_t i)
     {
@@ -29,3 +37,6 @@ namespace kann
     std::vector<std::shared_ptr<const NewLayer>> m_layers;
   };
 }
+
+CEREAL_REGISTER_TYPE(kann::SequentialLayer);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::NewLayer, kann::SequentialLayer);
