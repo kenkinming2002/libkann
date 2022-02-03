@@ -111,13 +111,13 @@ namespace kann
   }
 
   std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> Model::optimize(
-    double learningRate, unsigned tags,
+    double learningRate, Tag tag,
     std::vector<std::shared_ptr<const Tensor>> inputs,
     std::vector<std::shared_ptr<const Tensor>> expectedOutputs)
   {
     assert(inputs.size() == expectedOutputs.size());
     size_t batchSize = inputs.size();
-    auto& optimizeExecutor = this->optimizeExecutor(learningRate, tags, batchSize);
+    auto& optimizeExecutor = this->optimizeExecutor(learningRate, tag, batchSize);
 
 
     optimizeExecutor.input("inputs", inputs);
@@ -139,11 +139,11 @@ namespace kann
     return {outputs, costs};
   }
 
-  Executor& Model::optimizeExecutor(double learningRate, unsigned tags, size_t batchSize)
+  Executor& Model::optimizeExecutor(double learningRate, Tag tag, size_t batchSize)
   {
     auto config = OptimizeConfig{
       .learningRate = learningRate,
-      .tags         = tags,
+      .tag          = tag,
       .batchSize    = batchSize
     };
 

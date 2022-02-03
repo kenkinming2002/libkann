@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libkann/Tag.hpp>
 #include <libkann/LayerVariable.hpp>
 #include <libkann/Scope.hpp>
 
@@ -14,24 +15,14 @@
 
 namespace kann
 {
-  enum Tag
-  {
-    TAG_DEFAULT           = 1u << 0,
-    TAG_ENCODER           = 1u << 1,
-    TAG_DECODER           = 1u << 2,
-    TAG_GAN_GENERATOR     = 1u << 3,
-    TAG_GAN_DISCRIMINATOR = 1u << 4,
-    TAG_ALL = 0xFFFFFFFF
-  };
-
   class Layer
   {
   public:
     virtual ~Layer() = default;
 
   public:
-    unsigned tag() const { return m_tag; }
-    void tag(unsigned tag) { m_tag = tag; }
+    Tag tag() const { return m_tag; }
+    void tag(Tag tag) { m_tag = tag; }
 
   public:
     virtual size_t inputSize() const = 0;
@@ -51,6 +42,6 @@ namespace kann
     }
 
   private:
-    unsigned m_tag = TAG_DEFAULT;
+    Tag m_tag = Tag::ALL;
   };
 }

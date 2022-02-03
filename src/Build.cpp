@@ -41,10 +41,10 @@ namespace kann
   std::pair<std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers)
   {
     auto encoderLayer = buildSimpleFeedForwardLayer(std::move(encoderLayers));
-    encoderLayer->tag(TAG_ENCODER);
+    encoderLayer->tag(Tag::ENCODER);
 
     auto decoderLayer = buildSimpleFeedForwardLayer(std::move(decoderLayers));
-    decoderLayer->tag(TAG_DECODER);
+    decoderLayer->tag(Tag::DECODER);
 
     auto autoEncoderLayer = buildSimpleFeedForwardLayer({encoderLayer, decoderLayer});
 
@@ -57,10 +57,10 @@ namespace kann
   std::tuple<std::shared_ptr<Model>, std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers)
   {
     auto generatorLayer = buildSimpleFeedForwardLayer(std::move(generatorLayers));
-    generatorLayer->tag(TAG_GAN_GENERATOR);
+    generatorLayer->tag(Tag::GAN_GENERATOR);
 
     auto discriminatorLayer = buildSimpleFeedForwardLayer(std::move(discriminatorLayers));
-    discriminatorLayer->tag(TAG_GAN_DISCRIMINATOR);
+    discriminatorLayer->tag(Tag::GAN_DISCRIMINATOR);
 
     auto GANLayer = buildSimpleFeedForwardLayer({generatorLayer, discriminatorLayer});
 

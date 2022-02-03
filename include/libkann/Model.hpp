@@ -24,7 +24,7 @@ namespace kann
 
     // FIXME: better formatting
     std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> optimize(
-      double learningRate, unsigned tags,
+      double learningRate, Tag tag,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs);
 
@@ -41,7 +41,7 @@ namespace kann
     }
 
   private:
-    Executor& optimizeExecutor(double learningRate, unsigned tags, size_t batchSize);
+    Executor& optimizeExecutor(double learningRate, Tag tag, size_t batchSize);
 
   private:
     std::shared_ptr<const Layer> m_layer;
@@ -55,7 +55,7 @@ namespace kann
     struct OptimizeConfig
     {
       double learningRate;
-      unsigned tags;
+      Tag tag;
       size_t batchSize;
 
       auto operator<=>(const OptimizeConfig&) const = default;
