@@ -4,21 +4,24 @@
 
 namespace kann
 {
-  void SequentialLayer::addLayer(std::shared_ptr<const Layer> layer)
+  void SequentialLayer::addLayer(std::shared_ptr<const Layer> layer, Tag tag)
   {
-    m_layers.push_back(std::move(layer));
+    m_taggedLayers.push_back(TaggedLayer{
+      .layer = std::move(layer),
+      .tag   = tag
+    });
   }
 
   size_t SequentialLayer::inputSize() const
   {
-    assert(!m_layers.empty());
-    return m_layers.front()->inputSize();
+    assert(!m_taggedLayers.empty());
+    return m_taggedLayers.front().layer->inputSize();
   }
 
   size_t SequentialLayer::outputSize() const
   {
-    assert(!m_layers.empty());
-    return m_layers.back()->outputSize();
+    assert(!m_taggedLayers.empty());
+    return m_taggedLayers.back().layer->outputSize();
   }
 
   std::vector<Parameter> SequentialLayer::parameters(Scope scope) const
@@ -26,7 +29,7 @@ namespace kann
     std::vector<Parameter> result;
 
     size_t i = 0;
-    for(const auto& layer : m_layers)
+    for(const auto& [layer, tag] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
       auto layerParameters = layer->parameters(scope + layerScope);
@@ -40,7 +43,7 @@ namespace kann
     std::vector<Parameter> result;
 
     size_t i = 0;
-    for(const auto& layer : m_layers)
+    for(const auto& [layer, tag] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
       auto layerStateParameters = layer->stateParameters(scope + layerScope);
@@ -54,7 +57,7 @@ namespace kann
     auto output = std::move(input);
 
     size_t i = 0;
-    for(const auto& layer : m_layers)
+    for(const auto& [layer, tag] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
       output = (*layer)(scope+layerScope, output);

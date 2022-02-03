@@ -2,6 +2,9 @@
 
 #include <libkann/Layer.hpp>
 
+#include <cereal/types/vector.hpp>
+#include <cereal/types/utility.hpp>
+
 namespace kann
 {
   class RecurrentLayer : public Layer
@@ -11,7 +14,7 @@ namespace kann
     RecurrentLayer(size_t memory);
 
   public:
-    void addLayer(std::shared_ptr<const Layer> layer);
+    void addLayer(std::shared_ptr<const Layer> layer, Tag tag = Tag::ALL);
 
   public:
     size_t inputSize() const override;
@@ -29,18 +32,30 @@ namespace kann
     {
       archive(cereal::base_class<Layer>(this));
       archive(m_memory);
-      archive(m_layers);
+      archive(m_taggedLayers);
     }
 
   private:
     Scope layerScope(size_t i) const
     {
-      return Scope(m_layers[i]->tag(), "layer"+std::to_string(i));
+      return Scope(m_taggedLayers[i].tag, "layer"+std::to_string(i));
     }
 
   private:
     size_t m_memory;
-    std::vector<std::shared_ptr<const Layer>> m_layers;
+
+    struct TaggedLayer
+    {
+      std::shared_ptr<const Layer> layer;
+      Tag tag;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(layer, tag);
+      }
+    };
+    std::vector<TaggedLayer> m_taggedLayers;
   };
 }
 

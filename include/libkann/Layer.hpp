@@ -21,10 +21,6 @@ namespace kann
     virtual ~Layer() = default;
 
   public:
-    Tag tag() const { return m_tag; }
-    void tag(Tag tag) { m_tag = tag; }
-
-  public:
     virtual size_t inputSize() const = 0;
     virtual size_t outputSize() const = 0;
 
@@ -36,12 +32,6 @@ namespace kann
 
   public:
     template<typename Archive>
-    void serialize(Archive& archive)
-    {
-      archive(m_tag);
-    }
-
-  private:
-    Tag m_tag = Tag::ALL;
+    void serialize(Archive& archive) {}
   };
 }

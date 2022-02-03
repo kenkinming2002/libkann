@@ -10,21 +10,24 @@ namespace kann
   RecurrentLayer::RecurrentLayer(size_t memory)
     : m_memory(memory) {}
 
-  void RecurrentLayer::addLayer(std::shared_ptr<const Layer> layer)
+  void RecurrentLayer::addLayer(std::shared_ptr<const Layer> layer, Tag tag)
   {
-    m_layers.push_back(std::move(layer));
+    m_taggedLayers.push_back(TaggedLayer{
+      .layer = std::move(layer),
+      .tag   = tag
+    });
   }
 
   size_t RecurrentLayer::inputSize() const
   {
-    assert(!m_layers.empty());
-    return m_layers.front()->inputSize() - m_memory;
+    assert(!m_taggedLayers.empty());
+    return m_taggedLayers.front().layer->inputSize();
   }
 
   size_t RecurrentLayer::outputSize() const
   {
-    assert(!m_layers.empty());
-    return m_layers.back()->outputSize() - m_memory;
+    assert(!m_taggedLayers.empty());
+    return m_taggedLayers.back().layer->outputSize();
   }
 
   std::vector<Parameter> RecurrentLayer::parameters(Scope scope) const
@@ -32,7 +35,7 @@ namespace kann
     std::vector<Parameter> result;
 
     size_t i = 0;
-    for(const auto& layer : m_layers)
+    for(const auto& [layer, tag] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
       auto layerParameters = layer->parameters(scope + layerScope);
@@ -46,7 +49,7 @@ namespace kann
     std::vector<Parameter> result;
 
     size_t i = 0;
-    for(const auto& layer : m_layers)
+    for(const auto& [layer, tag] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
       auto layerStateParameters = layer->stateParameters(scope + layerScope);
@@ -72,7 +75,7 @@ namespace kann
 
     // 1: Concat input
     {
-      const size_t realInputSize = m_layers.front()->inputSize();
+      const size_t realInputSize = m_taggedLayers.front().layer->inputSize();
 
       auto inputVariable = std::move(input.variable);
       auto memoryVariable = input.lookup(LayerVariable::Type::STATE, memoryParameter);
@@ -100,7 +103,7 @@ namespace kann
     auto output = std::move(input);
 
     size_t i = 0;
-    for(const auto& layer : m_layers)
+    for(const auto& [layer, tag] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
       output = (*layer)(scope+layerScope, output);
@@ -108,7 +111,7 @@ namespace kann
 
     // 3: Split output
     {
-      const size_t realOutputSize = m_layers.back()->outputSize();
+      const size_t realOutputSize = m_taggedLayers.back().layer->outputSize();
 
       auto realOutputVariable = std::move(output.variable);
       auto outputVariable = std::make_shared<const Variable>(
