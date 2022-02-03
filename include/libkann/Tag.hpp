@@ -19,4 +19,9 @@ namespace kann
   {
     return static_cast<Tag>(static_cast<unsigned>(a) | static_cast<unsigned>(b));
   }
+
+  inline Tag operator&(Tag a, Tag b)
+  {
+    return static_cast<Tag>(static_cast<unsigned>(a) & static_cast<unsigned>(b));
+  }
 }

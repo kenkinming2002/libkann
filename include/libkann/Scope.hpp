@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Tag.hpp>
+
 #include <vector>
 #include <string>
 
@@ -11,20 +13,18 @@ namespace kann
     static inline const char* SEPERATOR = ".";
 
   public:
-    Scope() = default;
-    Scope(std::string name)
-    {
-      m_names.push_back(std::move(name));
-    }
+    Scope(Tag tag = Tag::ALL)        : m_tag(tag) {}
+    Scope(Tag tag, std::string name) : m_tag(tag), m_names{std::move(name)} {}
 
   public:
-    friend Scope operator+(Scope lhs, Scope rhs)
+    friend Scope operator+(const Scope& lhs, const Scope& rhs)
     {
-      auto result = std::move(lhs);
-      result.m_names.insert(result.m_names.end(),
-        std::move_iterator(rhs.m_names.begin()),
-        std::move_iterator(rhs.m_names.end())
-      );
+      Scope result;
+
+      result.m_tag = lhs.m_tag & rhs.m_tag;
+      result.m_names.insert(result.m_names.end(), std::move_iterator(lhs.m_names.begin()), std::move_iterator(lhs.m_names.end()));
+      result.m_names.insert(result.m_names.end(), std::move_iterator(rhs.m_names.begin()), std::move_iterator(rhs.m_names.end()));
+
       return result;
     }
 
@@ -49,6 +49,7 @@ namespace kann
     auto operator<=>(const Scope&) const = default;
 
   private:
+    Tag m_tag;
     std::vector<std::string> m_names;
   };
 }

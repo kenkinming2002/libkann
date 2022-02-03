@@ -28,9 +28,9 @@ namespace kann
     }
 
   private:
-    static Scope layerScope(size_t i)
+    Scope layerScope(size_t i) const
     {
-      return Scope("layer"+std::to_string(i));
+      return Scope(m_layers[i]->tag(), "layer"+std::to_string(i));
     }
 
   private:
