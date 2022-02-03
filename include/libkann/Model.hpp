@@ -4,6 +4,8 @@
 #include <libkann/Layer.hpp>
 #include <libkann/Executor.hpp>
 
+#include <cereal/types/unordered_map.hpp>
+
 #include <random>
 #include <vector>
 #include <memory>
@@ -36,8 +38,8 @@ namespace kann
     void serialize(Archive& archive)
     {
       archive(m_layer);
-      archive(m_parameters);
-      archive(m_states);
+      archive(m_parametersMap);
+      archive(m_statesMap);
     }
 
   private:
@@ -46,8 +48,8 @@ namespace kann
   private:
     std::shared_ptr<const Layer> m_layer;
 
-    std::vector<std::shared_ptr<const Tensor>> m_parameters;
-    std::vector<std::shared_ptr<const Tensor>> m_states;
+    std::unordered_map<Parameter, std::shared_ptr<const Tensor>> m_parametersMap;
+    std::unordered_map<Parameter, std::shared_ptr<const Tensor>> m_statesMap;
 
   private:
     std::unique_ptr<Executor> m_predictExecutor;

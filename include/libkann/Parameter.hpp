@@ -2,6 +2,8 @@
 
 #include <libkann/Scope.hpp>
 
+#include <cereal/types/string.hpp>
+
 #include <string>
 
 #include <stddef.h>
@@ -18,6 +20,13 @@ namespace kann
 
   public:
     auto operator<=>(const Parameter&) const = default;
+
+  public:
+    template<typename Archive>
+    void serialize(Archive& archive)
+    {
+      archive(scope, name, size);
+    }
 
   public:
     Scope scope;

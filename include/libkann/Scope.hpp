@@ -2,6 +2,9 @@
 
 #include <libkann/Tag.hpp>
 
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
+
 #include <vector>
 #include <string>
 
@@ -47,6 +50,13 @@ namespace kann
 
   public:
     auto operator<=>(const Scope&) const = default;
+
+  public:
+    template<typename Archive>
+    void serialize(Archive& archive)
+    {
+      archive(m_tag, m_names);
+    }
 
   private:
     Tag m_tag;
