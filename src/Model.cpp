@@ -223,7 +223,8 @@ namespace kann
       executor->addInput("parameters_input:"+parameter.qualifiedName(), {variable});
 
     for(auto& [parameter, variable] : outputParameterVariablesMap)
-      executor->addOutput("parameters_output:"+parameter.qualifiedName(), {variable});
+      if(static_cast<bool>(parameter.scope.tag() & tag))
+        executor->addOutput("parameters_output:"+parameter.qualifiedName(), {variable});
 
     for(auto& [parameter, variable] : inputStateVariablesMap)
       executor->addInput("states_input:"+parameter.qualifiedName(), {variable});
