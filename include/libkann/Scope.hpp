@@ -20,6 +20,9 @@ namespace kann
     Scope(Tag tag, std::string name) : m_tag(tag), m_names{std::move(name)} {}
 
   public:
+    Tag tag() const { return m_tag; }
+
+  public:
     friend Scope operator+(const Scope& lhs, const Scope& rhs)
     {
       Scope result;

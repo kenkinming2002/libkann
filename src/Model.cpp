@@ -115,7 +115,8 @@ namespace kann
     optimizeExecutor.input("expected outputs", expectedOutputs);
 
     for(auto& [parameter, value] : m_parametersMap)
-      value = optimizeExecutor.output("parameters_output:"+parameter.qualifiedName()).front();
+      if(static_cast<bool>(parameter.scope.tag() & tag))
+        value = optimizeExecutor.output("parameters_output:"+parameter.qualifiedName()).front();
 
     for(auto& [parameter, value] : m_statesMap)
       value = optimizeExecutor.output("states_output:"+parameter.qualifiedName()).front();
