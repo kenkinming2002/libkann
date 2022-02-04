@@ -15,10 +15,17 @@ namespace kann
     assert(inputs.size() == m_inputCount);
 
     auto result = std::make_shared<Tensor>(inputs.front()->size());
-    result->asArray().setZero();
-    for(auto& input : inputs)
-      result->asArray() += input->asArray();
-
+    switch(m_inputCount)
+    {
+    case 1:
+      result->asArray() = inputs.front()->asArray();
+      break;
+    default:
+      result->asArray() = inputs[0]->asArray() + inputs[1]->asArray();
+      for(size_t i=2; i<inputs.size(); ++i)
+        result->asArray() += inputs[i]->asArray();
+      break;
+    }
     return result;
   }
 
