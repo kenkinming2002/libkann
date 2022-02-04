@@ -4,7 +4,6 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
 
-#include <libkann/layers/Layer.hpp>
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
 
@@ -94,13 +93,9 @@ private:
 
     std::vector<std::shared_ptr<kann::Layer>> encoderLayers;
     attachWeightActivationLayers(encoderLayers, {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
-    for(auto& layer : encoderLayers)
-      kann::randomize(*layer, engine);
 
     std::vector<std::shared_ptr<kann::Layer>> decoderLayers;
     attachWeightActivationLayers(decoderLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
-    for(auto& layer : decoderLayers)
-      kann::randomize(*layer, engine);
 
     const char* label;
     auto callback = [this, &label](kann::Info info){
@@ -128,6 +123,8 @@ private:
     };
 
     auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
+    autoEncoderModel->randomize();
+    decoderModel->randomize();
 
     label = "Training";
     {

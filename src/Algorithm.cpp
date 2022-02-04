@@ -1,8 +1,5 @@
 #include <libkann/Algorithm.hpp>
 
-#include <libkann/Optimizer.hpp>
-#include <libkann/Predictor.hpp>
-
 #include <limits>
 
 namespace kann
@@ -85,13 +82,12 @@ namespace kann
     return result;
   }
 
-  Task<void, Info> run(std::shared_ptr<const Model> model,
+  Task<void, Info> run(std::shared_ptr<Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs)
   {
-    Predictor predictor(model);
     for(size_t i=0; i<inputs.size(); ++i)
     {
-      auto output = predictor.predict(inputs[i]);
+      auto output = model->predict(inputs[i]);
       auto info = Info{
         .model = model,
         .i = i,
@@ -111,12 +107,17 @@ namespace kann
     assert(inputs.size() == expectedOutputs.size());
     const size_t size = inputs.size() / batchSize * batchSize;
 
-    Optimizer optimizer(model, learningRate, batchSize);
     for(size_t i=0; i<size; i+=batchSize)
     {
       auto inputsBatch          = std::vector<std::shared_ptr<const Tensor>>(&inputs[i],          &inputs[i+batchSize]);
       auto expectedOutputsBatch = std::vector<std::shared_ptr<const Tensor>>(&expectedOutputs[i], &expectedOutputs[i+batchSize]);
-      auto result = optimizer.optimize(inputsBatch, expectedOutputsBatch, TAG_ALL);
+
+      auto [outputsBatch, costs] = model->optimize(learningRate, Tag::ALL, inputsBatch, expectedOutputsBatch);
+
+      assert(inputsBatch.size()          == batchSize);
+      assert(expectedOutputsBatch.size() == batchSize);
+      assert(outputsBatch.size()         == batchSize);
+      assert(costs.size()                == batchSize);
 
       for(size_t j=0; j<batchSize; ++j)
       {
@@ -124,10 +125,10 @@ namespace kann
           .model = model,
           .i = i,
           .size = size,
-          .input = std::move(inputsBatch[j]),
-          .output = std::move(result[j].first),
+          .input          = std::move(inputsBatch[j]),
+          .output         = std::move(outputsBatch[j]),
           .expectedOutput = std::move(expectedOutputsBatch[j]),
-          .cost = result[j].second
+          .cost = costs[j]
         };
         co_yield info;
       }
@@ -144,11 +145,6 @@ namespace kann
     assert(latentInputs.size() == inputs.size());
     const size_t size = inputs.size() / batchSize * batchSize;
 
-    Optimizer optimizer(model, learningRate, batchSize);
-
-    Optimizer discriminatorOptimizer(discriminatorModel, learningRate, batchSize);
-    Predictor generatorPredictor(generatorModel);
-
     auto zero = std::make_shared<const Tensor>(1);
     zero->asArray()(0) = 0.0;
 
@@ -164,14 +160,14 @@ namespace kann
       auto latentInputsBatch = std::vector<std::shared_ptr<const Tensor>>(&latentInputs[i], &latentInputs[i+batchSize]);
 
       // Train on real data set
-      auto discriminatorResult = discriminatorOptimizer.optimize(inputsBatch, oneBatch);
+      auto [discriminatorResult, discriminatorCost] = discriminatorModel->optimize(learningRate, Tag::ALL, inputsBatch, oneBatch);
 
       // Predict on latent data set
-      auto generatorResult = convert(latentInputsBatch, [&generatorPredictor](const std::shared_ptr<const Tensor>& input){ return generatorPredictor.predict(input);});
+      auto generatorResult = convert(latentInputsBatch, [&generatorModel](const auto& input){ return generatorModel->predict(input);});
 
       // Train on latent data set
-      auto discriminatorCombinedResult = optimizer.optimize(latentInputsBatch, zeroBatch, TAG_GAN_DISCRIMINATOR);
-      auto generatorCombinedResult     = optimizer.optimize(latentInputsBatch, oneBatch,  TAG_GAN_GENERATOR);
+      auto [discriminatorCombinedResult, discriminatorCombinedCost] = model->optimize(learningRate, Tag::GAN_DISCRIMINATOR, latentInputsBatch, zeroBatch);
+      auto [generatorCombinedResult,     generatorCombinedCost]     = model->optimize(learningRate, Tag::GAN_GENERATOR,     latentInputsBatch, oneBatch);
 
       for(size_t j=0; j<batchSize; ++j)
       {
@@ -181,16 +177,16 @@ namespace kann
           .discriminatorModel = discriminatorModel,
           .i = i,
           .size = size,
-          .GANOutput           = discriminatorCombinedResult[j].first,
+          .GANOutput           = discriminatorCombinedResult[j],
           .generatorOutput     = generatorResult[j],
-          .discriminatorOutput = discriminatorResult[j].first,
+          .discriminatorOutput = discriminatorResult[j]
         };
         co_yield info;
       }
     }
   }
 
-  Task<double, Info> test(std::shared_ptr<const Model> model,
+  Task<double, Info> test(std::shared_ptr<Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs)
   {
@@ -199,10 +195,9 @@ namespace kann
     const size_t size = inputs.size();
     size_t correct = 0;
 
-    Predictor predictor(model);
     for(size_t i=0; i<size; ++i)
     {
-      auto output = predictor.predict(inputs[i]);
+      auto output = model->predict(inputs[i]);
 
       size_t index1, index2;
       output->asArray().maxCoeff(&index1);
@@ -225,5 +220,4 @@ namespace kann
 
     co_return (double)correct / size;
   }
-
 }

@@ -1,40 +1,69 @@
 #pragma once
 
-#include <libkann/layers/Layer.hpp>
+#include <libkann/Tensor.hpp>
+#include <libkann/Layer.hpp>
+#include <libkann/Executor.hpp>
 
-#include <cereal/types/vector.hpp>
+#include <cereal/types/unordered_map.hpp>
+
+#include <random>
+#include <vector>
+#include <memory>
 
 namespace kann
 {
-  class Model : public Layer
+  class Model
   {
   public:
     Model() = default;
-    Model(const Model& other);
+    Model(std::shared_ptr<const Layer> layer);
 
   public:
-    virtual void write_graphviz(std::ostream& os) const = 0;
+    void randomize();
 
-  // Layer parameters
   public:
-    std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
-    std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
+    std::shared_ptr<const Tensor> predict(std::shared_ptr<const Tensor> input);
 
-  protected:
-    size_t addLayer(std::shared_ptr<Layer> layer);
-    Layer& layer(size_t index);
-    const Layer& layer(size_t index) const;
+    // FIXME: better formatting
+    std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> optimize(
+      double learningRate, Tag tag,
+      std::vector<std::shared_ptr<const Tensor>> inputs,
+      std::vector<std::shared_ptr<const Tensor>> expectedOutputs);
+
+  public:
+    friend std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 
   public:
     template<typename Archive>
     void serialize(Archive& archive)
     {
-      archive(m_layers);
+      archive(m_layer);
+      archive(m_parametersMap);
+      archive(m_statesMap);
     }
 
   private:
-    std::vector<std::shared_ptr<Layer>> m_layers;
+    Executor& optimizeExecutor(double learningRate, Tag tag, size_t batchSize);
+
+  private:
+    std::shared_ptr<const Layer> m_layer;
+
+    std::unordered_map<Parameter, std::shared_ptr<const Tensor>> m_parametersMap;
+    std::unordered_map<Parameter, std::shared_ptr<const Tensor>> m_statesMap;
+
+  private:
+    std::unique_ptr<Executor> m_predictExecutor;
+
+    struct OptimizeConfig
+    {
+      double learningRate;
+      Tag tag;
+      size_t batchSize;
+
+      auto operator<=>(const OptimizeConfig&) const = default;
+    };
+    std::map<OptimizeConfig, std::unique_ptr<Executor>> m_optimizeExecutors;
   };
 
-  std::unique_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
+  std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 }

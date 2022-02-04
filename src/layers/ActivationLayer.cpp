@@ -2,19 +2,12 @@
 
 #include <libkann/operations/CWiseOperation.hpp>
 
-#include <functional>
-
 namespace kann
 {
   using namespace std::placeholders;
 
   ActivationLayer::ActivationLayer(size_t size, ActivationFunction activationFunction)
     : m_size(size), m_activationFunction(activationFunction) {}
-
-  std::unique_ptr<Layer> ActivationLayer::clone() const
-  {
-    return std::make_unique<ActivationLayer>(*this);
-  }
 
   size_t ActivationLayer::inputSize() const
   {
@@ -26,27 +19,17 @@ namespace kann
     return m_size;
   }
 
-  std::vector<std::shared_ptr<const Parameter>> ActivationLayer::parameters(unsigned tags) const
-  {
-    return {};
-  }
-
-  std::vector<std::shared_ptr<Parameter>> ActivationLayer::parameters(unsigned tags)
-  {
-    return {};
-  }
-
-  auto ActivationLayer::operator()(std::shared_ptr<const Variable> input, StateVariables state) const -> std::pair<std::shared_ptr<const Variable>, StateVariables>
+  LayerVariable ActivationLayer::operator()(Scope scope, LayerVariable input) const
   {
     const auto activationFunction = m_activationFunction;
     const auto normal     = [=](double val){ return activationFunction.normal(val); };
     const auto derivative = [=](double val){ return activationFunction.derivative(val); };
 
-    auto output = std::make_shared<const Variable>(
-      std::vector{std::move(input)},
+    auto output = std::move(input);
+    output.variable = std::make_shared<const Variable>(
+      std::vector{std::move(output.variable)},
       std::make_shared<CWiseOperation<decltype(normal), decltype(derivative)>>(normal, derivative)
     );
-
-    return std::make_pair(std::move(output), std::move(state));
+    return output;
   }
 }

@@ -1,0 +1,54 @@
+#include <libkann/LayerVariable.hpp>
+
+#include <libkann/Variable.hpp>
+
+#include <assert.h>
+
+namespace kann
+{
+  auto& LayerVariable::map(Type type)
+  {
+    switch(type)
+    {
+    case Type::PARAMETER:
+      return parameterVariables;
+    case Type::STATE:
+      return stateVariables;
+    default:
+      assert(false && "Unreachable");
+    }
+  }
+
+  const auto& LayerVariable::map(Type type) const
+  {
+    switch(type)
+    {
+    case Type::PARAMETER:
+      return parameterVariables;
+    case Type::STATE:
+      return stateVariables;
+    default:
+      assert(false && "Unreachable");
+    }
+  }
+
+  std::shared_ptr<const Variable> LayerVariable::insert(Type type, Parameter parameter)
+  {
+    auto& map = this->map(type);
+    auto [it, success] = map.emplace(std::move(parameter), std::make_shared<const Variable>());
+    assert(success);
+    return it->second;
+  }
+
+  std::shared_ptr<const Variable> LayerVariable::lookup(Type type, Parameter parameter) const
+  {
+    auto& map = this->map(type);
+    return map.at(parameter);
+  }
+
+  void LayerVariable::assign(Type type, Parameter parameter, std::shared_ptr<const Variable> variable)
+  {
+    auto& map = this->map(type);
+    map.at(parameter) = std::move(variable);
+  }
+}

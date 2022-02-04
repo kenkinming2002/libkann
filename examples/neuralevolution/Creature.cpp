@@ -5,34 +5,42 @@
 
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
-#include <libkann/Build.hpp>
+#include <libkann/layers/RecurrentLayer.hpp>
+#include <libkann/Model.hpp>
 
 #include <cassert>
 #include <cmath>
 
 std::shared_ptr<kann::Model> Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
 {
-  const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
-
-  // TODO: do not create a vector for this
-  std::vector<size_t> topology;
-  topology.push_back(Creature::INPUT_COUNT + config.memory);
-  topology.insert(topology.end(), config.hiddenLayers.begin(), config.hiddenLayers.end());
-  topology.push_back(Creature::OUTPUT_COUNT + config.memory);
-
-  std::vector<std::shared_ptr<kann::Layer>> layers;
-  for(size_t i=0; i < topology.size()-1; ++i)
+  /* Note: Model refer to Layer but has their own parameters and states To be
+   *       able to cross different model, they have to have the same underlying
+   *       layer. */
+  static std::shared_ptr<kann::Layer> layer = [&config]()
   {
-    size_t prevSize = topology[i];
-    size_t nextSize = topology[i+1];
-    layers.push_back(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
-    layers.push_back(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
-  }
 
-  for(auto& layer : layers)
-    kann::randomize(*layer, engine);
+    // TODO: do not create a vector for this
+    std::vector<size_t> topology;
+    topology.push_back(Creature::INPUT_COUNT + config.memory);
+    topology.insert(topology.end(), config.hiddenLayers.begin(), config.hiddenLayers.end());
+    topology.push_back(Creature::OUTPUT_COUNT + config.memory);
 
-  return kann::buildSimpleRecurrentModel(layers, config.memory);
+    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
+
+    auto layer = std::make_shared<kann::RecurrentLayer>(config.memory);
+    for(size_t i=0; i < topology.size()-1; ++i)
+    {
+      size_t prevSize = topology[i];
+      size_t nextSize = topology[i+1];
+      layer->addLayer(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
+      layer->addLayer(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
+    }
+    return layer;
+  }();
+
+  auto model = std::make_shared<kann::Model>(layer);
+  model->randomize();
+  return model;
 }
 
 static constexpr double ANGLE = M_PI / 12.0;
@@ -42,7 +50,6 @@ Creature::Creature(b2World& world, const Config& config,
     double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
     m_model(std::move(model)),
-    m_predictor(m_model),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)},
     m_energy(energy), m_health(health) {}
 
@@ -75,7 +82,7 @@ void Creature::updateModel(const Config& config)
   input->asArray()(INPUT_VIEW_DISTANCE_0) = m_eyes[0].distance / config.viewDistance;
   input->asArray()(INPUT_VIEW_DISTANCE_1) = m_eyes[1].distance / config.viewDistance;
 
-  m_output = m_predictor.predict(std::move(input));
+  m_output = m_model->predict(std::move(input));
 }
 
 // Working alone

@@ -1,11 +1,7 @@
 #pragma once
 
-#include <libkann/export.hpp>
-#include <libkann/layers/Layer.hpp>
+#include <libkann/Layer.hpp>
 #include <libkann/ActivationFunction.hpp>
-#include <libkann/serialization/Eigen.hpp>
-
-#include <Eigen/Eigen>
 
 namespace kann
 {
@@ -16,18 +12,11 @@ namespace kann
     ActivationLayer(size_t size, ActivationFunction activationFunction);
 
   public:
-    std::unique_ptr<Layer> clone() const override;
-
-  public:
     size_t inputSize() const override;
     size_t outputSize() const override;
 
   public:
-    std::vector<std::shared_ptr<const Parameter>> parameters(unsigned tags) const override;
-    std::vector<std::shared_ptr<Parameter>> parameters(unsigned tags) override;
-
-  public:
-    std::pair<std::shared_ptr<const Variable>, StateVariables> operator()(std::shared_ptr<const Variable> input, StateVariables state) const override;
+    LayerVariable operator()(Scope scope, LayerVariable input) const override;
 
   public:
     template<typename Archive>

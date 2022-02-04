@@ -1,78 +1,71 @@
 #include <libkann/Build.hpp>
 
 #include <libkann/layers/IdentityLayer.hpp>
+#include <libkann/layers/SequentialLayer.hpp>
+#include <libkann/layers/RecurrentLayer.hpp>
 
-#include <libkann/FunctionalModel.hpp>
+#include <libkann/Model.hpp>
 
 namespace kann
 {
-  std::shared_ptr<Model> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers, unsigned tag)
+  std::shared_ptr<Layer> buildSimpleFeedForwardLayer(std::vector<std::shared_ptr<Layer>> layers)
   {
-    auto input = FunctionalVariable::constant(layers.front()->inputSize());
-    auto output = input;
+    auto result = std::make_shared<SequentialLayer>();
     for(auto& layer : layers)
-      output = output | layer;
+      result->addLayer(std::move(layer));
 
-    return makeFunctionalModel(std::move(input), std::move(output));
+    return result;
   }
 
-  std::shared_ptr<Model> buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory, unsigned tag)
+  std::shared_ptr<Layer> buildSimpleRecurrentLayer(std::vector<std::shared_ptr<Layer>> layers, size_t memory)
   {
-    const size_t inputSize  = layers.front()->inputSize();
-    const size_t outputSize = layers.back()->outputSize();
-
-    auto realInput = FunctionalVariable::constant(inputSize-memory);
-    auto memoryInput = FunctionalVariable::constant(memory);
-
-    auto input1 = realInput   | std::make_shared<IdentityLayer>(inputSize - memory, inputSize, 0                 );
-    auto input2 = memoryInput | std::make_shared<IdentityLayer>(memory            , inputSize, inputSize - memory);
-    auto input = input1 + input2;
-
-    auto output = input;
+    auto result = std::make_shared<RecurrentLayer>(memory);
     for(auto& layer : layers)
-      output = output | layer;
+      result->addLayer(std::move(layer));
 
-    auto realOutput   = output | std::make_shared<IdentityLayer>(outputSize, outputSize - memory, 0                  );
-    auto memoryOutput = output | std::make_shared<IdentityLayer>(outputSize, memory             , outputSize - memory);
+    return result;
+  }
 
-    auto feedBack = FeedBack{
-      .input = std::move(memoryInput),
-      .output = std::move(memoryOutput)
-    };
-    return makeFunctionalModel(std::move(realInput), std::move(realOutput), std::vector{feedBack});
+  std::shared_ptr<Model> buildSimpleFeedForwardModel(std::vector<std::shared_ptr<Layer>> layers)
+  {
+    auto resultLayer = buildSimpleFeedForwardLayer(std::move(layers));
+    return std::make_shared<Model>(std::move(resultLayer));
+  }
+
+  std::shared_ptr<Model> buildSimpleRecurrentModel(std::vector<std::shared_ptr<Layer>> layers, size_t memory)
+  {
+    auto resultLayer = buildSimpleRecurrentLayer(std::move(layers), memory);
+    return std::make_shared<Model>(std::move(resultLayer));
   }
 
   std::pair<std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleAutoEncoderModel(std::vector<std::shared_ptr<Layer>> encoderLayers, std::vector<std::shared_ptr<Layer>> decoderLayers)
   {
-    auto encoderModel = buildSimpleFeedForwardModel(std::move(encoderLayers));
-    encoderModel->tag(TAG_ENCODDER);
+    auto encoderLayer = buildSimpleFeedForwardLayer(std::move(encoderLayers));
+    auto decoderLayer = buildSimpleFeedForwardLayer(std::move(decoderLayers));
 
-    auto decoderModel = buildSimpleFeedForwardModel(std::move(decoderLayers));
-    decoderModel->tag(TAG_DECODDER);
+    auto autoEncoderLayer = std::make_shared<SequentialLayer>();
+    autoEncoderLayer->addLayer(encoderLayer, Tag::ENCODER);
+    autoEncoderLayer->addLayer(decoderLayer, Tag::DECODER);
 
-    auto input = FunctionalVariable::constant(encoderModel->inputSize());
-    auto middle = input | encoderModel;
-    auto output = middle | decoderModel;
-
-    auto autoEncoderModel = makeFunctionalModel(std::move(input), std::move(output));
-
-    return {std::move(autoEncoderModel), std::move(decoderModel)};
+    return {
+      std::make_shared<Model>(std::move(autoEncoderLayer)),
+      std::make_shared<Model>(std::move(decoderLayer))
+    };
   }
 
   std::tuple<std::shared_ptr<Model>, std::shared_ptr<Model>, std::shared_ptr<Model>> buildSimpleGANModel(std::vector<std::shared_ptr<Layer>> generatorLayers, std::vector<std::shared_ptr<Layer>> discriminatorLayers)
   {
-    auto generatorModel = buildSimpleFeedForwardModel(std::move(generatorLayers));
-    generatorModel->tag(TAG_GAN_GENERATOR);
+    auto generatorLayer = buildSimpleFeedForwardLayer(std::move(generatorLayers));
+    auto discriminatorLayer = buildSimpleFeedForwardLayer(std::move(discriminatorLayers));
 
-    auto discriminatorModel = buildSimpleFeedForwardModel(std::move(discriminatorLayers));
-    discriminatorModel->tag(TAG_GAN_DISCRIMINATOR);
+    auto GANLayer = std::make_shared<SequentialLayer>();
+    GANLayer->addLayer(generatorLayer,     Tag::GAN_GENERATOR);
+    GANLayer->addLayer(discriminatorLayer, Tag::GAN_DISCRIMINATOR);
 
-    auto input = FunctionalVariable::constant(generatorModel->inputSize());
-    auto middle = input | generatorModel;
-    auto output = middle | discriminatorModel;
-
-    auto GANModel = makeFunctionalModel(std::move(input), std::move(output));
-
-    return {std::move(GANModel), std::move(generatorModel), std::move(discriminatorModel)};
+    return {
+      std::make_shared<Model>(std::move(GANLayer)),
+      std::make_shared<Model>(std::move(generatorLayer)),
+      std::make_shared<Model>(std::move(discriminatorLayer))
+    };
   }
 }

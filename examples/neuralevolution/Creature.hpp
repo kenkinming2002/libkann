@@ -3,8 +3,7 @@
 #include "BerryBush.hpp"
 #include "Renderer.hpp"
 
-#include <libkann/Predictor.hpp>
-#include <libkann/FunctionalModel.hpp>
+#include <libkann/Model.hpp>
 
 #include <Eigen/Eigen>
 
@@ -116,7 +115,6 @@ public:
 
 private:
   std::shared_ptr<kann::Model> m_model;
-  kann::Predictor m_predictor;
   std::shared_ptr<const kann::Tensor> m_output;
 
 private:

@@ -2,6 +2,7 @@
 
 #include "Match.hpp"
 
+#include <libkann/layers/SequentialLayer.hpp>
 #include <libkann/layers/WeightLayer.hpp>
 #include <libkann/layers/ActivationLayer.hpp>
 #include <libkann/Build.hpp>
@@ -14,30 +15,33 @@
 
 Population::Population(seed_type seed, size_t size, const std::vector<size_t>& agentHiddenLayers) : m_generator(seed)
 {
-  const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
+  static std::shared_ptr<kann::Layer> layer = [&agentHiddenLayers]()
+  {
+    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
 
-  std::vector<size_t> topology;
+    std::vector<size_t> topology;
 
-  topology.push_back(Agent::INPUT_LAYER_SIZE);
-  topology.insert(topology.end(), agentHiddenLayers.begin(), agentHiddenLayers.end());
-  topology.push_back(Agent::OUTPUT_LAYER_SIZE);
+    topology.push_back(Agent::INPUT_LAYER_SIZE);
+    topology.insert(topology.end(), agentHiddenLayers.begin(), agentHiddenLayers.end());
+    topology.push_back(Agent::OUTPUT_LAYER_SIZE);
 
-  assert(size % 2 == 0 && "population size must be even");
-  m_agents.reserve(size);
-  std::generate_n(std::back_inserter(m_agents), size, [&](){
-    std::vector<std::shared_ptr<kann::Layer>> layers;
+    auto layer = std::make_shared<kann::SequentialLayer>();
     for(size_t i=0; i < topology.size()-1; ++i)
     {
       size_t prevSize = topology[i];
       size_t nextSize = topology[i+1];
-      layers.push_back(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
-      layers.push_back(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
+      layer->addLayer(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
+      layer->addLayer(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
     }
+    return layer;
+  }();
 
-    for(auto& layer : layers)
-      kann::randomize(*layer, m_generator);
-
-    auto model = kann::buildSimpleFeedForwardModel(layers);
+  assert(size % 2 == 0 && "population size must be even");
+  m_agents.reserve(size);
+  std::generate_n(std::back_inserter(m_agents), size, [&]()
+  {
+    auto model = std::make_shared<kann::Model>(layer);
+    model->randomize();
     return Agent(std::move(model), 0.0);
   });
 }

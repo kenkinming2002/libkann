@@ -9,9 +9,7 @@
 
 Agent::Agent(std::shared_ptr<kann::Model> model, double learningRate)
   : m_model(std::move(model)),
-    m_learningRate(learningRate),
-    m_predictor(m_model),
-    m_optimizer(m_model, learningRate) {}
+    m_learningRate(learningRate) {}
 
 void Agent::loadFromFile(std::filesystem::path filePath)
 {
@@ -86,7 +84,7 @@ static std::shared_ptr<const kann::Tensor> convert(const Board& board, Board::Ce
 double Agent::evaluateBoard(const Board& board, Board::Cell::Color color)
 {
   auto input = convert(board, color);
-  auto output = m_predictor.predict(std::move(input));
+  auto output = m_model->predict(std::move(input));
   return output->asArray()(0);
 }
 
@@ -97,13 +95,13 @@ void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
     auto input = convert(board, color);
     auto expectedOutput = std::make_shared<kann::Tensor>(1);
     expectedOutput->asArray()(0) = (good ? 1.0 : 0.0);
-    m_optimizer.optimize({std::move(input)}, {std::move(expectedOutput)});
+    m_model->optimize(m_learningRate, kann::Tag::ALL, {std::move(input)}, {std::move(expectedOutput)});
   }
   {
     auto input = convert(board, otherColor);
     auto expectedOutput = std::make_shared<kann::Tensor>(1);
     expectedOutput->asArray()(0) = (good ? 1.0 : 0.0);
-    m_optimizer.optimize({std::move(input)}, {std::move(expectedOutput)});
+    m_model->optimize(m_learningRate, kann::Tag::ALL, {std::move(input)}, {std::move(expectedOutput)});
   }
 }
 

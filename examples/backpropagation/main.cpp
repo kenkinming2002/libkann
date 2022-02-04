@@ -95,9 +95,6 @@ static void trainAndTestFeedForwardModel(std::shared_ptr<kann::Model> model,
     size_t inputColumn, size_t outputColumn,
     std::filesystem::path outputPath)
 {
-  std::ofstream file(outputPath);
-  model->write_graphviz(file);
-
   auto trainingInputs  = kann::load(trainingDataSet, inputColumn);
   auto trainingOutputs = kann::load(trainingDataSet, outputColumn);
 
@@ -226,10 +223,8 @@ int main(int argc, char* argv[])
       attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
       layers.push_back(std::make_shared<kann::IdentityLayer>(10, 10, 0));
 
-      for(auto& layer : layers)
-        kann::randomize(*layer, engine);
-
       auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
+      model->randomize();
 
       std::ofstream file("output/model1.json");
       cereal::JSONOutputArchive archive(file);
@@ -259,10 +254,9 @@ int main(int argc, char* argv[])
     attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
     layers.push_back(std::make_shared<kann::IdentityLayer>(10, 10, 0));
 
-    for(auto& layer : layers)
-      kann::randomize(*layer, engine);
-
     auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
+    model->randomize();
+
     trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/normal.dot");
   }
   else if(subcommand == "convolution")
@@ -271,10 +265,10 @@ int main(int argc, char* argv[])
     size_t width = kann::MNISTDataSet::IMAGE_WIDTH, height = kann::MNISTDataSet::IMAGE_WIDTH;
     attachConvolutionActivationLayers(layers, {1, 3, 3, 1}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
     attachWeightActivationLayers(layers, {layers.back()->outputSize(), 10}, kann::ActivationFunction::Type::SIGMOID);
-    for(auto& layer : layers)
-      kann::randomize(*layer, engine);
 
     auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
+    model->randomize();
+
     trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/convolution.dot");
   }
   else if(subcommand == "recurrent")
@@ -285,10 +279,9 @@ int main(int argc, char* argv[])
     std::vector<std::shared_ptr<kann::Layer>> layers;
     attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE+MEMORY, 30, 30, 30, 10+MEMORY}, kann::ActivationFunction::Type::SIGMOID);
 
-    for(auto& layer : layers)
-      kann::randomize(*layer, engine);
-
     auto model = kann::buildSimpleRecurrentModel(std::move(layers), MEMORY);
+    model->randomize();
+
     trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/recurrent.dot");
   }
   else if(subcommand == "autoencoder")
@@ -297,15 +290,14 @@ int main(int argc, char* argv[])
 
     std::vector<std::shared_ptr<kann::Layer>> encoderLayers;
     attachWeightActivationLayers(encoderLayers, {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
-    for(auto& layer : encoderLayers)
-      kann::randomize(*layer, engine);
 
     std::vector<std::shared_ptr<kann::Layer>> decoderLayers;
     attachWeightActivationLayers(decoderLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
-    for(auto& layer : decoderLayers)
-      kann::randomize(*layer, engine);
 
     auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
+    autoEncoderModel->randomize();
+    decoderModel->randomize();
+
     trainAndRunAutoEncoder(autoEncoderModel, decoderModel, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE,
       "output/autoencoder-reconstruction", "output/autoencoder",
       FEATURES_COUNT, 500
@@ -321,18 +313,17 @@ int main(int argc, char* argv[])
     attachConvolutionActivationLayers(encoderLayers, {1, 5}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
     const auto size = encoderLayers.back()->outputSize();
     attachWeightActivationLayers(encoderLayers, {size, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
-    for(auto& layer : encoderLayers)
-      kann::randomize(*layer, engine);
 
     std::vector<std::shared_ptr<kann::Layer>> decoderLayers;
     attachWeightActivationLayers(decoderLayers, {FEATURES_COUNT, size}, kann::ActivationFunction::Type::SIGMOID);
     attachDeconvolutionActivationLayers(decoderLayers, {5, 1}, width, height, 5, kann::ActivationFunction::Type::SIGMOID);
 
     attachWeightActivationLayers(decoderLayers, {decoderLayers.back()->outputSize(), decoderLayers.back()->outputSize()}, kann::ActivationFunction::Type::SIGMOID);
-    for(auto& layer : decoderLayers)
-      kann::randomize(*layer, engine);
 
     auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
+    autoEncoderModel->randomize();
+    decoderModel->randomize();
+
     trainAndRunAutoEncoder(autoEncoderModel, decoderModel, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE,
       "output/autoencoder-convolutional-reconstruction", "output/autoencoder-convolutional",
       FEATURES_COUNT, 500
@@ -344,30 +335,15 @@ int main(int argc, char* argv[])
 
     std::vector<std::shared_ptr<kann::Layer>> generatorLayers;
     attachWeightActivationLayers(generatorLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
-    for(auto& layer : generatorLayers)
-      kann::randomize(*layer, engine);
 
     std::vector<std::shared_ptr<kann::Layer>> discriminatorLayers;
     attachWeightActivationLayers(discriminatorLayers, {kann::MNISTDataSet::IMAGE_SIZE, 512, 128, 1}, kann::ActivationFunction::Type::SIGMOID);
-    for(auto& layer : discriminatorLayers)
-      kann::randomize(*layer, engine);
 
 
     auto [GANModel, generatorModel, discriminatorModel] = kann::buildSimpleGANModel(std::move(generatorLayers), std::move(discriminatorLayers));
-    {
-      std::ofstream file("output/gan.dot");
-      GANModel->write_graphviz(file);
-    }
-
-    {
-      std::ofstream file("output/generator.dot");
-      GANModel->write_graphviz(file);
-    }
-
-    {
-      std::ofstream file("output/discriminator.dot");
-      GANModel->write_graphviz(file);
-    }
+    GANModel->randomize();
+    generatorModel->randomize();
+    discriminatorModel->randomize();
 
     std::filesystem::path outputDirectory("output/gan");
     std::filesystem::create_directories(outputDirectory / "Training");

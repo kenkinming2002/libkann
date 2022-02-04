@@ -44,7 +44,7 @@ namespace kann
   // New API
   std::vector<std::shared_ptr<const Tensor>> load(const DataSet& dataSet, size_t column);
 
-  Task<void, Info> run(std::shared_ptr<const Model> model,
+  Task<void, Info> run(std::shared_ptr<Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs);
 
   Task<void, Info> train(std::shared_ptr<Model> model,
@@ -59,7 +59,7 @@ namespace kann
       std::vector<std::shared_ptr<const Tensor>> latentInputs,
       double learningRate, size_t batchSize);
 
-  Task<double, Info> test(std::shared_ptr<const Model> model,
+  Task<double, Info> test(std::shared_ptr<Model> model,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs);
 
