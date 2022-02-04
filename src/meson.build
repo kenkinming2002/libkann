@@ -20,6 +20,7 @@ libkann_sources = [
   'executors/GraphExecutor.cpp',
   'executors/DefaultExecutor.cpp',
   'executors/ThreadedExecutor.cpp',
+  'optimizers/SimpleOptimizer.cpp',
   'Differentiate.cpp',
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',
