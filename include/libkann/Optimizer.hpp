@@ -2,6 +2,9 @@
 
 #include <libkann/Types.hpp>
 
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/archives/binary.hpp>
+
 namespace kann
 {
   class Optimizer
@@ -20,5 +23,9 @@ namespace kann
       VMap newState;
     };
     virtual Result process(VRef parameter, VRef gradient, VMap state) const = 0;
+
+  public:
+    template<typename Archive>
+    void serialize(Archive& archive) {}
   };
 }
