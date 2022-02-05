@@ -19,6 +19,16 @@ namespace kann
     }
 
   public:
+    QualifiedName append(const std::string& str) const
+    {
+      return QualifiedName{
+        .scope = scope,
+        .name = name + str,
+        .size = size,
+      };
+    }
+
+  public:
     auto operator<=>(const QualifiedName&) const = default;
 
   public:
