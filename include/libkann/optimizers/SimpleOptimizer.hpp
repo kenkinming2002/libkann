@@ -11,7 +11,7 @@ namespace kann
     SimpleOptimizer(double learningRate);
 
   public:
-    Result process(VRef parameter, VRef gradient, VMap state) const override;
+    void process(Context& context) const override;
 
   public:
     template<typename Archive>

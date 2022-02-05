@@ -13,16 +13,19 @@ namespace kann
     virtual ~Optimizer() = default;
 
   public:
-    /* Given variable for parameter and gradient, return variable for new
-     * parameter */
-    virtual std::vector<QualifiedName> states() { return  {}; }
-
-    struct Result
+    struct Context
     {
-      VRef newParameter;
-      VMap newState;
+      QualifiedName qualifiedName;
+
+      VRef gradient;
+
+      VRef inputParameter;
+      VRef outputParameter;
+
+      VMap inputState;
+      VMap outputState;
     };
-    virtual Result process(VRef parameter, VRef gradient, VMap state) const = 0;
+    virtual void process(Context& context) const = 0;
 
   public:
     template<typename Archive>
