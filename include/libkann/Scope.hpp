@@ -46,11 +46,6 @@ namespace kann
       return result;
     }
 
-    std::string qualifiedName(const std::string& name) const
-    {
-      return this->toString() + name;
-    }
-
   public:
     auto operator<=>(const Scope&) const = default;
 

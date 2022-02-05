@@ -25,8 +25,8 @@ namespace kann
     }
 
     // State Parameters
-    auto stateParameters = m_layer->stateParameters(Scope());
-    for(const auto& parameter : stateParameters)
+    auto states = m_layer->states(Scope());
+    for(const auto& parameter : states)
     {
       auto value = std::make_shared<Tensor>(parameter.size);
       value->asArray().setZero();
@@ -71,27 +71,27 @@ namespace kann
       // It should not matter whether we look it up from inputLayerVariable or
       // outputLayerVariable
       for(auto& [parameter, variable] : inputLayerVariable.parameterVariables)
-        m_predictExecutor->addInput("parameters_input:"+parameter.qualifiedName(), {variable});
+        m_predictExecutor->addInput("parameters_input:"+parameter.toString(), {variable});
 
       for(auto& [parameter, variable] : inputLayerVariable.stateVariables)
-        m_predictExecutor->addInput("states_input:"+parameter.qualifiedName(), {variable});
+        m_predictExecutor->addInput("states_input:"+parameter.toString(), {variable});
 
       for(auto& [parameter, variable] : outputLayerVariable.stateVariables)
-        m_predictExecutor->addOutput("states_output:"+parameter.qualifiedName(), {variable});
+        m_predictExecutor->addOutput("states_output:"+parameter.toString(), {variable});
 
       m_predictExecutor->build();
     }
 
     for(auto& [parameter, value] : m_parametersMap)
-      m_predictExecutor->input("parameters_input:"+parameter.qualifiedName(), {value});
+      m_predictExecutor->input("parameters_input:"+parameter.toString(), {value});
 
     for(auto& [parameter, value] : m_statesMap)
-      m_predictExecutor->input("states_input:"+parameter.qualifiedName(), {value});
+      m_predictExecutor->input("states_input:"+parameter.toString(), {value});
 
     m_predictExecutor->input("input", {input});
 
     for(auto& [parameter, value] : m_statesMap)
-      value = m_predictExecutor->output("states_output:"+parameter.qualifiedName()).front();
+      value = m_predictExecutor->output("states_output:"+parameter.toString()).front();
 
     return m_predictExecutor->output("output").front();
   }
@@ -106,20 +106,20 @@ namespace kann
     auto& optimizeExecutor = this->optimizeExecutor(learningRate, tag, batchSize);
 
     for(auto& [parameter, value] : m_parametersMap)
-      optimizeExecutor.input("parameters_input:"+parameter.qualifiedName(), {value});
+      optimizeExecutor.input("parameters_input:"+parameter.toString(), {value});
 
     for(auto& [parameter, value] : m_statesMap)
-      optimizeExecutor.input("states_input:"+parameter.qualifiedName(), {value});
+      optimizeExecutor.input("states_input:"+parameter.toString(), {value});
 
     optimizeExecutor.input("inputs", inputs);
     optimizeExecutor.input("expected outputs", expectedOutputs);
 
     for(auto& [parameter, value] : m_parametersMap)
       if(static_cast<bool>(parameter.scope.tag() & tag))
-        value = optimizeExecutor.output("parameters_output:"+parameter.qualifiedName()).front();
+        value = optimizeExecutor.output("parameters_output:"+parameter.toString()).front();
 
     for(auto& [parameter, value] : m_statesMap)
-      value = optimizeExecutor.output("states_output:"+parameter.qualifiedName()).front();
+      value = optimizeExecutor.output("states_output:"+parameter.toString()).front();
 
     auto outputs = optimizeExecutor.output("outputs");
 
@@ -145,11 +145,11 @@ namespace kann
       return *it->second;
 
     // 1: Parameters and states variables
-    std::unordered_map<Parameter, std::shared_ptr<const Variable>> inputParameterVariablesMap;
-    std::unordered_map<Parameter, std::shared_ptr<const Variable>> outputParameterVariablesMap;
+    std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> inputParameterVariablesMap;
+    std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> outputParameterVariablesMap;
 
-    std::unordered_map<Parameter, std::shared_ptr<const Variable>> inputStateVariablesMap;
-    std::unordered_map<Parameter, std::shared_ptr<const Variable>> outputStateVariablesMap;
+    std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> inputStateVariablesMap;
+    std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> outputStateVariablesMap;
 
     for(const auto& [parameter, value] : m_parametersMap)
     {
@@ -220,17 +220,17 @@ namespace kann
     auto executor = makeDefaultExecutor();
 
     for(auto& [parameter, variable] : inputParameterVariablesMap)
-      executor->addInput("parameters_input:"+parameter.qualifiedName(), {variable});
+      executor->addInput("parameters_input:"+parameter.toString(), {variable});
 
     for(auto& [parameter, variable] : outputParameterVariablesMap)
       if(static_cast<bool>(parameter.scope.tag() & tag))
-        executor->addOutput("parameters_output:"+parameter.qualifiedName(), {variable});
+        executor->addOutput("parameters_output:"+parameter.toString(), {variable});
 
     for(auto& [parameter, variable] : inputStateVariablesMap)
-      executor->addInput("states_input:"+parameter.qualifiedName(), {variable});
+      executor->addInput("states_input:"+parameter.toString(), {variable});
 
     for(auto& [parameter, variable] : outputStateVariablesMap)
-      executor->addOutput("states_output:"+parameter.qualifiedName(), {variable});
+      executor->addOutput("states_output:"+parameter.toString(), {variable});
 
     executor->addInput("inputs"          , std::move(inputVariables));
     executor->addInput("expected outputs", std::move(expectedOutputVariables));

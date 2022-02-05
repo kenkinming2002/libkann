@@ -15,7 +15,7 @@ namespace kann
   public:
     /* Given variable for parameter and gradient, return variable for new
      * parameter */
-    virtual std::vector<Parameter> stateParameters() { return  {}; }
+    virtual std::vector<QualifiedName> states() { return  {}; }
 
     struct Result
     {

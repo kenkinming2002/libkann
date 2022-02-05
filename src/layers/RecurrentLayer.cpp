@@ -30,9 +30,9 @@ namespace kann
     return m_taggedLayers.back().layer->outputSize();
   }
 
-  std::vector<Parameter> RecurrentLayer::parameters(Scope scope) const
+  std::vector<QualifiedName> RecurrentLayer::parameters(Scope scope) const
   {
-    std::vector<Parameter> result;
+    std::vector<QualifiedName> result;
 
     size_t i = 0;
     for(const auto& [layer, tag] : m_taggedLayers)
@@ -44,19 +44,19 @@ namespace kann
     return result;
   }
 
-  std::vector<Parameter> RecurrentLayer::stateParameters(Scope scope) const
+  std::vector<QualifiedName> RecurrentLayer::states(Scope scope) const
   {
-    std::vector<Parameter> result;
+    std::vector<QualifiedName> result;
 
     size_t i = 0;
     for(const auto& [layer, tag] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
-      auto layerStateParameters = layer->stateParameters(scope + layerScope);
-      result.insert(result.end(), layerStateParameters.begin(), layerStateParameters.end());
+      auto layerStates = layer->states(scope + layerScope);
+      result.insert(result.end(), layerStates.begin(), layerStates.end());
     }
 
-    auto memoryParameter = Parameter{
+    auto memoryParameter = QualifiedName{
       .name = "memory",
       .size = m_memory
     };
@@ -67,7 +67,7 @@ namespace kann
 
   LayerVariable RecurrentLayer::operator()(Scope scope, LayerVariable input) const
   {
-    auto memoryParameter = Parameter{
+    auto memoryParameter = QualifiedName{
       .scope = scope,
       .name = "memory",
       .size = m_memory

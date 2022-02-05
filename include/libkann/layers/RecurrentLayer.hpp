@@ -21,8 +21,8 @@ namespace kann
     size_t outputSize() const override;
 
   public:
-    std::vector<Parameter> parameters(Scope scope) const override;
-    std::vector<Parameter> stateParameters(Scope scope) const override;
+    std::vector<QualifiedName> parameters(Scope scope) const override;
+    std::vector<QualifiedName> states(Scope scope) const override;
 
     LayerVariable operator()(Scope scope, LayerVariable) const override;
 

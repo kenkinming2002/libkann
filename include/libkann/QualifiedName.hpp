@@ -10,16 +10,16 @@
 
 namespace kann
 {
-  struct Parameter
+  struct QualifiedName
   {
   public:
-    std::string qualifiedName() const
+    std::string toString() const
     {
-      return scope.qualifiedName(name);
+      return scope.toString() + name;
     }
 
   public:
-    auto operator<=>(const Parameter&) const = default;
+    auto operator<=>(const QualifiedName&) const = default;
 
   public:
     template<typename Archive>
@@ -44,12 +44,12 @@ namespace kann
 
 
 template<>
-struct std::hash<kann::Parameter>
+struct std::hash<kann::QualifiedName>
 {
-  size_t operator()(const kann::Parameter& parameter) const
+  size_t operator()(const kann::QualifiedName& qualifiedName) const
   {
-    size_t hash1 = std::hash<kann::Scope>{}(parameter.scope);
-    size_t hash2 = std::hash<std::string>{}(parameter.name);
+    size_t hash1 = std::hash<kann::Scope>{}(qualifiedName.scope);
+    size_t hash2 = std::hash<std::string>{}(qualifiedName.name);
     return kann::hashCombine(hash1, hash2);
   }
 };

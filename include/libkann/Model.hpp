@@ -48,8 +48,8 @@ namespace kann
   private:
     std::shared_ptr<const Layer> m_layer;
 
-    std::unordered_map<Parameter, std::shared_ptr<const Tensor>> m_parametersMap;
-    std::unordered_map<Parameter, std::shared_ptr<const Tensor>> m_statesMap;
+    std::unordered_map<QualifiedName, std::shared_ptr<const Tensor>> m_parametersMap;
+    std::unordered_map<QualifiedName, std::shared_ptr<const Tensor>> m_statesMap;
 
   private:
     std::unique_ptr<Executor> m_predictExecutor;
