@@ -3,6 +3,7 @@
 #include "Board.hpp"
 #include "Game.hpp"
 
+#include <libkann/Optimizer.hpp>
 #include <libkann/Model.hpp>
 
 #include <optional>
@@ -49,19 +50,21 @@ public:
   void save(Archive& archive) const
   {
     archive(m_model);
-    archive(m_learningRate);
+    archive(m_optimizer);
   }
 
   template<typename Archive>
   void load(Archive& archive)
   {
     archive(m_model);
-    archive(m_learningRate);
+    archive(m_optimizer);
   }
 
 private:
   std::shared_ptr<kann::Model> m_model;
+
   double m_learningRate;
+  std::shared_ptr<kann::Optimizer> m_optimizer;
 
   double m_score = 0.0;
 

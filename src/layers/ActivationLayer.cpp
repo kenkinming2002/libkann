@@ -19,16 +19,34 @@ namespace kann
     return m_size;
   }
 
+  class ActivationOperation : public CWiseOperation<ActivationOperation, 1>
+  {
+  public:
+    constexpr ActivationOperation(ActivationFunction activationFunction)
+      : m_activationFunction(activationFunction) {}
+
+  public:
+    double forward(double input) const
+    {
+      return m_activationFunction.normal(input);
+    }
+
+    double backward(size_t index, double gradient, double input) const
+    {
+      assert(index == 0);
+      return gradient * m_activationFunction.derivative(input);
+    }
+
+  private:
+    ActivationFunction m_activationFunction;
+  };
+
   LayerVariable ActivationLayer::operator()(Scope scope, LayerVariable input) const
   {
-    const auto activationFunction = m_activationFunction;
-    const auto normal     = [=](double val){ return activationFunction.normal(val); };
-    const auto derivative = [=](double val){ return activationFunction.derivative(val); };
-
     auto output = std::move(input);
     output.variable = std::make_shared<const Variable>(
       std::vector{std::move(output.variable)},
-      std::make_shared<CWiseOperation<decltype(normal), decltype(derivative)>>(normal, derivative)
+      std::make_shared<ActivationOperation>(m_activationFunction)
     );
     return output;
   }

@@ -11,6 +11,9 @@ namespace kann
   struct Tensor
   {
   public:
+    static Tensor constant(size_t size, double value);
+
+  public:
     Tensor() = default;
     Tensor(size_t size) : m_size(size)
     {
@@ -21,6 +24,19 @@ namespace kann
 
   public:
     size_t size() const { return m_size; }
+
+  public:
+    double& asScalar()
+    {
+      assert(m_size == 1);
+      return m_values[0];
+    }
+
+    const double& asScalar() const
+    {
+      assert(m_size == 1);
+      return m_values[0];
+    }
 
   public:
     auto asArray() &
@@ -91,6 +107,13 @@ namespace kann
     std::unique_ptr<double[]> m_values;
 
   };
+
+  inline Tensor Tensor::constant(size_t size, double value)
+  {
+    Tensor result(size);
+    result.asArray().setConstant(value);
+    return result;
+  }
 
   inline Tensor::Tensor(Eigen::VectorXd v) : Tensor(v.size())
   {

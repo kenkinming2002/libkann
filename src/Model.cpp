@@ -25,8 +25,8 @@ namespace kann
     }
 
     // State Parameters
-    auto stateParameters = m_layer->stateParameters(Scope());
-    for(const auto& parameter : stateParameters)
+    auto states = m_layer->states(Scope());
+    for(const auto& parameter : states)
     {
       auto value = std::make_shared<Tensor>(parameter.size);
       value->asArray().setZero();
@@ -71,57 +71,63 @@ namespace kann
       // It should not matter whether we look it up from inputLayerVariable or
       // outputLayerVariable
       for(auto& [parameter, variable] : inputLayerVariable.parameterVariables)
-        m_predictExecutor->addInput("parameters_input:"+parameter.qualifiedName(), {variable});
+        m_predictExecutor->addInput("parameters_input:"+parameter.toString(), {variable});
 
       for(auto& [parameter, variable] : inputLayerVariable.stateVariables)
-        m_predictExecutor->addInput("states_input:"+parameter.qualifiedName(), {variable});
+        m_predictExecutor->addInput("states_input:"+parameter.toString(), {variable});
 
       for(auto& [parameter, variable] : outputLayerVariable.stateVariables)
-        m_predictExecutor->addOutput("states_output:"+parameter.qualifiedName(), {variable});
+        m_predictExecutor->addOutput("states_output:"+parameter.toString(), {variable});
 
       m_predictExecutor->build();
     }
 
     for(auto& [parameter, value] : m_parametersMap)
-      m_predictExecutor->input("parameters_input:"+parameter.qualifiedName(), {value});
+      m_predictExecutor->input("parameters_input:"+parameter.toString(), {value});
 
     for(auto& [parameter, value] : m_statesMap)
-      m_predictExecutor->input("states_input:"+parameter.qualifiedName(), {value});
+      m_predictExecutor->input("states_input:"+parameter.toString(), {value});
 
     m_predictExecutor->input("input", {input});
 
     for(auto& [parameter, value] : m_statesMap)
-      value = m_predictExecutor->output("states_output:"+parameter.qualifiedName()).front();
+      value = m_predictExecutor->output("states_output:"+parameter.toString()).front();
 
     return m_predictExecutor->output("output").front();
   }
 
   std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> Model::optimize(
-    double learningRate, Tag tag,
+    std::shared_ptr<const Optimizer> optimizer, Tag tag,
     std::vector<std::shared_ptr<const Tensor>> inputs,
     std::vector<std::shared_ptr<const Tensor>> expectedOutputs)
   {
     assert(inputs.size() == expectedOutputs.size());
     size_t batchSize = inputs.size();
-    auto& optimizeExecutor = this->optimizeExecutor(learningRate, tag, batchSize);
+    auto& state = this->optimizeState(optimizer, tag, batchSize);
+
+    for(auto& [qualifiedName, value] : state.map)
+      state.executor->input("optimizer_states_input:"+qualifiedName.toString(), {value});
 
     for(auto& [parameter, value] : m_parametersMap)
-      optimizeExecutor.input("parameters_input:"+parameter.qualifiedName(), {value});
+      state.executor->input("parameters_input:"+parameter.toString(), {value});
 
     for(auto& [parameter, value] : m_statesMap)
-      optimizeExecutor.input("states_input:"+parameter.qualifiedName(), {value});
+      state.executor->input("states_input:"+parameter.toString(), {value});
 
-    optimizeExecutor.input("inputs", inputs);
-    optimizeExecutor.input("expected outputs", expectedOutputs);
+    state.executor->input("inputs", inputs);
+    state.executor->input("expected outputs", expectedOutputs);
+
+    for(auto& [qualifiedName, value] : state.map)
+      value = state.executor->output("optimizer_states_output:"+qualifiedName.toString()).front();
 
     for(auto& [parameter, value] : m_parametersMap)
       if(static_cast<bool>(parameter.scope.tag() & tag))
-        value = optimizeExecutor.output("parameters_output:"+parameter.qualifiedName()).front();
+        value = state.executor->output("parameters_output:"+parameter.toString()).front();
 
     for(auto& [parameter, value] : m_statesMap)
-      value = optimizeExecutor.output("states_output:"+parameter.qualifiedName()).front();
+      value = state.executor->output("states_output:"+parameter.toString()).front();
 
-    auto outputs = optimizeExecutor.output("outputs");
+    auto outputs = state.executor->output("outputs");
 
     // Compute cost with outputs and expected outputs
     std::vector<double> costs;
@@ -133,118 +139,133 @@ namespace kann
     return {outputs, costs};
   }
 
-  Executor& Model::optimizeExecutor(double learningRate, Tag tag, size_t batchSize)
+  Model::OptimizeState& Model::optimizeState(std::shared_ptr<const Optimizer> optimizer, Tag tag, size_t batchSize)
   {
     auto config = OptimizeConfig{
-      .learningRate = learningRate,
-      .tag          = tag,
-      .batchSize    = batchSize
+      .optimizer = optimizer,
+      .tag       = tag,
+      .batchSize = batchSize
     };
 
-    if(auto it = m_optimizeExecutors.find(config); it != m_optimizeExecutors.end())
-      return *it->second;
-
-    // 1: Parameters and states variables
-    std::unordered_map<Parameter, std::shared_ptr<const Variable>> inputParameterVariablesMap;
-    std::unordered_map<Parameter, std::shared_ptr<const Variable>> outputParameterVariablesMap;
-
-    std::unordered_map<Parameter, std::shared_ptr<const Variable>> inputStateVariablesMap;
-    std::unordered_map<Parameter, std::shared_ptr<const Variable>> outputStateVariablesMap;
-
-    for(const auto& [parameter, value] : m_parametersMap)
+    OptimizeState& optimizeState = m_optimizeStates[config];
+    if(!optimizeState.executor)
     {
-      auto [it, success] = inputParameterVariablesMap.emplace(parameter, std::make_shared<const Variable>());
-      assert(success);
+      // 1: Parameters and states variables
+      std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> inputParameterVariablesMap;
+      std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> outputParameterVariablesMap;
+
+      std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> inputStateVariablesMap;
+      std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> outputStateVariablesMap;
+
+      for(const auto& [parameter, value] : m_parametersMap)
+      {
+        auto [it, success] = inputParameterVariablesMap.emplace(parameter, std::make_shared<const Variable>());
+        assert(success);
+      }
+
+     for(const auto& [parameter, value] : m_statesMap)
+      {
+        auto [it, success] = inputStateVariablesMap.emplace(parameter, std::make_shared<const Variable>());
+        assert(success);
+      }
+      outputStateVariablesMap = inputStateVariablesMap;
+
+      // 2: Create input, expected output, output and output gradient variables by
+      // passing them through layer
+      std::vector<std::shared_ptr<const Variable>> inputVariables;
+      std::vector<std::shared_ptr<const Variable>> expectedOutputVariables;
+      std::vector<std::shared_ptr<const Variable>> outputVariables;
+      std::vector<std::shared_ptr<const Variable>> outputGradientVariables;
+
+      for(size_t i=0; i<batchSize; ++i)
+      {
+        // 1: Pass variables through layer
+        LayerVariable inputLayerVariable;
+
+        inputLayerVariable.variable = std::make_shared<const Variable>();
+        inputLayerVariable.parameterVariables = inputParameterVariablesMap;
+        inputLayerVariable.stateVariables     = std::move(outputStateVariablesMap);
+
+        LayerVariable outputLayerVariable = (*m_layer)(Scope(), inputLayerVariable);
+
+        // 2: Create expected output variable and compute gradient
+        auto inputVariable  = inputLayerVariable.variable;
+        auto outputVariable = outputLayerVariable.variable;
+        auto expectedOutputVariable = std::make_shared<const Variable>();
+        auto outputGradientVariable = std::make_shared<const Variable>(
+          std::vector{std::make_shared<const Variable>(
+            std::vector{outputVariable,expectedOutputVariable},
+            std::make_shared<SubtractOperation>()
+          )},
+          std::make_shared<MultiplyOperation>(2.0)
+        );
+
+        // 3: Retrive variables
+        inputVariables.push_back(std::move(inputVariable));
+        outputVariables.push_back(std::move(outputVariable));
+        expectedOutputVariables.push_back(std::move(expectedOutputVariable));
+        outputGradientVariables.push_back(std::move(outputGradientVariable));
+
+        outputStateVariablesMap = std::move(outputLayerVariable.stateVariables);
+      }
+
+      // 3: New parameter variables
+      VMap optimizerStateInputVariables;
+      VMap optimizerStateOutputVariables;
+
+      auto gradientMap = differentiate(outputVariables, outputGradientVariables);
+      for(const auto& [qualifiedName, parameter] : inputParameterVariablesMap)
+      {
+        Optimizer::Context context;
+        context.qualifiedName = qualifiedName;
+        context.gradient = gradientMap.at(parameter);
+        context.inputParameter = parameter;
+
+        optimizer->process(context);
+
+        outputParameterVariablesMap.emplace(qualifiedName, context.outputParameter);
+        optimizerStateInputVariables.merge(context.inputState);
+        optimizerStateOutputVariables.merge(context.outputState);
+
+        optimizeState.map.merge(context.initialState);
+      }
+
+      // 5: Create executor
+      auto executor = makeDefaultExecutor();
+
+      for(auto& [qualifiedName, variable] : optimizerStateInputVariables)
+        executor->addInput("optimizer_states_input:"+qualifiedName.toString(), {variable});
+
+      for(auto& [qualifiedName, variable] : optimizerStateOutputVariables)
+        executor->addOutput("optimizer_states_output:"+qualifiedName.toString(), {variable});
+
+      for(auto& [parameter, variable] : inputParameterVariablesMap)
+        executor->addInput("parameters_input:"+parameter.toString(), {variable});
+
+      for(auto& [parameter, variable] : outputParameterVariablesMap)
+        if(static_cast<bool>(parameter.scope.tag() & tag))
+          executor->addOutput("parameters_output:"+parameter.toString(), {variable});
+
+      for(auto& [parameter, variable] : inputStateVariablesMap)
+        executor->addInput("states_input:"+parameter.toString(), {variable});
+
+      for(auto& [parameter, variable] : outputStateVariablesMap)
+        executor->addOutput("states_output:"+parameter.toString(), {variable});
+
+      executor->addInput("inputs"          , std::move(inputVariables));
+      executor->addInput("expected outputs", std::move(expectedOutputVariables));
+      executor->addOutput("outputs"        , std::move(outputVariables));
+
+      executor->build();
+      {
+        std::ofstream testFile("output/test.dot");
+        executor->write_graphviz(testFile);
+      }
+
+      optimizeState.executor = std::move(executor);
     }
 
-    for(const auto& [parameter, value] : m_statesMap)
-    {
-      auto [it, success] = inputStateVariablesMap.emplace(parameter, std::make_shared<const Variable>());
-      assert(success);
-    }
-    outputStateVariablesMap = inputStateVariablesMap;
-
-    // 2: Create input, expected output, output and output gradient variables by
-    // passing them through layer
-    std::vector<std::shared_ptr<const Variable>> inputVariables;
-    std::vector<std::shared_ptr<const Variable>> expectedOutputVariables;
-    std::vector<std::shared_ptr<const Variable>> outputVariables;
-    std::vector<std::shared_ptr<const Variable>> outputGradientVariables;
-
-    for(size_t i=0; i<batchSize; ++i)
-    {
-      // 1: Pass variables through layer
-      LayerVariable inputLayerVariable;
-
-      inputLayerVariable.variable = std::make_shared<const Variable>();
-      inputLayerVariable.parameterVariables = inputParameterVariablesMap;
-      inputLayerVariable.stateVariables     = std::move(outputStateVariablesMap);
-
-      LayerVariable outputLayerVariable = (*m_layer)(Scope(), inputLayerVariable);
-
-      // 2: Create expected output variable and compute gradient
-      auto inputVariable  = inputLayerVariable.variable;
-      auto outputVariable = outputLayerVariable.variable;
-      auto expectedOutputVariable = std::make_shared<const Variable>();
-      auto outputGradientVariable = std::make_shared<const Variable>(
-        std::vector{std::make_shared<const Variable>(
-          std::vector{outputVariable,expectedOutputVariable},
-          std::make_shared<SubtractOperation>()
-        )},
-        std::make_shared<MultiplyOperation>(2.0)
-      );
-
-      // 3: Retrive variables
-      inputVariables.push_back(std::move(inputVariable));
-      outputVariables.push_back(std::move(outputVariable));
-      expectedOutputVariables.push_back(std::move(expectedOutputVariable));
-      outputGradientVariables.push_back(std::move(outputGradientVariable));
-
-      outputStateVariablesMap = std::move(outputLayerVariable.stateVariables);
-    }
-
-    // 3: New parameter variables
-    auto gradientMap = differentiate(outputVariables, outputGradientVariables);
-    for(const auto& [parameter, variable] : inputParameterVariablesMap)
-    {
-      auto gradient = gradientMap.at(variable);
-
-      // FIXME: How should batchSize affect learningRate
-      gradient = std::make_shared<const Variable>(std::vector{std::move(gradient)}, std::make_shared<MultiplyOperation>(learningRate * 0.5 * std::sqrt(batchSize)));
-      auto newVariable = std::make_shared<const Variable>(std::vector{variable, std::move(gradient)}, std::make_shared<SubtractOperation>());
-      auto [it, success] = outputParameterVariablesMap.emplace(parameter, std::move(newVariable));
-      assert(success);
-    }
-
-    // 5: Create executor
-    auto executor = makeDefaultExecutor();
-
-    for(auto& [parameter, variable] : inputParameterVariablesMap)
-      executor->addInput("parameters_input:"+parameter.qualifiedName(), {variable});
-
-    for(auto& [parameter, variable] : outputParameterVariablesMap)
-      if(static_cast<bool>(parameter.scope.tag() & tag))
-        executor->addOutput("parameters_output:"+parameter.qualifiedName(), {variable});
-
-    for(auto& [parameter, variable] : inputStateVariablesMap)
-      executor->addInput("states_input:"+parameter.qualifiedName(), {variable});
-
-    for(auto& [parameter, variable] : outputStateVariablesMap)
-      executor->addOutput("states_output:"+parameter.qualifiedName(), {variable});
-
-    executor->addInput("inputs"          , std::move(inputVariables));
-    executor->addInput("expected outputs", std::move(expectedOutputVariables));
-    executor->addOutput("outputs"        , std::move(outputVariables));
-
-    executor->build();
-    {
-      std::ofstream testFile("output/test.dot");
-      executor->write_graphviz(testFile);
-    }
-
-    auto [it, success] = m_optimizeExecutors.emplace(config, std::move(executor));
-    assert(success);
-    return *it->second;
+    return optimizeState;
   }
 
   static std::shared_ptr<const Tensor> cross(const std::shared_ptr<const Tensor>& lhs, const std::shared_ptr<const Tensor>& rhs, std::default_random_engine& engine, double mutationRate)

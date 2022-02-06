@@ -1,4 +1,5 @@
 #include "Agent.hpp"
+#include "libkann/optimizers/SimpleOptimizer.hpp"
 
 #include <cereal/details/helpers.hpp>
 #include <cereal/archives/binary.hpp>
@@ -9,7 +10,10 @@
 
 Agent::Agent(std::shared_ptr<kann::Model> model, double learningRate)
   : m_model(std::move(model)),
-    m_learningRate(learningRate) {}
+    m_learningRate(learningRate)
+{
+  m_optimizer = std::make_shared<kann::SimpleOptimizer>(learningRate);
+}
 
 void Agent::loadFromFile(std::filesystem::path filePath)
 {
@@ -95,13 +99,13 @@ void Agent::learnFrom(const Board& board, Board::Cell::Color color, bool good)
     auto input = convert(board, color);
     auto expectedOutput = std::make_shared<kann::Tensor>(1);
     expectedOutput->asArray()(0) = (good ? 1.0 : 0.0);
-    m_model->optimize(m_learningRate, kann::Tag::ALL, {std::move(input)}, {std::move(expectedOutput)});
+    m_model->optimize(m_optimizer, kann::Tag::ALL, {std::move(input)}, {std::move(expectedOutput)});
   }
   {
     auto input = convert(board, otherColor);
     auto expectedOutput = std::make_shared<kann::Tensor>(1);
     expectedOutput->asArray()(0) = (good ? 1.0 : 0.0);
-    m_model->optimize(m_learningRate, kann::Tag::ALL, {std::move(input)}, {std::move(expectedOutput)});
+    m_model->optimize(m_optimizer, kann::Tag::ALL, {std::move(input)}, {std::move(expectedOutput)});
   }
 }
 

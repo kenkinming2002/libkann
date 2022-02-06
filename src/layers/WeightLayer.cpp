@@ -18,15 +18,15 @@ namespace kann
     return m_outputSize;
   }
 
-  std::vector<Parameter> WeightLayer::parameters(Scope scope) const
+  std::vector<QualifiedName> WeightLayer::parameters(Scope scope) const
   {
-    auto weightParameter = Parameter{
+    auto weightParameter = QualifiedName{
       .scope = scope,
       .name = "weight",
       .size = m_inputSize * m_outputSize
     };
 
-    auto biasParameter = Parameter{
+    auto biasParameter = QualifiedName{
       .scope = scope,
       .name = "bias",
       .size = m_outputSize
@@ -39,13 +39,13 @@ namespace kann
   {
     auto inputVariable = std::move(input.variable);
 
-    auto weightParameter = Parameter{
+    auto weightParameter = QualifiedName{
       .scope = scope,
       .name = "weight",
       .size = m_inputSize * m_outputSize
     };
 
-    auto biasParameter = Parameter{
+    auto biasParameter = QualifiedName{
       .scope = scope,
       .name = "bias",
       .size = m_outputSize

@@ -3,6 +3,7 @@
 #include <libkann/Tensor.hpp>
 #include <libkann/Layer.hpp>
 #include <libkann/Executor.hpp>
+#include <libkann/Optimizer.hpp>
 
 #include <cereal/types/unordered_map.hpp>
 
@@ -26,7 +27,7 @@ namespace kann
 
     // FIXME: better formatting
     std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> optimize(
-      double learningRate, Tag tag,
+      std::shared_ptr<const Optimizer> optimizer, Tag tag,
       std::vector<std::shared_ptr<const Tensor>> inputs,
       std::vector<std::shared_ptr<const Tensor>> expectedOutputs);
 
@@ -43,26 +44,35 @@ namespace kann
     }
 
   private:
-    Executor& optimizeExecutor(double learningRate, Tag tag, size_t batchSize);
-
-  private:
     std::shared_ptr<const Layer> m_layer;
 
-    std::unordered_map<Parameter, std::shared_ptr<const Tensor>> m_parametersMap;
-    std::unordered_map<Parameter, std::shared_ptr<const Tensor>> m_statesMap;
+    std::unordered_map<QualifiedName, std::shared_ptr<const Tensor>> m_parametersMap;
+    std::unordered_map<QualifiedName, std::shared_ptr<const Tensor>> m_statesMap;
 
+  // Internal transient states
   private:
     std::unique_ptr<Executor> m_predictExecutor;
 
     struct OptimizeConfig
     {
-      double learningRate;
+      std::shared_ptr<const Optimizer> optimizer;
       Tag tag;
       size_t batchSize;
 
       auto operator<=>(const OptimizeConfig&) const = default;
     };
-    std::map<OptimizeConfig, std::unique_ptr<Executor>> m_optimizeExecutors;
+
+    struct OptimizeState
+    {
+      std::unique_ptr<Executor> executor;
+      TMap map;
+    };
+
+  private:
+    OptimizeState& optimizeState(std::shared_ptr<const Optimizer> optimizer, Tag tag, size_t batchSize);
+
+  private:
+    std::map<OptimizeConfig, OptimizeState> m_optimizeStates;
   };
 
   std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
