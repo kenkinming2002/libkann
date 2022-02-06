@@ -21,6 +21,7 @@ libkann_sources = [
   'executors/DefaultExecutor.cpp',
   'executors/ThreadedExecutor.cpp',
   'optimizers/SimpleOptimizer.cpp',
+  'optimizers/AdamOptimizer.cpp',
   'Differentiate.cpp',
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',

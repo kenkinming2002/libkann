@@ -19,11 +19,20 @@ namespace kann
     }
 
   public:
-    QualifiedName append(const std::string& str) const
+    QualifiedName derive(const std::string& suffix) const
     {
       return QualifiedName{
         .scope = scope,
-        .name = name + str,
+        .name = name + "_" + suffix,
+        .size = size,
+      };
+    }
+
+    QualifiedName derive(const std::string& suffix, size_t size) const
+    {
+      return QualifiedName{
+        .scope = scope,
+        .name = name + "_" + suffix,
         .size = size,
       };
     }

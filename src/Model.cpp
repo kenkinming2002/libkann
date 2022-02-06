@@ -163,7 +163,7 @@ namespace kann
         assert(success);
       }
 
-      for(const auto& [parameter, value] : m_statesMap)
+     for(const auto& [parameter, value] : m_statesMap)
       {
         auto [it, success] = inputStateVariablesMap.emplace(parameter, std::make_shared<const Variable>());
         assert(success);
@@ -226,10 +226,9 @@ namespace kann
         outputParameterVariablesMap.emplace(qualifiedName, context.outputParameter);
         optimizerStateInputVariables.merge(context.inputState);
         optimizerStateOutputVariables.merge(context.outputState);
-      }
 
-      for(auto& [qualifiedName, variable] : optimizerStateInputVariables)
-        optimizeState.map.emplace(qualifiedName, std::make_shared<const Tensor>(qualifiedName.size));
+        optimizeState.map.merge(context.initialState);
+      }
 
       // 5: Create executor
       auto executor = makeDefaultExecutor();
@@ -238,7 +237,7 @@ namespace kann
         executor->addInput("optimizer_states_input:"+qualifiedName.toString(), {variable});
 
       for(auto& [qualifiedName, variable] : optimizerStateOutputVariables)
-        executor->addInput("optimizer_states_output:"+qualifiedName.toString(), {variable});
+        executor->addOutput("optimizer_states_output:"+qualifiedName.toString(), {variable});
 
       for(auto& [parameter, variable] : inputParameterVariablesMap)
         executor->addInput("parameters_input:"+parameter.toString(), {variable});

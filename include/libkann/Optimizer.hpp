@@ -24,6 +24,8 @@ namespace kann
 
       VMap inputState;
       VMap outputState;
+
+      TMap initialState;
     };
     virtual void process(Context& context) const = 0;
 
