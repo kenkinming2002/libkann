@@ -8,6 +8,7 @@
 
 #include <libkann/Build.hpp>
 #include <libkann/Model.hpp>
+#include <libkann/Loader.hpp>
 #include <libkann/Algorithm.hpp>
 
 #include <libkann/datasets/MNISTDataSet.hpp>
@@ -248,13 +249,8 @@ int main(int argc, char* argv[])
   }
   else if(subcommand == "normal")
   {
-    // Normal Neural Network
-    std::vector<std::shared_ptr<kann::Layer>> layers;
-    layers.push_back(std::make_shared<kann::IdentityLayer>(kann::MNISTDataSet::IMAGE_SIZE, kann::MNISTDataSet::IMAGE_SIZE, 0));
-    attachWeightActivationLayers(layers, {kann::MNISTDataSet::IMAGE_SIZE, 30, 30, 30, 10}, kann::ActivationFunction::Type::SIGMOID);
-    layers.push_back(std::make_shared<kann::IdentityLayer>(10, 10, 0));
-
-    auto model = kann::buildSimpleFeedForwardModel(std::move(layers));
+    auto layer = kann::loadLayer("examples/backpropagation/normal.yaml");
+    auto model = std::make_shared<kann::Model>(std::move(layer));
     model->randomize();
 
     trainAndTestFeedForwardModel(model, trainingDataSet, testingDataSet, kann::MNISTDataSet::COLUMN_IMAGE, kann::MNISTDataSet::COLUMN_LABEL, "output/normal.dot");
