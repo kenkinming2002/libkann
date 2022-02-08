@@ -7,51 +7,28 @@
 #include <libkann/layers/ActivationLayer.hpp>
 #include <libkann/layers/RecurrentLayer.hpp>
 #include <libkann/Model.hpp>
+#include <libkann/Loader.hpp>
 
 #include <cassert>
 #include <cmath>
 
-std::shared_ptr<kann::Model> Creature::makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine)
+static constexpr double ANGLE = M_PI / 12.0;
+
+std::shared_ptr<kann::Model> Creature::makeModel(std::default_random_engine& engine)
 {
-  /* Note: Model refer to Layer but has their own parameters and states To be
-   *       able to cross different model, they have to have the same underlying
-   *       layer. */
-  static std::shared_ptr<kann::Layer> layer = [&config]()
-  {
-
-    // TODO: do not create a vector for this
-    std::vector<size_t> topology;
-    topology.push_back(Creature::INPUT_COUNT + config.memory);
-    topology.insert(topology.end(), config.hiddenLayers.begin(), config.hiddenLayers.end());
-    topology.push_back(Creature::OUTPUT_COUNT + config.memory);
-
-    const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::TANH);
-
-    auto layer = std::make_shared<kann::RecurrentLayer>(config.memory);
-    for(size_t i=0; i < topology.size()-1; ++i)
-    {
-      size_t prevSize = topology[i];
-      size_t nextSize = topology[i+1];
-      layer->addLayer(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
-      layer->addLayer(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
-    }
-    return layer;
-  }();
-
+  static auto layer = kann::loadLayer("examples/neuralevolution/creature.yaml");
   auto model = std::make_shared<kann::Model>(layer);
   model->randomize();
   return model;
 }
 
-static constexpr double ANGLE = M_PI / 12.0;
-
-Creature::Creature(b2World& world, const Config& config,
-    std::shared_ptr<kann::Model> model, b2Vec2 position, double energy,
-    double health)
+Creature::Creature(b2World& world, const Config& config, std::shared_ptr<kann::Model> model, b2Vec2 position, double energy, double health)
   : Entity(Entity::Type::CREATURE, world, position, config.maxRadius),
     m_model(std::move(model)),
     m_eyes{Eye(-ANGLE), Eye(ANGLE)},
-    m_energy(energy), m_health(health) {}
+    m_energy(energy), m_health(health)
+{
+}
 
 // All the thinking happen here
 void Creature::updatePerception(const Config& config, float dt)

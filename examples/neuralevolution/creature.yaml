@@ -1,0 +1,43 @@
+type: "recurrent"
+memory: 100
+layers:
+  - type: "weight"
+    input_size : 104
+    output_size : 10
+
+  - type: "activation"
+    size: 10
+    function: "tanh"
+
+  - type: "weight"
+    input_size : 10
+    output_size : 10
+
+  - type: "activation"
+    size: 10
+    function: "tanh"
+
+  - type: "weight"
+    input_size : 10
+    output_size : 10
+
+  - type: "activation"
+    size: 10
+    function: "tanh"
+
+  - type: "weight"
+    input_size : 10
+    output_size : 10
+
+  - type: "activation"
+    size: 10
+    function: "tanh"
+
+  - type: "weight"
+    input_size : 10
+    output_size : 104
+
+  - type: "activation"
+    size: 104
+    function: "tanh"
+

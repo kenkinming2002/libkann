@@ -35,14 +35,6 @@ public:
 
 
 public:
-  struct ModelConfig
-  {
-    std::vector<size_t> hiddenLayers;
-    size_t memory;
-  };
-
-  static std::shared_ptr<kann::Model> makeNeuralNetork(const ModelConfig& config, std::default_random_engine& engine);
-
   struct Config
   {
     // Maximum
@@ -78,8 +70,8 @@ public:
 
   /* Create a default creature from config using engine. You should use
    * setters to further configure the creature if so needed. */
-  Creature(b2World& world, const Config& config, std::shared_ptr<kann::Model>
-      model, b2Vec2 position, double energy, double health);
+  static std::shared_ptr<kann::Model> makeModel(std::default_random_engine& engine);
+  Creature(b2World& world, const Config& config, std::shared_ptr<kann::Model> model, b2Vec2 position, double energy, double health);
 
 public:
   /* Not thread safe */
