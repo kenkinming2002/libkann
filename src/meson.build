@@ -13,7 +13,6 @@ libkann_sources = [
   'datasets/RandomDataSet.cpp',
   'datasets/write.cpp',
   'Model.cpp',
-  'Build.cpp',
   'Loader.cpp',
   'Algorithm.cpp',
   'ActivationFunction.cpp',

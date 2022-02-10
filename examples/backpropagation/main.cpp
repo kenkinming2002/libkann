@@ -7,7 +7,6 @@
 #include <libkann/layers/ConvolutionalLayer.hpp>
 #include <libkann/layers/DeconvolutionalLayer.hpp>
 
-#include <libkann/Build.hpp>
 #include <libkann/Model.hpp>
 #include <libkann/Loader.hpp>
 #include <libkann/Algorithm.hpp>

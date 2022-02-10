@@ -8,8 +8,6 @@
 
 #include <libkann/utilities/random.hpp>
 
-#include <libkann/Build.hpp>
-
 #include <SFML/Window/Event.hpp>
 
 #include <iostream>
