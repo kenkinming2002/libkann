@@ -14,7 +14,7 @@ public:
   using seed_type = random_engine_type::result_type;
 
 public:
-  Population(seed_type seed, size_t size, const std::vector<size_t>& agentsHiddenLayers);
+  Population(seed_type seed, size_t size);
 
 public:
   void select(size_t iterations, double mutationRate = 0.05);

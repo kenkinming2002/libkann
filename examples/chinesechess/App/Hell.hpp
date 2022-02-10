@@ -19,7 +19,7 @@ namespace App
   public:
     using random_engine_type = std::default_random_engine;
     using seed_type = random_engine_type::result_type;
-    Hell(seed_type seed, const std::vector<size_t>& agentHiddenLayers, double agentLearningRate);
+    Hell(seed_type seed, double agentLearningRate);
 
   public:
     void run();

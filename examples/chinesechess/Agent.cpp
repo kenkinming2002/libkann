@@ -1,5 +1,7 @@
 #include "Agent.hpp"
-#include "libkann/optimizers/SimpleOptimizer.hpp"
+
+#include <libkann/optimizers/SimpleOptimizer.hpp>
+#include <libkann/Loader.hpp>
 
 #include <cereal/details/helpers.hpp>
 #include <cereal/archives/binary.hpp>
@@ -7,6 +9,14 @@
 #include <stdexcept>
 #include <fstream>
 #include <filesystem>
+
+std::shared_ptr<kann::Model> Agent::makeModel()
+{
+  static auto layer = kann::loadLayer("examples/chinesechess/agent.yaml");
+  auto model = std::make_shared<kann::Model>(layer);
+  model->randomize();
+  return model;
+}
 
 Agent::Agent(std::shared_ptr<kann::Model> model, double learningRate)
   : m_model(std::move(model)),
