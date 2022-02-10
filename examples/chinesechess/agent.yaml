@@ -1,0 +1,42 @@
+type: "sequential"
+layers:
+  - type: "weight"
+    input_size : 180
+    output_size : 32
+
+  - type: "activation"
+    size: 32
+    function: "sigmoid"
+
+  - type: "weight"
+    input_size : 32
+    output_size : 32
+
+  - type: "activation"
+    size: 32
+    function: "sigmoid"
+
+  - type: "weight"
+    input_size : 32
+    output_size : 32
+
+  - type: "activation"
+    size: 32
+    function: "sigmoid"
+
+  - type: "weight"
+    input_size : 32
+    output_size : 32
+
+  - type: "activation"
+    size: 32
+    function: "sigmoid"
+
+  - type: "weight"
+    input_size : 32
+    output_size : 1
+
+  - type: "activation"
+    size: 1
+    function: "sigmoid"
+

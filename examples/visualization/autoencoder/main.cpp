@@ -4,14 +4,13 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
 
-#include <libkann/layers/WeightLayer.hpp>
-#include <libkann/layers/ActivationLayer.hpp>
+#include <libkann/layers/SequentialLayer.hpp>
 
 #include <libkann/datasets/MNISTDataSet.hpp>
 #include <libkann/datasets/write.hpp>
 
-#include <libkann/Build.hpp>
 #include <libkann/Algorithm.hpp>
+#include <libkann/Loader.hpp>
 
 #include <libkann/utilities/random.hpp>
 
@@ -30,18 +29,6 @@ static constexpr unsigned WINDOW_HEIGHT = 600;
 
 static constexpr size_t FEATURES_COUNT = 64;
 static constexpr double LEARNING_RATE = 0.05;
-
-static void attachWeightActivationLayers(std::vector<std::shared_ptr<kann::Layer>>& layers, const std::vector<size_t>& topology, kann::ActivationFunction::Type activationType)
-{
-  const auto activationFunction = kann::ActivationFunction(activationType);
-  for(size_t i=0; i < topology.size()-1; ++i)
-  {
-    size_t prevSize = topology[i];
-    size_t nextSize = topology[i+1];
-    layers.push_back(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
-    layers.push_back(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
-  }
-}
 
 class Runner
 {
@@ -91,11 +78,19 @@ private:
       "datasets/mnist/t10k-labels-idx1-ubyte"
     );
 
-    std::vector<std::shared_ptr<kann::Layer>> encoderLayers;
-    attachWeightActivationLayers(encoderLayers, {kann::MNISTDataSet::IMAGE_SIZE, 256, FEATURES_COUNT}, kann::ActivationFunction::Type::SIGMOID);
+    auto encoderLayer = kann::loadLayer("examples/visualization/autoencoder/encoder.yaml");
+    auto decoderLayer = kann::loadLayer("examples/visualization/autoencoder/decoder.yaml");
 
-    std::vector<std::shared_ptr<kann::Layer>> decoderLayers;
-    attachWeightActivationLayers(decoderLayers, {FEATURES_COUNT, 256, kann::MNISTDataSet::IMAGE_SIZE}, kann::ActivationFunction::Type::SIGMOID);
+    auto autoEncoderLayer = std::make_shared<kann::SequentialLayer>();
+    autoEncoderLayer->addLayer(encoderLayer, kann::Tag::ENCODER);
+    autoEncoderLayer->addLayer(decoderLayer, kann::Tag::DECODER);
+
+    auto decoderModel = std::make_shared<kann::Model>(decoderLayer);
+    auto encoderModel = std::make_shared<kann::Model>(encoderLayer);
+    auto autoEncoderModel = std::make_shared<kann::Model>(autoEncoderLayer);
+    decoderModel->randomize();
+    encoderModel->randomize();
+    autoEncoderModel->randomize();
 
     const char* label;
     auto callback = [this, &label](kann::Info info){
@@ -121,10 +116,6 @@ private:
 
       return !m_stop.load();
     };
-
-    auto [autoEncoderModel, decoderModel] = kann::buildSimpleAutoEncoderModel(std::move(encoderLayers), std::move(decoderLayers));
-    autoEncoderModel->randomize();
-    decoderModel->randomize();
 
     label = "Training";
     {

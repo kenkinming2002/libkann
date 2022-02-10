@@ -10,7 +10,7 @@
 
 using namespace std::placeholders;
 
-World::World(Config config, Creature::Config creatureConfig, Creature::ModelConfig creatureModelConfig, BerryBush::Config berryBushConfig)
+World::World(Config config, Creature::Config creatureConfig, BerryBush::Config berryBushConfig)
   : m_config(config), m_creatureConfig(creatureConfig), m_berryBushConfig(berryBushConfig),
     m_generator(config.seed),
     m_world(b2Vec2(0.0f,0.0f)) // No gravity
@@ -68,8 +68,8 @@ World::World(Config config, Creature::Config creatureConfig, Creature::ModelConf
     for(size_t i=0; i<m_config.initialCreaturesCount; ++i)
     {
       b2Vec2 position(distX(m_generator), distY(m_generator));
-      auto nn = Creature::makeNeuralNetork(creatureModelConfig, m_generator);
-      m_creatures.emplace_back(m_world, m_creatureConfig, std::move(nn), position, m_creatureConfig.maxEnergy, m_creatureConfig.maxHealth);
+      auto model = Creature::makeModel(m_generator);
+      m_creatures.emplace_back(m_world, m_creatureConfig, std::move(model), position, m_creatureConfig.maxEnergy, m_creatureConfig.maxHealth);
     }
   }
 

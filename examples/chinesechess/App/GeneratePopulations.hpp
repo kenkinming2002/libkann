@@ -14,7 +14,7 @@ namespace App
 
   public:
     using seed_type = Population::seed_type;
-    GeneratePopulations(const char* outputDirectory, seed_type populationSeed, size_t populationSize, const std::vector<size_t>& agentsHiddenLayers, size_t selectionIterationsCount);
+    GeneratePopulations(const char* outputDirectory, seed_type populationSeed, size_t populationSize, size_t selectionIterationsCount);
 
   public:
     void run();

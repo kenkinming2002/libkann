@@ -16,6 +16,9 @@ public:
   static constexpr size_t OUTPUT_LAYER_SIZE = 1; /* score of the boatd */
 
 public:
+  static std::shared_ptr<kann::Model> makeModel();
+
+public:
   Agent() = default;
   Agent(std::shared_ptr<kann::Model> model, double learningRate);
 

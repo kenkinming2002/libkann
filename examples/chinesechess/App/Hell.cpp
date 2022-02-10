@@ -8,8 +8,6 @@
 
 #include <libkann/utilities/random.hpp>
 
-#include <libkann/Build.hpp>
-
 #include <SFML/Window/Event.hpp>
 
 #include <iostream>
@@ -44,16 +42,14 @@ namespace App
   {
     // Program options
     std::optional<seed_type> seed;
-    std::vector<size_t> agentHiddenLayers;
     std::optional<double> agentLearningRate;
 
     // Parse Program Options
-    enum OptionVal : int { SEED = 0, AGENT_HIDDEN_LAYERS = 1, AGENT_LEARNING_RATE = 2 };
+    enum OptionVal : int { SEED = 0, AGENT_LEARNING_RATE = 1 };
 
     struct option options[] =
     {
       {"seed"               , required_argument, nullptr, SEED},
-      {"agent-hidden-layers", required_argument, nullptr, AGENT_HIDDEN_LAYERS},
       {"agent-learning-rate", required_argument, nullptr, AGENT_LEARNING_RATE},
       {"help"               , no_argument      , nullptr, 'h'},
       {0, 0, 0, 0}
@@ -66,11 +62,6 @@ namespace App
       case SEED:
         seed = lexical_cast<seed_type>(optarg);
         break;
-        break;
-      case AGENT_HIDDEN_LAYERS:
-        for(char* cur = strtok(optarg, ","); cur != nullptr; cur = strtok(nullptr, ","))
-          agentHiddenLayers.push_back(lexical_cast<size_t>(cur));
-        break;
       case AGENT_LEARNING_RATE:
         agentLearningRate = lexical_cast<double>(optarg);
         break;
@@ -82,69 +73,30 @@ namespace App
         return EXIT_FAILURE;
     }
 
-  if(optind < argc)
-  {
-    std::clog << "error: too many arguments\n";
-    usage();
-    return EXIT_FAILURE;
-  }
-
-  if(!seed) seed = random<seed_type>();
-  if(agentHiddenLayers.empty()) agentHiddenLayers = {32, 32, 32, 32};
-  if(!agentLearningRate) agentLearningRate = 0.1;
-
-  // DEBUG
-  {
-    std::clog << "DEBUG: seed=" << *seed << '\n';
-    std::clog << "DEBUG: agentHiddenLayers={";
-    for(size_t i=0; i<agentHiddenLayers.size()-1; ++i)
-      std::clog << agentHiddenLayers[i] << ',';
-    std::clog << agentHiddenLayers.back();
-    std::clog << "}\n";
-    std::clog << "DEBUG: agentLearningRate=" << *agentLearningRate << '\n';
-  }
-
-  Hell(*seed, agentHiddenLayers, *agentLearningRate).run();
-  return EXIT_SUCCESS;
-  }
-
-  namespace
-  {
-    Agent makeAgent(Hell::seed_type seed, const std::vector<size_t>& agentHiddenLayers, double learningRate)
+    if(optind < argc)
     {
-      Hell::random_engine_type engine(seed);
-
-      static std::shared_ptr<kann::Layer> layer = [&agentHiddenLayers]()
-      {
-        const auto activationFunction = kann::ActivationFunction(kann::ActivationFunction::Type::SIGMOID);
-
-        std::vector<size_t> topology;
-
-        topology.push_back(Agent::INPUT_LAYER_SIZE);
-        topology.insert(topology.end(), agentHiddenLayers.begin(), agentHiddenLayers.end());
-        topology.push_back(Agent::OUTPUT_LAYER_SIZE);
-
-        auto layer = std::make_shared<kann::SequentialLayer>();
-        for(size_t i=0; i < topology.size()-1; ++i)
-        {
-          size_t prevSize = topology[i];
-          size_t nextSize = topology[i+1];
-          layer->addLayer(std::make_shared<kann::WeightLayer>(prevSize, nextSize));
-          layer->addLayer(std::make_shared<kann::ActivationLayer>(nextSize, activationFunction));
-        }
-        return layer;
-      }();
-
-      auto model = std::make_shared<kann::Model>(layer);
-      model->randomize();
-      return Agent(std::move(model), learningRate);
+      std::clog << "error: too many arguments\n";
+      usage();
+      return EXIT_FAILURE;
     }
+
+    if(!seed) seed = random<seed_type>();
+    if(!agentLearningRate) agentLearningRate = 0.1;
+
+    // DEBUG
+    {
+      std::clog << "DEBUG: seed=" << *seed << '\n';
+      std::clog << "DEBUG: agentLearningRate=" << *agentLearningRate << '\n';
+    }
+
+    Hell(*seed, *agentLearningRate).run();
+    return EXIT_SUCCESS;
   }
 
-  Hell::Hell(seed_type seed, const std::vector<size_t>& agentHiddenLayers, double agentLearningRate)
+  Hell::Hell(seed_type seed, double agentLearningRate)
     : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), ""),
       m_renderer(m_window),
-      m_agent(makeAgent(seed, agentHiddenLayers, agentLearningRate)) {}
+      m_agent(Agent::makeModel(), agentLearningRate) {}
 
   void Hell::run()
   {

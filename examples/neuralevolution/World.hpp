@@ -34,7 +34,6 @@ public:
     size_t initialBerryBushesClusterCount;
   };
   World(Config config, Creature::Config creatureConfig,
-      Creature::ModelConfig creatureModelConfig,
       BerryBush::Config berryBushConfig);
 
 public:

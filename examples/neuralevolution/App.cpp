@@ -27,9 +27,6 @@ App::App(seed_type seed)
       .eatingCooldown                = CONFIG.creature.eatingCooldown,
       .matingCooldown                = CONFIG.creature.matingCooldown,
       .viewDistance                  = CONFIG.creature.viewDistance,
-    }, Creature::ModelConfig{
-      .hiddenLayers = CONFIG.creature.hiddenLayers,
-      .memory       = CONFIG.creature.memory
     }, BerryBush::Config{
       .energyPerBerry = CONFIG.berryBush.energyPerBerry,
       .maxBerryCount  = CONFIG.berryBush.maxBerryCount,

@@ -40,8 +40,8 @@ namespace kann
   LayerVariable DeconvolutionalLayer::operator()(Scope scope, LayerVariable input) const
   {
     /* TODO: Consider marking them as override final */
-    const size_t outputWidth = m_inputWidth - m_kernelSize + 1;
-    const size_t outputHeight = m_inputHeight - m_kernelSize + 1;
+    const size_t outputWidth = m_inputWidth + m_kernelSize - 1;
+    const size_t outputHeight = m_inputHeight + m_kernelSize - 1;
 
     // 1: Retrive input variable
     auto inputVariable = input.variable;
