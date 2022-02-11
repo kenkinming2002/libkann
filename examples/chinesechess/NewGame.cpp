@@ -1,21 +1,32 @@
 #include "NewGame.hpp"
 
-void NewGame::run(NewAgent& agent1, NewAgent& agent2)
+GameResult game(NewAgent& agent1, NewAgent& agent2)
 {
+  Board board;
+
+  struct UndoInfo
+  {
+    Board::Move move;
+    Board::Cell cell;
+  };
+  std::stack<UndoInfo> undoInfos;
+
+  std::optional<Board::Cell::Color> winner;
+
   for(;;)
   {
-    auto f = [this](NewAgent& agent, Board::Cell::Color color)
+    auto f = [&](NewAgent& agent, Board::Cell::Color color)
     {
-      auto move = agent.selectMove(m_board, color);
-      auto cell = m_board.performMove(move);
-      m_undoInfos.push(UndoInfo{
+      auto move = agent.selectMove(board, color);
+      auto cell = board.performMove(move);
+      undoInfos.push(UndoInfo{
         .move = move,
         .cell = cell
       });
 
       if(cell.type == Board::Cell::Type::GENERAL)
       {
-        m_winner = color;
+        winner = color;
         return true;
       }
 
@@ -25,4 +36,11 @@ void NewGame::run(NewAgent& agent1, NewAgent& agent2)
     if(f(agent1, Board::Cell::Color::RED)) break;
     if(f(agent2, Board::Cell::Color::BLACK)) break;
   }
+
+  auto [score1, score2] = board.estimateScore();
+  return GameResult{
+    .winner = winner,
+    .score1 = score1,
+    .score2 = score2
+  };
 }
