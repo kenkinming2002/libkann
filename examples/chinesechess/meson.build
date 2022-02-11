@@ -11,6 +11,7 @@ chinesechess_sources = [
   'App/GeneratePopulations.cpp',
   'App/Match.cpp',
   'Agent.cpp',
+  'AIAgent.cpp',
   'Match.cpp'
 ]
 sfml_dep = dependency('sfml-all')
