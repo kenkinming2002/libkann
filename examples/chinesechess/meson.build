@@ -4,6 +4,7 @@ chinesechess_sources = [
   'Renderer.cpp',
   'main.cpp',
   'Game.cpp',
+  'NewGame.cpp',
   'Board.cpp',
   'App/Hell.cpp',
   'App/Match/AgentPlayer.cpp',
