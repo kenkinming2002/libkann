@@ -212,16 +212,16 @@ int match(int argc, char* argv[])
     switch(c)
     {
     case 'h':
-      usage();
+      match_usage();
       return EXIT_SUCCESS;
     case '?':
-      usage();
+      match_usage();
       return EXIT_FAILURE;
     }
 
   if(argc != 3)
   {
-    usage();
+    match_usage();
     return EXIT_FAILURE;
   }
 
