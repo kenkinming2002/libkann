@@ -6,6 +6,7 @@ chinesechess_sources = [
   'Game.cpp',
   'Board.cpp',
   'AIAgent.cpp',
+  'MinimaxAgent.cpp',
   'HumanAgent.cpp',
 ]
 sfml_dep = dependency('sfml-all')

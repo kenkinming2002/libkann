@@ -3,6 +3,7 @@
 
 #include "HumanAgent.hpp"
 #include "AIAgent.hpp"
+#include "MinimaxAgent.hpp"
 
 #include "cereal/archives/binary.hpp"
 #include "utilities/lexical_cast.hpp"
@@ -176,6 +177,11 @@ std::unique_ptr<Agent> match_open_agent(char* uri)
     archive(agent);
 
     return std::make_unique<AIAgent>(std::move(agent));
+  }
+  else if(scheme == "minimax")
+  {
+    std::clog << "LOG: Creating minimax agent with name=" << name << '\n';
+    return std::make_unique<MinimaxAgent>();
   }
   else
   {
