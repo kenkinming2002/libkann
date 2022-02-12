@@ -17,7 +17,8 @@ Board::Move HumanAgent::selectMove(const Board& board, Board::Cell::Color color)
 {
   // Update board
   {
-    std::lock_guard guard(m_mutexBoard);
+    std::lock_guard guard(m_mutex);
+    m_color = color;
     m_board = board;
   }
 
@@ -38,7 +39,7 @@ Board::Move HumanAgent::selectMove(const Board& board, Board::Cell::Color color)
 
   // Update board
   {
-    std::lock_guard guard(m_mutexBoard);
+    std::lock_guard guard(m_mutex);
     m_board.performMove(move);
   }
 
@@ -63,11 +64,13 @@ void HumanAgent::loop(std::stop_token token)
       case sf::Event::MouseButtonPressed:
         if(auto coords = m_renderer.screenToBoardCoords({evnt.mouseButton.x, evnt.mouseButton.y}))
         {
-          if(!src)
-            src = coords;
-
-          if(!dst)
-            dst = coords;
+          {
+            std::lock_guard guard(m_mutex);
+            if(m_board.cell(*coords).color != m_color)
+              dst = coords;
+            else
+              src = coords;
+          }
 
           if(src && dst)
           {
@@ -90,7 +93,10 @@ void HumanAgent::loop(std::stop_token token)
       }
     }
 
-    m_renderer.draw(m_board);
+    {
+      std::lock_guard guard(m_mutex);
+      m_renderer.draw(m_board);
+    }
     m_window.display();
   }
 

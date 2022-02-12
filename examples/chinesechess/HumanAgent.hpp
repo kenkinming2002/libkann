@@ -24,7 +24,8 @@ private:
   sf::RenderWindow m_window;
   Renderer m_renderer;
 
-  std::mutex m_mutexBoard;
+  std::mutex m_mutex;
+  Board::Cell::Color m_color;
   Board m_board;
 
   std::mutex m_mutexMove;
