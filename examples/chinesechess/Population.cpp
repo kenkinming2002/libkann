@@ -57,18 +57,22 @@ void Population::select(size_t iterations, std::default_random_engine& engine, d
     return score1 < score2;
   });
 
-  std::cout << "Eliminating..." << std::flush;
   const size_t eliminateCount = scores.size()/2;
-  for(size_t i=0; i<eliminateCount; ++i)
+
+  std::cout << "Eliminating..." << std::flush;
   {
-    const auto& [index, score] = scores[i];
-    std::swap(m_agents[index], m_agents.back());
-    m_agents.pop_back();
+    std::vector<AIAgent> newAgents;
+    for(size_t i=eliminateCount; i<scores.size(); ++i)
+    {
+      const auto& [index, score] = scores[i];
+      newAgents.push_back(std::move(m_agents[index]));
+    }
+    m_agents = std::move(newAgents);
   }
   std::cout << "Done\n";
 
   std::cout << "Generating..." << std::flush;
-  std::uniform_int_distribution<size_t> dist(0, m_agents.size());
+  std::uniform_int_distribution<size_t> dist(0, m_agents.size()-1);
   for(size_t i=0; i<eliminateCount; ++i)
   {
     size_t index1 = dist(engine);
