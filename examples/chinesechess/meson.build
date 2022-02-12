@@ -9,7 +9,6 @@ chinesechess_sources = [
   'App/Hell.cpp',
   'App/Match/AgentPlayer.cpp',
   'App/Match/Agents.cpp',
-  'App/GeneratePopulations.cpp',
   'App/Match.cpp',
   'Agent.cpp',
   'AIAgent.cpp',
