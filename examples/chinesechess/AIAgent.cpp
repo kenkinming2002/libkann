@@ -1,4 +1,5 @@
 #include "AIAgent.hpp"
+#include "libkann/Model.hpp"
 
 #include <libkann/Loader.hpp>
 
@@ -9,6 +10,12 @@ AIAgent AIAgent::make()
   static auto layer = kann::loadLayer("examples/chinesechess/agent.yaml");
   auto model = std::make_shared<kann::Model>(layer);
   model->randomize();
+  return AIAgent(std::move(model));
+}
+
+AIAgent AIAgent::cross(const AIAgent& lhs, const AIAgent& rhs, std::default_random_engine& engine, double mutationRate)
+{
+  auto model = kann::cross(*lhs.m_model, *rhs.m_model, engine, mutationRate);
   return AIAgent(std::move(model));
 }
 

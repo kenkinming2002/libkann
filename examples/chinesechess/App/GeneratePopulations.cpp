@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <getopt.h>
+#include <random>
 
 namespace App
 {
@@ -98,7 +99,7 @@ namespace App
       usage();
       return EXIT_FAILURE;
     }
-    if(!populationSeed) populationSeed = random<seed_type>();
+    if(!populationSeed) populationSeed = random<GeneratePopulations::seed_type>();
     if(!populationSize) populationSize = 5000;
     if(!selectionIterationsCount) selectionIterationsCount = 10;
 
@@ -115,7 +116,7 @@ namespace App
   }
 
   GeneratePopulations::GeneratePopulations(const char* outputDirectory, seed_type populationSeed, size_t populationSize, size_t selectionIterationsCount)
-    : m_outputDirectory(outputDirectory), m_population(populationSeed, populationSize), m_selectionIterations(selectionIterationsCount)
+    : m_outputDirectory(outputDirectory), m_population(populationSize), m_selectionIterations(selectionIterationsCount)
   {
     std::clog << "Running with seed " << populationSeed << '\n';
   }
@@ -123,18 +124,14 @@ namespace App
   void GeneratePopulations::run()
   {
     // Initial
-    auto write = [this](size_t i) {
-      std::cout << "Writing population " << i << "..." << std::flush;
-      m_population.writeTo(m_outputDirectory / ("population" + std::to_string(i)));
-      std::cout << "Done\n";
-    };
-
-    write(0);
-    for(size_t i=1;;++i)
+    for(size_t i=0;;++i)
     {
-      std::clog << "Generating population " << i << "...\n";
-      m_population.select(m_selectionIterations);
-      write(i);
+      std::cout << "Writing population " << i << "..." << std::flush;
+      m_population.write(m_outputDirectory / ("population" + std::to_string(i)));
+      std::cout << "Done\n";
+
+      std::clog << "Generating population " << i+1 << "...\n";
+      m_population.select(m_selectionIterations, m_engine, 0.5);
       std::clog << "Population " << i << " generated\n";
     }
   }
