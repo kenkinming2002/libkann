@@ -164,7 +164,7 @@ std::unique_ptr<Agent> match_open_agent(char* uri)
 
   if(scheme == "human")
   {
-    std::clog << "LOG: Creating humane agent with name=" << name << '\n';
+    std::clog << "LOG: Creating human agent with name=" << name << '\n';
     return std::make_unique<HumanAgent>();
   }
   else if(scheme == "ai")
