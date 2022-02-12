@@ -1,6 +1,6 @@
 #include "Population.hpp"
 
-#include "Match.hpp"
+#include "Game.hpp"
 
 #include <libkann/layers/SequentialLayer.hpp>
 #include <libkann/layers/WeightLayer.hpp>
@@ -9,70 +9,92 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/details/helpers.hpp>
 
+#include <algorithm>
 #include <fstream>
+#include <sstream>
 #include <string>
 
-Population::Population(seed_type seed, size_t size) : m_generator(seed)
+Population::Population(size_t size)
 {
-  assert(size % 2 == 0 && "population size must be even");
+  m_agents.reserve(size);
   for(size_t i=0; i<size; ++i)
-    m_agents.emplace_back(Agent::makeModel(), 0.0);
+    m_agents.push_back(AIAgent::make());
 }
 
-void Population::select(size_t iterations, double mutationRate)
+void Population::select(size_t iterations, std::default_random_engine& engine, double mutationRate)
 {
-  const size_t size = m_agents.size();
+  // Select and eliminate
+  std::vector<std::pair<size_t, double>> scores;
+  scores.reserve(m_agents.size());
+  for(size_t i=0; i<m_agents.size(); ++i)
+    scores.emplace_back(i, 0.0);
 
-  // Score
-  std::clog << "Scoring individual agents..." << std::flush;
+  std::cout << "Scoring..." << std::flush;
+  for(size_t i=0; i<iterations; ++i)
   {
-    for(size_t i=0; i<iterations; ++i)
+    std::shuffle(scores.begin(), scores.end(), engine);
+    for(size_t j=0; j<m_agents.size(); j+=2)
     {
-      std::shuffle(m_agents.begin(), m_agents.end(), m_generator);
+      auto& [index1, score1] = scores[j];
+      auto& [index2, score2] = scores[j+1];
 
-#pragma omp parallel for
-      for(size_t j=0; j<m_agents.size(); j+=2)
-      {
-        auto& agent1 = m_agents[j+0];
-        auto& agent2 = m_agents[j+1];
-        auto result = match(agent1, agent2, 1000);
-        agent1.addScore(result.score1 - result.score2);
-        agent2.addScore(result.score2 - result.score1);
-      }
+      AIAgent& agent1 = m_agents[index1];
+      AIAgent& agent2 = m_agents[index2];
+
+      GameResult result1 = game(agent1, agent2);
+      GameResult result2 = game(agent2, agent1);
+
+      score1 += result1.score1 + result2.score2;
+      score2 += result1.score2 + result2.score1;
     }
   }
-  std::clog << "Done\n";
+  std::cout << "Done\n";
 
-  // Eliminate
-  std::clog << "Eliminating incompetent agents..." << std::flush;
+  std::sort(scores.begin(), scores.end(), [](const auto& lhs, const auto& rhs) {
+    const auto& [index1, score1] = lhs;
+    const auto& [index2, score2] = rhs;
+    return score1 < score2;
+  });
+
+  const size_t eliminateCount = scores.size()/2;
+
+  std::cout << "Eliminating..." << std::flush;
   {
-    std::sort(m_agents.begin(), m_agents.end(), [](const Agent& lhs, const Agent& rhs){
-        return lhs.score() > rhs.score();
-    });
-    m_agents.erase(std::next(m_agents.begin(), size/2), m_agents.end());
-
-    // Clear score
-    std::for_each(m_agents.begin(), m_agents.end(), std::mem_fn(&Agent::clearScore));
+    std::vector<AIAgent> newAgents;
+    for(size_t i=eliminateCount; i<scores.size(); ++i)
+    {
+      const auto& [index, score] = scores[i];
+      newAgents.push_back(std::move(m_agents[index]));
+    }
+    m_agents = std::move(newAgents);
   }
-  std::clog << "Done\n";
+  std::cout << "Done\n";
 
-  // Cross
-  std::clog << "Generating new agents from survivor..." << std::flush;
+  std::cout << "Generating..." << std::flush;
+  std::uniform_int_distribution<size_t> dist(0, m_agents.size()-1);
+  for(size_t i=0; i<eliminateCount; ++i)
   {
-    std::generate_n(std::back_inserter(m_agents), size/2, [&](){
-        std::uniform_int_distribution<size_t> indexDistribution(0, size/2-1);
-        const Agent& agent1 = m_agents[indexDistribution(m_generator)];
-        const Agent& agent2 = m_agents[indexDistribution(m_generator)];
-        return Agent::cross(agent1, agent2, m_generator, mutationRate);
-    });
+    size_t index1 = dist(engine);
+    size_t index2 = dist(engine);
+
+    auto agent = AIAgent::cross(m_agents[index1], m_agents[index2], engine, mutationRate);
+    m_agents.push_back(std::move(agent));
   }
-  std::clog << "Done\n";
+  std::cout << "Done\n";
 }
 
-
-void Population::writeTo(const std::filesystem::path& directory) const
+void Population::write(const std::filesystem::path& path)
 {
-  std::filesystem::create_directories(directory);
+  std::filesystem::create_directories(path);
   for(size_t i=0; i<m_agents.size(); ++i)
-    m_agents[i].saveToFile(directory/("agent"+std::to_string(i)));
+  {
+    std::stringstream ss;
+    ss << "agent" << std::setfill('0') << std::setw(5) << i;
+    auto filename = ss.str();
+
+    std::ofstream file(path / filename);
+    cereal::BinaryOutputArchive archive(file);
+
+    archive(m_agents[i]);
+  }
 }

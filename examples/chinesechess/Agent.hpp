@@ -1,77 +1,16 @@
 #pragma once
 
 #include "Board.hpp"
-#include "Game.hpp"
-
-#include <libkann/Optimizer.hpp>
-#include <libkann/Model.hpp>
-
-#include <optional>
-#include <filesystem>
 
 class Agent
 {
 public:
-  static constexpr size_t INPUT_LAYER_SIZE = Board::WIDTH * Board::HEIGHT * 2; /* board states */
-  static constexpr size_t OUTPUT_LAYER_SIZE = 1; /* score of the boatd */
+  virtual ~Agent() = default;
 
 public:
-  static std::shared_ptr<kann::Model> makeModel();
-
-public:
-  Agent() = default;
-  Agent(std::shared_ptr<kann::Model> model, double learningRate);
-
-public:
-  void loadFromFile(std::filesystem::path filePath);
-  void saveToFile(std::filesystem::path filePath) const;
-
-public:
-  auto& model() { return m_model; }
-  const auto& model() const { return m_model; }
-
-public:
-  std::optional<Board::Move> selectMove(Board board, Board::Cell::Color color);
-  double evaluateBoard(const Board& board, Board::Cell::Color color);
-
-public:
-  void learnFrom(const Board& board, Board::Cell::Color color, bool good);
-  void learnFrom(Game& game);
-
-public:
-  static Agent cross(const Agent& lhs, const Agent& rhs, std::default_random_engine& engine, double mutationRate);
-
-public:
-  void addScore(double value) { m_score += value; }
-  auto clearScore() { m_score = 0.0; }
-
-public:
-  auto score() const { return m_score; }
+  virtual Board::Move selectMove(const Board& board, Board::Cell::Color color) = 0;
 
 public:
   template<typename Archive>
-  void save(Archive& archive) const
-  {
-    archive(m_model);
-    archive(m_optimizer);
-  }
-
-  template<typename Archive>
-  void load(Archive& archive)
-  {
-    archive(m_model);
-    archive(m_optimizer);
-  }
-
-private:
-  std::shared_ptr<kann::Model> m_model;
-
-  double m_learningRate;
-  std::shared_ptr<kann::Optimizer> m_optimizer;
-
-  double m_score = 0.0;
-
-private:
-  mutable std::filesystem::path m_filePath;
+  void serialize(Archive& archive) {}
 };
-

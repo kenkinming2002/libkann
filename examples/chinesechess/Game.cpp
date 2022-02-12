@@ -1,61 +1,81 @@
 #include "Game.hpp"
 
-#include <cassert>
-#include <algorithm>
-#include <iostream>
+#include <tuple>
 
-void Game::performMove(Board::Move move, Board::Cell::Color color)
+GameResult game(Agent& agent1, Agent& agent2)
 {
-  assert(!this->ended());
-  assert(color != Board::Cell::Color::NONE);
+  Board board;
 
-  auto cell = m_board.performMove(move);
-  m_history.emplace_back(move, cell);
-  if(cell.type == Board::Cell::Type::GENERAL)
-    m_winningColor = color;
-}
-
-bool Game::undoMove()
-{
-  if(!m_history.empty())
+  struct UndoInfo
   {
-    auto [move, cell] = m_history.back();
-    m_board.undoMove(move, cell);
-    m_history.pop_back();
-    if(cell.type == Board::Cell::Type::GENERAL)
-      m_winningColor = Board::Cell::Color::NONE;
+    Board::Move move;
+    Board::Cell cell;
+  };
+  std::vector<UndoInfo> undoInfos;
 
-    return true;
+  std::optional<Board::Cell::Color> winner;
+
+  static constexpr size_t MAX_MOVE = 50;
+  for(size_t i=0; i<MAX_MOVE; ++i)
+  {
+    auto f = [&](Agent& agent, Board::Cell::Color color)
+    {
+      if(board.enumerateMove(color).empty())
+      {
+        winner = color == Board::Cell::Color::RED
+          ? Board::Cell::Color::BLACK
+          : Board::Cell::Color::RED;
+
+        return true;
+      }
+
+      auto move = agent.selectMove(board, color);
+      auto cell = board.performMove(move);
+      undoInfos.push_back(UndoInfo{
+        .move = move,
+        .cell = cell
+      });
+
+      if(cell.type == Board::Cell::Type::GENERAL)
+      {
+        winner = color;
+        return true;
+      }
+
+      return false;
+    };
+
+    if(f(agent1, Board::Cell::Color::RED)) break;
+    if(f(agent2, Board::Cell::Color::BLACK)) break;
+  }
+
+  double score1, score2;
+  if(winner)
+  {
+    if(*winner == Board::Cell::Color::RED)
+    {
+      score1 = 100.0;
+      score2 = 0.0;
+    }
+    else
+    {
+      score1 = 0.0;
+      score2 = 1.0;
+    }
   }
   else
-    return false;
-}
+    std::tie(score1, score2) = board.estimateScore();
 
-void Game::moveExhausted(Board::Cell::Color color)
-{
-  assert(!this->ended());
-  assert(color != Board::Cell::Color::NONE);
+  std::vector<Board::Move> moves;
+  moves.reserve(undoInfos.size());
+  std::transform(undoInfos.begin(), undoInfos.end(), std::back_inserter(moves), [](const UndoInfo& info){
+    return info.move;
+  });
 
-  m_winningColor = color == Board::Cell::Color::RED ? Board::Cell::Color::BLACK : Board::Cell::Color::RED;
-}
-
-bool Game::draw() const
-{
-  if(m_history.size() < 4)
-    return false;
-
-  auto complementary = [](auto val1, auto val2){
-    auto [move1, cell1] = val1;
-    auto [move2, cell2] = val2;
-    return move1.src == move2.dst && move1.dst == move2.src;
+  return GameResult{
+    .moves = std::move(moves),
+    .winner = winner,
+    .score1 = score1,
+    .score2 = score2
   };
-
-  auto benign = [](auto val){
-    auto [move, cell] = val;
-    return cell.empty();
-  };
-  
-  return std::all_of(std::prev(m_history.end(), 4), m_history.end(), benign) &&
-    complementary(*std::prev(m_history.end(), 1), *std::prev(m_history.end(), 3)) &&
-    complementary(*std::prev(m_history.end(), 2), *std::prev(m_history.end(), 4));
 }
