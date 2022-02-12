@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NewAgent.hpp"
+#include "Agent.hpp"
 #include "Renderer.hpp"
 
 #include <libkann/Model.hpp>
@@ -9,7 +9,7 @@
 #include <mutex>
 #include <condition_variable>
 
-class HumanAgent : public NewAgent
+class HumanAgent : public Agent
 {
 public:
   HumanAgent();

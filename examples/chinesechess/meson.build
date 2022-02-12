@@ -4,12 +4,9 @@ chinesechess_sources = [
   'Renderer.cpp',
   'main.cpp',
   'Game.cpp',
-  'NewGame.cpp',
   'Board.cpp',
-  'Agent.cpp',
   'AIAgent.cpp',
   'HumanAgent.cpp',
-  'Match.cpp'
 ]
 sfml_dep = dependency('sfml-all')
 chinesechess = executable('chinesechess', chinesechess_sources,

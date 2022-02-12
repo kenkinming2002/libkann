@@ -1,5 +1,5 @@
 #include "Population.hpp"
-#include "NewGame.hpp"
+#include "Game.hpp"
 
 #include "HumanAgent.hpp"
 #include "AIAgent.hpp"
@@ -147,7 +147,7 @@ void match_usage()
   std::clog << "    print this help message\n";
 }
 
-std::unique_ptr<NewAgent> match_open_agent(char* uri)
+std::unique_ptr<Agent> match_open_agent(char* uri)
 {
   // C dark magic to avoid memory allocation
   char* colon = strchr(uri, ':');

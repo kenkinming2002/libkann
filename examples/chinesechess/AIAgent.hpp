@@ -1,12 +1,12 @@
 #pragma once
 
-#include "NewAgent.hpp"
+#include "Agent.hpp"
 
 #include <libkann/Model.hpp>
 
 #include <cereal/types/memory.hpp>
 
-class AIAgent : public NewAgent
+class AIAgent : public Agent
 {
 public:
   static AIAgent make();

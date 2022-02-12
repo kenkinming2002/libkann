@@ -1,7 +1,6 @@
 #include "Population.hpp"
 
-#include "Match.hpp"
-#include "NewGame.hpp"
+#include "Game.hpp"
 
 #include <libkann/layers/SequentialLayer.hpp>
 #include <libkann/layers/WeightLayer.hpp>
