@@ -6,7 +6,6 @@ chinesechess_sources = [
   'Game.cpp',
   'NewGame.cpp',
   'Board.cpp',
-  'App/Hell.cpp',
   'Agent.cpp',
   'AIAgent.cpp',
   'HumanAgent.cpp',

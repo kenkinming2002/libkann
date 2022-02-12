@@ -1,5 +1,3 @@
-#include "App.hpp"
-
 #include "Population.hpp"
 #include "NewGame.hpp"
 
@@ -14,22 +12,6 @@
 #include <iostream>
 #include <getopt.h>
 #include <random>
-
-void usage()
-{
-  std::clog << "Usage: chinesechess COMMANDS\n";
-  std::clog << "\n";
-
-  std::clog << "Commands:\n";
-  std::clog << "  generate-populations    Generate populations\n";
-  std::clog << "  match                   Play a match between 2 agents or with an agent.\n";
-  std::clog << "  hell                    Play agaist an agent whose sole purpose is to beat you and will learn from you.\n";
-  std::clog << "\n";
-
-  std::clog << "Options:\n";
-  std::clog << "  -h,--help\n";
-  std::clog << "    print this help message\n";
-}
 
 void generate_populations_usage()
 {
@@ -237,6 +219,21 @@ int match(int argc, char* argv[])
   return EXIT_SUCCESS;
 }
 
+void usage()
+{
+  std::clog << "Usage: chinesechess COMMANDS\n";
+  std::clog << "\n";
+
+  std::clog << "Commands:\n";
+  std::clog << "  generate-populations    Generate populations\n";
+  std::clog << "  match                   Play a match between 2 agents or with an agent.\n";
+  std::clog << "\n";
+
+  std::clog << "Options:\n";
+  std::clog << "  -h,--help\n";
+  std::clog << "    print this help message\n";
+}
+
 int main(int argc, char* argv[])
 {
   // Detect subcommand
@@ -247,9 +244,6 @@ int main(int argc, char* argv[])
 
     if(strcmp("match", argv[1]) == 0)
       return match(argc-1, argv+1);
-
-    if(strcmp("hell", argv[1]) == 0)
-      return App::Hell::main(argc-1, argv+1);
   }
 
   // Parse for help argument
