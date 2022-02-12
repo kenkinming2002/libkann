@@ -1,5 +1,7 @@
 #include "NewGame.hpp"
 
+#include <tuple>
+
 GameResult game(NewAgent& agent1, NewAgent& agent2)
 {
   Board board;
@@ -13,10 +15,20 @@ GameResult game(NewAgent& agent1, NewAgent& agent2)
 
   std::optional<Board::Cell::Color> winner;
 
-  for(;;)
+  static constexpr size_t MAX_MOVE = 50;
+  for(size_t i=0; i<MAX_MOVE; ++i)
   {
     auto f = [&](NewAgent& agent, Board::Cell::Color color)
     {
+      if(board.enumerateMove(color).empty())
+      {
+        winner = color == Board::Cell::Color::RED
+          ? Board::Cell::Color::BLACK
+          : Board::Cell::Color::RED;
+
+        return true;
+      }
+
       auto move = agent.selectMove(board, color);
       auto cell = board.performMove(move);
       undoInfos.push(UndoInfo{
@@ -37,7 +49,23 @@ GameResult game(NewAgent& agent1, NewAgent& agent2)
     if(f(agent2, Board::Cell::Color::BLACK)) break;
   }
 
-  auto [score1, score2] = board.estimateScore();
+  double score1, score2;
+  if(winner)
+  {
+    if(*winner == Board::Cell::Color::RED)
+    {
+      score1 = 100.0;
+      score2 = 0.0;
+    }
+    else
+    {
+      score1 = 0.0;
+      score2 = 1.0;
+    }
+  }
+  else
+    std::tie(score1, score2) = board.estimateScore();
+
   return GameResult{
     .winner = winner,
     .score1 = score1,
