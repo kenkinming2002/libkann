@@ -13,6 +13,7 @@ public:
   static AIAgent cross(const AIAgent& lhs, const AIAgent& rhs, std::default_random_engine& engine, double mutationRate);
 
 public:
+  AIAgent() = default;
   AIAgent(std::shared_ptr<kann::Model> model);
 
 public:

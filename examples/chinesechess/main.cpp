@@ -1,7 +1,12 @@
 #include "App.hpp"
 
 #include "Population.hpp"
+#include "NewGame.hpp"
 
+#include "HumanAgent.hpp"
+#include "AIAgent.hpp"
+
+#include "cereal/archives/binary.hpp"
 #include "utilities/lexical_cast.hpp"
 
 #include <libkann/utilities/random.hpp>
@@ -147,6 +152,91 @@ int generate_populations(int argc, char* argv[])
   return EXIT_SUCCESS;
 }
 
+void match_usage()
+{
+  std::clog << "Usage: chinesechess match AGENT1 AGENT2\n";
+  std::clog << "\n";
+
+  std::clog << "Match between the 2 agents\n";
+  std::clog << "\n";
+
+  std::clog << "Options:\n";
+  std::clog << "  -h,--help\n";
+  std::clog << "    print this help message\n";
+}
+
+std::unique_ptr<NewAgent> match_open_agent(char* uri)
+{
+  // C dark magic to avoid memory allocation
+  char* colon = strchr(uri, ':');
+  if(!colon)
+  {
+    std::cerr << "Error: Uri " << uri << " missing : delimiter\n";
+    return nullptr;
+  }
+
+  *colon = '\0';
+
+  std::string_view scheme = uri;
+  std::string_view name = colon+1;
+
+  if(scheme == "human")
+  {
+    std::clog << "LOG: Creating humane agent with name=" << name << '\n';
+    return std::make_unique<HumanAgent>();
+  }
+  else if(scheme == "ai")
+  {
+    AIAgent agent;
+
+    std::ifstream file(std::string(name.data(), name.length()));
+    cereal::BinaryInputArchive archive(file);
+    archive(agent);
+
+    return std::make_unique<AIAgent>(std::move(agent));
+  }
+  else
+  {
+    std::cerr << "Error: Unknown scheme " << scheme << "\n";
+    return nullptr;
+  }
+}
+
+int match(int argc, char* argv[])
+{
+  // Parse for help argument
+  struct option options[] = {{"help", no_argument, nullptr, 'h'}, {0, 0, 0, 0}};
+  int c;
+  int indexptr;
+  while((c = getopt_long(argc, argv, "h", options, &indexptr)) != -1)
+    switch(c)
+    {
+    case 'h':
+      usage();
+      return EXIT_SUCCESS;
+    case '?':
+      usage();
+      return EXIT_FAILURE;
+    }
+
+  if(argc != 3)
+  {
+    usage();
+    return EXIT_FAILURE;
+  }
+
+  auto agent1 = match_open_agent(argv[1]);
+  if(!agent1)
+    return EXIT_FAILURE;
+
+  auto agent2 = match_open_agent(argv[2]);
+  if(!agent2)
+    return EXIT_FAILURE;
+
+  auto result = game(*agent1, *agent2);
+  return EXIT_SUCCESS;
+}
+
 int main(int argc, char* argv[])
 {
   // Detect subcommand
@@ -156,7 +246,7 @@ int main(int argc, char* argv[])
       return generate_populations(argc-1, argv+1);
 
     if(strcmp("match", argv[1]) == 0)
-      return App::Match::main(argc-1, argv+1);
+      return match(argc-1, argv+1);
 
     if(strcmp("hell", argv[1]) == 0)
       return App::Hell::main(argc-1, argv+1);
