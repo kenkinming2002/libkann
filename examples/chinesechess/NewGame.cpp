@@ -11,7 +11,7 @@ GameResult game(NewAgent& agent1, NewAgent& agent2)
     Board::Move move;
     Board::Cell cell;
   };
-  std::stack<UndoInfo> undoInfos;
+  std::vector<UndoInfo> undoInfos;
 
   std::optional<Board::Cell::Color> winner;
 
@@ -31,7 +31,7 @@ GameResult game(NewAgent& agent1, NewAgent& agent2)
 
       auto move = agent.selectMove(board, color);
       auto cell = board.performMove(move);
-      undoInfos.push(UndoInfo{
+      undoInfos.push_back(UndoInfo{
         .move = move,
         .cell = cell
       });
@@ -66,7 +66,14 @@ GameResult game(NewAgent& agent1, NewAgent& agent2)
   else
     std::tie(score1, score2) = board.estimateScore();
 
+  std::vector<Board::Move> moves;
+  moves.reserve(undoInfos.size());
+  std::transform(undoInfos.begin(), undoInfos.end(), std::back_inserter(moves), [](const UndoInfo& info){
+    return info.move;
+  });
+
   return GameResult{
+    .moves = std::move(moves),
     .winner = winner,
     .score1 = score1,
     .score2 = score2

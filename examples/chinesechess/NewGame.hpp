@@ -8,6 +8,7 @@
 
 struct GameResult
 {
+  std::vector<Board::Move> moves;
   std::optional<Board::Cell::Color> winner;
   double score1, score2;
 };
