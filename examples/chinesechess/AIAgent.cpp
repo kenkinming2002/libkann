@@ -33,16 +33,29 @@ Board::Move AIAgent::selectMove(const Board& board, Board::Cell::Color color)
     auto copy = board;
     copy.performMove(move);
 
-    auto input = std::make_shared<kann::Tensor>(Board::WIDTH * Board::HEIGHT * 2);
-    for(uint8_t y=0; y<Board::HEIGHT; ++y)
-      for(uint8_t x=0; x<Board::WIDTH; ++x)
-      {
-        auto position = Board::Position{x, y};
-        auto cell = copy.cell(position);
-        auto index = (y * Board::WIDTH + x) * 2;
-        input->asArray()(index)   = static_cast<double>(cell.type);
-        input->asArray()(index+1) = cell.color == color ? 1.0 : cell.color == Board::Cell::Color::NONE ? 0.0 : -1.0;
-      }
+    auto input = std::make_shared<kann::Tensor>(Board::WIDTH * Board::HEIGHT * 7);
+    const Board::Cell::Type types[] = {
+      Board::Cell::Type::CHARIOT,
+      Board::Cell::Type::KNIGHT,
+      Board::Cell::Type::ELEPHANT,
+      Board::Cell::Type::ADVISOR,
+      Board::Cell::Type::GENERAL,
+      Board::Cell::Type::CANNON,
+      Board::Cell::Type::SOLDIER
+    };
+    for(size_t i=0; i<sizeof types / sizeof types[0]; ++i)
+      for(uint8_t y=0; y<Board::HEIGHT; ++y)
+        for(uint8_t x=0; x<Board::WIDTH; ++x)
+        {
+          auto position = Board::Position{x, y};
+          auto cell = copy.cell(position);
+          auto index = i * Board::HEIGHT * Board::WIDTH + y * Board::WIDTH + x;
+          input->asArray()(index) =
+            cell.type == types[i]                  ? 0.0 :
+            cell.color == color                    ? 1.0 :
+            cell.color == Board::Cell::Color::NONE ? 0.0 :
+            -1.0;
+        }
 
     auto output = m_model->predict(input);
     double score = output->asScalar();

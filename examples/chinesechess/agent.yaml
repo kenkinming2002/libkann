@@ -1,7 +1,7 @@
 type: "sequential"
 layers:
   - type: "weight"
-    input_size : 180
+    input_size : 630
     output_size : 32
 
   - type: "activation"
