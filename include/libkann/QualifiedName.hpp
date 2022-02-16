@@ -19,6 +19,12 @@ namespace kann
     }
 
   public:
+    Scope toScope() const
+    {
+      return scope + Scope(name);
+    }
+
+  public:
     QualifiedName derive(const std::string& suffix) const
     {
       return QualifiedName{
