@@ -38,7 +38,7 @@ namespace kann
   private:
     Scope layerScope(size_t i) const
     {
-      return Scope(m_taggedLayers[i].tag, "layer"+std::to_string(i));
+      return Scope("layer"+std::to_string(i), m_taggedLayers[i].tag);
     }
 
   private:
@@ -46,13 +46,13 @@ namespace kann
 
     struct TaggedLayer
     {
-      std::shared_ptr<const Layer> layer;
       Tag tag;
+      std::shared_ptr<const Layer> layer;
 
       template<typename Archive>
       void serialize(Archive& archive)
       {
-        archive(layer, tag);
+        archive(tag, layer);
       }
     };
     std::vector<TaggedLayer> m_taggedLayers;

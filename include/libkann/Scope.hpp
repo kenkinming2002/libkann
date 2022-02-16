@@ -16,8 +16,7 @@ namespace kann
     static inline const char* SEPERATOR = ".";
 
   public:
-    Scope(Tag tag = Tag::ALL)        : m_tag(tag) {}
-    Scope(Tag tag, std::string name) : m_tag(tag), m_names{std::move(name)} {}
+    Scope(std::string name = "", Tag tag = Tag::ALL) : m_tag(tag), m_names{std::move(name)} {}
 
   public:
     Tag tag() const { return m_tag; }

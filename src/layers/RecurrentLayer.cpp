@@ -13,8 +13,8 @@ namespace kann
   void RecurrentLayer::addLayer(std::shared_ptr<const Layer> layer, Tag tag)
   {
     m_taggedLayers.push_back(TaggedLayer{
-      .layer = std::move(layer),
-      .tag   = tag
+      .tag   = tag,
+      .layer = std::move(layer)
     });
   }
 
@@ -35,7 +35,7 @@ namespace kann
     std::vector<QualifiedName> result;
 
     size_t i = 0;
-    for(const auto& [layer, tag] : m_taggedLayers)
+    for(const auto& [tag, layer] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
       auto layerParameters = layer->parameters(scope + layerScope);
@@ -49,7 +49,7 @@ namespace kann
     std::vector<QualifiedName> result;
 
     size_t i = 0;
-    for(const auto& [layer, tag] : m_taggedLayers)
+    for(const auto& [tag, layer] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
       auto layerStates = layer->states(scope + layerScope);
@@ -104,7 +104,7 @@ namespace kann
 
     // 2: Pass through layers
     size_t i = 0;
-    for(const auto& [layer, tag] : m_taggedLayers)
+    for(const auto& [tag, layer] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
       auto [_outputVariable, _outputStateVariables] = layer->process(scope+layerScope, {
