@@ -25,25 +25,6 @@ namespace kann
     }
 
   public:
-    QualifiedName derive(const std::string& suffix) const
-    {
-      return QualifiedName{
-        .scope = scope,
-        .name = name + "_" + suffix,
-        .size = size,
-      };
-    }
-
-    QualifiedName derive(const std::string& suffix, size_t size) const
-    {
-      return QualifiedName{
-        .scope = scope,
-        .name = name + "_" + suffix,
-        .size = size,
-      };
-    }
-
-  public:
     auto operator<=>(const QualifiedName&) const = default;
 
   public:

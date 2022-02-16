@@ -138,9 +138,21 @@ namespace kann
       std::make_shared<SubtractOperation>()
     );
 
-    auto m_name  = context.qualifiedName.derive("m");
-    auto v_name  = context.qualifiedName.derive("v");
-    auto ts_name = context.qualifiedName.derive("ts", 1);
+    auto m_name  = QualifiedName{
+      .scope = context.qualifiedName.toScope(),
+      .name = "m",
+      .size = context.qualifiedName.size
+    };
+    auto v_name  = QualifiedName{
+      .scope = context.qualifiedName.toScope(),
+      .name = "v",
+      .size = context.qualifiedName.size
+    };
+    auto ts_name = QualifiedName{
+      .scope = context.qualifiedName.toScope(),
+      .name = "ts",
+      .size = 1
+    };
 
     context.inputState.emplace(m_name,  m);
     context.inputState.emplace(v_name,  v);
