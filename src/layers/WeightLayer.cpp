@@ -35,9 +35,9 @@ namespace kann
     return {weightParameter, biasParameter};
   }
 
-  LayerVariable WeightLayer::operator()(Scope scope, LayerVariable input) const
+  Layer::Output WeightLayer::process(Scope scope, Input input) const
   {
-    auto inputVariable = std::move(input.variable);
+    auto inputVariable = std::move(input.input);
 
     auto weightParameter = QualifiedName{
       .scope = scope,
@@ -51,8 +51,8 @@ namespace kann
       .size = m_outputSize
     };
 
-    auto weightVariable = input.lookup(LayerVariable::Type::PARAMETER, weightParameter);
-    auto biasVariable   = input.lookup(LayerVariable::Type::PARAMETER, biasParameter);
+    auto weightVariable = input.parameter.at(weightParameter);
+    auto biasVariable   = input.parameter.at(biasParameter);
 
     // TODO: Fuse them into a single operation
     auto prodVariable = std::make_shared<const Variable>(
@@ -65,9 +65,10 @@ namespace kann
       std::make_shared<ReduceOperation>(2)
     );
 
-    auto output = std::move(input);
-    output.variable = std::move(outputVariable);
-    return output;
+    return Output{
+      std::move(outputVariable),
+      std::move(input.inputState)
+    };
   }
 
 }

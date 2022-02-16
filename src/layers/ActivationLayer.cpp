@@ -41,13 +41,17 @@ namespace kann
     ActivationFunction m_activationFunction;
   };
 
-  LayerVariable ActivationLayer::operator()(Scope scope, LayerVariable input) const
+  Layer::Output ActivationLayer::process(Scope scope, Input input) const
   {
-    auto output = std::move(input);
-    output.variable = std::make_shared<const Variable>(
-      std::vector{std::move(output.variable)},
+    auto inputVariable = std::move(input.input);
+    auto outputVariable = std::make_shared<const Variable>(
+      std::vector{std::move(inputVariable)},
       std::make_shared<ActivationOperation>(m_activationFunction)
     );
-    return output;
+
+    return Output{
+      std::move(outputVariable),
+      std::move(input.inputState)
+    };
   }
 }

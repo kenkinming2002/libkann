@@ -15,7 +15,7 @@ namespace kann
     size_t outputSize() const override;
 
   public:
-    LayerVariable operator()(Scope scope, LayerVariable input) const override;
+    Output process(Scope scope, Input input) const override;
 
   public:
     template<typename Archive>

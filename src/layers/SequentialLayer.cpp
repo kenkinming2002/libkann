@@ -52,17 +52,28 @@ namespace kann
     return result;
   }
 
-  LayerVariable SequentialLayer::operator()(Scope scope, LayerVariable input) const
+  Layer::Output SequentialLayer::process(Scope scope, Input input) const
   {
-    auto output = std::move(input);
+    auto [inputVariable, parameterVariables, inputStateVariables] = std::move(input);
+    auto outputVariable       = inputVariable;
+    auto outputStateVariables = inputStateVariables;
 
     size_t i = 0;
     for(const auto& [layer, tag] : m_taggedLayers)
     {
       auto layerScope = this->layerScope(i++);
-      output = (*layer)(scope+layerScope, output);
+      auto [_outputVariable, _outputStateVariables] = layer->process(scope+layerScope, {
+        std::move(outputVariable),
+        parameterVariables,
+        std::move(outputStateVariables)
+      });
+      outputVariable       = std::move(_outputVariable);
+      outputStateVariables = std::move(_outputStateVariables);
     }
 
-    return output;
+    return Output{
+      std::move(outputVariable),
+      std::move(outputStateVariables)
+    };
   }
 }

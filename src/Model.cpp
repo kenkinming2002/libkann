@@ -47,21 +47,21 @@ namespace kann
   {
     if(!m_predictExecutor)
     {
-      // 1: Pass variables through layer
-      LayerVariable inputLayerVariable;
-      inputLayerVariable.variable = std::make_shared<const Variable>();
+      VRef inputVariable = std::make_shared<const Variable>();
 
+      VMap parameterVariables;
       for(const auto& [parameter, value] : m_parametersMap)
-        inputLayerVariable.insert(LayerVariable::Type::PARAMETER, parameter);
+        parameterVariables.emplace(parameter, std::make_shared<const Variable>());
 
+      VMap inputStateVariables;
       for(const auto& [parameter, value] : m_statesMap)
-        inputLayerVariable.insert(LayerVariable::Type::STATE, parameter);
+        inputStateVariables.emplace(parameter, std::make_shared<const Variable>());
 
-      LayerVariable outputLayerVariable = (*m_layer)(Scope(), inputLayerVariable);
-
-      // 2: Retrieve variables
-      auto inputVariable  = inputLayerVariable.variable;
-      auto outputVariable = outputLayerVariable.variable;
+      auto [outputVariable, outputStateVariables] = m_layer->process(Scope(), {
+        inputVariable,
+        parameterVariables,
+        inputStateVariables
+      });
 
       m_predictExecutor = makeDefaultExecutor();
 
@@ -70,13 +70,13 @@ namespace kann
 
       // It should not matter whether we look it up from inputLayerVariable or
       // outputLayerVariable
-      for(auto& [parameter, variable] : inputLayerVariable.parameterVariables)
+      for(auto& [parameter, variable] : parameterVariables)
         m_predictExecutor->addInput("parameters_input:"+parameter.toString(), {variable});
 
-      for(auto& [parameter, variable] : inputLayerVariable.stateVariables)
+      for(auto& [parameter, variable] : inputStateVariables)
         m_predictExecutor->addInput("states_input:"+parameter.toString(), {variable});
 
-      for(auto& [parameter, variable] : outputLayerVariable.stateVariables)
+      for(auto& [parameter, variable] : outputStateVariables)
         m_predictExecutor->addOutput("states_output:"+parameter.toString(), {variable});
 
       m_predictExecutor->build();
@@ -150,25 +150,20 @@ namespace kann
     OptimizeState& optimizeState = m_optimizeStates[config];
     if(!optimizeState.executor)
     {
-      // 1: Parameters and states variables
-      std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> inputParameterVariablesMap;
-      std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> outputParameterVariablesMap;
+      VMap inputParameterVariables;
+      VMap outputParameterVariables;
 
-      std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> inputStateVariablesMap;
-      std::unordered_map<QualifiedName, std::shared_ptr<const Variable>> outputStateVariablesMap;
+      VMap inputStateVariables;
+      VMap outputStateVariables;
 
       for(const auto& [parameter, value] : m_parametersMap)
-      {
-        auto [it, success] = inputParameterVariablesMap.emplace(parameter, std::make_shared<const Variable>());
-        assert(success);
-      }
+        inputParameterVariables.emplace(parameter, std::make_shared<const Variable>());
 
-     for(const auto& [parameter, value] : m_statesMap)
-      {
-        auto [it, success] = inputStateVariablesMap.emplace(parameter, std::make_shared<const Variable>());
-        assert(success);
-      }
-      outputStateVariablesMap = inputStateVariablesMap;
+      for(const auto& [parameter, value] : m_statesMap)
+        inputStateVariables.emplace(parameter, std::make_shared<const Variable>());
+
+      outputStateVariables = inputStateVariables;
+
 
       // 2: Create input, expected output, output and output gradient variables by
       // passing them through layer
@@ -179,18 +174,18 @@ namespace kann
 
       for(size_t i=0; i<batchSize; ++i)
       {
-        // 1: Pass variables through layer
-        LayerVariable inputLayerVariable;
+        // 1: Call Layer::process
+        VRef inputVariable = std::make_shared<const Variable>();
+        auto [outputVariable, _outputStateVariables] = m_layer->process(Scope(), {
+            inputVariable,
+            inputParameterVariables,
+            inputStateVariables
+        });
 
-        inputLayerVariable.variable = std::make_shared<const Variable>();
-        inputLayerVariable.parameterVariables = inputParameterVariablesMap;
-        inputLayerVariable.stateVariables     = std::move(outputStateVariablesMap);
+        // 2: New state variables
+        outputStateVariables = std::move(_outputStateVariables);
 
-        LayerVariable outputLayerVariable = (*m_layer)(Scope(), inputLayerVariable);
-
-        // 2: Create expected output variable and compute gradient
-        auto inputVariable  = inputLayerVariable.variable;
-        auto outputVariable = outputLayerVariable.variable;
+        // 3: Create expected output variable and compute gradient
         auto expectedOutputVariable = std::make_shared<const Variable>();
         auto outputGradientVariable = std::make_shared<const Variable>(
           std::vector{std::make_shared<const Variable>(
@@ -200,13 +195,12 @@ namespace kann
           std::make_shared<MultiplyOperation>(2.0)
         );
 
-        // 3: Retrive variables
+        // 4: Retrive variables
         inputVariables.push_back(std::move(inputVariable));
         outputVariables.push_back(std::move(outputVariable));
         expectedOutputVariables.push_back(std::move(expectedOutputVariable));
         outputGradientVariables.push_back(std::move(outputGradientVariable));
 
-        outputStateVariablesMap = std::move(outputLayerVariable.stateVariables);
       }
 
       // 3: New parameter variables
@@ -214,7 +208,7 @@ namespace kann
       VMap optimizerStateOutputVariables;
 
       auto gradientMap = differentiate(outputVariables, outputGradientVariables);
-      for(const auto& [qualifiedName, parameter] : inputParameterVariablesMap)
+      for(const auto& [qualifiedName, parameter] : inputParameterVariables)
       {
         Optimizer::Context context;
         context.qualifiedName = qualifiedName;
@@ -223,7 +217,7 @@ namespace kann
 
         optimizer->process(context);
 
-        outputParameterVariablesMap.emplace(qualifiedName, context.outputParameter);
+        outputParameterVariables.emplace(qualifiedName, context.outputParameter);
         optimizerStateInputVariables.merge(context.inputState);
         optimizerStateOutputVariables.merge(context.outputState);
 
@@ -239,17 +233,17 @@ namespace kann
       for(auto& [qualifiedName, variable] : optimizerStateOutputVariables)
         executor->addOutput("optimizer_states_output:"+qualifiedName.toString(), {variable});
 
-      for(auto& [parameter, variable] : inputParameterVariablesMap)
+      for(auto& [parameter, variable] : inputParameterVariables)
         executor->addInput("parameters_input:"+parameter.toString(), {variable});
 
-      for(auto& [parameter, variable] : outputParameterVariablesMap)
+      for(auto& [parameter, variable] : outputParameterVariables)
         if(static_cast<bool>(parameter.scope.tag() & tag))
           executor->addOutput("parameters_output:"+parameter.toString(), {variable});
 
-      for(auto& [parameter, variable] : inputStateVariablesMap)
+      for(auto& [parameter, variable] : inputStateVariables)
         executor->addInput("states_input:"+parameter.toString(), {variable});
 
-      for(auto& [parameter, variable] : outputStateVariablesMap)
+      for(auto& [parameter, variable] : outputStateVariables)
         executor->addOutput("states_output:"+parameter.toString(), {variable});
 
       executor->addInput("inputs"          , std::move(inputVariables));

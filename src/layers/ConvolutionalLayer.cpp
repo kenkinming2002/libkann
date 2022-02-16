@@ -37,14 +37,14 @@ namespace kann
     return results;
   }
 
-  LayerVariable ConvolutionalLayer::operator()(Scope scope, LayerVariable input) const
+  Layer::Output ConvolutionalLayer::process(Scope scope, Input input) const
   {
     /* TODO: Consider marking them as override final */
     const size_t outputWidth = m_inputWidth - m_kernelSize + 1;
     const size_t outputHeight = m_inputHeight - m_kernelSize + 1;
 
     // 1: Retrive input variable
-    auto inputVariable = input.variable;
+    auto inputVariable = std::move(input.input);
 
     // 2: Split input into channels
     std::vector<std::shared_ptr<const Variable>> inputChannelVariables;
@@ -74,7 +74,7 @@ namespace kann
           .name = "kernel"+std::to_string(i)+"_"+std::to_string(j),
           .size = m_kernelSize * m_kernelSize
         };
-        auto kernelVariable = input.lookup(LayerVariable::Type::PARAMETER, kernelParameter);
+        auto kernelVariable = input.parameter.at(kernelParameter);
         auto variable = std::make_shared<const Variable>(
           std::vector{std::move(inputChannelVariable), std::move(kernelVariable)},
           std::make_shared<ConvolutionOperation>(m_inputWidth, m_inputHeight, m_kernelSize)
@@ -113,8 +113,9 @@ namespace kann
       std::make_shared<ReduceOperation>(m_outputChannelCount)
     );
 
-    auto output = std::move(input);
-    output.variable = std::move(outputVariable);
-    return output;
+    return Output{
+      std::move(outputVariable),
+      std::move(input.inputState)
+    };
   }
 }

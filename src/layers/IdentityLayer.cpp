@@ -19,21 +19,22 @@ namespace kann
     return m_outputSize;
   }
 
-  LayerVariable IdentityLayer::operator()(Scope scope, LayerVariable input) const
+  Layer::Output IdentityLayer::process(Scope scope, Input input) const
   {
     // Fast path
-    if(m_inputSize == m_outputSize)
-      return input;
+    auto inputVariable = std::move(input.input);
 
-    auto inputVariable = std::move(input.variable);
-    auto outputVariable = std::make_shared<const Variable>(
-      std::vector{inputVariable},
-      std::make_shared<IdentityOperation>(m_inputSize, m_outputSize, m_offset)
-    );
+    auto outputVariable = m_inputSize == m_outputSize
+      ? std::move(inputVariable)
+      : std::make_shared<const Variable>(
+         std::vector{std::move(inputVariable)},
+         std::make_shared<IdentityOperation>(m_inputSize, m_outputSize, m_offset)
+        );
 
-    auto output = std::move(input);
-    output.variable = std::move(outputVariable);
-    return output;
+    return Output{
+      std::move(outputVariable),
+      std::move(input.inputState)
+    };
   }
 }
 

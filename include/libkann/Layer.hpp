@@ -3,6 +3,7 @@
 #include <libkann/Tag.hpp>
 #include <libkann/LayerVariable.hpp>
 #include <libkann/Scope.hpp>
+#include <libkann/Types.hpp>
 
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/archives/binary.hpp>
@@ -28,7 +29,20 @@ namespace kann
     virtual std::vector<QualifiedName> parameters(Scope scope) const { return {}; }
     virtual std::vector<QualifiedName> states(Scope scope) const { return {}; }
 
-    virtual LayerVariable operator()(Scope scope, LayerVariable input) const = 0;
+    struct Input
+    {
+      VRef input;
+      VMap parameter;
+      VMap inputState;
+    };
+
+    struct Output
+    {
+      VRef output;
+      VMap outputState;
+    };
+
+    virtual Output process(Scope scope, Input input) const = 0;
 
   public:
     template<typename Archive>

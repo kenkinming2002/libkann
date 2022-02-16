@@ -18,7 +18,7 @@ namespace kann
     std::vector<QualifiedName> parameters(Scope scope) const override;
 
   public:
-    LayerVariable operator()(Scope scope, LayerVariable input) const override;
+    Output process(Scope scope, Input input) const override;
 
   public:
     template<typename Archive>
