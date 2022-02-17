@@ -9,7 +9,7 @@ namespace kann
 {
   /* A variable could be an adjustable constant or result of applying operation
    * on a list of other variables */
-  struct Variable
+  class Variable
   {
   public:
     Variable() = default;
