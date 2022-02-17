@@ -20,7 +20,7 @@ namespace kann
     Model(std::shared_ptr<const Layer> layer);
 
   public:
-    void randomize();
+    void randomize(std::default_random_engine& engine);
 
   public:
     std::shared_ptr<const Tensor> predict(std::shared_ptr<const Tensor> input);

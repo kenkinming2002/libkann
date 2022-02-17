@@ -23,13 +23,17 @@ namespace kann
     auto weightParameter = QualifiedName{
       .scope = scope,
       .name = "weight",
-      .size = m_inputSize * m_outputSize
+      .size = m_inputSize * m_outputSize,
+      .mean = 0.0,
+      .stddev = 1.0 / std::sqrt(m_inputSize)
     };
 
     auto biasParameter = QualifiedName{
       .scope = scope,
       .name = "bias",
-      .size = m_outputSize
+      .size = m_outputSize,
+      .mean = 0.0,
+      .stddev = 0.0
     };
 
     return {weightParameter, biasParameter};
@@ -42,13 +46,17 @@ namespace kann
     auto weightParameter = QualifiedName{
       .scope = scope,
       .name = "weight",
-      .size = m_inputSize * m_outputSize
+      .size = m_inputSize * m_outputSize,
+      .mean = 0.0,
+      .stddev = 1.0 / std::sqrt(m_inputSize)
     };
 
     auto biasParameter = QualifiedName{
       .scope = scope,
       .name = "bias",
-      .size = m_outputSize
+      .size = m_outputSize,
+      .mean = 0.0,
+      .stddev = 0.0
     };
 
     auto weightVariable = input.parameter.at(weightParameter);

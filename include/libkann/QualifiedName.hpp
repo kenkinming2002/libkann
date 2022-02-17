@@ -39,6 +39,9 @@ namespace kann
     std::string name;
 
     size_t size;
+
+    double mean;
+    double stddev;
   };
 
   inline size_t hashCombine(size_t hash1, size_t hash2)

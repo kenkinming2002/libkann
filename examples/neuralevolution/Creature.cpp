@@ -18,7 +18,7 @@ std::shared_ptr<kann::Model> Creature::makeModel(std::default_random_engine& eng
 {
   static auto layer = kann::loadLayer("examples/neuralevolution/creature.yaml");
   auto model = std::make_shared<kann::Model>(layer);
-  model->randomize();
+  model->randomize(engine);
   return model;
 }
 

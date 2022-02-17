@@ -31,7 +31,9 @@ namespace kann
         results.push_back(QualifiedName{
           .scope = scope,
           .name = "kernel"+std::to_string(i)+"_"+std::to_string(j),
-          .size = m_kernelSize * m_kernelSize
+          .size = m_kernelSize * m_kernelSize,
+          .mean = 0.0,
+          .stddev = 1.0 / m_kernelSize
         });
 
     return results;
@@ -72,7 +74,9 @@ namespace kann
         auto kernelParameter = QualifiedName{
           .scope = scope,
           .name = "kernel"+std::to_string(i)+"_"+std::to_string(j),
-          .size = m_kernelSize * m_kernelSize
+          .size = m_kernelSize * m_kernelSize,
+          .mean = 0.0,
+          .stddev = 1.0 / m_kernelSize
         };
         auto kernelVariable = input.parameter.at(kernelParameter);
         auto variable = std::make_shared<const Variable>(

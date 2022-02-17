@@ -9,6 +9,7 @@
 #include <libkann/operations/MultiplyOperation.hpp>
 
 #include <fstream>
+#include <random>
 
 namespace kann
 {
@@ -34,13 +35,31 @@ namespace kann
     }
   }
 
-  void Model::randomize()
+  void Model::randomize(std::default_random_engine& engine)
   {
     for(auto& [parameter, value] : m_parametersMap)
-      value->asArray().setRandom();
+    {
+      auto newValue = std::make_shared<Tensor>(parameter.size);
+
+      std::normal_distribution dist(parameter.mean, parameter.stddev);
+      newValue->asArray() = Eigen::ArrayXd::NullaryExpr(parameter.size, [&](){
+        return dist(engine);
+      });
+
+      value = std::move(newValue);
+    }
 
     for(auto& [parameter, value] : m_statesMap)
-      value->asArray().setRandom();
+    {
+      auto newValue = std::make_shared<Tensor>(parameter.size);
+
+      std::normal_distribution dist(parameter.mean, parameter.stddev);
+      newValue->asArray() = Eigen::ArrayXd::NullaryExpr(parameter.size, [&](){
+        return dist(engine);
+      });
+
+      value = std::move(newValue);
+    }
   }
 
   std::shared_ptr<const Tensor> Model::predict(std::shared_ptr<const Tensor> input)
@@ -262,25 +281,6 @@ namespace kann
     return optimizeState;
   }
 
-  static std::shared_ptr<const Tensor> cross(const std::shared_ptr<const Tensor>& lhs, const std::shared_ptr<const Tensor>& rhs, std::default_random_engine& engine, double mutationRate)
-  {
-    assert(lhs->size() == rhs->size());
-
-    // FIXME: Somehow determine the range
-    std::uniform_real_distribution distWeight(-1.0, 1.0);
-    std::uniform_real_distribution distMutation(0.0,1.0);
-    std::uniform_int_distribution distSelection(0,1);
-
-    auto result = std::make_shared<Tensor>(lhs->size());
-    result->asArray() = lhs->asArray().binaryExpr(rhs->asArray(), [&](double a, double b){
-      if(distMutation(engine)>=mutationRate)
-        return distWeight(engine);
-      else
-        return distSelection(engine) == 0 ? a : b;
-    });
-    return result;
-  }
-
   std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate)
   {
     // They have to have the same underlying structure for cross to work
@@ -288,11 +288,23 @@ namespace kann
 
     auto result = std::make_shared<Model>(lhs.m_layer);
     for(auto& [parameter, value] : result->m_parametersMap)
-      value = cross(
-        lhs.m_parametersMap.at(parameter),
-        rhs.m_parametersMap.at(parameter),
-        engine, mutationRate
-      );
+    {
+      const auto& lhsValue = lhs.m_parametersMap.at(parameter);
+      const auto& rhsValue = rhs.m_parametersMap.at(parameter);
+
+      auto newValue = std::make_shared<Tensor>(parameter.size);
+
+      std::normal_distribution distWeight(parameter.mean, parameter.stddev);
+      std::uniform_real_distribution distMutation(0.0,1.0);
+      std::uniform_int_distribution distSelection(0,1);
+
+      newValue->asArray() = lhsValue->asArray().binaryExpr(rhsValue->asArray(), [&](double a, double b){
+        if(distMutation(engine)>=mutationRate)
+          return distWeight(engine);
+        else
+          return distSelection(engine) == 0 ? a : b;
+      });
+    }
 
     return result;
   }

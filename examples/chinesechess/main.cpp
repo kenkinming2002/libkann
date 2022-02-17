@@ -119,7 +119,7 @@ int generate_populations(int argc, char* argv[])
   }
 
   std::default_random_engine engine(*populationSeed);
-  Population population(*populationSize);
+  Population population(engine, *populationSize);
 
   for(size_t i=0;;++i)
   {

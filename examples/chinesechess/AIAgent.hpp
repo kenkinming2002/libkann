@@ -9,7 +9,7 @@
 class AIAgent : public Agent
 {
 public:
-  static AIAgent make();
+  static AIAgent make(std::default_random_engine& engine);
   static AIAgent cross(const AIAgent& lhs, const AIAgent& rhs, std::default_random_engine& engine, double mutationRate);
 
 public:

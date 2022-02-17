@@ -14,11 +14,11 @@
 #include <sstream>
 #include <string>
 
-Population::Population(size_t size)
+Population::Population(std::default_random_engine& engine, size_t size)
 {
   m_agents.reserve(size);
   for(size_t i=0; i<size; ++i)
-    m_agents.push_back(AIAgent::make());
+    m_agents.push_back(AIAgent::make(engine));
 }
 
 void Population::select(size_t iterations, std::default_random_engine& engine, double mutationRate)

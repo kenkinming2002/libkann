@@ -5,11 +5,11 @@
 
 #include <limits>
 
-AIAgent AIAgent::make()
+AIAgent AIAgent::make(std::default_random_engine& engine)
 {
   static auto layer = kann::loadLayer("examples/chinesechess/agent.yaml");
   auto model = std::make_shared<kann::Model>(layer);
-  model->randomize();
+  model->randomize(engine);
   return AIAgent(std::move(model));
 }
 

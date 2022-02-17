@@ -88,9 +88,9 @@ private:
     auto decoderModel = std::make_shared<kann::Model>(decoderLayer);
     auto encoderModel = std::make_shared<kann::Model>(encoderLayer);
     auto autoEncoderModel = std::make_shared<kann::Model>(autoEncoderLayer);
-    decoderModel->randomize();
-    encoderModel->randomize();
-    autoEncoderModel->randomize();
+    decoderModel->randomize(engine);
+    encoderModel->randomize(engine);
+    autoEncoderModel->randomize(engine);
 
     const char* label;
     auto callback = [this, &label](kann::Info info){

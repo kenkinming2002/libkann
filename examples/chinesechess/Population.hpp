@@ -8,7 +8,7 @@
 class Population
 {
 public:
-  Population(size_t size);
+  Population(std::default_random_engine& engine, size_t size);
 
 public:
   void select(size_t iterations, std::default_random_engine& engine, double mutationRate);

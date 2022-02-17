@@ -47,7 +47,7 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
 
 int main(int argc, char* argv[])
 {
-  std::default_random_engine engine(random<std::mt19937::result_type>());
+  std::default_random_engine engine(random<std::default_random_engine::result_type>());
 
   kann::MNISTDataSet trainingDataSet(
     "datasets/mnist/train-images-idx3-ubyte",
@@ -84,7 +84,8 @@ int main(int argc, char* argv[])
 
     auto layer = kann::loadLayer(filepath);
     auto model = std::make_shared<kann::Model>(std::move(layer));
-    model->randomize();
+
+    model->randomize(engine);
 
     auto trainingInputs  = kann::load(trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
     auto trainingOutputs = kann::load(trainingDataSet, kann::MNISTDataSet::COLUMN_LABEL);
@@ -143,9 +144,9 @@ int main(int argc, char* argv[])
     auto decoderModel = std::make_shared<kann::Model>(decoderLayer);
     auto encoderModel = std::make_shared<kann::Model>(encoderLayer);
     auto autoEncoderModel = std::make_shared<kann::Model>(autoEncoderLayer);
-    decoderModel->randomize();
-    encoderModel->randomize();
-    autoEncoderModel->randomize();
+    decoderModel->randomize(engine);
+    encoderModel->randomize(engine);
+    autoEncoderModel->randomize(engine);
 
     static size_t FEATURES_COUNT = 64;
     const auto reconstructionOutputPath = std::filesystem::path("output/autoencoder-reconstruction");
@@ -215,9 +216,9 @@ int main(int argc, char* argv[])
     auto generatorModel = std::make_shared<kann::Model>(generatorLayer);
     auto discriminatorModel = std::make_shared<kann::Model>(discriminatorLayer);
     auto GANModel = std::make_shared<kann::Model>(GANLayer);
-    GANModel->randomize();
-    generatorModel->randomize();
-    discriminatorModel->randomize();
+    GANModel->randomize(engine);
+    generatorModel->randomize(engine);
+    discriminatorModel->randomize(engine);
 
     static constexpr size_t FEATURES_COUNT = 128;
 
