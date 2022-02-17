@@ -1,7 +1,6 @@
 #pragma once
 
 #include <libkann/Tag.hpp>
-#include <libkann/LayerVariable.hpp>
 #include <libkann/Scope.hpp>
 #include <libkann/Types.hpp>
 

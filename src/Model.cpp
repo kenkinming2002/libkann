@@ -3,7 +3,6 @@
 #include <libkann/Differentiate.hpp>
 
 #include <libkann/Layer.hpp>
-#include <libkann/LayerVariable.hpp>
 
 #include <libkann/operations/SubtractOperation.hpp>
 #include <libkann/operations/MultiplyOperation.hpp>

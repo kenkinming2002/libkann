@@ -1,6 +1,5 @@
 
 libkann_sources = [
-  'LayerVariable.cpp',
   'layers/SequentialLayer.cpp',
   'layers/RecurrentLayer.cpp',
   'layers/IdentityLayer.cpp',
