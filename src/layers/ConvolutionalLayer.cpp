@@ -21,20 +21,26 @@ namespace kann
     return (m_inputWidth-m_kernelSize+1) * (m_inputHeight-m_kernelSize+1) * m_outputChannelCount;
   }
 
-  std::vector<QualifiedName> ConvolutionalLayer::parameters(Scope scope) const
+  std::vector<Layer::Parameter> ConvolutionalLayer::parameters(Scope scope) const
   {
-    std::vector<QualifiedName> results;
+    std::vector<Parameter> results;
     results.reserve(m_inputChannelCount * m_outputChannelCount);
 
     for(size_t j=0; j<m_outputChannelCount; ++j)
       for(size_t i=0; i<m_inputChannelCount; ++i)
-        results.push_back(QualifiedName{
+      {
+        auto name = QualifiedName{
           .scope = scope,
-          .name = "kernel"+std::to_string(i)+"_"+std::to_string(j),
+          .name = "kernel"+std::to_string(i)+"_"+std::to_string(j)
+        };
+
+        results.push_back(Parameter{
+          .name = name,
           .size = m_kernelSize * m_kernelSize,
           .mean = 0.0,
           .stddev = 1.0 / m_kernelSize
         });
+      }
 
     return results;
   }
@@ -73,10 +79,7 @@ namespace kann
         auto inputChannelVariable = inputChannelVariables[i];
         auto kernelParameter = QualifiedName{
           .scope = scope,
-          .name = "kernel"+std::to_string(i)+"_"+std::to_string(j),
-          .size = m_kernelSize * m_kernelSize,
-          .mean = 0.0,
-          .stddev = 1.0 / m_kernelSize
+          .name = "kernel"+std::to_string(i)+"_"+std::to_string(j)
         };
         auto kernelVariable = input.parameter.at(kernelParameter);
         auto variable = std::make_shared<const Variable>(

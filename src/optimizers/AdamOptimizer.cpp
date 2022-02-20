@@ -139,19 +139,16 @@ namespace kann
     );
 
     auto m_name  = QualifiedName{
-      .scope = context.qualifiedName.toScope(),
-      .name = "m",
-      .size = context.qualifiedName.size
+      .scope = context.parameter.name.toScope(),
+      .name = "m"
     };
     auto v_name  = QualifiedName{
-      .scope = context.qualifiedName.toScope(),
-      .name = "v",
-      .size = context.qualifiedName.size
+      .scope = context.parameter.name.toScope(),
+      .name = "v"
     };
     auto ts_name = QualifiedName{
-      .scope = context.qualifiedName.toScope(),
-      .name = "ts",
-      .size = 1
+      .scope = context.parameter.name.toScope(),
+      .name = "ts"
     };
 
     context.inputState.emplace(m_name,  m);
@@ -162,8 +159,8 @@ namespace kann
     context.outputState.emplace(v_name,   v_new);
     context.outputState.emplace(ts_name,  ts_new);
 
-    context.initialState.emplace(m_name, std::make_shared<const Tensor>(Tensor::constant(context.qualifiedName.size, 0.0)));
-    context.initialState.emplace(v_name, std::make_shared<const Tensor>(Tensor::constant(context.qualifiedName.size, 0.0)));
+    context.initialState.emplace(m_name, std::make_shared<const Tensor>(Tensor::constant(context.parameter.size, 0.0)));
+    context.initialState.emplace(v_name, std::make_shared<const Tensor>(Tensor::constant(context.parameter.size, 0.0)));
     context.initialState.emplace(ts_name, std::make_shared<const Tensor>(Tensor::constant(1, 0.0)));
   }
 }

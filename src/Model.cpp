@@ -17,48 +17,53 @@ namespace kann
   {
     // Parameters
     auto parameters = m_layer->parameters(Scope());
-    for(const auto& parameter : parameters)
+    for(auto& parameter : parameters)
     {
-      auto value = std::make_shared<Tensor>(parameter.size);
-      value->asArray().setZero();
-      m_parametersMap.emplace(parameter, std::move(value));
+      ParameterInfo info;
+
+      info.value = std::make_shared<Tensor>(parameter.size);
+      info.value->asArray().setZero();
+      info.size = parameter.size;
+      info.mean = parameter.mean;
+      info.stddev = parameter.stddev;
+
+      m_parametersMap.emplace(std::move(parameter.name), std::move(info));
     }
 
     // State Parameters
     auto states = m_layer->states(Scope());
-    for(const auto& parameter : states)
+    for(auto& state : states)
     {
-      auto value = std::make_shared<Tensor>(parameter.size);
-      value->asArray().setZero();
-      m_statesMap.emplace(parameter, std::move(value));
+      StateInfo info;
+
+      info.value = std::make_shared<Tensor>(state.size);
+      info.value->asArray().setZero();
+      info.size = state.size;
+
+      m_statesMap.emplace(std::move(state.name), std::move(info));
     }
   }
 
   void Model::randomize(std::default_random_engine& engine)
   {
-    for(auto& [parameter, value] : m_parametersMap)
-    {
-      auto newValue = std::make_shared<Tensor>(parameter.size);
+    for(auto& [name, info] : m_parametersMap)
+      info.value = [&, info=info]() {
+        auto value = std::make_shared<Tensor>(info.size);
 
-      std::normal_distribution dist(parameter.mean, parameter.stddev);
-      newValue->asArray() = Eigen::ArrayXd::NullaryExpr(parameter.size, [&](){
-        return dist(engine);
-      });
+        std::normal_distribution dist(info.mean, info.stddev);
+        value->asArray() = Eigen::ArrayXd::NullaryExpr(info.size, [&](){
+          return dist(engine);
+        });
 
-      value = std::move(newValue);
-    }
+        return value;
+      }();
 
-    for(auto& [parameter, value] : m_statesMap)
-    {
-      auto newValue = std::make_shared<Tensor>(parameter.size);
-
-      std::normal_distribution dist(parameter.mean, parameter.stddev);
-      newValue->asArray() = Eigen::ArrayXd::NullaryExpr(parameter.size, [&](){
-        return dist(engine);
-      });
-
-      value = std::move(newValue);
-    }
+    for(auto& [name, info] : m_statesMap)
+      info.value = [&, info=info]() {
+        auto value = std::make_shared<Tensor>(info.size);
+        value->asArray() = Eigen::ArrayXd::Zero(info.size);
+        return value;
+      }();
   }
 
   std::shared_ptr<const Tensor> Model::predict(std::shared_ptr<const Tensor> input)
@@ -100,16 +105,16 @@ namespace kann
       m_predictExecutor->build();
     }
 
-    for(auto& [parameter, value] : m_parametersMap)
-      m_predictExecutor->input("parameters_input:"+parameter.toString(), {value});
+    for(auto& [name, info] : m_parametersMap)
+      m_predictExecutor->input("parameters_input:"+name.toString(), {info.value});
 
-    for(auto& [parameter, value] : m_statesMap)
-      m_predictExecutor->input("states_input:"+parameter.toString(), {value});
+    for(auto& [name, info] : m_statesMap)
+      m_predictExecutor->input("states_input:"+name.toString(), {info.value});
 
     m_predictExecutor->input("input", {input});
 
-    for(auto& [parameter, value] : m_statesMap)
-      value = m_predictExecutor->output("states_output:"+parameter.toString()).front();
+    for(auto& [name, info] : m_statesMap)
+      info.value = m_predictExecutor->output("states_output:"+name.toString()).front();
 
     return m_predictExecutor->output("output").front();
   }
@@ -126,11 +131,11 @@ namespace kann
     for(auto& [qualifiedName, value] : state.map)
       state.executor->input("optimizer_states_input:"+qualifiedName.toString(), {value});
 
-    for(auto& [parameter, value] : m_parametersMap)
-      state.executor->input("parameters_input:"+parameter.toString(), {value});
+    for(auto& [name, info] : m_parametersMap)
+      state.executor->input("parameters_input:"+name.toString(), {info.value});
 
-    for(auto& [parameter, value] : m_statesMap)
-      state.executor->input("states_input:"+parameter.toString(), {value});
+    for(auto& [name, info] : m_statesMap)
+      state.executor->input("states_input:"+name.toString(), {info.value});
 
     state.executor->input("inputs", inputs);
     state.executor->input("expected outputs", expectedOutputs);
@@ -138,12 +143,12 @@ namespace kann
     for(auto& [qualifiedName, value] : state.map)
       value = state.executor->output("optimizer_states_output:"+qualifiedName.toString()).front();
 
-    for(auto& [parameter, value] : m_parametersMap)
-      if(static_cast<bool>(parameter.scope.tag() & tag))
-        value = state.executor->output("parameters_output:"+parameter.toString()).front();
+    for(auto& [name, info] : m_parametersMap)
+      if(static_cast<bool>(name.scope.tag() & tag))
+        info.value = state.executor->output("parameters_output:"+name.toString()).front();
 
-    for(auto& [parameter, value] : m_statesMap)
-      value = state.executor->output("states_output:"+parameter.toString()).front();
+    for(auto& [name, info] : m_statesMap)
+      info.value = state.executor->output("states_output:"+name.toString()).front();
 
     auto outputs = state.executor->output("outputs");
 
@@ -228,8 +233,15 @@ namespace kann
       auto gradientMap = differentiate(outputVariables, outputGradientVariables);
       for(const auto& [qualifiedName, parameter] : inputParameterVariables)
       {
+        auto& info = m_parametersMap.at(qualifiedName);
+
         Optimizer::Context context;
-        context.qualifiedName = qualifiedName;
+        context.parameter = Layer::Parameter{
+          .name = qualifiedName,
+          .size = info.size,
+          .mean = info.mean,
+          .stddev = info.stddev
+        };
         context.gradient = gradientMap.at(parameter);
         context.inputParameter = parameter;
 
@@ -286,23 +298,25 @@ namespace kann
     assert(lhs.m_layer.get() == rhs.m_layer.get());
 
     auto result = std::make_shared<Model>(lhs.m_layer);
-    for(auto& [parameter, value] : result->m_parametersMap)
+    for(auto& [name, info] : result->m_parametersMap)
     {
-      const auto& lhsValue = lhs.m_parametersMap.at(parameter);
-      const auto& rhsValue = rhs.m_parametersMap.at(parameter);
+      const auto& lhsInfo = lhs.m_parametersMap.at(name);
+      const auto& rhsInfo = rhs.m_parametersMap.at(name);
 
-      auto newValue = std::make_shared<Tensor>(parameter.size);
+      auto newValue = std::make_shared<Tensor>(info.size);
 
-      std::normal_distribution distWeight(parameter.mean, parameter.stddev);
+      std::normal_distribution distWeight(info.mean, info.stddev);
       std::uniform_real_distribution distMutation(0.0,1.0);
       std::uniform_int_distribution distSelection(0,1);
 
-      newValue->asArray() = lhsValue->asArray().binaryExpr(rhsValue->asArray(), [&](double a, double b){
+      newValue->asArray() = lhsInfo.value->asArray().binaryExpr(rhsInfo.value->asArray(), [&](double a, double b){
         if(distMutation(engine)>=mutationRate)
           return distWeight(engine);
         else
           return distSelection(engine) == 0 ? a : b;
       });
+
+      info.value = std::move(newValue);
     }
 
     return result;

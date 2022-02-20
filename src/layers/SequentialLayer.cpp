@@ -24,9 +24,9 @@ namespace kann
     return m_taggedLayers.back().layer->outputSize();
   }
 
-  std::vector<QualifiedName> SequentialLayer::parameters(Scope scope) const
+  std::vector<Layer::Parameter> SequentialLayer::parameters(Scope scope) const
   {
-    std::vector<QualifiedName> result;
+    std::vector<Parameter> result;
 
     size_t i = 0;
     for(const auto& [tag, layer] : m_taggedLayers)
@@ -38,9 +38,9 @@ namespace kann
     return result;
   }
 
-  std::vector<QualifiedName> SequentialLayer::states(Scope scope) const
+  std::vector<Layer::State> SequentialLayer::states(Scope scope) const
   {
-    std::vector<QualifiedName> result;
+    std::vector<State> result;
 
     size_t i = 0;
     for(const auto& [tag, layer] : m_taggedLayers)

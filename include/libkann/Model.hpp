@@ -46,8 +46,34 @@ namespace kann
   private:
     std::shared_ptr<const Layer> m_layer;
 
-    std::unordered_map<QualifiedName, std::shared_ptr<const Tensor>> m_parametersMap;
-    std::unordered_map<QualifiedName, std::shared_ptr<const Tensor>> m_statesMap;
+    struct ParameterInfo
+    {
+      TRef value;
+      size_t size;
+      double mean;
+      double stddev;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(value, size, mean, stddev);
+      }
+    };
+
+    struct StateInfo
+    {
+      TRef value;
+      size_t size;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(value, size);
+      }
+    };
+
+    std::unordered_map<QualifiedName, ParameterInfo> m_parametersMap;
+    std::unordered_map<QualifiedName, StateInfo>     m_statesMap;
 
   // Internal transient states
   private:

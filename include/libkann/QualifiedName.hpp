@@ -31,17 +31,12 @@ namespace kann
     template<typename Archive>
     void serialize(Archive& archive)
     {
-      archive(scope, name, size);
+      archive(scope, name);
     }
 
   public:
     Scope scope;
     std::string name;
-
-    size_t size;
-
-    double mean;
-    double stddev;
   };
 
   inline size_t hashCombine(size_t hash1, size_t hash2)

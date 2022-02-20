@@ -30,9 +30,9 @@ namespace kann
     return m_taggedLayers.back().layer->outputSize();
   }
 
-  std::vector<QualifiedName> RecurrentLayer::parameters(Scope scope) const
+  std::vector<Layer::Parameter> RecurrentLayer::parameters(Scope scope) const
   {
-    std::vector<QualifiedName> result;
+    std::vector<Parameter> result;
 
     size_t i = 0;
     for(const auto& [tag, layer] : m_taggedLayers)
@@ -44,9 +44,9 @@ namespace kann
     return result;
   }
 
-  std::vector<QualifiedName> RecurrentLayer::states(Scope scope) const
+  std::vector<Layer::State> RecurrentLayer::states(Scope scope) const
   {
-    std::vector<QualifiedName> result;
+    std::vector<State> result;
 
     size_t i = 0;
     for(const auto& [tag, layer] : m_taggedLayers)
@@ -56,8 +56,13 @@ namespace kann
       result.insert(result.end(), layerStates.begin(), layerStates.end());
     }
 
-    auto memoryParameter = QualifiedName{
-      .name = "memory",
+    auto memoryName = QualifiedName{
+      .scope = scope,
+      .name = "memory"
+    };
+
+    auto memoryParameter = State{
+      .name = memoryName,
       .size = m_memory
     };
     result.push_back(memoryParameter);
@@ -70,7 +75,6 @@ namespace kann
     auto memoryParameter = QualifiedName{
       .scope = scope,
       .name = "memory",
-      .size = m_memory
     };
 
     auto [inputVariable, parameterVariables, inputStateVariables] = std::move(input);

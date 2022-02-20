@@ -25,8 +25,29 @@ namespace kann
     virtual size_t outputSize() const = 0;
 
   public:
-    virtual std::vector<QualifiedName> parameters(Scope scope) const { return {}; }
-    virtual std::vector<QualifiedName> states(Scope scope) const { return {}; }
+    struct Parameter
+    {
+      QualifiedName name;
+
+      size_t size;
+
+      // TODO: Abstract initializer base class
+      double mean;
+      double stddev;
+    };
+
+    struct State
+    {
+      QualifiedName name;
+
+      size_t size;
+
+      // Question: Do we want random state initialization or only allow zero
+      //           initialization?
+    };
+
+    virtual std::vector<Parameter> parameters(Scope scope) const { return {}; }
+    virtual std::vector<State> states(Scope scope) const { return {}; }
 
     struct Input
     {

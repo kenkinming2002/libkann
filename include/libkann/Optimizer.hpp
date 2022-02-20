@@ -1,6 +1,7 @@
 #pragma once
 
 #include <libkann/Types.hpp>
+#include <libkann/Layer.hpp>
 
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/archives/binary.hpp>
@@ -15,7 +16,7 @@ namespace kann
   public:
     struct Context
     {
-      QualifiedName qualifiedName;
+      Layer::Parameter parameter;
 
       VRef gradient;
 

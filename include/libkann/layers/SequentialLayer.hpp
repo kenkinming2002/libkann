@@ -17,8 +17,8 @@ namespace kann
     size_t outputSize() const override;
 
   public:
-    std::vector<QualifiedName> parameters(Scope scope) const override;
-    std::vector<QualifiedName> states(Scope scope) const override;
+    std::vector<Parameter> parameters(Scope scope) const override;
+    std::vector<State> states(Scope scope) const override;
 
     Output process(Scope scope, Input input) const override;
 
