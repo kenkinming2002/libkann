@@ -13,7 +13,7 @@ namespace kann
     return result;
   }
 
-  VariableHandle MultiplyOperation::gradientsImpl(VariableHandle gradient, VariableHandle input) const
+  VRef MultiplyOperation::gradientsImpl(VRef gradient, VRef input) const
   {
     assert(m_val != 0.0);
     return std::make_shared<const Variable>(std::vector{gradient}, std::make_shared<MultiplyOperation>(1.0/m_val));

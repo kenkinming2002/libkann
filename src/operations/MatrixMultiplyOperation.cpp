@@ -52,7 +52,7 @@ namespace kann
     return result;
   }
 
-  VariablePair MatrixMultiplyOperation::gradientsImpl(VariableHandle gradient, VariableHandle a, VariableHandle b) const
+  std::pair<VRef, VRef> MatrixMultiplyOperation::gradientsImpl(VRef gradient, VRef a, VRef b) const
   {
     if(m_transpose1 || m_transpose2)
       throw std::runtime_error("Not Implemented");

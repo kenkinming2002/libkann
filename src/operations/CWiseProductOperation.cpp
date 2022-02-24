@@ -12,7 +12,7 @@ namespace kann
     return result;
   }
 
-  VariablePair CWiseProductOperation::gradientsImpl(VariableHandle gradient, VariableHandle input1, VariableHandle input2) const
+  std::pair<VRef, VRef> CWiseProductOperation::gradientsImpl(VRef gradient, VRef input1, VRef input2) const
   {
     return std::make_pair(
       std::make_shared<const Variable>(std::vector{gradient, input2}, std::make_shared<CWiseProductOperation>()),

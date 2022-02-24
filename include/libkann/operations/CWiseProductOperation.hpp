@@ -8,7 +8,7 @@ namespace kann
   {
   public:
     Tensor processImpl(const Tensor& a, const Tensor& b) const override;
-    VariablePair gradientsImpl(VariableHandle gradient, VariableHandle input1, VariableHandle input2) const override;
+    std::pair<VRef, VRef> gradientsImpl(VRef gradient, VRef input1, VRef input2) const override;
   };
 }
 

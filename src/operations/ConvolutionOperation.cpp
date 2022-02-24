@@ -35,7 +35,7 @@ namespace kann
     return result;
   }
 
-  VariablePair ConvolutionOperation::gradientsImpl(VariableHandle gradient, VariableHandle input, VariableHandle kernel) const
+  std::pair<VRef, VRef> ConvolutionOperation::gradientsImpl(VRef gradient, VRef input, VRef kernel) const
   {
     const size_t outputWidth  = m_inputWidth - m_kernelSize + 1;
     const size_t outputHeight = m_inputHeight - m_kernelSize + 1;

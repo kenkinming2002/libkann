@@ -20,7 +20,7 @@ namespace kann
     return output;
   }
 
-  VariableHandle IdentityOperation::gradientsImpl(VariableHandle gradient, VariableHandle) const
+  VRef IdentityOperation::gradientsImpl(VRef gradient, VRef) const
   {
     auto output = std::make_shared<const Variable>(std::vector{std::move(gradient)}, std::make_shared<IdentityOperation>(m_outputSize, m_inputSize, m_offset));
     return output;

@@ -1,6 +1,7 @@
 #include <boost/graph/topological_sort.hpp>
 #include <libkann/Differentiate.hpp>
 
+#include <libkann/Operation.hpp>
 #include <libkann/operations/ReduceOperation.hpp>
 
 #include <boost/graph/adjacency_list.hpp>

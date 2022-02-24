@@ -29,7 +29,7 @@ namespace kann
     return result;
   }
 
-  VariableList ReduceOperation::gradients(VariableHandle gradient, VariableList /*inputs*/) const
+  std::vector<VRef> ReduceOperation::gradients(VRef gradient, std::vector<VRef> /*inputs*/) const
   {
     return std::vector(m_inputCount, gradient);
   }

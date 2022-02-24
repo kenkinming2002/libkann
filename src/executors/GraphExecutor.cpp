@@ -1,5 +1,7 @@
 #include <libkann/executors/GraphExecutor.hpp>
 
+#include <libkann/Operation.hpp>
+
 #include <boost/graph/graphviz.hpp>
 
 namespace kann

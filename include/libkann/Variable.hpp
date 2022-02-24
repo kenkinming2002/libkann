@@ -1,12 +1,13 @@
 #pragma once
 
 #include <libkann/Tensor.hpp>
-#include <libkann/Operation.hpp>
 
 #include <optional>
 
 namespace kann
 {
+  class Operation;
+
   /* A variable could be an adjustable constant or result of applying operation
    * on a list of other variables */
   class Variable

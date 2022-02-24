@@ -9,6 +9,7 @@
 
 namespace kann
 {
+  class Variable;
   typedef std::shared_ptr<const Tensor> TRef;
   typedef std::shared_ptr<const Variable> VRef;
 

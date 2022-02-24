@@ -1,5 +1,7 @@
 #include <libkann/executors/DefaultExecutor.hpp>
 
+#include <libkann/Operation.hpp>
+
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/topological_sort.hpp>
 

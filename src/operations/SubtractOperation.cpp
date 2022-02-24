@@ -14,7 +14,7 @@ namespace kann
     return result;
   }
 
-  VariablePair SubtractOperation::gradientsImpl(VariableHandle gradient, VariableHandle a, VariableHandle b) const
+  std::pair<VRef, VRef> SubtractOperation::gradientsImpl(VRef gradient, VRef a, VRef b) const
   {
     return std::make_pair(gradient, std::make_shared<const Variable>(std::vector{gradient}, std::make_shared<MultiplyOperation>(-1.0)));
   }

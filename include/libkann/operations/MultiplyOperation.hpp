@@ -11,7 +11,7 @@ namespace kann
 
   public:
     Tensor processImpl(const Tensor& input) const override;
-    VariableHandle gradientsImpl(VariableHandle gradient, VariableHandle input) const override;
+    VRef gradientsImpl(VRef gradient, VRef input) const override;
 
   private:
     double m_val;

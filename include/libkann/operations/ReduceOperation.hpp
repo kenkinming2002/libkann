@@ -11,7 +11,7 @@ namespace kann
 
   public:
     std::shared_ptr<const Tensor> process(std::vector<const Tensor*> inputs) const override;
-    VariableList gradients(VariableHandle gradient, VariableList inputs) const override;
+    std::vector<VRef> gradients(VRef gradient, std::vector<VRef> inputs) const override;
 
   private:
     size_t m_inputCount;

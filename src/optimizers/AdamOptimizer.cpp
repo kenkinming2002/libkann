@@ -71,7 +71,7 @@ namespace kann
       return result;
     }
 
-    VariablePair gradientsImpl(VariableHandle gradient, VariableHandle, VariableHandle) const override
+    std::pair<VRef, VRef> gradientsImpl(VRef gradient, VRef, VRef) const override
     {
       assert(false && "Unimplemented");
     }
@@ -96,7 +96,7 @@ namespace kann
       return result;
     }
 
-    VariablePair gradientsImpl(VariableHandle gradient, VariableHandle, VariableHandle) const override
+    std::pair<VRef, VRef> gradientsImpl(VRef gradient, VRef, VRef) const override
     {
       assert(false && "Unimplemented");
     }
