@@ -86,7 +86,7 @@ namespace kann
         inputStateVariables
       });
 
-      m_predictExecutor = makeDefaultExecutor();
+      m_predictExecutor = Executor::create(Executor::Type::DEFAULT);
 
       m_predictExecutor->addInput("input",   {inputVariable});
       m_predictExecutor->addOutput("output", {outputVariable});
@@ -255,7 +255,7 @@ namespace kann
       }
 
       // 5: Create executor
-      auto executor = makeDefaultExecutor();
+      auto executor = Executor::create(Executor::Type::THREADED);
 
       for(auto& [qualifiedName, variable] : optimizerStateInputVariables)
         executor->addInput("optimizer_states_input:"+qualifiedName.toString(), {variable});

@@ -5,13 +5,14 @@
 
 namespace kann
 {
-  std::unique_ptr<Executor> makeDefaultExecutor()
+  std::unique_ptr<Executor> Executor::create(Type type)
   {
-    return std::make_unique<DefaultExecutor>();
-  }
-
-  std::unique_ptr<Executor> makeThreadedExecutor()
-  {
-    return std::make_unique<ThreadedExecutor>();
+    switch(type)
+    {
+    case Type::DEFAULT:
+      return std::make_unique<DefaultExecutor>();
+    case Type::THREADED:
+      return std::make_unique<ThreadedExecutor>();
+    }
   }
 }

@@ -16,6 +16,10 @@ namespace kann
   class Executor
   {
   public:
+    enum class Type { DEFAULT, THREADED };
+    static std::unique_ptr<Executor> create(Type type);
+
+  public:
     virtual ~Executor() = default;
 
   public:
@@ -32,7 +36,4 @@ namespace kann
   public:
     virtual void write_graphviz(std::ostream& os) const = 0;
   };
-
-  std::unique_ptr<Executor> makeDefaultExecutor();
-  std::unique_ptr<Executor> makeThreadedExecutor();
 }
