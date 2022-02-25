@@ -18,22 +18,22 @@ namespace kann
   {
   public:
     Model() = default;
-    Model(std::shared_ptr<const Layer> layer);
+    Model(CRef<Layer> layer);
 
   public:
     void randomize(std::default_random_engine& engine);
 
   public:
-    std::shared_ptr<const Tensor> predict(std::shared_ptr<const Tensor> input);
+    CRef<Tensor> predict(CRef<Tensor> input);
 
     // FIXME: better formatting
-    std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> optimize(
-      std::shared_ptr<const Optimizer> optimizer, Tag tag,
-      std::vector<std::shared_ptr<const Tensor>> inputs,
-      std::vector<std::shared_ptr<const Tensor>> expectedOutputs);
+    std::pair<std::vector<CRef<Tensor>>, std::vector<double>> optimize(
+      CRef<Optimizer> optimizer, Tag tag,
+      std::vector<CRef<Tensor>> inputs,
+      std::vector<CRef<Tensor>> expectedOutputs);
 
   public:
-    friend std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
+    friend Ref<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 
   public:
     template<typename Archive>
@@ -45,7 +45,7 @@ namespace kann
     }
 
   private:
-    std::shared_ptr<const Layer> m_layer;
+    CRef<Layer> m_layer;
 
     struct ParameterInfo
     {
@@ -82,7 +82,7 @@ namespace kann
 
     struct OptimizeConfig
     {
-      std::shared_ptr<const Optimizer> optimizer;
+      CRef<Optimizer> optimizer;
       Tag tag;
       size_t batchSize;
 
@@ -96,11 +96,11 @@ namespace kann
     };
 
   private:
-    OptimizeState& optimizeState(std::shared_ptr<const Optimizer> optimizer, Tag tag, size_t batchSize);
+    OptimizeState& optimizeState(CRef<Optimizer> optimizer, Tag tag, size_t batchSize);
 
   private:
     std::map<OptimizeConfig, OptimizeState> m_optimizeStates;
   };
 
-  std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
+  Ref<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 }

@@ -13,7 +13,7 @@ namespace kann
     struct Node
     {
       size_t inputCount; // TODO: Retrive that from Operation
-      std::shared_ptr<const Operation> op;
+      CRef<Operation> op;
     };
 
     struct Connection
@@ -31,8 +31,8 @@ namespace kann
     typedef boost::graph_traits<graph_type>::edge_descriptor edge_type;
 
   public:
-    void addInput(std::string name, std::vector<std::shared_ptr<const Variable>> variables) override;
-    void addOutput(std::string name, std::vector<std::shared_ptr<const Variable>> variables) override;
+    void addInput(std::string name, std::vector<CRef<Variable>> variables) override;
+    void addOutput(std::string name, std::vector<CRef<Variable>> variables) override;
 
   public:
     void build() override;
@@ -47,8 +47,8 @@ namespace kann
     const auto& graph() { return m_graph; }
 
   private:
-    std::unordered_map<std::string, std::vector<std::shared_ptr<const Variable>>> m_inputVariablesMap;
-    std::unordered_map<std::string, std::vector<std::shared_ptr<const Variable>>> m_outputVariablesMap;
+    std::unordered_map<std::string, std::vector<CRef<Variable>>> m_inputVariablesMap;
+    std::unordered_map<std::string, std::vector<CRef<Variable>>> m_outputVariablesMap;
 
   private:
     graph_type m_graph;

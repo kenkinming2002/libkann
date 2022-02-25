@@ -53,7 +53,7 @@ namespace kann
     return m_data.size();
   }
 
-  std::shared_ptr<const Tensor> MNISTDataSet::get(size_t column, size_t index) const
+  CRef<Tensor> MNISTDataSet::get(size_t column, size_t index) const
   {
     switch(column)
     {

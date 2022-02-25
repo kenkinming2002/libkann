@@ -7,7 +7,7 @@
 namespace kann
 {
   /* Map variables to gradients variables */
-  std::unordered_map<std::shared_ptr<const Variable>, std::shared_ptr<const Variable>> differentiate(
-    const std::vector<std::shared_ptr<const Variable>>& variables,
-    const std::vector<std::shared_ptr<const Variable>>& gradients);
+  std::unordered_map<CRef<Variable>, CRef<Variable>> differentiate(
+    const std::vector<CRef<Variable>>& variables,
+    const std::vector<CRef<Variable>>& gradients);
 }

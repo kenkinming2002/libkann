@@ -6,20 +6,20 @@
 
 namespace kann
 {
-  void GraphExecutor::addInput(std::string name, std::vector<std::shared_ptr<const Variable>> variables)
+  void GraphExecutor::addInput(std::string name, std::vector<CRef<Variable>> variables)
   {
     auto [_, success] = m_inputVariablesMap.emplace(std::move(name), std::move(variables));
     assert(success);
   }
 
-  void GraphExecutor::addOutput(std::string name, std::vector<std::shared_ptr<const Variable>> variables)
+  void GraphExecutor::addOutput(std::string name, std::vector<CRef<Variable>> variables)
   {
     auto [_, success] = m_outputVariablesMap.emplace(std::move(name), std::move(variables));
     assert(success);
   }
 
   template<typename Callback>
-  static void walk(const std::shared_ptr<const Variable>& variable, const Callback& callback)
+  static void walk(const CRef<Variable>& variable, const Callback& callback)
   {
     if(!callback(variable))
       return;
@@ -31,7 +31,7 @@ namespace kann
   void GraphExecutor::build()
   {
     // 1: Create vertices
-    std::unordered_map<std::shared_ptr<const Variable>, vertex_type> verticesMap;
+    std::unordered_map<CRef<Variable>, vertex_type> verticesMap;
     for(const auto& [name, outputVariables] : m_outputVariablesMap)
       for(const auto& outputVariable : outputVariables)
         walk(outputVariable, [&](const auto& variable){

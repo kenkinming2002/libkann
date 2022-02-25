@@ -13,10 +13,10 @@ namespace kann
   {
     struct Node
     {
-      std::shared_ptr<const Variable> variable;
+      CRef<Variable> variable;
 
-      std::vector<std::shared_ptr<const Variable>> gradients;
-      std::shared_ptr<const Variable>              gradient;
+      std::vector<CRef<Variable>> gradients;
+      CRef<Variable>              gradient;
     };
 
     struct Connection
@@ -35,7 +35,7 @@ namespace kann
   }
 
   template<typename Callback>
-  static void walk(const std::shared_ptr<const Variable>& variable, const Callback& callback)
+  static void walk(const CRef<Variable>& variable, const Callback& callback)
   {
     if(!callback(variable))
       return;
@@ -44,14 +44,14 @@ namespace kann
       walk(input, callback);
   }
 
-  std::unordered_map<std::shared_ptr<const Variable>, std::shared_ptr<const Variable>> differentiate(
-    const std::vector<std::shared_ptr<const Variable>>& variables,
-    const std::vector<std::shared_ptr<const Variable>>& gradients)
+  std::unordered_map<CRef<Variable>, CRef<Variable>> differentiate(
+    const std::vector<CRef<Variable>>& variables,
+    const std::vector<CRef<Variable>>& gradients)
   {
     graph_type graph;
 
     // 1: Build the graph
-    std::unordered_map<std::shared_ptr<const Variable>, vertex_type> verticesMap;
+    std::unordered_map<CRef<Variable>, vertex_type> verticesMap;
     for(const auto& variable : variables)
       walk(variable, [&](const auto& variable){
         auto it = verticesMap.find(variable);
@@ -110,7 +110,7 @@ namespace kann
     }
 
     // 4: Create the resulting map
-    std::unordered_map<std::shared_ptr<const Variable>, std::shared_ptr<const Variable>> map;
+    std::unordered_map<CRef<Variable>, CRef<Variable>> map;
     for(auto [it, end] = boost::vertices(graph); it != end; ++it)
     {
       Node& node = graph[*it];

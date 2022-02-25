@@ -10,7 +10,7 @@ namespace kann
     assert(m_inputCount != 0);
   }
 
-  std::shared_ptr<const Tensor> ReduceOperation::process(std::vector<const Tensor*> inputs) const
+  CRef<Tensor> ReduceOperation::process(std::vector<const Tensor*> inputs) const
   {
     assert(inputs.size() == m_inputCount);
 

@@ -14,7 +14,7 @@
 
 namespace kann
 {
-  static std::shared_ptr<Layer> loadLayer(YAML::Node root)
+  static Ref<Layer> loadLayer(YAML::Node root)
   {
     auto type = root["type"].as<std::string>();
     if(type == "sequential")
@@ -88,13 +88,13 @@ namespace kann
       throw std::runtime_error("Unrecognized layer type:" + type);
   }
 
-  std::shared_ptr<Layer> loadLayer(const std::string& filename)
+  Ref<Layer> loadLayer(const std::string& filename)
   {
     YAML::Node root = YAML::LoadFile(filename);
     return loadLayer(root);
   }
 
-  std::shared_ptr<Layer> loadLayer(std::istream& is)
+  Ref<Layer> loadLayer(std::istream& is)
   {
     YAML::Node root = YAML::Load(is);
     return loadLayer(root);

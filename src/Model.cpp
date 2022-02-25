@@ -12,7 +12,7 @@
 
 namespace kann
 {
-  Model::Model(std::shared_ptr<const Layer> layer)
+  Model::Model(CRef<Layer> layer)
     : m_layer(std::move(layer))
   {
     // Parameters
@@ -66,7 +66,7 @@ namespace kann
       }();
   }
 
-  std::shared_ptr<const Tensor> Model::predict(std::shared_ptr<const Tensor> input)
+  CRef<Tensor> Model::predict(CRef<Tensor> input)
   {
     if(!m_predictExecutor)
     {
@@ -119,10 +119,10 @@ namespace kann
     return m_predictExecutor->output("output").front();
   }
 
-  std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> Model::optimize(
-    std::shared_ptr<const Optimizer> optimizer, Tag tag,
-    std::vector<std::shared_ptr<const Tensor>> inputs,
-    std::vector<std::shared_ptr<const Tensor>> expectedOutputs)
+  std::pair<std::vector<CRef<Tensor>>, std::vector<double>> Model::optimize(
+    CRef<Optimizer> optimizer, Tag tag,
+    std::vector<CRef<Tensor>> inputs,
+    std::vector<CRef<Tensor>> expectedOutputs)
   {
     assert(inputs.size() == expectedOutputs.size());
     size_t batchSize = inputs.size();
@@ -162,7 +162,7 @@ namespace kann
     return {outputs, costs};
   }
 
-  Model::OptimizeState& Model::optimizeState(std::shared_ptr<const Optimizer> optimizer, Tag tag, size_t batchSize)
+  Model::OptimizeState& Model::optimizeState(CRef<Optimizer> optimizer, Tag tag, size_t batchSize)
   {
     auto config = OptimizeConfig{
       .optimizer = optimizer,
@@ -190,10 +190,10 @@ namespace kann
 
       // 2: Create input, expected output, output and output gradient variables by
       // passing them through layer
-      std::vector<std::shared_ptr<const Variable>> inputVariables;
-      std::vector<std::shared_ptr<const Variable>> expectedOutputVariables;
-      std::vector<std::shared_ptr<const Variable>> outputVariables;
-      std::vector<std::shared_ptr<const Variable>> outputGradientVariables;
+      std::vector<CRef<Variable>> inputVariables;
+      std::vector<CRef<Variable>> expectedOutputVariables;
+      std::vector<CRef<Variable>> outputVariables;
+      std::vector<CRef<Variable>> outputGradientVariables;
 
       for(size_t i=0; i<batchSize; ++i)
       {
@@ -292,7 +292,7 @@ namespace kann
     return optimizeState;
   }
 
-  std::shared_ptr<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate)
+  Ref<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate)
   {
     // They have to have the same underlying structure for cross to work
     assert(lhs.m_layer.get() == rhs.m_layer.get());

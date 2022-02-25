@@ -4,7 +4,7 @@
 
 namespace kann
 {
-  void SequentialLayer::addLayer(std::shared_ptr<const Layer> layer, Tag tag)
+  void SequentialLayer::addLayer(CRef<Layer> layer, Tag tag)
   {
     m_taggedLayers.push_back(TaggedLayer{
       .tag   = tag,

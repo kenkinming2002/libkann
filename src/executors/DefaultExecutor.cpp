@@ -20,7 +20,7 @@ namespace kann
     m_data.resize(boost::num_vertices(graph()));
   }
 
-  void DefaultExecutor::input(std::string name, std::vector<std::shared_ptr<const Tensor>> input)
+  void DefaultExecutor::input(std::string name, std::vector<CRef<Tensor>> input)
   {
     if(!m_dirty)
     {
@@ -37,7 +37,7 @@ namespace kann
       datum(inputVertices[i]) = std::move(input[i]);
   }
 
-  std::vector<std::shared_ptr<const Tensor>> DefaultExecutor::output(std::string name)
+  std::vector<CRef<Tensor>> DefaultExecutor::output(std::string name)
   {
     if(m_dirty)
     {
@@ -66,7 +66,7 @@ namespace kann
 
     const auto& outputVertices = this->outputVertices(name);
 
-    std::vector<std::shared_ptr<const Tensor>> outputs(outputVertices.size());
+    std::vector<CRef<Tensor>> outputs(outputVertices.size());
     for(size_t i=0; i<outputVertices.size(); ++i)
       outputs[i] = datum(outputVertices[i]);
 

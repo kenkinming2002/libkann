@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 
 #include <optional>
@@ -14,11 +15,11 @@ namespace kann
   {
   public:
     Variable() = default;
-    Variable(std::vector<std::shared_ptr<const Variable>> inputs, std::shared_ptr<const Operation> op)
+    Variable(std::vector<CRef<Variable>> inputs, CRef<Operation> op)
       : inputs(std::move(inputs)), op(std::move(op)) {}
 
   public:
-    std::vector<std::shared_ptr<const Variable>> inputs;
-    std::shared_ptr<const Operation> op;
+    std::vector<CRef<Variable>> inputs;
+    CRef<Operation> op;
   };
 }

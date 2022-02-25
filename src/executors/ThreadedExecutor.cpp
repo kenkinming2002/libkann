@@ -36,7 +36,7 @@ namespace kann
   /* We submit work when calling input and wait for them to complete when we
    * call output */
 
-  void ThreadedExecutor::input(std::string name, std::vector<std::shared_ptr<const Tensor>> input)
+  void ThreadedExecutor::input(std::string name, std::vector<CRef<Tensor>> input)
   {
     if(!m_dirty)
     {
@@ -62,7 +62,7 @@ namespace kann
     }
   }
 
-  std::vector<std::shared_ptr<const Tensor>> ThreadedExecutor::output(std::string name)
+  std::vector<CRef<Tensor>> ThreadedExecutor::output(std::string name)
   {
     if(m_dirty)
     {
@@ -83,7 +83,7 @@ namespace kann
 
     const auto& outputVertices = this->outputVertices(name);
 
-    std::vector<std::shared_ptr<const Tensor>> outputs(outputVertices.size());
+    std::vector<CRef<Tensor>> outputs(outputVertices.size());
     for(size_t i=0; i<outputVertices.size(); ++i)
     {
       outputs[i] = std::move(datum(outputVertices[i]).value); // Each output could only be retrived once

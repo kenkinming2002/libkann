@@ -16,8 +16,8 @@ namespace kann
     void build() override;
 
   public:
-    void input(std::string name, std::vector<std::shared_ptr<const Tensor>> input) override;
-    std::vector<std::shared_ptr<const Tensor>> output(std::string name) override;
+    void input(std::string name, std::vector<CRef<Tensor>> input) override;
+    std::vector<CRef<Tensor>> output(std::string name) override;
 
   private:
     void process(vertex_type vertex);
@@ -33,7 +33,7 @@ namespace kann
     struct Datum
     {
       std::atomic<size_t> finishedCount;
-      std::shared_ptr<const Tensor> value;
+      CRef<Tensor> value;
     };
     std::vector<Datum> m_data;
 

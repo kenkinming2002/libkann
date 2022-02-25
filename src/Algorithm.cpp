@@ -73,11 +73,11 @@ namespace kann
     );
   }
 
-  std::vector<std::shared_ptr<const Tensor>> load(const DataSet& dataSet, size_t column)
+  std::vector<CRef<Tensor>> load(const DataSet& dataSet, size_t column)
   {
     const size_t size = dataSet.size();
 
-    std::vector<std::shared_ptr<const Tensor>> result;
+    std::vector<CRef<Tensor>> result;
     result.reserve(dataSet.size());
     for(size_t i=0; i<size; ++i)
       result.push_back(dataSet.get(column, i));
@@ -85,8 +85,8 @@ namespace kann
     return result;
   }
 
-  Task<void, Info> run(std::shared_ptr<Model> model,
-      std::vector<std::shared_ptr<const Tensor>> inputs)
+  Task<void, Info> run(Ref<Model> model,
+      std::vector<CRef<Tensor>> inputs)
   {
     for(size_t i=0; i<inputs.size(); ++i)
     {
@@ -102,9 +102,9 @@ namespace kann
     }
   }
 
-  Task<void, Info> train(std::shared_ptr<Model> model,
-      std::vector<std::shared_ptr<const Tensor>> inputs,
-      std::vector<std::shared_ptr<const Tensor>> expectedOutputs,
+  Task<void, Info> train(Ref<Model> model,
+      std::vector<CRef<Tensor>> inputs,
+      std::vector<CRef<Tensor>> expectedOutputs,
       double learningRate, size_t batchSize)
   {
     assert(inputs.size() == expectedOutputs.size());
@@ -113,8 +113,8 @@ namespace kann
     const auto optimizer = std::make_shared<AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
     for(size_t i=0; i<size; i+=batchSize)
     {
-      auto inputsBatch          = std::vector<std::shared_ptr<const Tensor>>(&inputs[i],          &inputs[i+batchSize]);
-      auto expectedOutputsBatch = std::vector<std::shared_ptr<const Tensor>>(&expectedOutputs[i], &expectedOutputs[i+batchSize]);
+      auto inputsBatch          = std::vector<CRef<Tensor>>(&inputs[i],          &inputs[i+batchSize]);
+      auto expectedOutputsBatch = std::vector<CRef<Tensor>>(&expectedOutputs[i], &expectedOutputs[i+batchSize]);
 
       auto [outputsBatch, costs] = model->optimize(optimizer, Tag::ALL, inputsBatch, expectedOutputsBatch);
 
@@ -139,11 +139,11 @@ namespace kann
     }
   }
 
-  Task<void, GANInfo> trainGAN(std::shared_ptr<Model> model,
-      std::shared_ptr<Model> generatorModel,
-      std::shared_ptr<Model> discriminatorModel,
-      std::vector<std::shared_ptr<const Tensor>> inputs,
-      std::vector<std::shared_ptr<const Tensor>> latentInputs,
+  Task<void, GANInfo> trainGAN(Ref<Model> model,
+      Ref<Model> generatorModel,
+      Ref<Model> discriminatorModel,
+      std::vector<CRef<Tensor>> inputs,
+      std::vector<CRef<Tensor>> latentInputs,
       double learningRate, size_t batchSize)
   {
     assert(latentInputs.size() == inputs.size());
@@ -161,8 +161,8 @@ namespace kann
     const auto optimizer = std::make_shared<AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
     for(size_t i=0; i<size; i+=batchSize)
     {
-      auto inputsBatch = std::vector<std::shared_ptr<const Tensor>>(&inputs[i], &inputs[i+batchSize]);
-      auto latentInputsBatch = std::vector<std::shared_ptr<const Tensor>>(&latentInputs[i], &latentInputs[i+batchSize]);
+      auto inputsBatch = std::vector<CRef<Tensor>>(&inputs[i], &inputs[i+batchSize]);
+      auto latentInputsBatch = std::vector<CRef<Tensor>>(&latentInputs[i], &latentInputs[i+batchSize]);
 
       // Train on real data set
       auto [discriminatorResult, discriminatorCost] = discriminatorModel->optimize(optimizer, Tag::ALL, inputsBatch, oneBatch);
@@ -191,9 +191,9 @@ namespace kann
     }
   }
 
-  Task<double, Info> test(std::shared_ptr<Model> model,
-      std::vector<std::shared_ptr<const Tensor>> inputs,
-      std::vector<std::shared_ptr<const Tensor>> expectedOutputs)
+  Task<double, Info> test(Ref<Model> model,
+      std::vector<CRef<Tensor>> inputs,
+      std::vector<CRef<Tensor>> expectedOutputs)
   {
     // How do we inplement correctness
     assert(inputs.size() == expectedOutputs.size());

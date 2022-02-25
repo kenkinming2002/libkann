@@ -10,7 +10,7 @@ namespace kann
   RecurrentLayer::RecurrentLayer(size_t memory)
     : m_memory(memory) {}
 
-  void RecurrentLayer::addLayer(std::shared_ptr<const Layer> layer, Tag tag)
+  void RecurrentLayer::addLayer(CRef<Layer> layer, Tag tag)
   {
     m_taggedLayers.push_back(TaggedLayer{
       .tag   = tag,

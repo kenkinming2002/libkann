@@ -10,7 +10,7 @@ namespace kann
   class SequentialLayer : public Layer
   {
   public:
-    void addLayer(std::shared_ptr<const Layer> layer, Tag tag = Tag::ALL);
+    void addLayer(CRef<Layer> layer, Tag tag = Tag::ALL);
 
   public:
     size_t inputSize() const override;
@@ -40,7 +40,7 @@ namespace kann
     struct TaggedLayer
     {
       Tag tag;
-      std::shared_ptr<const Layer> layer;
+      CRef<Layer> layer;
 
       template<typename Archive>
       void serialize(Archive& archive)

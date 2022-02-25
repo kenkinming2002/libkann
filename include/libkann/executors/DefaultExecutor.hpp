@@ -15,17 +15,17 @@ namespace kann
     void build() override;
 
   public:
-    void input(std::string name, std::vector<std::shared_ptr<const Tensor>> input) override;
-    std::vector<std::shared_ptr<const Tensor>> output(std::string name) override;
+    void input(std::string name, std::vector<CRef<Tensor>> input) override;
+    std::vector<CRef<Tensor>> output(std::string name) override;
 
   private:
-    std::shared_ptr<const Tensor>& datum(vertex_type vertex) { return m_data[boost::get(boost::vertex_index, graph(), vertex)]; }
+    CRef<Tensor>& datum(vertex_type vertex) { return m_data[boost::get(boost::vertex_index, graph(), vertex)]; }
 
   private:
     std::vector<vertex_type> m_ordering;
 
   private:
     bool m_dirty;
-    std::vector<std::shared_ptr<const Tensor>> m_data;
+    std::vector<CRef<Tensor>> m_data;
   };
 }

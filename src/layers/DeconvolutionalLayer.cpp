@@ -55,7 +55,7 @@ namespace kann
     auto inputVariable = std::move(input.input);
 
     // 2: Split input into channels
-    std::vector<std::shared_ptr<const Variable>> inputChannelVariables;
+    std::vector<CRef<Variable>> inputChannelVariables;
     inputChannelVariables.reserve(m_inputChannelCount);
     for(size_t i=0; i<m_inputChannelCount; ++i)
     {
@@ -71,7 +71,7 @@ namespace kann
     }
 
     // 3: Perform Deconvolution
-    std::vector<std::shared_ptr<const Variable>> resultVariables;
+    std::vector<CRef<Variable>> resultVariables;
     resultVariables.reserve(m_inputChannelCount * m_outputChannelCount);
     for(size_t j=0; j<m_outputChannelCount; ++j)
       for(size_t i=0; i<m_inputChannelCount; ++i)
@@ -90,7 +90,7 @@ namespace kann
       }
 
     // 4: Reduce result to obtain output channel variables
-    std::vector<std::shared_ptr<const Variable>> outputChannelVariables;
+    std::vector<CRef<Variable>> outputChannelVariables;
     for(size_t j=0; j<m_outputChannelCount; ++j)
     {
       auto tmp = std::vector(

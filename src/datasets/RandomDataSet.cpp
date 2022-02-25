@@ -11,7 +11,7 @@ namespace kann
 
   size_t RandomDataSet::size() const { return m_size; }
 
-  std::shared_ptr<const Tensor> RandomDataSet::get(size_t column, size_t index) const
+  CRef<Tensor> RandomDataSet::get(size_t column, size_t index) const
   {
     if(column != COLUMN_DATA)
       throw std::runtime_error("Random Data Set - correctness() - Invalid column");

@@ -4,6 +4,6 @@
 
 namespace kann
 {
-  std::shared_ptr<Layer> loadLayer(const std::string& filename);
-  std::shared_ptr<Layer> loadLayer(std::istream& is);
+  Ref<Layer> loadLayer(const std::string& filename);
+  Ref<Layer> loadLayer(std::istream& is);
 }

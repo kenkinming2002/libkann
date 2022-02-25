@@ -10,7 +10,7 @@ namespace kann
     ReduceOperation(size_t inputCount);
 
   public:
-    std::shared_ptr<const Tensor> process(std::vector<const Tensor*> inputs) const override;
+    CRef<Tensor> process(std::vector<const Tensor*> inputs) const override;
     std::vector<CRef<Variable>> gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs) const override;
 
   private:

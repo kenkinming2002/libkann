@@ -13,7 +13,7 @@ namespace kann
   class CWiseOperation : public Operation
   {
   public:
-    std::shared_ptr<const Tensor> process(std::vector<const Tensor*> inputs) const override
+    CRef<Tensor> process(std::vector<const Tensor*> inputs) const override
     {
       return _process(std::move(inputs), std::make_index_sequence<Count>{});
     }
@@ -28,7 +28,7 @@ namespace kann
 
   private:
     template<size_t... Ints>
-    std::shared_ptr<const Tensor> _process(std::vector<const Tensor*> inputs, std::index_sequence<Ints...>) const
+    CRef<Tensor> _process(std::vector<const Tensor*> inputs, std::index_sequence<Ints...>) const
     {
       const size_t size = inputs.front()->size();
       auto result = std::make_shared<Tensor>(size);
@@ -46,7 +46,7 @@ namespace kann
       constexpr GradientOperation(size_t index, Derived op) : m_index(index), m_op(op) {}
 
     public:
-      std::shared_ptr<const Tensor> process(std::vector<const Tensor*> inputs) const override
+      CRef<Tensor> process(std::vector<const Tensor*> inputs) const override
       {
         return _process(std::move(inputs), std::make_index_sequence<Count+1>{});
       }
@@ -58,7 +58,7 @@ namespace kann
 
     private:
       template<size_t... Ints>
-      std::shared_ptr<const Tensor> _process(std::vector<const Tensor*> inputs, std::index_sequence<Ints...>) const
+      CRef<Tensor> _process(std::vector<const Tensor*> inputs, std::index_sequence<Ints...>) const
       {
         const size_t size = inputs.front()->size();
         auto result = std::make_shared<Tensor>(size);
