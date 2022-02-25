@@ -71,7 +71,7 @@ namespace kann
       return result;
     }
 
-    std::pair<VRef, VRef> gradientsImpl(VRef gradient, VRef, VRef) const override
+    std::pair<CRef<Variable>, CRef<Variable>> gradientsImpl(CRef<Variable> gradient, CRef<Variable>, CRef<Variable>) const override
     {
       assert(false && "Unimplemented");
     }
@@ -96,7 +96,7 @@ namespace kann
       return result;
     }
 
-    std::pair<VRef, VRef> gradientsImpl(VRef gradient, VRef, VRef) const override
+    std::pair<CRef<Variable>, CRef<Variable>> gradientsImpl(CRef<Variable> gradient, CRef<Variable>, CRef<Variable>) const override
     {
       assert(false && "Unimplemented");
     }

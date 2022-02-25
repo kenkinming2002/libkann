@@ -1,6 +1,8 @@
 #pragma once
 
 #include <libkann/Types.hpp>
+#include <libkann/Tensor.hpp>
+#include <libkann/Variable.hpp>
 
 #include <functional>
 #include <vector>
@@ -15,20 +17,20 @@ namespace kann
     virtual ~Operation() = default;
 
   public:
-    virtual TRef process(std::vector<const Tensor*> inputs) const = 0;
-    virtual std::vector<VRef> gradients(VRef gradient, std::vector<VRef> inputs) const = 0;
+    virtual CRef<Tensor> process(std::vector<const Tensor*> inputs) const = 0;
+    virtual std::vector<CRef<Variable>> gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs) const = 0;
   };
 
   class UnaryOperation : public Operation
   {
   public:
-    TRef process(std::vector<const Tensor*> inputs) const override final
+    CRef<Tensor> process(std::vector<const Tensor*> inputs) const override final
     {
       assert(inputs.size() == 1);
       return std::make_shared<const Tensor>(this->processImpl(*inputs[0]));
     }
 
-    std::vector<VRef> gradients(VRef gradient, std::vector<VRef> inputs) const override
+    std::vector<CRef<Variable>> gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs) const override
     {
       assert(inputs.size() == 1);
       auto result = this->gradientsImpl(std::move(gradient), std::move(inputs[0]));
@@ -37,19 +39,19 @@ namespace kann
 
   protected:
     virtual Tensor processImpl(const Tensor&) const = 0;
-    virtual VRef gradientsImpl(VRef gradient, VRef) const = 0;
+    virtual CRef<Variable> gradientsImpl(CRef<Variable> gradient, CRef<Variable>) const = 0;
   };
 
   class BinaryOperation : public Operation
   {
   public:
-    TRef process(std::vector<const Tensor*> inputs) const override final
+    CRef<Tensor> process(std::vector<const Tensor*> inputs) const override final
     {
       assert(inputs.size() == 2);
       return std::make_shared<const Tensor>(this->processImpl(*inputs[0], *inputs[1]));
     }
 
-    std::vector<VRef> gradients(VRef gradient, std::vector<VRef> inputs) const override
+    std::vector<CRef<Variable>> gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs) const override
     {
       assert(inputs.size() == 2);
       auto result = this->gradientsImpl(std::move(gradient), std::move(inputs[0]), std::move(inputs[1]));
@@ -58,6 +60,6 @@ namespace kann
 
   protected:
     virtual Tensor processImpl(const Tensor&, const Tensor&) const = 0;
-    virtual std::pair<VRef, VRef> gradientsImpl(VRef gradient, VRef, VRef) const = 0;
+    virtual std::pair<CRef<Variable>, CRef<Variable>> gradientsImpl(CRef<Variable> gradient, CRef<Variable>, CRef<Variable>) const = 0;
   };
 }

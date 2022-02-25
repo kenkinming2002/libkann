@@ -13,7 +13,7 @@ namespace kann
     return result;
   }
 
-  VRef MultiplyOperation::gradientsImpl(VRef gradient, VRef input) const
+  CRef<Variable> MultiplyOperation::gradientsImpl(CRef<Variable> gradient, CRef<Variable> input) const
   {
     assert(m_val != 0.0);
     return std::make_shared<const Variable>(std::vector{gradient}, std::make_shared<MultiplyOperation>(1.0/m_val));

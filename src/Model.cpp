@@ -70,13 +70,13 @@ namespace kann
   {
     if(!m_predictExecutor)
     {
-      VRef inputVariable = std::make_shared<const Variable>();
+      CRef<Variable> inputVariable = std::make_shared<const Variable>();
 
-      VMap parameterVariables;
+      Map<Variable> parameterVariables;
       for(const auto& [parameter, value] : m_parametersMap)
         parameterVariables.emplace(parameter, std::make_shared<const Variable>());
 
-      VMap inputStateVariables;
+      Map<Variable> inputStateVariables;
       for(const auto& [parameter, value] : m_statesMap)
         inputStateVariables.emplace(parameter, std::make_shared<const Variable>());
 
@@ -173,11 +173,11 @@ namespace kann
     OptimizeState& optimizeState = m_optimizeStates[config];
     if(!optimizeState.executor)
     {
-      VMap inputParameterVariables;
-      VMap outputParameterVariables;
+      Map<Variable> inputParameterVariables;
+      Map<Variable> outputParameterVariables;
 
-      VMap inputStateVariables;
-      VMap outputStateVariables;
+      Map<Variable> inputStateVariables;
+      Map<Variable> outputStateVariables;
 
       for(const auto& [parameter, value] : m_parametersMap)
         inputParameterVariables.emplace(parameter, std::make_shared<const Variable>());
@@ -198,7 +198,7 @@ namespace kann
       for(size_t i=0; i<batchSize; ++i)
       {
         // 1: Call Layer::process
-        VRef inputVariable = std::make_shared<const Variable>();
+        CRef<Variable> inputVariable = std::make_shared<const Variable>();
         auto [outputVariable, _outputStateVariables] = m_layer->process(Scope(), {
             inputVariable,
             inputParameterVariables,
@@ -227,8 +227,8 @@ namespace kann
       }
 
       // 3: New parameter variables
-      VMap optimizerStateInputVariables;
-      VMap optimizerStateOutputVariables;
+      Map<Variable> optimizerStateInputVariables;
+      Map<Variable> optimizerStateOutputVariables;
 
       auto gradientMap = differentiate(outputVariables, outputGradientVariables);
       for(const auto& [qualifiedName, parameter] : inputParameterVariables)

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <libkann/Tensor.hpp>
-#include <libkann/Variable.hpp>
 #include <libkann/QualifiedName.hpp>
 
 #include <memory>
@@ -9,10 +7,12 @@
 
 namespace kann
 {
-  class Variable;
-  typedef std::shared_ptr<const Tensor> TRef;
-  typedef std::shared_ptr<const Variable> VRef;
+  template<typename T>
+  using CRef = std::shared_ptr<const T>;
 
-  typedef std::unordered_map<QualifiedName, TRef> TMap;
-  typedef std::unordered_map<QualifiedName, VRef> VMap;
+  template<typename T>
+  using Ref = std::shared_ptr<T>;
+
+  template<typename T>
+  using Map = std::unordered_map<QualifiedName, CRef<T>>;
 }

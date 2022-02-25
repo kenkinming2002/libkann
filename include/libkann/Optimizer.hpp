@@ -1,6 +1,8 @@
 #pragma once
 
 #include <libkann/Types.hpp>
+#include <libkann/Variable.hpp>
+#include <libkann/Tensor.hpp>
 #include <libkann/Layer.hpp>
 
 #include <cereal/types/polymorphic.hpp>
@@ -18,15 +20,15 @@ namespace kann
     {
       Layer::Parameter parameter;
 
-      VRef gradient;
+      CRef<Variable> gradient;
 
-      VRef inputParameter;
-      VRef outputParameter;
+      CRef<Variable> inputParameter;
+      CRef<Variable> outputParameter;
 
-      VMap inputState;
-      VMap outputState;
+      Map<Variable> inputState;
+      Map<Variable> outputState;
 
-      TMap initialState;
+      Map<Tensor> initialState;
     };
     virtual void process(Context& context) const = 0;
 

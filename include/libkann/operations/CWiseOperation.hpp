@@ -18,7 +18,7 @@ namespace kann
       return _process(std::move(inputs), std::make_index_sequence<Count>{});
     }
 
-    std::vector<VRef> gradients(VRef gradient, std::vector<VRef> inputs) const override
+    std::vector<CRef<Variable>> gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs) const override
     {
       return _gradients(std::move(gradient), std::move(inputs), std::make_index_sequence<Count>{});
     }
@@ -51,7 +51,7 @@ namespace kann
         return _process(std::move(inputs), std::make_index_sequence<Count+1>{});
       }
 
-      std::vector<VRef> gradients(VRef gradient, std::vector<VRef> inputs) const override
+      std::vector<CRef<Variable>> gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs) const override
       {
         assert(false && "Unimplemented");
       }
@@ -74,16 +74,16 @@ namespace kann
     };
 
     template<size_t... Ints>
-    std::vector<VRef> _gradients(VRef gradient, std::vector<VRef> inputs, std::index_sequence<Ints...> seq) const
+    std::vector<CRef<Variable>> _gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs, std::index_sequence<Ints...> seq) const
     {
-      std::vector<VRef> realInput;
+      std::vector<CRef<Variable>> realInput;
       realInput.push_back(std::move(gradient));
       realInput.insert(realInput.end(),
         std::move_iterator(inputs.begin()),
         std::move_iterator(inputs.end())
       );
 
-      std::vector<VRef> result;
+      std::vector<CRef<Variable>> result;
       result.reserve(Count);
       auto f = [&](size_t i)
       {

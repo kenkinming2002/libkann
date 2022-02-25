@@ -3,6 +3,7 @@
 #include <libkann/Tag.hpp>
 #include <libkann/Scope.hpp>
 #include <libkann/Types.hpp>
+#include <libkann/Variable.hpp>
 
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/archives/binary.hpp>
@@ -51,15 +52,15 @@ namespace kann
 
     struct Input
     {
-      VRef input;
-      VMap parameter;
-      VMap inputState;
+      CRef<Variable> input;
+      Map<Variable> parameter;
+      Map<Variable> inputState;
     };
 
     struct Output
     {
-      VRef output;
-      VMap outputState;
+      CRef<Variable> output;
+      Map<Variable> outputState;
     };
 
     virtual Output process(Scope scope, Input input) const = 0;

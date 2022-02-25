@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 #include <libkann/Layer.hpp>
 #include <libkann/Executor.hpp>
@@ -48,7 +49,7 @@ namespace kann
 
     struct ParameterInfo
     {
-      TRef value;
+      CRef<Tensor> value;
       size_t size;
       double mean;
       double stddev;
@@ -62,7 +63,7 @@ namespace kann
 
     struct StateInfo
     {
-      TRef value;
+      CRef<Tensor> value;
       size_t size;
 
       template<typename Archive>
@@ -91,7 +92,7 @@ namespace kann
     struct OptimizeState
     {
       std::unique_ptr<Executor> executor;
-      TMap map;
+      Map<Tensor> map;
     };
 
   private:
