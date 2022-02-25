@@ -27,7 +27,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto f = std::make_shared<const kann::Variable>(std::vector{c, d}, std::make_shared<kann::ReduceOperation>(2));
     auto g = std::make_shared<const kann::Variable>(std::vector{d, e}, std::make_shared<kann::ReduceOperation>(2));
 
-    auto executor = kann::makeDefaultExecutor();
+    auto executor = kann::Executor::create(kann::Executor::Type::DEFAULT);
     executor->addInput("input", {a, b});
     executor->addOutput("output", {f, g});
     executor->build();
@@ -83,7 +83,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
     outputs.push_back(gradientsMap.at(b));
     outputs.push_back(h);
 
-    auto executor = kann::makeDefaultExecutor();
+    auto executor = kann::Executor::create(kann::Executor::Type::DEFAULT);
     executor->addInput("input", inputs);
     executor->addOutput("output", outputs);
     executor->build();
@@ -102,7 +102,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto b = std::make_shared<const kann::Variable>();
     auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
-    auto executor = kann::makeDefaultExecutor();
+    auto executor = kann::Executor::create(kann::Executor::Type::DEFAULT);
     executor->addInput("input", {a,b});
     executor->addOutput("output", {c});
     executor->build();
@@ -136,7 +136,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto b = std::make_shared<const kann::Variable>();
     auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
-    auto executor = kann::makeDefaultExecutor();
+    auto executor = kann::Executor::create(kann::Executor::Type::DEFAULT);
     executor->addInput("input", {a,b});
     executor->addOutput("output", {c});
     executor->build();
@@ -170,7 +170,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto b = std::make_shared<const kann::Variable>();
     auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
-    auto executor = kann::makeDefaultExecutor();
+    auto executor = kann::Executor::create(kann::Executor::Type::DEFAULT);
     executor->addInput("input", {a,b});
     executor->addOutput("output", {c});
     executor->build();
@@ -204,7 +204,7 @@ TEST_CASE("NewAPI", "[NewAPI]")
     auto b = std::make_shared<const kann::Variable>();
     auto c = std::make_shared<const kann::Variable>(std::vector{a,b}, op);
 
-    auto executor = kann::makeDefaultExecutor();
+    auto executor = kann::Executor::create(kann::Executor::Type::DEFAULT);
     executor->addInput("input", {a,b});
     executor->addOutput("output", {c});
     executor->build();
