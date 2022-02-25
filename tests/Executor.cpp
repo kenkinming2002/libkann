@@ -1,7 +1,6 @@
 #include <catch2/catch.hpp>
 
 #include <libkann/Variable.hpp>
-#include <libkann/Function.hpp>
 
 #include <libkann/operations/ReduceOperation.hpp>
 #include <libkann/operations/IdentityOperation.hpp>
@@ -93,58 +92,6 @@ TEST_CASE("NewAPI", "[NewAPI]")
       std::ofstream file("output/executor_gradients.dot");
       executor->write_graphviz(file);
     }
-  }
-
-  SECTION("Function")
-  {
-    class MyFunction : public kann::BinaryFunction
-    {
-    protected:
-      std::shared_ptr<const kann::Variable> impl(std::shared_ptr<const kann::Variable> a, std::shared_ptr<const kann::Variable> b) const override
-      {
-        auto c = std::make_shared<const kann::Variable>(std::vector{a}, std::make_shared<kann::IdentityOperation>(SIZE,SIZE,0));
-        auto d = std::make_shared<const kann::Variable>(std::vector{b}, std::make_shared<kann::IdentityOperation>(SIZE,SIZE,0));
-        auto e = std::make_shared<const kann::Variable>(std::vector{a, b}, std::make_shared<kann::ReduceOperation>(2));
-
-        auto f = std::make_shared<const kann::Variable>(std::vector{c, d}, std::make_shared<kann::ReduceOperation>(2));
-        auto g = std::make_shared<const kann::Variable>(std::vector{d, e}, std::make_shared<kann::ReduceOperation>(2));
-
-        auto h = std::make_shared<const kann::Variable>(std::vector{d, f, g}, std::make_shared<kann::ReduceOperation>(3));
-
-        return h;
-      }
-    };
-
-    const auto func = MyFunction();
-
-    auto inputVariable1 = std::make_shared<const kann::Variable>();
-    auto inputVariable2 = std::make_shared<const kann::Variable>();
-    auto outputVariable = func.invoke({inputVariable1, inputVariable2});
-
-    auto executor = kann::makeDefaultExecutor();
-    executor->addInput("input", {inputVariable1, inputVariable2});
-    executor->addOutput("output", {outputVariable});
-    executor->build();
-    {
-      std::ofstream file("output/executor2.dot");
-      executor->write_graphviz(file);
-    }
-
-    unsigned seed = GENERATE(take(100, random(0, INT_MAX)));
-    srand(seed);
-
-    auto input1 = std::make_shared<kann::Tensor>(SIZE);
-    auto input2 = std::make_shared<kann::Tensor>(SIZE);
-
-    input1->asArray().setRandom();
-    input2->asArray().setRandom();
-
-    executor->input("input", {input1, input2});
-    auto outputs = executor->output("output");
-
-    auto output = outputs[0];
-
-    REQUIRE(output->asVector().isApprox(input1->asVector() * 2.0 + input2->asVector() * 4.0));
   }
 
   SECTION("MatrixMultiply1")
