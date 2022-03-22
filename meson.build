@@ -14,4 +14,3 @@ cereal_dep = declare_dependency(
 subdir('src')
 subdir('include')
 subdir('examples')
-subdir('tests')

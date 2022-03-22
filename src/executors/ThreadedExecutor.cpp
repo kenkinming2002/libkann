@@ -15,17 +15,9 @@ namespace kann
 {
   void ThreadedExecutor::build()
   {
-    GraphExecutor::build();
+    const auto count = boost::num_vertices(this->graph());
 
-    // 1: Order the vertices
-    std::vector<vertex_type> ordering;
-    ordering.reserve(boost::num_vertices(graph()));
-    boost::topological_sort(graph(), std::back_inserter(ordering));
-    std::reverse(ordering.begin(), ordering.end());
-
-    m_dirty = false;
-    m_data = std::vector<Datum>(boost::num_vertices(graph()));
-
+    m_data = std::vector<Datum>(count);
     auto [begin, end] = boost::vertices(graph());
     m_taskCount = std::count_if(begin, end, [this](vertex_type vertex){
       const Node& node = graph()[vertex];
@@ -33,64 +25,28 @@ namespace kann
     });
   }
 
-  /* We submit work when calling input and wait for them to complete when we
-   * call output */
-
-  void ThreadedExecutor::input(std::string name, std::vector<CRef<Tensor>> input)
+  void ThreadedExecutor::compute()
   {
-    if(!m_dirty)
+    for(auto& datum : m_data)
     {
-      m_dirty = true;
-
-      for(auto& datum : m_data)
-      {
-        datum.finishedCount.store(0);
-        datum.value.reset();
-      }
-
-      m_taskSet.emplace(m_taskCount);
+      datum.finishedCount.store(0);
+      datum.value.reset();
     }
 
-    const auto& inputVertices = this->inputVertices(name);
+    for(auto vertex : this->inputVertices())
+      publish(vertex);
 
-    assert(inputVertices.size() == input.size());
-    for(size_t i=0; i<input.size(); ++i)
-    {
-      vertex_type vertex = inputVertices[i];
-      datum(vertex).value = std::move(input[i]);
-      publish(vertex); // Execution may have already started here
-    }
-  }
+    static const auto threadCount = std::thread::hardware_concurrency();
+    static ThreadPool threadPool(threadCount);
 
-  std::vector<CRef<Tensor>> ThreadedExecutor::output(std::string name)
-  {
-    if(m_dirty)
-    {
-      m_dirty = false;
+    // 1: Submit tasks to thread pool
+    std::vector<std::function<void()>> tasks;
+    for(unsigned i=0; i<threadCount; ++i)
+      tasks.emplace_back([this](){
+        m_taskSet->run();
+      });
 
-      static const auto threadCount = std::thread::hardware_concurrency();
-      static ThreadPool threadPool(threadCount);
-
-      // 1: Submit tasks to thread pool
-      std::vector<std::function<void()>> tasks;
-      for(unsigned i=0; i<threadCount; ++i)
-        tasks.emplace_back([this](){
-          m_taskSet->run();
-        });
-
-      threadPool.run(std::move(tasks));
-    }
-
-    const auto& outputVertices = this->outputVertices(name);
-
-    std::vector<CRef<Tensor>> outputs(outputVertices.size());
-    for(size_t i=0; i<outputVertices.size(); ++i)
-    {
-      outputs[i] = std::move(datum(outputVertices[i]).value); // Each output could only be retrived once
-      assert(outputs[i]);
-    }
-
-    return outputs;
+    threadPool.run(std::move(tasks));
   }
 
   void ThreadedExecutor::process(vertex_type vertex)

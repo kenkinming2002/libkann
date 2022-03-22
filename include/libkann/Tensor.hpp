@@ -85,6 +85,18 @@ namespace kann
     }
 
   public:
+    template<typename BinaryOp>
+    static Tensor binaryExpr(const Tensor& lhs, const Tensor& rhs, const BinaryOp& op)
+    {
+      assert(lhs.size() == rhs.size());
+
+      Tensor result(lhs.size());
+      result.asArray() = lhs.asArray().binaryExpr(rhs.asArray(), op);
+      return result;
+    }
+
+
+  public:
     template<typename Archive>
     void save(Archive& archive) const
     {

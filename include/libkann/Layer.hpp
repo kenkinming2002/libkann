@@ -35,6 +35,12 @@ namespace kann
       // TODO: Abstract initializer base class
       double mean;
       double stddev;
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(name, size, mean, stddev);
+      }
     };
 
     struct State
@@ -45,6 +51,12 @@ namespace kann
 
       // Question: Do we want random state initialization or only allow zero
       //           initialization?
+
+      template<typename Archive>
+      void serialize(Archive& archive)
+      {
+        archive(name, size);
+      }
     };
 
     virtual std::vector<Parameter> parameters(Scope scope) const { return {}; }

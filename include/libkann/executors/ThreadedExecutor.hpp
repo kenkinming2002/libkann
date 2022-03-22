@@ -12,12 +12,9 @@ namespace kann
 {
   class ThreadedExecutor : public GraphExecutor
   {
-  public:
-    void build() override;
-
-  public:
-    void input(std::string name, std::vector<CRef<Tensor>> input) override;
-    std::vector<CRef<Tensor>> output(std::string name) override;
+  protected:
+    void build() override final;
+    void compute() override final;
 
   private:
     void process(vertex_type vertex);
@@ -28,8 +25,6 @@ namespace kann
     auto& datum(vertex_type vertex) { return m_data[boost::get(boost::vertex_index, graph(), vertex)]; }
 
   private:
-    bool m_dirty = false;
-
     struct Datum
     {
       std::atomic<size_t> finishedCount;

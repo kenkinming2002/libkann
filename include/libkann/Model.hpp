@@ -40,46 +40,27 @@ namespace kann
     void serialize(Archive& archive)
     {
       archive(m_layer);
-      archive(m_parametersMap);
-      archive(m_statesMap);
+
+      archive(m_parameters);
+      archive(m_states);
+
+      archive(m_parameter_values);
+      archive(m_state_values);
     }
 
   private:
     CRef<Layer> m_layer;
 
-    struct ParameterInfo
-    {
-      CRef<Tensor> value;
-      size_t size;
-      double mean;
-      double stddev;
+  private:
+    std::vector<Layer::Parameter> m_parameters;
+    std::vector<Layer::State> m_states;
 
-      template<typename Archive>
-      void serialize(Archive& archive)
-      {
-        archive(value, size, mean, stddev);
-      }
-    };
-
-    struct StateInfo
-    {
-      CRef<Tensor> value;
-      size_t size;
-
-      template<typename Archive>
-      void serialize(Archive& archive)
-      {
-        archive(value, size);
-      }
-    };
-
-    std::unordered_map<QualifiedName, ParameterInfo> m_parametersMap;
-    std::unordered_map<QualifiedName, StateInfo>     m_statesMap;
+  private:
+    std::vector<CRef<Tensor>> m_parameter_values;
+    std::vector<CRef<Tensor>> m_state_values;
 
   // Internal transient states
   private:
-    std::unique_ptr<Executor> m_predictExecutor;
-
     struct OptimizeConfig
     {
       CRef<Optimizer> optimizer;
@@ -92,14 +73,15 @@ namespace kann
     struct OptimizeState
     {
       std::unique_ptr<Executor> executor;
-      Map<Tensor> map;
+      std::vector<CRef<Tensor>> values;
     };
 
-  private:
-    OptimizeState& optimizeState(CRef<Optimizer> optimizer, Tag tag, size_t batchSize);
+    std::unique_ptr<Executor> m_predictExecutor;
+    std::map<OptimizeConfig, OptimizeState> m_optimizeStates;
 
   private:
-    std::map<OptimizeConfig, OptimizeState> m_optimizeStates;
+    Executor& predictExecutor();
+    OptimizeState& optimizeState(CRef<Optimizer> optimizer, Tag tag, size_t batchSize);
   };
 
   Ref<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);

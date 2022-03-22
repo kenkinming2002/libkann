@@ -14,6 +14,7 @@ namespace kann
     {
       size_t inputCount; // TODO: Retrive that from Operation
       CRef<Operation> op;
+      CRef<Tensor> value;
     };
 
     struct Connection
@@ -31,28 +32,26 @@ namespace kann
     typedef boost::graph_traits<graph_type>::edge_descriptor edge_type;
 
   public:
-    void addInput(std::string name, std::vector<CRef<Variable>> variables) override;
-    void addOutput(std::string name, std::vector<CRef<Variable>> variables) override;
-
-  public:
-    void build() override;
+    void build(std::vector<CRef<Variable>> inputs, std::vector<CRef<Variable>> outputs) override final;
+    std::vector<CRef<Tensor>> process(std::vector<CRef<Tensor>> inputs) override;
 
   public:
     void write_graphviz(std::ostream& os) const override;
 
+  protected:
+    const auto& graph() const { return m_graph; }
+    auto& graph() { return m_graph; }
+
+    const auto& inputVertices() const { return m_inputVertices; }
+    const auto& outputVertices() const { return m_outputVertices; }
 
   protected:
-    const auto& inputVertices(std::string name)  { return m_inputVerticesMap.at(name); }
-    const auto& outputVertices(std::string name) { return m_outputVerticesMap.at(name); }
-    const auto& graph() { return m_graph; }
-
-  private:
-    std::unordered_map<std::string, std::vector<CRef<Variable>>> m_inputVariablesMap;
-    std::unordered_map<std::string, std::vector<CRef<Variable>>> m_outputVariablesMap;
+    virtual void build() = 0;
+    virtual void compute() = 0;
 
   private:
     graph_type m_graph;
-    std::unordered_map<std::string, std::vector<vertex_type>> m_inputVerticesMap;
-    std::unordered_map<std::string, std::vector<vertex_type>> m_outputVerticesMap;
+    std::vector<vertex_type> m_inputVertices;
+    std::vector<vertex_type> m_outputVertices;
   };
 }

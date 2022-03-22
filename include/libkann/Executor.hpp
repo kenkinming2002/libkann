@@ -5,15 +5,13 @@
 #include <libkann/Variable.hpp>
 
 #include <vector>
+#include <span>
 #include <string>
 #include <memory>
+#include <numeric>
 
 namespace kann
 {
-  // An executor has list of input and output variables, which may be named
-  // Such collection of variables is represented by
-  //
-  // std::unordered_map<std::string, std::vector<CRef<Variable>>
   class Executor
   {
   public:
@@ -24,15 +22,8 @@ namespace kann
     virtual ~Executor() = default;
 
   public:
-    virtual void addInput(std::string name, std::vector<CRef<Variable>> variables) = 0;
-    virtual void addOutput(std::string name, std::vector<CRef<Variable>> variables) = 0;
-
-  public:
-    virtual void build() = 0;
-
-  public:
-    virtual void input(std::string name, std::vector<CRef<Tensor>> input) = 0;
-    virtual std::vector<CRef<Tensor>> output(std::string name) = 0;
+    virtual void build(std::vector<CRef<Variable>> inputs, std::vector<CRef<Variable>> outputs) = 0;
+    virtual std::vector<CRef<Tensor>> process(std::vector<CRef<Tensor>> inputs) = 0;
 
   public:
     virtual void write_graphviz(std::ostream& os) const = 0;

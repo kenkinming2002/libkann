@@ -6,47 +6,39 @@
 
 namespace kann
 {
-  void GraphExecutor::addInput(std::string name, std::vector<CRef<Variable>> variables)
+  template<typename From, typename F>
+  static std::vector<std::result_of_t<F(const From&)>> map(const std::vector<From>& input, F f)
   {
-    auto [_, success] = m_inputVariablesMap.emplace(std::move(name), std::move(variables));
-    assert(success);
+    std::vector<std::result_of_t<F(const From&)>> output;
+    output.reserve(input.size());
+    std::transform(input.begin(), input.end(), std::back_inserter(output), f);
+    return output;
   }
 
-  void GraphExecutor::addOutput(std::string name, std::vector<CRef<Variable>> variables)
+  void GraphExecutor::build(std::vector<CRef<Variable>> inputs, std::vector<CRef<Variable>> outputs)
   {
-    auto [_, success] = m_outputVariablesMap.emplace(std::move(name), std::move(variables));
-    assert(success);
-  }
+    assert(std::all_of(inputs.begin(), inputs.end(), [](const auto& v) { return v; }));
+    assert(std::all_of(outputs.begin(), outputs.end(), [](const auto& v) { return v; }));
 
-  template<typename Callback>
-  static void walk(const CRef<Variable>& variable, const Callback& callback)
-  {
-    if(!callback(variable))
-      return;
-
-    for(const auto& input : variable->inputs)
-      walk(input, callback);
-  }
-
-  void GraphExecutor::build()
-  {
     // 1: Create vertices
     std::unordered_map<CRef<Variable>, vertex_type> verticesMap;
-    for(const auto& [name, outputVariables] : m_outputVariablesMap)
-      for(const auto& outputVariable : outputVariables)
-        walk(outputVariable, [&](const auto& variable){
-          auto it = verticesMap.find(variable);
-          if(it != verticesMap.end())
-            return false;
+    {
+      std::unordered_set<CRef<Variable>> open;
+      open.insert(outputs.begin(), outputs.end());
+      while(!open.empty())
+      {
+        auto variable = open.extract(open.begin()).value();
+        if(verticesMap.contains(variable))
+          continue;
 
-          auto vertex = boost::add_vertex(Node{
-            .inputCount = variable->inputs.size(),
-            .op = variable->op
-          }, m_graph);
+        auto node = Node{.inputCount = variable->inputs.size(), .op = variable->op};
+        auto vertex = boost::add_vertex(std::move(node), m_graph);
+        auto [_, success] = verticesMap.emplace(variable, vertex);
+        assert(success);
 
-          verticesMap.emplace(variable, vertex);
-          return true;
-        });
+        open.insert(variable->inputs.begin(), variable->inputs.end());
+      }
+    }
 
     // 2: Create edges
     for(const auto& [variable, vertex] : verticesMap)
@@ -58,24 +50,45 @@ namespace kann
       }
 
     // 3: Save necessary association
-    for(const auto& [name, inputVariables] : m_inputVariablesMap)
-    {
-      std::vector<vertex_type> inputVertices;
-      inputVertices.reserve(inputVariables.size());
-      for(const auto& inputVariable : inputVariables)
-        inputVertices.push_back(verticesMap.at(inputVariable));
+    m_inputVertices = map(inputs, [&verticesMap](const auto& input){
+      return verticesMap.at(input);
+    });
 
-      m_inputVerticesMap.emplace(name, std::move(inputVertices));
+    m_outputVertices = map(outputs, [&verticesMap](const auto& output){
+      return verticesMap.at(output);
+    });
+
+    // 4: Allow subclass to build
+    this->build();
+  }
+
+  std::vector<CRef<Tensor>> GraphExecutor::process(std::vector<CRef<Tensor>> inputs)
+  {
+    assert(inputs.size() == m_inputVertices.size());
+
+    // Clear
+    for(auto [it, end] = boost::vertices(m_graph); it != end; ++it)
+      m_graph[*it].value.reset() ;
+
+    // Inputs
+    {
+      size_t i = 0;
+      for(const auto vertex : m_inputVertices)
+        m_graph[vertex].value = inputs[i++];
     }
 
-    for(const auto& [name, outputVariables] : m_outputVariablesMap)
-    {
-      std::vector<vertex_type> outputVertices;
-      outputVertices.reserve(outputVariables.size());
-      for(const auto& outputVariable : outputVariables)
-        outputVertices.push_back(verticesMap.at(outputVariable));
+    // Compute
+    this->compute();
 
-      m_outputVerticesMap.emplace(name, std::move(outputVertices));
+    // Outputs
+    {
+      std::vector<CRef<Tensor>> outputs(m_outputVertices.size());
+
+      size_t i = 0;
+      for(const auto vertex : m_outputVertices)
+        outputs[i++] = m_graph[vertex].value;
+
+      return outputs;
     }
   }
 

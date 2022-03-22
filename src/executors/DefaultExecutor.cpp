@@ -11,66 +11,35 @@ namespace kann
 {
   void DefaultExecutor::build()
   {
-    GraphExecutor::build();
+    const auto count = boost::num_vertices(this->graph());
 
-    m_ordering.reserve(boost::num_vertices(graph()));
-    boost::topological_sort(graph(), std::back_inserter(m_ordering));
+    m_ordering.reserve(count);
+    boost::topological_sort(this->graph(), std::back_inserter(m_ordering));
     std::reverse(m_ordering.begin(), m_ordering.end());
-
-    m_data.resize(boost::num_vertices(graph()));
   }
 
-  void DefaultExecutor::input(std::string name, std::vector<CRef<Tensor>> input)
+  void DefaultExecutor::compute()
   {
-    if(!m_dirty)
+    for(const auto vertex : m_ordering)
     {
-      for(auto& datum : m_data)
-        datum.reset();
+      auto& node = this->graph()[vertex];
+      if(node.value)
+        continue;
 
-      m_dirty = true;
-    }
-
-    const auto& inputVertices = this->inputVertices(name);
-
-    assert(inputVertices.size() == input.size());
-    for(size_t i=0; i<input.size(); ++i)
-      datum(inputVertices[i]) = std::move(input[i]);
-  }
-
-  std::vector<CRef<Tensor>> DefaultExecutor::output(std::string name)
-  {
-    if(m_dirty)
-    {
-      // Evaluate
-      for(vertex_type vertex : m_ordering)
+      std::vector<const Tensor*> inputs(node.inputCount);
+      for(auto [it, end] = boost::in_edges(vertex, this->graph()); it != end; ++it)
       {
-        if(datum(vertex))
-          continue; // One of the input vertex
+        const auto edge = *it;
+        const auto in_vertex = boost::source(edge, this->graph());
 
-        const Node& node = graph()[vertex];
+        const auto& connection = this->graph()[edge];
+        const auto& in_node = this->graph()[in_vertex];
 
-        std::vector<const Tensor*> inputs(node.inputCount);
-        for(auto [it, end] = boost::in_edges(vertex, graph()); it != end; ++it)
-        {
-          edge_type edge = *it;
-          vertex_type inputVertex = boost::source(edge, graph());
-
-          const Connection& connection = graph()[edge];
-          inputs[connection.i] = datum(inputVertex).get();
-        }
-
-        datum(vertex) = node.op->process(std::move(inputs));
+        assert(in_node.value.get());
+        inputs[connection.i] = in_node.value.get();
       }
-      m_dirty = false;
+      node.value = node.op->process(std::move(inputs));
     }
-
-    const auto& outputVertices = this->outputVertices(name);
-
-    std::vector<CRef<Tensor>> outputs(outputVertices.size());
-    for(size_t i=0; i<outputVertices.size(); ++i)
-      outputs[i] = datum(outputVertices[i]);
-
-    return outputs;
   }
 }
 
