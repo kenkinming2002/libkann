@@ -14,6 +14,16 @@ namespace kann
   class Variable
   {
   public:
+    template<typename T>
+    static std::shared_ptr<const Variable> apply(T operation, std::vector<std::shared_ptr<const Variable>> inputs)
+    {
+      return std::make_shared<const Variable>(
+          std::move(inputs),
+          std::make_shared<T>(std::move(operation))
+      );
+    }
+
+  public:
     Variable() = default;
     Variable(std::vector<CRef<Variable>> inputs, CRef<Operation> op)
       : inputs(std::move(inputs)), op(std::move(op)) {}

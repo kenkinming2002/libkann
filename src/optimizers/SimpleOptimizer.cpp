@@ -8,16 +8,20 @@ namespace kann
   SimpleOptimizer::SimpleOptimizer(double learningRate)
     : m_learningRate(learningRate) {}
 
-  void SimpleOptimizer::process(Context& context) const
+  Optimizer::ProcessOutput SimpleOptimizer::process(ProcessInput input) const
   {
+    ProcessOutput output;
+
     auto scaledGradient = std::make_shared<const Variable>(
-      std::vector{context.gradient},
+      std::vector{input.gradient},
       std::make_shared<MultiplyOperation>(m_learningRate)
     );
 
-    context.outputParameter = std::make_shared<const Variable>(
-      std::vector{context.inputParameter, std::move(scaledGradient)},
+    output.parameter = std::make_shared<const Variable>(
+      std::vector{input.parameter, std::move(scaledGradient)},
       std::make_shared<SubtractOperation>()
     );
+
+    return output;
   }
 }

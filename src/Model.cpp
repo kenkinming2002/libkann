@@ -45,11 +45,54 @@ namespace kann
     return split(std::span(data), args...);
   }
 
+  template<typename T>
+  auto create_vector(const std::vector<T>& attributes)
+  {
+    std::vector<std::shared_ptr<const Variable>> vector;
+    vector.reserve(attributes.size());
+    for(const T& attribute : attributes)
+    {
+      (void)attribute;
+      vector.push_back(std::make_shared<const Variable>());
+    }
+
+    return vector;
+  }
+
+  template<typename T>
+  auto vector_to_map(const std::vector<T>& attributes, const std::vector<std::shared_ptr<const Variable>>& vector)
+  {
+    std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> map;
+
+    size_t i = 0;
+    for(const T& attribute : attributes)
+    {
+      auto variable = vector[i++];
+      map.emplace(std::pair{attribute.layer, attribute.name}, std::move(variable));
+    }
+
+    return map;
+  }
+
+  template<typename T>
+  auto map_to_vector(const std::vector<T>& attributes, const std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>>& map)
+  {
+    std::vector<std::shared_ptr<const Variable>> vector;
+    vector.reserve(attributes.size());
+    for(const T& attribute : attributes)
+    {
+      auto variable = map.at(std::pair{attribute.layer, attribute.name});
+      vector.push_back(std::move(variable));
+    }
+
+    return vector;
+  }
+
   Model::Model(CRef<Layer> layer)
     : m_layer(std::move(layer))
   {
-    m_parameters = m_layer->parameters(Scope());
-    m_states     = m_layer->states(Scope());
+    m_parameters = m_layer->parameters();
+    m_states     = m_layer->states();
   }
 
   void Model::randomize(std::default_random_engine& engine)
@@ -117,53 +160,37 @@ namespace kann
   {
     if(!m_predictExecutor)
     {
-      CRef<Variable> input_variable;
-      CRef<Variable> output_variable;
+      std::shared_ptr<const Variable> input_variable;
+      std::shared_ptr<const Variable> output_variable;
 
-      std::vector<CRef<Variable>> parameter_variables;
-      std::vector<CRef<Variable>> input_state_variables;
-      std::vector<CRef<Variable>> output_state_variables;
+      std::vector<std::shared_ptr<const Variable>> parameter_variables;
+      std::vector<std::shared_ptr<const Variable>> input_state_variables;
+      std::vector<std::shared_ptr<const Variable>> output_state_variables;
 
-      Map<Variable> parameter_variables_map;
-      Map<Variable> input_state_variables_map;
-      Map<Variable> output_state_variables_map;
+      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> parameter_variables_map;
+      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> input_state_variables_map;
+      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> output_state_variables_map;
 
       // Input
-      input_variable = std::make_shared<Variable>();
+      input_variable = std::make_shared<const Variable>();
+      parameter_variables = create_vector(m_parameters);
+      input_state_variables = create_vector(m_states);
 
-      // Parameters
-      parameter_variables.reserve(m_parameters.size());
-      for(const auto& parameter : m_parameters)
-      {
-        auto variable = std::make_shared<const Variable>();
-        parameter_variables.push_back(variable);
-        parameter_variables_map.emplace(parameter.name, variable);
-      }
-
-      // States
-      input_state_variables.reserve(m_states.size());
-      for(const auto& state : m_states)
-      {
-        auto variable = std::make_shared<const Variable>();
-        input_state_variables.push_back(variable);
-        input_state_variables_map.emplace(state.name, variable);
-      }
+      parameter_variables_map   = vector_to_map(m_parameters, parameter_variables);
+      input_state_variables_map = vector_to_map(m_states, input_state_variables);
 
       // Process
-      auto [_output_variable, _output_state_variables_map] = m_layer->process(Scope(), {
-        .input      = input_variable,
-        .parameter  = parameter_variables_map,
-        .inputState = input_state_variables_map
-      });
+      auto process_input = Layer::ProcessInput{
+        .variable = input_variable,
+        .parameters = parameter_variables_map,
+        .states     = input_state_variables_map
+      };
+      auto process_output = m_layer->process(process_input);
+      output_variable            = process_output.variable;
+      output_state_variables_map = process_output.states;
 
-      output_variable = std::move(_output_variable);
-      output_state_variables_map = std::move(_output_state_variables_map);
-
-      for(const auto& state : m_states)
-      {
-        auto variable = output_state_variables_map.at(state.name);
-        output_state_variables.push_back(std::move(variable));
-      }
+      // Output
+      output_state_variables = map_to_vector(m_states, output_state_variables_map);
 
       auto inputs  = join(std::array{input_variable}, std::move(parameter_variables), std::move(input_state_variables));
       auto outputs = join(std::array{output_variable}, std::move(output_state_variables));
@@ -185,70 +212,53 @@ namespace kann
     OptimizeState& optimize_state = m_optimizeStates[config];
     if(!optimize_state.executor)
     {
-      std::vector<CRef<Variable>> input_variables;
-      std::vector<CRef<Variable>> output_variables;
-      std::vector<CRef<Variable>> expected_output_variables;
-      std::vector<CRef<Variable>> output_gradient_variables;
+      std::vector<std::shared_ptr<const Variable>> input_variables;
+      std::vector<std::shared_ptr<const Variable>> output_variables;
+      std::vector<std::shared_ptr<const Variable>> expected_output_variables;
+      std::vector<std::shared_ptr<const Variable>> output_gradient_variables;
 
-      std::vector<CRef<Variable>> input_parameter_variables;
-      std::vector<CRef<Variable>> output_parameter_variables;
-      std::vector<CRef<Variable>> input_state_variables;
-      std::vector<CRef<Variable>> output_state_variables;
+      std::vector<std::shared_ptr<const Variable>> input_parameter_variables;
+      std::vector<std::shared_ptr<const Variable>> output_parameter_variables;
+      std::vector<std::shared_ptr<const Variable>> input_state_variables;
+      std::vector<std::shared_ptr<const Variable>> output_state_variables;
 
-      Map<Variable> input_parameter_variables_map;
-      Map<Variable> output_parameter_variables_map;
+      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> input_parameter_variables_map;
+      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> output_parameter_variables_map;
+      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> input_state_variables_map;
+      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> output_state_variables_map;
 
-      Map<Variable> input_state_variables_map;
-      Map<Variable> output_state_variables_map;
-
-      std::vector<CRef<Variable>> optimizer_input_state_variables;
-      std::vector<CRef<Variable>> optimizer_output_state_variables;
+      std::vector<std::shared_ptr<const Variable>> optimizer_input_state_variables;
+      std::vector<std::shared_ptr<const Variable>> optimizer_output_state_variables;
 
       // Input Parameters
-      input_parameter_variables.reserve(m_parameters.size());
-      for(const auto& parameter : m_parameters)
-      {
-        auto variable = std::make_shared<const Variable>();
-        input_parameter_variables.push_back(variable);
-        input_parameter_variables_map.emplace(parameter.name, variable);
-      }
+      input_parameter_variables = create_vector(m_parameters);
+      input_state_variables     = create_vector(m_states);
 
-      // Input States
-      input_state_variables.reserve(m_states.size());
-      for(const auto& state : m_states)
-      {
-        auto variable = std::make_shared<const Variable>();
-        input_state_variables.push_back(variable);
-        input_state_variables_map.emplace(state.name, variable);
-      }
+      input_parameter_variables_map = vector_to_map(m_parameters, input_parameter_variables);
+      input_state_variables_map     = vector_to_map(m_states,     input_state_variables);
 
       // Process
       output_state_variables_map = input_state_variables_map;
       for(size_t i=0; i<batchSize; ++i)
       {
-        CRef<Variable> input_variable;
-        CRef<Variable> output_variable;
-        CRef<Variable> expected_output_variable;
-        CRef<Variable> output_gradient_variable;
+        std::shared_ptr<const Variable> input_variable;
+        std::shared_ptr<const Variable> output_variable;
+        std::shared_ptr<const Variable> expected_output_variable;
+        std::shared_ptr<const Variable> output_gradient_variable;
 
         input_variable           = std::make_shared<Variable>();
         expected_output_variable = std::make_shared<Variable>();
 
-        auto [_output_variable, _output_state_variables_map] = m_layer->process(Scope(), {
-          .input      = input_variable,
-          .parameter  = input_parameter_variables_map,
-          .inputState = std::move(output_state_variables_map)
-        });
+        auto process_input = Layer::ProcessInput{
+          .variable = input_variable,
+          .parameters = input_parameter_variables_map,
+          .states     = output_state_variables_map
+        };
+        auto process_output = m_layer->process(process_input);
+        output_variable            = process_output.variable;
+        output_state_variables_map = process_output.states;
 
-        output_variable = std::move(_output_variable);
-        output_state_variables_map = std::move(_output_state_variables_map);
-        output_gradient_variable = std::make_shared<const Variable>(
-            std::vector{std::make_shared<const Variable>(
-              std::vector{output_variable, expected_output_variable},
-              std::make_shared<SubtractOperation>()
-            )},
-            std::make_shared<MultiplyOperation>(2.0)
-        );
+        output_gradient_variable   = Variable::apply(MultiplyOperation(2.0), {Variable::apply(SubtractOperation(), {output_variable, expected_output_variable})});
 
         input_variables.push_back(std::move(input_variable));
         output_variables.push_back(std::move(output_variable));
@@ -256,12 +266,7 @@ namespace kann
         output_gradient_variables.push_back(std::move(output_gradient_variable));
       }
 
-      // Output states
-      for(const auto& state : m_states)
-      {
-        auto variable = output_state_variables_map.at(state.name);
-        output_state_variables.push_back(std::move(variable));
-      }
+      output_state_variables = map_to_vector(m_states, output_state_variables_map);
 
       // Gradients
       auto gradients_map = differentiate(output_variables, output_gradient_variables);
@@ -269,24 +274,18 @@ namespace kann
       // Optimizer states
       for(const auto& parameter : m_parameters)
       {
-        Optimizer::Context context;
-        context.parameter = parameter;
-        context.inputParameter = input_parameter_variables_map.at(parameter.name);
-        context.gradient = gradients_map.at(context.inputParameter);
+        auto input_parameter_variable = input_parameter_variables_map.at({parameter.layer, parameter.name});
+        auto process_input = Optimizer::ProcessInput{
+          .size = parameter.size,
+          .parameter = input_parameter_variable,
+          .gradient  = gradients_map.at(input_parameter_variable)
+        };
+        auto process_output = optimizer->process(process_input);
+        output_parameter_variables.push_back(process_output.parameter);
 
-        optimizer->process(context);
-
-        for(auto [name, input_state_variable] : context.inputState)
-        {
-          auto output_state_variable = context.outputState.at(name);
-          auto initial_state = context.initialState.at(name);
-
-          optimizer_input_state_variables.push_back(std::move(input_state_variable));
-          optimizer_output_state_variables.push_back(std::move(output_state_variable));
-          optimize_state.values.push_back(std::move(initial_state));
-        }
-
-        output_parameter_variables.push_back(context.outputParameter);
+        optimize_state.values.insert(optimize_state.values.end(), process_output.initial_states.begin(), process_output.initial_states.end());
+        optimizer_input_state_variables.insert(optimizer_input_state_variables.end(), process_output.input_states.begin(), process_output.input_states.end());
+        optimizer_output_state_variables.insert(optimizer_output_state_variables.end(), process_output.output_states.begin(), process_output.output_states.end());
       }
 
       auto inputs  = join(std::move(input_variables), std::move(expected_output_variables), std::move(input_parameter_variables), std::move(input_state_variables), std::move(optimizer_input_state_variables));

@@ -16,21 +16,24 @@ namespace kann
     virtual ~Optimizer() = default;
 
   public:
-    struct Context
+    struct ProcessInput
     {
-      Layer::Parameter parameter;
+      size_t size;
 
-      CRef<Variable> gradient;
-
-      CRef<Variable> inputParameter;
-      CRef<Variable> outputParameter;
-
-      Map<Variable> inputState;
-      Map<Variable> outputState;
-
-      Map<Tensor> initialState;
+      std::shared_ptr<const Variable> parameter;
+      std::shared_ptr<const Variable> gradient;
     };
-    virtual void process(Context& context) const = 0;
+
+    struct ProcessOutput
+    {
+      std::shared_ptr<const Variable> parameter;
+
+      std::vector<std::shared_ptr<const Tensor>> initial_states;
+      std::vector<std::shared_ptr<const Variable>> input_states;
+      std::vector<std::shared_ptr<const Variable>> output_states;
+    };
+
+    virtual ProcessOutput process(ProcessInput input) const = 0;
 
   public:
     template<typename Archive>

@@ -111,11 +111,13 @@ namespace kann
       m_beta1(beta1), m_beta2(beta2),
       m_epsilon(epsilon) {}
 
-  void AdamOptimizer::process(Context& context) const
+  Optimizer::ProcessOutput AdamOptimizer::process(ProcessInput input) const
   {
+    ProcessOutput output;
+
     // First and second moment
-    auto g  = context.gradient;
-    auto g2 = std::make_shared<const Variable>(std::vector{context.gradient}, std::make_shared<SecondMomentOperation>());
+    auto g  = input.gradient;
+    auto g2 = std::make_shared<const Variable>(std::vector{input.gradient}, std::make_shared<SecondMomentOperation>());
 
     // EMA calculation
     auto m     = std::make_shared<const Variable>();
@@ -133,35 +135,20 @@ namespace kann
 
     auto correction = std::make_shared<const Variable>(std::vector{m_hat, v_hat}, std::make_shared<AdamOperation>(m_alpha, m_epsilon));
 
-    context.outputParameter = std::make_shared<const Variable>(
-      std::vector{context.inputParameter, correction},
+    output.parameter = std::make_shared<const Variable>(
+      std::vector{input.parameter, correction},
       std::make_shared<SubtractOperation>()
     );
 
-    auto m_name  = QualifiedName{
-      .scope = context.parameter.name.toScope(),
-      .name = "m"
+    output.initial_states = {
+      std::make_shared<const Tensor>(Tensor::constant(input.size, 0.0)),
+      std::make_shared<const Tensor>(Tensor::constant(input.size, 0.0)),
+      std::make_shared<const Tensor>(Tensor::constant(1, 0.0))
     };
-    auto v_name  = QualifiedName{
-      .scope = context.parameter.name.toScope(),
-      .name = "v"
-    };
-    auto ts_name = QualifiedName{
-      .scope = context.parameter.name.toScope(),
-      .name = "ts"
-    };
+    output.input_states = {m, v, ts};
+    output.output_states = {m_new, v_new, ts_new};
 
-    context.inputState.emplace(m_name,  m);
-    context.inputState.emplace(v_name,  v);
-    context.inputState.emplace(ts_name, ts);
-
-    context.outputState.emplace(m_name,   m_new);
-    context.outputState.emplace(v_name,   v_new);
-    context.outputState.emplace(ts_name,  ts_new);
-
-    context.initialState.emplace(m_name, std::make_shared<const Tensor>(Tensor::constant(context.parameter.size, 0.0)));
-    context.initialState.emplace(v_name, std::make_shared<const Tensor>(Tensor::constant(context.parameter.size, 0.0)));
-    context.initialState.emplace(ts_name, std::make_shared<const Tensor>(Tensor::constant(1, 0.0)));
+    return output;
   }
 }
 

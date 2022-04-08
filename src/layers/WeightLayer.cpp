@@ -18,67 +18,39 @@ namespace kann
     return m_outputSize;
   }
 
-  std::vector<Layer::Parameter> WeightLayer::parameters(Scope scope) const
+  std::vector<Layer::Parameter> WeightLayer::parameters() const
   {
-    auto weightName = QualifiedName{
-      .scope = scope,
-      .name = "weight"
+    return {
+      Parameter{
+        .layer = shared_from_this(),
+        .name = "weight",
+        .size = m_inputSize * m_outputSize,
+        .mean = 0.0,
+        .stddev = 1.0 / std::sqrt(m_inputSize)
+      },
+      Parameter{
+        .layer = shared_from_this(),
+        .name = "bias",
+        .size = m_outputSize,
+        .mean = 0.0,
+        .stddev = 0.0
+      },
     };
-
-    auto weightParameter = Parameter{
-      .name = weightName,
-      .size = m_inputSize * m_outputSize,
-      .mean = 0.0,
-      .stddev = 1.0 / std::sqrt(m_inputSize)
-    };
-
-    auto biasName = QualifiedName{
-      .scope = scope,
-      .name = "bias"
-    };
-
-    auto biasParameter = Parameter{
-      .name = biasName,
-      .size = m_outputSize,
-      .mean = 0.0,
-      .stddev = 0.0
-    };
-
-    return {weightParameter, biasParameter};
   }
 
-  Layer::Output WeightLayer::process(Scope scope, Input input) const
+  Layer::ProcessOutput WeightLayer::process(ProcessInput input) const
   {
-    auto inputVariable = std::move(input.input);
+    ProcessOutput output;
 
-    auto weightParameter = QualifiedName{
-      .scope = scope,
-      .name = "weight",
-    };
-
-    auto biasParameter = QualifiedName{
-      .scope = scope,
-      .name = "bias",
-    };
-
-    auto weightVariable = input.parameter.at(weightParameter);
-    auto biasVariable   = input.parameter.at(biasParameter);
+    auto weightVariable = input.parameters.at({shared_from_this(), "weight"});
+    auto biasVariable   = input.parameters.at({shared_from_this(), "bias"});
 
     // TODO: Fuse them into a single operation
-    auto prodVariable = std::make_shared<const Variable>(
-      std::vector{std::move(weightVariable), std::move(inputVariable)},
-      std::make_shared<MatrixMultiplyOperation>(m_outputSize, 1, m_inputSize, false, false)
-    );
+    auto prodVariable = Variable::apply(MatrixMultiplyOperation(m_outputSize, 1, m_inputSize, false, false), {std::move(weightVariable), std::move(input.variable)});
+    output.variable = Variable::apply(ReduceOperation(2), {std::move(biasVariable), std::move(prodVariable)});
 
-    auto outputVariable = std::make_shared<const Variable>(
-      std::vector{std::move(biasVariable), std::move(prodVariable)},
-      std::make_shared<ReduceOperation>(2)
-    );
-
-    return Output{
-      std::move(outputVariable),
-      std::move(input.inputState)
-    };
+    output.states = std::move(input.states);
+    return output;
   }
 
 }

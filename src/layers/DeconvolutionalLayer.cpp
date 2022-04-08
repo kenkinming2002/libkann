@@ -21,7 +21,7 @@ namespace kann
     return (m_inputWidth+m_kernelSize-1) * (m_inputHeight+m_kernelSize-1) * m_outputChannelCount;
   }
 
-  std::vector<Layer::Parameter> DeconvolutionalLayer::parameters(Scope scope) const
+  std::vector<Layer::Parameter> DeconvolutionalLayer::parameters() const
   {
     std::vector<Parameter> results;
     results.reserve(m_inputChannelCount * m_outputChannelCount);
@@ -29,13 +29,9 @@ namespace kann
     for(size_t j=0; j<m_outputChannelCount; ++j)
       for(size_t i=0; i<m_inputChannelCount; ++i)
       {
-        auto name = QualifiedName{
-          .scope = scope,
-          .name = "kernel"+std::to_string(i)+"_"+std::to_string(j)
-        };
-
         results.push_back(Parameter{
-          .name = name,
+          .layer = shared_from_this(),
+          .name  = "kernel" + std::to_string(i) + "_" + std::to_string(j),
           .size = m_kernelSize * m_kernelSize,
           .mean = 0.0,
           .stddev = 1.0 / m_kernelSize
@@ -45,14 +41,14 @@ namespace kann
     return results;
   }
 
-  Layer::Output DeconvolutionalLayer::process(Scope scope, Input input) const
+  Layer::ProcessOutput DeconvolutionalLayer::process(ProcessInput input) const
   {
     /* TODO: Consider marking them as override final */
     const size_t outputWidth = m_inputWidth + m_kernelSize - 1;
     const size_t outputHeight = m_inputHeight + m_kernelSize - 1;
 
     // 1: Retrive input variable
-    auto inputVariable = std::move(input.input);
+    auto inputVariable = std::move(input.variable);
 
     // 2: Split input into channels
     std::vector<CRef<Variable>> inputChannelVariables;
@@ -77,11 +73,7 @@ namespace kann
       for(size_t i=0; i<m_inputChannelCount; ++i)
       {
         auto inputChannelVariable = inputChannelVariables[i];
-        auto kernelParameter = QualifiedName{
-          .scope = scope,
-          .name = "kernel"+std::to_string(i)+"_"+std::to_string(j)
-        };
-        auto kernelVariable = input.parameter.at(kernelParameter);
+        auto kernelVariable = input.parameters.at({shared_from_this(), "kernel"+std::to_string(i)+"_"+std::to_string(j)});
         auto variable = std::make_shared<const Variable>(
           std::vector{std::move(inputChannelVariable), std::move(kernelVariable)},
           std::make_shared<DeconvolutionOperation>(m_inputWidth, m_inputHeight, m_kernelSize)
@@ -120,9 +112,9 @@ namespace kann
       std::make_shared<ReduceOperation>(m_outputChannelCount)
     );
 
-    return Output{
+    return ProcessOutput{
       std::move(outputVariable),
-      std::move(input.inputState)
+      std::move(input.states)
     };
   }
 }

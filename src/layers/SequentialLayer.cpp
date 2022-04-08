@@ -24,56 +24,37 @@ namespace kann
     return m_taggedLayers.back().layer->outputSize();
   }
 
-  std::vector<Layer::Parameter> SequentialLayer::parameters(Scope scope) const
+  std::vector<Layer::Parameter> SequentialLayer::parameters() const
   {
     std::vector<Parameter> result;
-
-    size_t i = 0;
     for(const auto& [tag, layer] : m_taggedLayers)
     {
-      auto layerScope = this->layerScope(i++);
-      auto layerParameters = layer->parameters(scope + layerScope);
+      auto layerParameters = layer->parameters();
       result.insert(result.end(), layerParameters.begin(), layerParameters.end());
     }
     return result;
   }
 
-  std::vector<Layer::State> SequentialLayer::states(Scope scope) const
+  std::vector<Layer::State> SequentialLayer::states() const
   {
     std::vector<State> result;
-
-    size_t i = 0;
     for(const auto& [tag, layer] : m_taggedLayers)
     {
-      auto layerScope = this->layerScope(i++);
-      auto layerStates = layer->states(scope + layerScope);
+      auto layerStates = layer->states();
       result.insert(result.end(), layerStates.begin(), layerStates.end());
     }
     return result;
   }
 
-  Layer::Output SequentialLayer::process(Scope scope, Input input) const
+  Layer::ProcessOutput SequentialLayer::process(ProcessInput input) const
   {
-    auto [inputVariable, parameterVariables, inputStateVariables] = std::move(input);
-    auto outputVariable       = inputVariable;
-    auto outputStateVariables = inputStateVariables;
-
-    size_t i = 0;
+    ProcessOutput output;
     for(const auto& [tag, layer] : m_taggedLayers)
     {
-      auto layerScope = this->layerScope(i++);
-      auto [_outputVariable, _outputStateVariables] = layer->process(scope+layerScope, {
-        std::move(outputVariable),
-        parameterVariables,
-        std::move(outputStateVariables)
-      });
-      outputVariable       = std::move(_outputVariable);
-      outputStateVariables = std::move(_outputStateVariables);
+      output = layer->process(input);
+      input.variable = output.variable;
+      input.states   = output.states;
     }
-
-    return Output{
-      std::move(outputVariable),
-      std::move(outputStateVariables)
-    };
+    return output;
   }
 }

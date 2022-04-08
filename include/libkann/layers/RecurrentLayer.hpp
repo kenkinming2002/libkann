@@ -21,10 +21,10 @@ namespace kann
     size_t outputSize() const override;
 
   public:
-    std::vector<Parameter> parameters(Scope scope) const override;
-    std::vector<State> states(Scope scope) const override;
+    std::vector<Parameter> parameters() const override;
+    std::vector<State> states() const override;
 
-    Output process(Scope scope, Input input) const override;
+    ProcessOutput process(ProcessInput input) const override;
 
   public:
     template<typename Archive>
@@ -33,12 +33,6 @@ namespace kann
       archive(cereal::base_class<Layer>(this));
       archive(m_memory);
       archive(m_taggedLayers);
-    }
-
-  private:
-    Scope layerScope(size_t i) const
-    {
-      return Scope("layer"+std::to_string(i), m_taggedLayers[i].tag);
     }
 
   private:

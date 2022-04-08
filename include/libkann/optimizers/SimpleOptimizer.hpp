@@ -11,7 +11,7 @@ namespace kann
     SimpleOptimizer(double learningRate);
 
   public:
-    void process(Context& context) const override;
+    ProcessOutput process(ProcessInput input) const override;
 
   public:
     template<typename Archive>

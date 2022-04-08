@@ -15,7 +15,7 @@ namespace kann
     size_t outputSize() const override;
 
   public:
-    Output process(Scope scope, Input input) const override;
+    ProcessOutput process(ProcessInput input) const override;
 
   public:
     template<typename Archive>

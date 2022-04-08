@@ -30,116 +30,67 @@ namespace kann
     return m_taggedLayers.back().layer->outputSize();
   }
 
-  std::vector<Layer::Parameter> RecurrentLayer::parameters(Scope scope) const
+  std::vector<Layer::Parameter> RecurrentLayer::parameters() const
   {
     std::vector<Parameter> result;
-
-    size_t i = 0;
     for(const auto& [tag, layer] : m_taggedLayers)
     {
-      auto layerScope = this->layerScope(i++);
-      auto layerParameters = layer->parameters(scope + layerScope);
+      auto layerParameters = layer->parameters();
       result.insert(result.end(), layerParameters.begin(), layerParameters.end());
     }
     return result;
   }
 
-  std::vector<Layer::State> RecurrentLayer::states(Scope scope) const
+  std::vector<Layer::State> RecurrentLayer::states() const
   {
     std::vector<State> result;
 
-    size_t i = 0;
     for(const auto& [tag, layer] : m_taggedLayers)
     {
-      auto layerScope = this->layerScope(i++);
-      auto layerStates = layer->states(scope + layerScope);
+      auto layerStates = layer->states();
       result.insert(result.end(), layerStates.begin(), layerStates.end());
     }
 
-    auto memoryName = QualifiedName{
-      .scope = scope,
-      .name = "memory"
-    };
-
-    auto memoryParameter = State{
-      .name = memoryName,
+    auto memoryState = State{
+      .layer = shared_from_this(),
+      .name = "memory",
       .size = m_memory
     };
-    result.push_back(memoryParameter);
+    result.push_back(memoryState);
 
     return result;
   }
 
-  Layer::Output RecurrentLayer::process(Scope scope, Input input) const
+  Layer::ProcessOutput RecurrentLayer::process(ProcessInput input) const
   {
-    auto memoryParameter = QualifiedName{
-      .scope = scope,
-      .name = "memory",
-    };
-
-    auto [inputVariable, parameterVariables, inputStateVariables] = std::move(input);
-
     // 1: Concat input
     {
       const size_t realInputSize = m_taggedLayers.front().layer->inputSize();
 
-      auto memoryVariable = inputStateVariables.at(memoryParameter);
-
-      auto expandedInputVariable = std::make_shared<const Variable>(
-        std::vector{inputVariable},
-        std::make_shared<IdentityOperation>(realInputSize-m_memory, realInputSize, 0)
-      );
-
-      auto expandedMemoryVariable = std::make_shared<const Variable>(
-        std::vector{memoryVariable},
-        std::make_shared<IdentityOperation>(m_memory, realInputSize, realInputSize-m_memory)
-      );
-
-      auto realInputVariable = std::make_shared<const Variable>(
-        std::vector{expandedInputVariable, expandedMemoryVariable},
-        std::make_shared<ReduceOperation>(2)
-      );
-
-      inputVariable = std::move(realInputVariable);
+      auto memoryVariable = input.states.at({shared_from_this(), "memory"});
+      auto expandedInputVariable  = Variable::apply(IdentityOperation(realInputSize-m_memory, realInputSize, 0                     ), std::vector{input.variable});
+      auto expandedMemoryVariable = Variable::apply(IdentityOperation(m_memory              , realInputSize, realInputSize-m_memory), std::vector{memoryVariable});
+      input.variable = Variable::apply(ReduceOperation(2), std::vector{expandedInputVariable, expandedMemoryVariable});
     }
 
-    auto outputVariable       = inputVariable;
-    auto outputStateVariables = inputStateVariables;
-
-    // 2: Pass through layers
-    size_t i = 0;
+    ProcessOutput output;
     for(const auto& [tag, layer] : m_taggedLayers)
     {
-      auto layerScope = this->layerScope(i++);
-      auto [_outputVariable, _outputStateVariables] = layer->process(scope+layerScope, {
-        std::move(outputVariable),
-        parameterVariables,
-        std::move(outputStateVariables)
-      });
-      outputVariable       = std::move(_outputVariable);
-      outputStateVariables = std::move(_outputStateVariables);
+      output = layer->process(input);
+      input.variable = output.variable;
+      input.states   = output.states;
     }
 
     // 3: Split output
     {
       const size_t realOutputSize = m_taggedLayers.back().layer->outputSize();
-
-      auto realOutputVariable = std::move(outputVariable);
-      outputVariable = std::make_shared<const Variable>(
-        std::vector{realOutputVariable},
-        std::make_shared<IdentityOperation>(realOutputSize, realOutputSize - m_memory, 0)
-      );
-
-      outputStateVariables.at(memoryParameter) = std::make_shared<const Variable>(
-        std::vector{realOutputVariable},
-        std::make_shared<IdentityOperation>(realOutputSize, m_memory, realOutputSize - m_memory)
-      );
+      auto outputVariable = Variable::apply(IdentityOperation(realOutputSize, realOutputSize - m_memory, 0                        ), std::vector{output.variable});
+      auto memoryVariable = Variable::apply(IdentityOperation(realOutputSize, m_memory                 , realOutputSize - m_memory), std::vector{output.variable});
+      output.variable = std::move(outputVariable);
+      output.states.at({shared_from_this(), "memory"}) = std::move(memoryVariable);
     }
 
-    return Output{
-      std::move(outputVariable),
-      std::move(outputStateVariables)
-    };
+    return output;
   }
 }
 

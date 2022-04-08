@@ -11,7 +11,7 @@ namespace kann
     AdamOptimizer(double alpha, double beta1, double beta2, double epsilon);
 
   public:
-    void process(Context& context) const override;
+    virtual ProcessOutput process(ProcessInput input) const override;
 
   public:
     template<typename Archive>

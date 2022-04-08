@@ -4,8 +4,6 @@
 
 namespace kann
 {
-  using namespace std::placeholders;
-
   ActivationLayer::ActivationLayer(size_t size, ActivationFunction activationFunction)
     : m_size(size), m_activationFunction(activationFunction) {}
 
@@ -41,17 +39,11 @@ namespace kann
     ActivationFunction m_activationFunction;
   };
 
-  Layer::Output ActivationLayer::process(Scope scope, Input input) const
+  Layer::ProcessOutput ActivationLayer::process(ProcessInput input) const
   {
-    auto inputVariable = std::move(input.input);
-    auto outputVariable = std::make_shared<const Variable>(
-      std::vector{std::move(inputVariable)},
-      std::make_shared<ActivationOperation>(m_activationFunction)
-    );
-
-    return Output{
-      std::move(outputVariable),
-      std::move(input.inputState)
-    };
+    ProcessOutput output;
+    output.variable = Variable::apply(ActivationOperation(m_activationFunction), {input.variable});
+    output.states = input.states;
+    return output;
   }
 }
