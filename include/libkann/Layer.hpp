@@ -9,60 +9,60 @@
 
 #include <memory>
 #include <vector>
+#include <random>
 
 #include <assert.h>
 #include <stddef.h>
 
 namespace kann
 {
-  class Layer : public std::enable_shared_from_this<Layer>
+  class Layer
   {
+  protected:
+    static std::shared_ptr<const Tensor> create_tensor_gaussian(size_t size, double mean, double variance, std::default_random_engine& engine)
+    {
+      std::normal_distribution dist(mean, variance);
+      return std::make_shared<const Tensor>(Tensor::nullaryExpr(size, [&](){ return dist(engine); }));
+    }
+
   public:
     virtual ~Layer() = default;
 
   public:
-    virtual size_t inputSize() const = 0;
-    virtual size_t outputSize() const = 0;
+    virtual std::shared_ptr<Layer> clone() const = 0;
+    virtual void randomize(std::default_random_engine& /*engine*/) {}
 
   public:
-    struct Parameter
-    {
-      std::shared_ptr<const Layer> layer;
-      std::string name;
-
-      size_t size;
-      double mean, stddev;
-      template<typename Archive> void serialize(Archive& archive) { archive(layer, name, size, mean, stddev); }
-    };
-
-    struct State
-    {
-      std::shared_ptr<const Layer> layer;
-      std::string name;
-
-      size_t size;
-      template<typename Archive> void serialize(Archive& archive) { archive(layer, name, size); }
-    };
+    virtual size_t input_size() const = 0;
+    virtual size_t output_size() const = 0;
 
   public:
-    virtual std::vector<Parameter> parameters() const { return {}; };
-    virtual std::vector<State> states() const { return {}; };
+    virtual size_t parameters_count() const { return 0; }
+    virtual size_t states_count() const { return 0; }
+
+    virtual std::vector<size_t> parameter_sizes() const { return {}; }
+    virtual std::vector<size_t> state_sizes() const { return {}; }
+
+    virtual std::vector<std::shared_ptr<const Tensor>> get_parameters() const { return {}; }
+    virtual std::vector<std::shared_ptr<const Tensor>> get_states() const { return {}; }
+
+    virtual void set_parameters(std::vector<std::shared_ptr<const Tensor>> values) { assert(values.empty()); }
+    virtual void set_states(std::vector<std::shared_ptr<const Tensor>> values) { assert(values.empty()); }
 
   public:
     struct ProcessInput
     {
       std::shared_ptr<const Variable> variable;
-      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> parameters;
-      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> states;
+      std::vector<std::shared_ptr<const Variable>> parameters;
+      std::vector<std::shared_ptr<const Variable>> states;
     };
 
     struct ProcessOutput
     {
       std::shared_ptr<const Variable> variable;
-      std::map<std::pair<std::shared_ptr<const Layer>, std::string>, std::shared_ptr<const Variable>> states;
+      std::vector<std::shared_ptr<const Variable>> states;
     };
 
-  public:
     virtual ProcessOutput process(ProcessInput input) const = 0;
 
   public:

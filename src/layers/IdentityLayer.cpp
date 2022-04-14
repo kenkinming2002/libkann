@@ -9,12 +9,17 @@ namespace kann
   IdentityLayer::IdentityLayer(size_t inputSize, size_t outputSize, size_t offset)
     : m_inputSize(inputSize), m_outputSize(outputSize), m_offset(offset) {}
 
-  size_t IdentityLayer::inputSize() const
+  std::shared_ptr<Layer> IdentityLayer::clone() const
+  {
+    return std::make_shared<IdentityLayer>(*this);
+  }
+
+  size_t IdentityLayer::input_size() const
   {
     return m_inputSize;
   }
 
-  size_t IdentityLayer::outputSize() const
+  size_t IdentityLayer::output_size() const
   {
     return m_outputSize;
   }

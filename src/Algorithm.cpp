@@ -149,14 +149,14 @@ namespace kann
     assert(latentInputs.size() == inputs.size());
     const size_t size = inputs.size() / batchSize * batchSize;
 
-    auto zero = std::make_shared<const Tensor>(1);
+    auto zero = std::make_shared<Tensor>(1);
     zero->asArray()(0) = 0.0;
 
-    auto one = std::make_shared<const Tensor>(1);
+    auto one = std::make_shared<Tensor>(1);
     one->asArray()(0) = 1.0;
 
-    auto zeroBatch = std::vector(batchSize, zero);
-    auto oneBatch  = std::vector(batchSize, one);
+    auto zeroBatch = std::vector<std::shared_ptr<const Tensor>>(batchSize, zero);
+    auto oneBatch  = std::vector<std::shared_ptr<const Tensor>>(batchSize, one);
 
     const auto optimizer = std::make_shared<AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
     for(size_t i=0; i<size; i+=batchSize)

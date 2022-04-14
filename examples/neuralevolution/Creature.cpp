@@ -17,7 +17,7 @@ static constexpr double ANGLE = M_PI / 12.0;
 std::shared_ptr<kann::Model> Creature::makeModel(std::default_random_engine& engine)
 {
   static auto layer = kann::loadLayer("examples/neuralevolution/creature.yaml");
-  auto model = std::make_shared<kann::Model>(layer);
+  auto model = std::make_shared<kann::Model>(layer->clone());
   model->randomize(engine);
   return model;
 }

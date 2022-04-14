@@ -8,7 +8,7 @@
 AIAgent AIAgent::make(std::default_random_engine& engine)
 {
   static auto layer = kann::loadLayer("examples/chinesechess/agent.yaml");
-  auto model = std::make_shared<kann::Model>(layer);
+  auto model = std::make_shared<kann::Model>(layer->clone());
   model->randomize(engine);
   return AIAgent(std::move(model));
 }

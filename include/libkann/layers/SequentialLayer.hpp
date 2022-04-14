@@ -10,16 +10,34 @@ namespace kann
   class SequentialLayer : public Layer
   {
   public:
-    void addLayer(CRef<Layer> layer, Tag tag = Tag::ALL);
+    SequentialLayer() = default;
+    SequentialLayer(const SequentialLayer& other);
 
   public:
-    size_t inputSize() const override;
-    size_t outputSize() const override;
+    void addLayer(std::shared_ptr<Layer> layer, Tag tag = Tag::ALL);
 
   public:
-    std::vector<Parameter> parameters() const override;
-    std::vector<State> states() const override;
+    std::shared_ptr<Layer> clone() const override;
+    void randomize(std::default_random_engine& engine) override;
 
+  public:
+    size_t input_size() const override;
+    size_t output_size() const override;
+
+  public:
+    size_t parameters_count() const override;
+    size_t states_count() const override;
+
+    std::vector<size_t> parameter_sizes() const override;
+    std::vector<size_t> state_sizes() const override;
+
+    std::vector<std::shared_ptr<const Tensor>> get_parameters() const override;
+    std::vector<std::shared_ptr<const Tensor>> get_states() const override;
+
+    void set_parameters(std::vector<std::shared_ptr<const Tensor>> values) override;
+    void set_states(std::vector<std::shared_ptr<const Tensor>> values) override;
+
+  public:
     ProcessOutput process(ProcessInput input) const override;
 
   public:
@@ -34,7 +52,7 @@ namespace kann
     struct TaggedLayer
     {
       Tag tag;
-      CRef<Layer> layer;
+      std::shared_ptr<Layer> layer;
 
       template<typename Archive>
       void serialize(Archive& archive)

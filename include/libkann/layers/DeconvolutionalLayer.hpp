@@ -8,14 +8,21 @@ namespace kann
   {
   public:
     DeconvolutionalLayer() = default;
-    DeconvolutionalLayer(size_t inputWidth, size_t inputHeight, size_t kernelSize, size_t inputChannelCount, size_t outputChannelCount);
+    DeconvolutionalLayer(size_t input_width, size_t input_height, size_t kernel_size, size_t input_channel_count, size_t output_channel_count);
 
   public:
-    size_t inputSize() const override;
-    size_t outputSize() const override;
+    std::shared_ptr<Layer> clone() const override;
+    void randomize(std::default_random_engine& engine) override;
 
   public:
-    std::vector<Parameter> parameters() const override;
+    size_t input_size() const override;
+    size_t output_size() const override;
+
+  public:
+    size_t parameters_count() const override;
+    std::vector<size_t> parameter_sizes() const override;
+    std::vector<std::shared_ptr<const Tensor>> get_parameters() const override;
+    void set_parameters(std::vector<std::shared_ptr<const Tensor>> values) override;
 
   public:
     ProcessOutput process(ProcessInput input) const override;
@@ -26,15 +33,19 @@ namespace kann
     {
       archive(cereal::base_class<Layer>(this));
 
-      archive(m_inputWidth, m_inputHeight);
-      archive(m_kernelSize);
-      archive(m_inputChannelCount, m_outputChannelCount);
+      archive(m_input_width, m_input_height);
+      archive(m_kernel_size);
+      archive(m_input_channel_count, m_output_channel_count);
+      archive(m_kernels);
     }
 
   private:
-    size_t m_inputWidth,  m_inputHeight;
-    size_t m_kernelSize;
-    size_t m_inputChannelCount, m_outputChannelCount;
+    size_t m_input_width,  m_input_height;
+    size_t m_kernel_size;
+    size_t m_input_channel_count, m_output_channel_count;
+
+  private:
+    std::vector<std::shared_ptr<const Tensor>> m_kernels;
   };
 }
 

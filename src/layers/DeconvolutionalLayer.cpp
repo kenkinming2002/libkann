@@ -6,115 +6,114 @@
 
 namespace kann
 {
-  DeconvolutionalLayer::DeconvolutionalLayer(size_t inputWidth, size_t inputHeight, size_t kernelSize, size_t inputChannelCount, size_t outputChannelCount)
-    : m_inputWidth(inputWidth), m_inputHeight(inputHeight),
-      m_kernelSize(kernelSize),
-      m_inputChannelCount(inputChannelCount), m_outputChannelCount(outputChannelCount) {}
+  DeconvolutionalLayer::DeconvolutionalLayer(size_t input_width, size_t input_height, size_t kernel_size, size_t input_channel_count, size_t output_channel_count)
+    : m_input_width(input_width), m_input_height(input_height),
+      m_kernel_size(kernel_size),
+      m_input_channel_count(input_channel_count), m_output_channel_count(output_channel_count) {}
 
-  size_t DeconvolutionalLayer::inputSize() const
+  std::shared_ptr<Layer> DeconvolutionalLayer::clone() const
   {
-    return m_inputWidth * m_inputHeight * m_inputChannelCount;
+    return std::make_shared<DeconvolutionalLayer>(*this);
   }
 
-  size_t DeconvolutionalLayer::outputSize() const
+  void DeconvolutionalLayer::randomize(std::default_random_engine& engine)
   {
-    return (m_inputWidth+m_kernelSize-1) * (m_inputHeight+m_kernelSize-1) * m_outputChannelCount;
+    m_kernels.clear();
+    for(size_t i=0; i<this->parameters_count(); ++i)
+      m_kernels.push_back(Layer::create_tensor_gaussian(m_kernel_size * m_kernel_size, 0.0, 1.0 / m_kernel_size, engine));
   }
 
-  std::vector<Layer::Parameter> DeconvolutionalLayer::parameters() const
+  size_t DeconvolutionalLayer::input_size() const
   {
-    std::vector<Parameter> results;
-    results.reserve(m_inputChannelCount * m_outputChannelCount);
+    return m_input_width * m_input_height * m_input_channel_count;
+  }
 
-    for(size_t j=0; j<m_outputChannelCount; ++j)
-      for(size_t i=0; i<m_inputChannelCount; ++i)
-      {
-        results.push_back(Parameter{
-          .layer = shared_from_this(),
-          .name  = "kernel" + std::to_string(i) + "_" + std::to_string(j),
-          .size = m_kernelSize * m_kernelSize,
-          .mean = 0.0,
-          .stddev = 1.0 / m_kernelSize
-        });
-      }
+  size_t DeconvolutionalLayer::output_size() const
+  {
+    return (m_input_width+m_kernel_size-1) * (m_input_height+m_kernel_size-1) * m_output_channel_count;
+  }
 
-    return results;
+  size_t DeconvolutionalLayer::parameters_count() const
+  {
+    return m_input_channel_count * m_output_channel_count;
+  }
+
+  std::vector<size_t> DeconvolutionalLayer::parameter_sizes() const
+  {
+    return std::vector(this->parameters_count(), m_kernel_size * m_kernel_size);
+  }
+
+  std::vector<std::shared_ptr<const Tensor>> DeconvolutionalLayer::get_parameters() const
+  {
+    assert(m_kernels.size() == this->parameters_count());
+    return m_kernels;
+  }
+
+  void DeconvolutionalLayer::set_parameters(std::vector<std::shared_ptr<const Tensor>> values)
+  {
+    assert(values.size() == this->parameters_count());
+    m_kernels = std::move(values);
   }
 
   Layer::ProcessOutput DeconvolutionalLayer::process(ProcessInput input) const
   {
-    /* TODO: Consider marking them as override final */
-    const size_t outputWidth = m_inputWidth + m_kernelSize - 1;
-    const size_t outputHeight = m_inputHeight + m_kernelSize - 1;
-
-    // 1: Retrive input variable
-    auto inputVariable = std::move(input.variable);
-
-    // 2: Split input into channels
-    std::vector<CRef<Variable>> inputChannelVariables;
-    inputChannelVariables.reserve(m_inputChannelCount);
-    for(size_t i=0; i<m_inputChannelCount; ++i)
+    // 1: Split input into channels
+    std::vector<std::shared_ptr<const Variable>> input_channels;
     {
-      auto variable = std::make_shared<const Variable>(
-        std::vector{inputVariable},
-        std::make_shared<IdentityOperation>(
-          m_inputWidth * m_inputHeight * m_inputChannelCount,
-          m_inputWidth * m_inputHeight,
-          m_inputWidth * m_inputHeight * i
-        )
-      );
-      inputChannelVariables.push_back(std::move(variable));
+      input_channels.reserve(m_input_channel_count);
+      for(size_t i=0; i<m_input_channel_count; ++i)
+        input_channels.push_back(Variable::apply(
+            IdentityOperation(
+              m_input_width * m_input_height * m_input_channel_count,
+              m_input_width * m_input_height,
+              m_input_width * m_input_height * i
+            ),
+            {input.variable}
+        ));
     }
 
-    // 3: Perform Deconvolution
-    std::vector<CRef<Variable>> resultVariables;
-    resultVariables.reserve(m_inputChannelCount * m_outputChannelCount);
-    for(size_t j=0; j<m_outputChannelCount; ++j)
-      for(size_t i=0; i<m_inputChannelCount; ++i)
+    // 2: Perform Deconvolution
+    std::vector<std::shared_ptr<const Variable>> results;
+    results.reserve(this->parameters_count());
+    for(size_t j=0; j<m_output_channel_count; ++j)
+      for(size_t i=0; i<m_input_channel_count; ++i)
       {
-        auto inputChannelVariable = inputChannelVariables[i];
-        auto kernelVariable = input.parameters.at({shared_from_this(), "kernel"+std::to_string(i)+"_"+std::to_string(j)});
-        auto variable = std::make_shared<const Variable>(
-          std::vector{std::move(inputChannelVariable), std::move(kernelVariable)},
-          std::make_shared<DeconvolutionOperation>(m_inputWidth, m_inputHeight, m_kernelSize)
-        );
-        resultVariables.push_back(std::move(variable));
+        auto input_channel = input_channels[i];
+        auto kernel        = input.parameters[j * m_input_channel_count + i];
+        results.push_back(Variable::apply(
+            DeconvolutionOperation(m_input_width, m_input_height, m_kernel_size),
+            {input_channel, kernel}
+        ));
       }
 
-    // 4: Reduce result to obtain output channel variables
-    std::vector<CRef<Variable>> outputChannelVariables;
-    for(size_t j=0; j<m_outputChannelCount; ++j)
-    {
-      auto tmp = std::vector(
-        &resultVariables[m_inputChannelCount * j],
-        &resultVariables[m_inputChannelCount * (j+1)]
-      );
-      auto variable = std::make_shared<const Variable>(
-        std::move(tmp),
-        std::make_shared<ReduceOperation>(m_inputChannelCount)
-      );
-      outputChannelVariables.push_back(std::move(variable));
-    }
+    // 3: Reduce result to obtain output channel variables
+    std::vector<std::shared_ptr<const Variable>> output_channels;
+    for(size_t j=0; j<m_output_channel_count; ++j)
+      output_channels.push_back(Variable::apply(
+          ReduceOperation(m_input_channel_count),
+          std::vector(
+            &results[m_input_channel_count * j],
+            &results[m_input_channel_count * (j+1)]
+          )
+      ));
 
     // 5: Concat output channel variables
-    for(size_t i=0; i<m_outputChannelCount; ++i)
-      outputChannelVariables[i] = std::make_shared<const Variable>(
-        std::vector{std::move(outputChannelVariables[i])},
-        std::make_shared<IdentityOperation>(
-          outputWidth * outputHeight,
-          outputWidth * outputHeight * m_outputChannelCount,
-          outputWidth * outputHeight * i
-        )
+    const size_t output_width  = m_input_width  + m_kernel_size - 1;
+    const size_t output_height = m_input_height + m_kernel_size - 1;
+
+    for(size_t i=0; i<m_output_channel_count; ++i)
+      output_channels[i] = Variable::apply(
+        IdentityOperation(
+          output_width * output_height,
+          output_width * output_height * m_output_channel_count,
+          output_width * output_height * i
+        ),
+        {std::move(output_channels[i])}
       );
 
-    auto outputVariable = std::make_shared<const Variable>(
-      std::move(outputChannelVariables),
-      std::make_shared<ReduceOperation>(m_outputChannelCount)
-    );
-
-    return ProcessOutput{
-      std::move(outputVariable),
-      std::move(input.states)
-    };
+    ProcessOutput output;
+    output.variable = Variable::apply(ReduceOperation(m_output_channel_count), std::move(output_channels));
+    output.states   = std::move(input.states);
+    return output;
   }
 }

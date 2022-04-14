@@ -74,8 +74,13 @@ void Population::select(size_t iterations, std::default_random_engine& engine, d
   std::uniform_int_distribution<size_t> dist(0, m_agents.size()-1);
   for(size_t i=0; i<eliminateCount; ++i)
   {
-    size_t index1 = dist(engine);
-    size_t index2 = dist(engine);
+    size_t index1, index2;
+    do
+    {
+      index1 = dist(engine);
+      index2 = dist(engine);
+    }
+    while(index1 == index2);
 
     auto agent = AIAgent::cross(m_agents[index1], m_agents[index2], engine, mutationRate);
     m_agents.push_back(std::move(agent));

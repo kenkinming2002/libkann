@@ -8,14 +8,21 @@ namespace kann
   {
   public:
     WeightLayer() = default;
-    WeightLayer(size_t inputSize, size_t outputSize);
+    WeightLayer(size_t input_size, size_t output_size);
 
   public:
-    size_t inputSize() const override;
-    size_t outputSize() const override;
+    std::shared_ptr<Layer> clone() const override;
+    void randomize(std::default_random_engine& engine) override;
 
   public:
-    std::vector<Parameter> parameters() const override;
+    size_t input_size() const override;
+    size_t output_size() const override;
+
+  public:
+    size_t parameters_count() const override;
+    std::vector<size_t> parameter_sizes() const override;
+    std::vector<std::shared_ptr<const Tensor>> get_parameters() const override;
+    void set_parameters(std::vector<std::shared_ptr<const Tensor>> values) override;
 
   public:
     ProcessOutput process(ProcessInput input) const override;
@@ -25,11 +32,16 @@ namespace kann
     void serialize(Archive& archive)
     {
       archive(cereal::base_class<Layer>(this));
-      archive(m_inputSize, m_outputSize);
+      archive(m_input_size, m_output_size);
+      archive(m_weight, m_bias);
     }
 
   private:
-    size_t m_inputSize, m_outputSize;
+    size_t m_input_size, m_output_size;
+
+  private:
+    std::shared_ptr<const Tensor> m_weight;
+    std::shared_ptr<const Tensor> m_bias;
   };
 
 }

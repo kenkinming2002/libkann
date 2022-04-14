@@ -38,6 +38,7 @@ namespace kann
         assert(in_node.value.get());
         inputs[connection.i] = in_node.value.get();
       }
+      assert(node.op);
       node.value = node.op->process(std::move(inputs));
     }
   }

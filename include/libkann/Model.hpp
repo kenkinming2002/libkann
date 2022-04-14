@@ -18,7 +18,7 @@ namespace kann
   {
   public:
     Model() = default;
-    Model(CRef<Layer> layer);
+    Model(std::shared_ptr<Layer> layer);
 
   public:
     void randomize(std::default_random_engine& engine);
@@ -40,24 +40,10 @@ namespace kann
     void serialize(Archive& archive)
     {
       archive(m_layer);
-
-      archive(m_parameters);
-      archive(m_states);
-
-      archive(m_parameter_values);
-      archive(m_state_values);
     }
 
   private:
-    CRef<Layer> m_layer;
-
-  private:
-    std::vector<Layer::Parameter> m_parameters;
-    std::vector<Layer::State> m_states;
-
-  private:
-    std::vector<CRef<Tensor>> m_parameter_values;
-    std::vector<CRef<Tensor>> m_state_values;
+    std::shared_ptr<Layer> m_layer;
 
   // Internal transient states
   private:

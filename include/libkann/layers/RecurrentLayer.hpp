@@ -11,19 +11,34 @@ namespace kann
   {
   public:
     RecurrentLayer() = default;
-    RecurrentLayer(size_t memory);
+    RecurrentLayer(const RecurrentLayer& other);
+    RecurrentLayer(size_t memory_size);
 
   public:
-    void addLayer(CRef<Layer> layer, Tag tag = Tag::ALL);
+    void addLayer(std::shared_ptr<Layer> layer, Tag tag = Tag::ALL);
 
   public:
-    size_t inputSize() const override;
-    size_t outputSize() const override;
+    std::shared_ptr<Layer> clone() const override;
+    void randomize(std::default_random_engine& engine) override;
 
   public:
-    std::vector<Parameter> parameters() const override;
-    std::vector<State> states() const override;
+    size_t input_size() const override;
+    size_t output_size() const override;
 
+  public:
+    size_t parameters_count() const override;
+    size_t states_count() const override;
+
+    std::vector<size_t> parameter_sizes() const override;
+    std::vector<size_t> state_sizes() const override;
+
+    std::vector<std::shared_ptr<const Tensor>> get_parameters() const override;
+    std::vector<std::shared_ptr<const Tensor>> get_states() const override;
+
+    void set_parameters(std::vector<std::shared_ptr<const Tensor>> values) override;
+    void set_states(std::vector<std::shared_ptr<const Tensor>> values) override;
+
+  public:
     ProcessOutput process(ProcessInput input) const override;
 
   public:
@@ -31,17 +46,15 @@ namespace kann
     void serialize(Archive& archive)
     {
       archive(cereal::base_class<Layer>(this));
-      archive(m_memory);
       archive(m_taggedLayers);
+      archive(m_memory_size, m_memory);
     }
 
   private:
-    size_t m_memory;
-
     struct TaggedLayer
     {
       Tag tag;
-      CRef<Layer> layer;
+      std::shared_ptr<Layer> layer;
 
       template<typename Archive>
       void serialize(Archive& archive)
@@ -50,6 +63,10 @@ namespace kann
       }
     };
     std::vector<TaggedLayer> m_taggedLayers;
+
+  private:
+    size_t m_memory_size;
+    std::shared_ptr<const Tensor> m_memory;
   };
 }
 

@@ -17,13 +17,14 @@ namespace kann
 
   void GraphExecutor::build(std::vector<CRef<Variable>> inputs, std::vector<CRef<Variable>> outputs)
   {
-    assert(std::all_of(inputs.begin(), inputs.end(), [](const auto& v) { return v; }));
-    assert(std::all_of(outputs.begin(), outputs.end(), [](const auto& v) { return v; }));
+    assert(std::all_of(inputs.begin(),  inputs.end(),  [](const auto& v) { return (bool)v; }));
+    assert(std::all_of(outputs.begin(), outputs.end(), [](const auto& v) { return (bool)v; }));
 
     // 1: Create vertices
     std::unordered_map<CRef<Variable>, vertex_type> verticesMap;
     {
       std::unordered_set<CRef<Variable>> open;
+      //open.insert(inputs.begin(),  inputs.end()); // A Hack
       open.insert(outputs.begin(), outputs.end());
       while(!open.empty())
       {
@@ -65,16 +66,19 @@ namespace kann
   std::vector<CRef<Tensor>> GraphExecutor::process(std::vector<CRef<Tensor>> inputs)
   {
     assert(inputs.size() == m_inputVertices.size());
+    assert(std::all_of(inputs.begin(), inputs.end(), [](const auto& input) { return (bool)input; }));
 
     // Clear
     for(auto [it, end] = boost::vertices(m_graph); it != end; ++it)
-      m_graph[*it].value.reset() ;
+      m_graph[*it].value.reset();
 
     // Inputs
     {
       size_t i = 0;
       for(const auto vertex : m_inputVertices)
+      {
         m_graph[vertex].value = inputs[i++];
+      }
     }
 
     // Compute

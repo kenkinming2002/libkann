@@ -7,15 +7,13 @@ namespace kann
   ActivationLayer::ActivationLayer(size_t size, ActivationFunction activationFunction)
     : m_size(size), m_activationFunction(activationFunction) {}
 
-  size_t ActivationLayer::inputSize() const
+  std::shared_ptr<Layer> ActivationLayer::clone() const
   {
-    return m_size;
+    return std::make_shared<ActivationLayer>(*this);
   }
 
-  size_t ActivationLayer::outputSize() const
-  {
-    return m_size;
-  }
+  size_t ActivationLayer::input_size() const { return m_size; }
+  size_t ActivationLayer::output_size() const { return m_size; }
 
   class ActivationOperation : public CWiseOperation<ActivationOperation, 1>
   {

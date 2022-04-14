@@ -12,8 +12,11 @@ namespace kann
     ActivationLayer(size_t size, ActivationFunction activationFunction);
 
   public:
-    size_t inputSize() const override;
-    size_t outputSize() const override;
+    std::shared_ptr<Layer> clone() const override;
+
+  public:
+    size_t input_size() const override;
+    size_t output_size() const override;
 
   public:
     ProcessOutput process(ProcessInput input) const override;
