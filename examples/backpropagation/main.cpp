@@ -1,5 +1,5 @@
 #include "libkann/layers/SequentialLayer.hpp"
-#include <libkann/utilities/random.hpp>
+#include <libkann/Random.hpp>
 
 #include <libkann/layers/IdentityLayer.hpp>
 #include <libkann/layers/WeightLayer.hpp>
@@ -47,7 +47,7 @@ static void writeDataSet(std::filesystem::path dirpath, const kann::DataSet& dat
 
 int main(int argc, char* argv[])
 {
-  std::default_random_engine engine(random<std::default_random_engine::result_type>());
+  std::default_random_engine engine(kann::random<std::default_random_engine::result_type>());
 
   kann::MNISTDataSet trainingDataSet(
     "datasets/mnist/train-images-idx3-ubyte",

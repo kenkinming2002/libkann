@@ -1,7 +1,7 @@
 #include "App.hpp"
 #include "Config.hpp"
 
-#include <libkann/utilities/random.hpp>
+#include <libkann/Random.hpp>
 
 #include <iostream>
 #include <cstdlib>
@@ -30,7 +30,7 @@ int main (int argc, const char* argv[])
       usage();
   }
   else
-    seed = random<App::seed_type>();
+    seed = kann::random<App::seed_type>();
 
   std::clog << "Seed is " << seed << '\n';
   App(seed).run();

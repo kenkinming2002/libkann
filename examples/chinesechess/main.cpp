@@ -8,7 +8,7 @@
 #include "cereal/archives/binary.hpp"
 #include "utilities/lexical_cast.hpp"
 
-#include <libkann/utilities/random.hpp>
+#include <libkann/Random.hpp>
 
 #include <iostream>
 #include <getopt.h>
@@ -107,7 +107,7 @@ int generate_populations(int argc, char* argv[])
       generate_populations_usage();
       return EXIT_FAILURE;
     }
-    if(!populationSeed) populationSeed = random<seed_type>();
+    if(!populationSeed) populationSeed = kann::random<seed_type>();
     if(!populationSize) populationSize = 5000;
     if(!selectionIterationsCount) selectionIterationsCount = 10;
 

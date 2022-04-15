@@ -12,7 +12,7 @@
 #include <libkann/Algorithm.hpp>
 #include <libkann/Loader.hpp>
 
-#include <libkann/utilities/random.hpp>
+#include <libkann/Random.hpp>
 
 #include <atomic>
 #include <mutex>
@@ -66,7 +66,7 @@ public:
 private:
   void _run()
   {
-    std::default_random_engine engine(random<std::mt19937::result_type>());
+    std::default_random_engine engine(kann::random<std::default_random_engine::result_type>());
 
     kann::MNISTDataSet trainingDataSet(
       "datasets/mnist/train-images-idx3-ubyte",
