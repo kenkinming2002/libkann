@@ -7,15 +7,20 @@
 
 AIAgent AIAgent::make(std::default_random_engine& engine)
 {
-  static auto layer = kann::loadLayer("examples/chinesechess/agent.yaml");
+  static auto LAYER = kann::loadLayer("examples/chinesechess/agent.yaml");
+
+  auto layer = LAYER->clone();
+  layer->randomize(engine);
   auto model = std::make_shared<kann::Model>(layer->clone());
-  model->randomize(engine);
+  model->compile(0, nullptr, {});
   return AIAgent(std::move(model));
 }
 
-AIAgent AIAgent::cross(const AIAgent& lhs, const AIAgent& rhs, std::default_random_engine& engine, double mutationRate)
+AIAgent AIAgent::cross(const AIAgent& lhs, const AIAgent& rhs, std::default_random_engine& engine, double mutation_rate)
 {
-  auto model = kann::cross(*lhs.m_model, *rhs.m_model, engine, mutationRate);
+  auto layer = kann::cross(*lhs.m_model->layer(), *rhs.m_model->layer(), engine, mutation_rate);
+  auto model = std::make_shared<kann::Model>(std::move(layer));
+  model->compile(0, nullptr, {});
   return AIAgent(std::move(model));
 }
 

@@ -16,9 +16,12 @@ static constexpr double ANGLE = M_PI / 12.0;
 
 std::shared_ptr<kann::Model> Creature::makeModel(std::default_random_engine& engine)
 {
-  static auto layer = kann::loadLayer("examples/neuralevolution/creature.yaml");
+  static auto LAYER = kann::loadLayer("examples/neuralevolution/creature.yaml");
+
+  auto layer = LAYER->clone();
+  layer->randomize(engine);
   auto model = std::make_shared<kann::Model>(layer->clone());
-  model->randomize(engine);
+  model->compile(0, nullptr, {});
   return model;
 }
 
@@ -189,14 +192,17 @@ void Creature::update(const Config& config, const BerryBush::Config& berryBushCo
         if(!takeEnergy(config.maxEnergy * 0.2) || !other->takeEnergy(config.maxEnergy * 0.2))
           continue;
 
-        auto newModel = kann::cross(*m_model, *other->m_model, world.prng(), config.mutationRate);
-        auto newPosition = position();
-        newPosition += other->position();
-        newPosition *= 0.5;
+        auto new_layer = kann::cross(*m_model->layer(), *other->m_model->layer(), world.prng(), config.mutationRate);
+        auto new_model = std::make_shared<kann::Model>(std::move(new_layer));
+        new_model->compile(0, nullptr, {});
+
+        auto new_position = position();
+        new_position += other->position();
+        new_position *= 0.5;
 
         // What we really need is the world prng and b2World
         auto newCreature = Creature(world.world(), config,
-            std::move(newModel), newPosition,
+            std::move(new_model), new_position,
             config.maxEnergy * 0.3, config.maxHealth
         );
         world.addCreature(std::move(newCreature));

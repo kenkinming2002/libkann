@@ -110,13 +110,13 @@ namespace kann
     assert(inputs.size() == expectedOutputs.size());
     const size_t size = inputs.size() / batchSize * batchSize;
 
-    const auto optimizer = std::make_shared<AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
+    //const auto optimizer = std::make_shared<AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
     for(size_t i=0; i<size; i+=batchSize)
     {
       auto inputsBatch          = std::vector<CRef<Tensor>>(&inputs[i],          &inputs[i+batchSize]);
       auto expectedOutputsBatch = std::vector<CRef<Tensor>>(&expectedOutputs[i], &expectedOutputs[i+batchSize]);
 
-      auto [outputsBatch, costs] = model->optimize(optimizer, Tag::ALL, inputsBatch, expectedOutputsBatch);
+      auto [outputsBatch, costs] = model->optimize(inputsBatch, expectedOutputsBatch, Tag::ALL);
 
       assert(inputsBatch.size()          == batchSize);
       assert(expectedOutputsBatch.size() == batchSize);
@@ -158,21 +158,21 @@ namespace kann
     auto zeroBatch = std::vector<std::shared_ptr<const Tensor>>(batchSize, zero);
     auto oneBatch  = std::vector<std::shared_ptr<const Tensor>>(batchSize, one);
 
-    const auto optimizer = std::make_shared<AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
+    //const auto optimizer = std::make_shared<AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
     for(size_t i=0; i<size; i+=batchSize)
     {
       auto inputsBatch = std::vector<CRef<Tensor>>(&inputs[i], &inputs[i+batchSize]);
       auto latentInputsBatch = std::vector<CRef<Tensor>>(&latentInputs[i], &latentInputs[i+batchSize]);
 
       // Train on real data set
-      auto [discriminatorResult, discriminatorCost] = discriminatorModel->optimize(optimizer, Tag::ALL, inputsBatch, oneBatch);
+      auto [discriminatorResult, discriminatorCost] = discriminatorModel->optimize(inputsBatch, oneBatch, Tag::ALL);
 
       // Predict on latent data set
       auto generatorResult = convert(latentInputsBatch, [&generatorModel](const auto& input){ return generatorModel->predict(input);});
 
       // Train on latent data set
-      auto [discriminatorCombinedResult, discriminatorCombinedCost] = model->optimize(optimizer, Tag::GAN_DISCRIMINATOR, latentInputsBatch, zeroBatch);
-      auto [generatorCombinedResult,     generatorCombinedCost]     = model->optimize(optimizer, Tag::GAN_GENERATOR,     latentInputsBatch, oneBatch);
+      auto [discriminatorCombinedResult, discriminatorCombinedCost] = model->optimize(latentInputsBatch, zeroBatch, Tag::GAN_DISCRIMINATOR);
+      auto [generatorCombinedResult,     generatorCombinedCost]     = model->optimize(latentInputsBatch, oneBatch,  Tag::GAN_GENERATOR);
 
       for(size_t j=0; j<batchSize; ++j)
       {

@@ -39,7 +39,9 @@ namespace kann
   }
 
   RecurrentLayer::RecurrentLayer(const RecurrentLayer& other)
-    : m_taggedLayers(other.m_taggedLayers), m_memory_size(other.m_memory_size)
+    : m_taggedLayers(other.m_taggedLayers),
+      m_memory_size(other.m_memory_size),
+      m_memory(other.m_memory)
   {
     for(auto& [tag, layer] : m_taggedLayers)
       layer = layer->clone();

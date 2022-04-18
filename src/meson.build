@@ -11,6 +11,7 @@ libkann_sources = [
   'datasets/MNISTDataSet.cpp',
   'datasets/RandomDataSet.cpp',
   'datasets/write.cpp',
+  'Layer.cpp',
   'Model.cpp',
   'Loader.cpp',
   'Algorithm.cpp',

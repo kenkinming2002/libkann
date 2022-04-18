@@ -21,54 +21,45 @@ namespace kann
     Model(std::shared_ptr<Layer> layer);
 
   public:
+    std::shared_ptr<const Layer> layer() const { return m_layer; }
+
+  public:
+    void compile(size_t batch_size, std::shared_ptr<const Optimizer> optimizer, std::vector<Tag> tags);
     void randomize(std::default_random_engine& engine);
 
   public:
-    CRef<Tensor> predict(CRef<Tensor> input);
-
-    // FIXME: better formatting
-    std::pair<std::vector<CRef<Tensor>>, std::vector<double>> optimize(
-      CRef<Optimizer> optimizer, Tag tag,
-      std::vector<CRef<Tensor>> inputs,
-      std::vector<CRef<Tensor>> expectedOutputs);
-
-  public:
-    friend Ref<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
+    std::shared_ptr<const Tensor> predict(std::shared_ptr<const Tensor> input);
+    auto optimize(std::vector<std::shared_ptr<const Tensor>> inputs, std::vector<std::shared_ptr<const Tensor>> expected_outputs, Tag tag)
+      -> std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>>;
 
   public:
     template<typename Archive>
-    void serialize(Archive& archive)
+    void save(Archive& archive) const
     {
       archive(m_layer);
+      archive(m_batch_size, m_optimizer, m_tags);
+    }
+
+    template<typename Archive>
+    void load(Archive& archive)
+    {
+      archive(m_layer);
+      archive(m_batch_size, m_optimizer);
+      compile(m_batch_size, m_optimizer, m_tags);
     }
 
   private:
     std::shared_ptr<Layer> m_layer;
 
+  public:
+    size_t m_batch_size;
+    std::shared_ptr<const Optimizer> m_optimizer;
+    std::vector<Tag> m_tags;
+
   // Internal transient states
   private:
-    struct OptimizeConfig
-    {
-      CRef<Optimizer> optimizer;
-      Tag tag;
-      size_t batchSize;
-
-      auto operator<=>(const OptimizeConfig&) const = default;
-    };
-
-    struct OptimizeState
-    {
-      std::unique_ptr<Executor> executor;
-      std::vector<CRef<Tensor>> values;
-    };
-
-    std::unique_ptr<Executor> m_predictExecutor;
-    std::map<OptimizeConfig, OptimizeState> m_optimizeStates;
-
-  private:
-    Executor& predictExecutor();
-    OptimizeState& optimizeState(CRef<Optimizer> optimizer, Tag tag, size_t batchSize);
+    std::unique_ptr<Executor> m_predict_executor;
+    std::unordered_map<Tag, std::unique_ptr<Executor>> m_optimize_executors;
+    std::unordered_map<Tag, std::vector<std::shared_ptr<const Tensor>>> m_optimize_states;
   };
-
-  Ref<Model> cross(const Model& lhs, const Model& rhs, std::default_random_engine& engine, double mutationRate);
 }

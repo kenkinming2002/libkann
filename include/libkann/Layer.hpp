@@ -19,11 +19,10 @@ namespace kann
   class Layer
   {
   protected:
-    static std::shared_ptr<const Tensor> create_tensor_gaussian(size_t size, double mean, double variance, std::default_random_engine& engine)
-    {
-      std::normal_distribution dist(mean, variance);
-      return std::make_shared<const Tensor>(Tensor::nullaryExpr(size, [&](){ return dist(engine); }));
-    }
+    static std::shared_ptr<const Tensor> create_tensor_gaussian(size_t size, double mean, double variance, std::default_random_engine& engine);
+
+  public:
+    friend std::shared_ptr<Layer> cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutation_rate);
 
   public:
     virtual ~Layer() = default;
@@ -68,4 +67,6 @@ namespace kann
   public:
     template<typename Archive> void serialize(Archive& archive) {}
   };
+
+  std::shared_ptr<Layer> cross(const Layer& lhs, const Layer& rhs, std::default_random_engine& engine, double mutation_rate);
 }

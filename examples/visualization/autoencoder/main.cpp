@@ -6,6 +6,9 @@
 
 #include <libkann/layers/SequentialLayer.hpp>
 
+#include <libkann/optimizers/AdamOptimizer.hpp>
+#include <libkann/optimizers/SimpleOptimizer.hpp>
+
 #include <libkann/datasets/MNISTDataSet.hpp>
 #include <libkann/datasets/write.hpp>
 
@@ -27,8 +30,17 @@
 static constexpr unsigned WINDOW_WIDTH = 800;
 static constexpr unsigned WINDOW_HEIGHT = 600;
 
-static constexpr size_t FEATURES_COUNT = 64;
 static constexpr double LEARNING_RATE = 0.05;
+static constexpr size_t BATCH_SIZE     = 10;
+static constexpr size_t FEATURES_COUNT = 64;
+
+/* Note:
+ *
+ * Auto encoder and Adam Optimizer does not play nicely together - at
+ * least when used in conjuction with sum of square difference cost function.
+ * For better performance, use Simple Optimizer with auto encoder. */
+//static const auto OPTIMIZER      = std::make_shared<kann::AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
+static const auto OPTIMIZER      = std::make_shared<kann::SimpleOptimizer>(0.05);
 
 class Runner
 {
@@ -85,12 +97,14 @@ private:
     autoEncoderLayer->addLayer(encoderLayer, kann::Tag::ENCODER);
     autoEncoderLayer->addLayer(decoderLayer, kann::Tag::DECODER);
 
-    auto decoderModel = std::make_shared<kann::Model>(decoderLayer);
-    auto encoderModel = std::make_shared<kann::Model>(encoderLayer);
+    autoEncoderLayer->randomize(engine);
+
+    auto decoderModel     = std::make_shared<kann::Model>(decoderLayer);
+    auto encoderModel     = std::make_shared<kann::Model>(encoderLayer);
     auto autoEncoderModel = std::make_shared<kann::Model>(autoEncoderLayer);
-    decoderModel->randomize(engine);
-    encoderModel->randomize(engine);
-    autoEncoderModel->randomize(engine);
+    decoderModel->compile(0, nullptr, {});
+    encoderModel->compile(0, nullptr, {});
+    autoEncoderModel->compile(BATCH_SIZE, OPTIMIZER, {kann::Tag::ALL});
 
     const char* label;
     auto callback = [this, &label](kann::Info info){
@@ -122,7 +136,7 @@ private:
       auto trainingImages = kann::load(trainingDataSet, kann::MNISTDataSet::COLUMN_IMAGE);
 
       std::filesystem::create_directories(m_outputDirectory / label);
-      auto task = kann::train(autoEncoderModel, trainingImages, trainingImages, LEARNING_RATE, 10);
+      auto task = kann::train(autoEncoderModel, trainingImages, trainingImages, LEARNING_RATE, BATCH_SIZE);
       while(!m_stop.load() && !task.step())
         callback(task.info());
     }
