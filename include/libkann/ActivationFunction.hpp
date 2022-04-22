@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-#include <libkann/export.hpp>
-
 namespace kann
 {
   struct ActivationFunction
