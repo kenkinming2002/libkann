@@ -86,18 +86,17 @@ namespace kann
       output_states = std::move(process_output.states);
 
       // Process
-      auto executor_inputs  = join(std::array{std::move(input)},  std::move(parameters), std::move(input_states));
-      auto executor_outputs = join(std::array{std::move(output)}, std::move(output_states));
+      auto graph_inputs  = join(std::array{std::move(input)},  std::move(parameters), std::move(input_states));
+      auto graph_outputs = join(std::array{std::move(output)}, std::move(output_states));
 
-      m_predict_executor = Executor::create(Executor::Type::DEFAULT);
-      m_predict_executor->build(std::move(executor_inputs), std::move(executor_outputs));
+      m_predict_graph = std::make_shared<Graph>(std::move(graph_inputs), std::move(graph_outputs));
     }
 
     // Optimize
     for(const auto tag : tags)
     {
-      auto& optimize_executor = m_optimize_executors[tag];
-      auto& optimize_states   = m_optimize_states[tag];
+      auto& optimize_graph  = m_optimize_graphs[tag];
+      auto& optimize_states = m_optimize_states[tag];
 
       const size_t parameters_count = m_layer->parameters_count();
       const size_t states_count     = m_layer->states_count();
@@ -165,15 +164,13 @@ namespace kann
         optimizer_output_states.insert(optimizer_output_states.end(), process_output.output_states.begin(), process_output.output_states.end());
       }
 
-      auto executor_inputs  = join(std::move(inputs), std::move(expected_outputs), std::move(input_parameters), std::move(input_states), std::move(optimizer_input_states));
-      auto executor_outputs = join(std::move(outputs), std::move(output_parameters), std::move(output_states), std::move(optimizer_output_states));
+      auto graph_inputs  = join(std::move(inputs), std::move(expected_outputs), std::move(input_parameters), std::move(input_states), std::move(optimizer_input_states));
+      auto graph_outputs = join(std::move(outputs), std::move(output_parameters), std::move(output_states), std::move(optimizer_output_states));
 
-      optimize_executor = Executor::create(Executor::Type::DEFAULT);
-      optimize_executor->build(std::move(executor_inputs), std::move(executor_outputs));
-
-      std::ofstream file("/tmp/test.dot");
-      optimize_executor->write_graphviz(file);
+      optimize_graph = std::make_shared<Graph>(std::move(graph_inputs), std::move(graph_outputs));
     }
+
+    m_executor = Executor::create(Executor::Type::DEFAULT);
   }
 
   void Model::randomize(std::default_random_engine& engine)
@@ -183,28 +180,30 @@ namespace kann
 
   // input: input, parameters, states,
   // output: output, states
-  std::shared_ptr<const Tensor> Model::predict(std::shared_ptr<const Tensor> input)
+  std::shared_ptr<const Tensor> Model::predict(
+    std::shared_ptr<const Tensor> input)
   {
     auto parameters = m_layer->get_parameters();
     auto states     = m_layer->get_states();
 
     auto executor_inputs  = join(std::array{input}, parameters, states);
-    auto executor_outputs = m_predict_executor->process(std::move(executor_inputs));
+    auto executor_outputs = m_executor->process(m_predict_graph, std::move(executor_inputs));
     auto [output, new_states] = split(executor_outputs, 1, states.size());
 
     assert(std::all_of(new_states.begin(), new_states.end(), [](const auto& v) { return (bool)v; }));
-
     m_layer->set_states(move_to_vector(new_states));
     return std::move(output.front());
   }
 
   // input: inputs, expected outputs, parameters, states, optimizer states
   // output: outputs, parameters, states, optimizer states
-  auto Model::optimize(std::vector<std::shared_ptr<const Tensor>> inputs, std::vector<std::shared_ptr<const Tensor>> expected_outputs, Tag tag)
-    -> std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>>
+  std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> Model::optimize(
+    std::vector<std::shared_ptr<const Tensor>> inputs,
+    std::vector<std::shared_ptr<const Tensor>> expected_outputs,
+    Tag tag)
   {
-    auto& optimize_executor = m_optimize_executors.at(tag);
-    auto& optimize_states   = m_optimize_states.at(tag);
+    auto& optimize_graph  = m_optimize_graphs.at(tag);
+    auto& optimize_states = m_optimize_states.at(tag);
 
     const size_t batch_size = inputs.size();
 
@@ -212,7 +211,7 @@ namespace kann
     auto states     = m_layer->get_states();
 
     auto executor_inputs  = join(inputs, expected_outputs, parameters, states, optimize_states);
-    auto executor_outputs = optimize_executor->process(std::move(executor_inputs));
+    auto executor_outputs = m_executor->process(optimize_graph, std::move(executor_inputs));
     auto [outputs, new_parameters, new_states, new_optimizer_state_values] = split(executor_outputs, batch_size, parameters.size(), states.size(), optimize_states.size());
 
     m_layer->set_parameters(move_to_vector(new_parameters));

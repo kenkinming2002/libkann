@@ -9,38 +9,63 @@
 
 namespace kann
 {
-  void DefaultExecutor::build()
+  template<typename From, typename F>
+  static std::vector<std::result_of_t<F(const From&)>> map(const std::vector<From>& input, F f)
   {
-    const auto count = boost::num_vertices(this->graph());
+    std::vector<std::result_of_t<F(const From&)>> output;
+    output.reserve(input.size());
+    for(const auto& data : input)
+      output.push_back(f(data));
 
-    m_ordering.reserve(count);
-    boost::topological_sort(this->graph(), std::back_inserter(m_ordering));
-    std::reverse(m_ordering.begin(), m_ordering.end());
+    return output;
   }
 
-  void DefaultExecutor::compute()
+  std::vector<std::shared_ptr<const Tensor>> DefaultExecutor::process(std::shared_ptr<const Graph> graph, std::vector<std::shared_ptr<const Tensor>> inputs)
   {
-    for(const auto vertex : m_ordering)
+    // 1: Find or Create state
+    auto it = m_states.find(graph);
+    if(it == m_states.end())
     {
-      auto& node = this->graph()[vertex];
-      if(node.value)
+      State state;
+      state.ordering = graph->topological_ordering();
+      state.values.resize(state.ordering.size());
+
+      it = m_states.emplace(graph, std::move(state)).first;
+    }
+
+    State& state = it->second;
+
+    // 2: Reset
+    std::fill(state.values.begin(), state.values.end(), nullptr);
+
+    // 3: Inputs
+    {
+      const auto& input_indices  = graph->input_indices();
+      assert(input_indices.size() == inputs.size());
+      for(size_t i=0; i<input_indices.size(); ++i)
+        state.values[input_indices[i]] = inputs[i];
+    }
+
+    // 4: Compute
+    const auto& nodes = graph->nodes();
+    for(size_t index : state.ordering)
+    {
+      const auto& node = nodes[index];
+      if(state.values[index])
         continue;
 
-      std::vector<const Tensor*> inputs(node.inputCount);
-      for(auto [it, end] = boost::in_edges(vertex, this->graph()); it != end; ++it)
-      {
-        const auto edge = *it;
-        const auto in_vertex = boost::source(edge, this->graph());
-
-        const auto& connection = this->graph()[edge];
-        const auto& in_node = this->graph()[in_vertex];
-
-        assert(in_node.value.get());
-        inputs[connection.i] = in_node.value.get();
-      }
+      auto inputs = map(node.input_indices, [&](size_t input_index) -> const Tensor* {
+          assert(state.values[input_index]);
+          return state.values[input_index].get();
+      });
       assert(node.op);
-      node.value = node.op->process(std::move(inputs));
+      state.values[index] = node.op->process(std::move(inputs));
     }
+
+    // 5: Outputs
+    return map(graph->output_indices(), [&](size_t output_index) {
+        return state.values[output_index];
+    });
   }
 }
 

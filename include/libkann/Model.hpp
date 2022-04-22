@@ -29,8 +29,11 @@ namespace kann
 
   public:
     std::shared_ptr<const Tensor> predict(std::shared_ptr<const Tensor> input);
-    auto optimize(std::vector<std::shared_ptr<const Tensor>> inputs, std::vector<std::shared_ptr<const Tensor>> expected_outputs, Tag tag)
-      -> std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>>;
+
+    std::pair<std::vector<std::shared_ptr<const Tensor>>, std::vector<double>> optimize(
+      std::vector<std::shared_ptr<const Tensor>> inputs,
+      std::vector<std::shared_ptr<const Tensor>> expected_outputs,
+      Tag tag);
 
   public:
     template<typename Archive>
@@ -56,10 +59,13 @@ namespace kann
     std::shared_ptr<const Optimizer> m_optimizer;
     std::vector<Tag> m_tags;
 
-  // Internal transient states
   private:
-    std::unique_ptr<Executor> m_predict_executor;
-    std::unordered_map<Tag, std::unique_ptr<Executor>> m_optimize_executors;
+    std::unique_ptr<Executor> m_executor;
+
+    // Could be shared
+    // Ideally, I don't even want to need to explicitly cache Graph
+    std::shared_ptr<const Graph> m_predict_graph;
+    std::unordered_map<Tag, std::shared_ptr<const Graph>> m_optimize_graphs;
     std::unordered_map<Tag, std::vector<std::shared_ptr<const Tensor>>> m_optimize_states;
   };
 }

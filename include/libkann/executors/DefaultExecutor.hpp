@@ -1,6 +1,6 @@
 #pragma once
 
-#include <libkann/executors/GraphExecutor.hpp>
+#include <libkann/Executor.hpp>
 
 #include <boost/graph/adjacency_list.hpp>
 
@@ -9,13 +9,17 @@
 
 namespace kann
 {
-  class DefaultExecutor : public GraphExecutor
+  class DefaultExecutor : public Executor
   {
-  protected:
-    void build() override final;
-    void compute() override final;
+  public:
+    std::vector<std::shared_ptr<const Tensor>> process(std::shared_ptr<const Graph> graph, std::vector<std::shared_ptr<const Tensor>> inputs) override;
 
   private:
-    std::vector<vertex_type> m_ordering;
+    struct State
+    {
+      std::vector<size_t> ordering;
+      std::vector<std::shared_ptr<const Tensor>> values;
+    };
+    std::unordered_map<std::shared_ptr<const Graph>, State> m_states;
   };
 }

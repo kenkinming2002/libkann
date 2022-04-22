@@ -4,6 +4,8 @@
 #include <libkann/Tensor.hpp>
 #include <libkann/Variable.hpp>
 
+#include <libkann/Graph.hpp>
+
 #include <vector>
 #include <span>
 #include <string>
@@ -22,10 +24,6 @@ namespace kann
     virtual ~Executor() = default;
 
   public:
-    virtual void build(std::vector<CRef<Variable>> inputs, std::vector<CRef<Variable>> outputs) = 0;
-    virtual std::vector<CRef<Tensor>> process(std::vector<CRef<Tensor>> inputs) = 0;
-
-  public:
-    virtual void write_graphviz(std::ostream& os) const = 0;
+    virtual std::vector<std::shared_ptr<const Tensor>> process(std::shared_ptr<const Graph> graph, std::vector<std::shared_ptr<const Tensor>> inputs) = 0;
   };
 }
