@@ -1,3 +1,5 @@
+#include "Renderer.hpp"
+
 #include <libkann/Random.hpp>
 
 #include <libkann/layers/IdentityLayer.hpp>
@@ -36,11 +38,140 @@ static constexpr size_t FEATURES_COUNT = 64;
  * Auto encoder and Adam Optimizer does not play nicely together - at
  * least when used in conjuction with sum of square difference cost function.
  * For better performance, use Simple Optimizer with auto encoder. */
-static const auto OPTIMIZER      = std::make_shared<kann::AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
-//static const auto OPTIMIZER      = std::make_shared<kann::SimpleOptimizer>(0.05);
+//static const auto OPTIMIZER      = std::make_shared<kann::AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
+static const auto OPTIMIZER      = std::make_shared<kann::SimpleOptimizer>(0.05);
 
-int main(int argc, char* argv[])
+class Arguments
 {
+public:
+  Arguments(int argc, char** argv)
+    : m_argc(argc), m_argv(argv) {}
+
+public:
+  std::string_view program_name() const
+  {
+    return m_argc != 0 ? m_argv[0] : "backpropagation";
+  }
+
+  enum class Type
+  {
+    LONG_OPTION,
+    SHORT_OPTION,
+    OTHER
+  };
+
+  struct Result
+  {
+    Type type;
+    std::string_view str;
+    char c;
+  };
+
+
+  template<typename Callback>
+  bool parse(Callback cb) const requires(std::is_invocable_r_v<bool, Callback, Result>)
+  {
+    for(int i=1; i<m_argc; ++i)
+    {
+      std::string_view arg = m_argv[i];
+      if(arg.starts_with("--"))
+      {
+        if(!cb(Result{.type = Type::LONG_OPTION, .str = arg.substr(2)}))
+          return false;
+      }
+      else if(arg.starts_with("-"))
+      {
+        for(char c : arg.substr(1))
+          if(!cb(Result{.type = Type::SHORT_OPTION, .c = c}))
+            return false;
+      }
+      else
+      {
+       if(!cb(Result{.type = Type::OTHER, .str = arg}))
+         return false;
+      }
+    }
+    return true;
+  }
+
+private:
+  int m_argc;
+  char** m_argv;
+};
+
+void usage()
+{
+  std::cerr << "Usage: backpropagation write/feeedForward/autoencoder [target] [--gui]" << std::endl;
+}
+
+int main(int argc, char** argv)
+{
+  // 1: Commandline
+  std::optional<std::string_view> subcommand;
+  std::optional<std::string_view> target;
+  bool gui = false;
+
+  bool result = Arguments(argc, argv).parse([&](Arguments::Result result) -> bool
+  {
+    switch(result.type)
+    {
+    case Arguments::Type::SHORT_OPTION:
+      if(result.c == 'g')
+      {
+        gui = true;
+        return true;
+      }
+      else
+        return false;
+    case Arguments::Type::LONG_OPTION:
+      if(result.str == "gui")
+      {
+        gui = true;
+        return true;
+      }
+      else
+        return false;
+    case Arguments::Type::OTHER:
+      if(!subcommand)
+      {
+        subcommand = result.str;
+        return true;
+      }
+      else if(!target)
+      {
+        target = result.str;
+        return true;
+      }
+      else
+      {
+        std::cout << "Hey3\n";
+        return false;
+      }
+    default:
+      return false;
+    }
+  });
+
+  if(!result)
+  {
+    std::cout << "Hey1\n";
+    usage();
+    return -1;
+  }
+
+  if(!subcommand)
+  {
+    std::cout << "Hey2\n";
+    usage();
+    return -1;
+  }
+
+  // 2: Launch GUI Thread
+  std::optional<Renderer> renderer;
+  if(gui)
+    renderer.emplace();
+
+  // 3: Computation
   std::default_random_engine engine(kann::random<std::default_random_engine::result_type>());
 
   kann::MNISTDataSet training_dataset(
@@ -59,15 +190,7 @@ int main(int argc, char* argv[])
   auto testing_inputs  = kann::load(testing_dataset, kann::MNISTDataSet::COLUMN_IMAGE);
   auto testing_outputs = kann::load(testing_dataset, kann::MNISTDataSet::COLUMN_LABEL);
 
-
-  if(argc < 2)
-  {
-    std::cerr << "Usage: " << argv[0] << " write/feeedForward/autoencoder [target]" << std::endl;
-    return -1;
-  }
-
-  std::string subcommand = argv[1];
-  if(subcommand == "write")
+  if(*subcommand == "write")
   {
     for(const auto& [output_path, data] : {std::pair{"output/training", training_inputs}, std::pair{"output/testing", testing_inputs}})
     {
@@ -77,12 +200,12 @@ int main(int argc, char* argv[])
           .saveToFile(std::string(output_path) + "/data" + std::to_string(i) + ".bmp");
     }
   }
-  else if(subcommand == "feedforward")
+  else if(*subcommand == "feedforward")
   {
-    if(argc != 3)
+    if(!target)
       return -1;
 
-    auto layer = kann::loadLayer("examples/backpropagation/feedforward/" + std::string(argv[2]) + ".yaml");
+    auto layer = kann::loadLayer("examples/backpropagation/feedforward/" + std::string(*target) + ".yaml");
     auto model = std::make_shared<kann::Model>(std::move(layer));
 
     model->randomize(engine);
@@ -115,13 +238,13 @@ int main(int argc, char* argv[])
       std::cout << "correctness:" << task.get() << std::endl;
     }
   }
-  else if(subcommand == "autoencoder")
+  else if(*subcommand == "autoencoder")
   {
-    if(argc != 3)
+    if(!target)
       return -1;
 
-    auto encoder_layer = kann::loadLayer("examples/backpropagation/autoencoder/" + std::string(argv[2]) + "-encoder.yaml");
-    auto decoder_layer = kann::loadLayer("examples/backpropagation/autoencoder/" + std::string(argv[2]) + "-decoder.yaml");
+    auto encoder_layer = kann::loadLayer("examples/backpropagation/autoencoder/" + std::string(*target) + "-encoder.yaml");
+    auto decoder_layer = kann::loadLayer("examples/backpropagation/autoencoder/" + std::string(*target) + "-decoder.yaml");
 
     auto auto_encoder_layer = std::make_shared<kann::SequentialLayer>();
     auto_encoder_layer->addLayer(encoder_layer, kann::Tag::ENCODER);
@@ -146,7 +269,18 @@ int main(int argc, char* argv[])
     {
       auto task = kann::train(auto_encoder_model, training_inputs, training_inputs, LEARNING_RATE, BATCH_SIZE);
       while(!task.step())
-        kann::displayInfo("Training", task.info());
+      {
+        kann::Info info = task.info();
+        kann::displayInfo("Training", info);
+        if(renderer)
+          renderer->submit(Renderer::Content{
+            .title = std::to_string(info.i) + "/" + std::to_string(info.size),
+            .images = {
+              kann::toImage(*info.input, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
+              kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
+            }
+          });
+      }
 
       std::cout << '\n';
     }
@@ -176,7 +310,7 @@ int main(int argc, char* argv[])
 
     }
   }
-  else if(subcommand == "gan")
+  else if(*subcommand == "gan")
   {
     auto generator_layer     = kann::loadLayer("examples/backpropagation/gan/generator.yaml");
     auto discriminator_layer = kann::loadLayer("examples/backpropagation/gan/discriminator.yaml");
@@ -208,6 +342,13 @@ int main(int argc, char* argv[])
         kann::toImage(*info.generatorOutput, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
           .saveToFile(output_directory + "/training" + std::to_string(info.i) + ".png");
         kann::displayInfo("Training", info);
+        if(renderer)
+          renderer->submit(Renderer::Content{
+            .title = std::to_string(info.i) + "/" + std::to_string(info.size),
+            .images = {
+              kann::toImage(*info.generatorOutput, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
+            }
+          });
       }
       std::cout << '\n';
     }
@@ -229,8 +370,8 @@ int main(int argc, char* argv[])
   }
   else
   {
-    std::cerr << "Error: Invalid Command " << subcommand << std::endl;
-    std::cerr << "Usage: " << argv[0] << " write/feeedForward/autoencoder [target]" << std::endl;
+    std::cerr << "Error: Invalid Command " << *subcommand << std::endl;
+    usage();
     return -1;
   }
 }
