@@ -1,6 +1,7 @@
 #pragma once
 
 #include <coroutine>
+#include <optional>
 #include <exception>
 
 namespace kann
@@ -13,24 +14,24 @@ namespace kann
     public:
       auto yield_value(T t)
       {
-        m_t = std::move(t);
+        m_t.emplace(std::move(t));
         return std::suspend_always{};
       }
 
-      T getYield()
+      T& get_yield()
       {
-        return std::move(m_t);
+        return *m_t;
       }
 
     private:
-      T m_t;
+      std::optional<T> m_t;
     };
 
     template<>
     struct PromiseYield<void>
     {
     public:
-      void getYield() {}
+      void get_yield() {}
     };
 
     template<typename T>
@@ -39,16 +40,16 @@ namespace kann
     public:
       void return_value(T t)
       {
-        m_t = std::move(t);
+        m_t.emplace(std::move(t));
       }
 
-      T getReturn()
+      T& get_return()
       {
-        return std::move(m_t);
+        return *m_t;
       }
 
     private:
-      T m_t;
+      std::optional<T> m_t;
     };
 
     template<>
@@ -56,7 +57,7 @@ namespace kann
     {
     public:
       void return_void() {}
-      void getReturn() {}
+      void get_return() {}
     };
   }
 
@@ -95,8 +96,8 @@ namespace kann
       return m_handle.done();
     }
 
-    decltype(auto) info() { return m_handle.promise().getYield(); }
-    decltype(auto) get()  { return m_handle.promise().getReturn(); }
+    decltype(auto) info() { return m_handle.promise().get_yield(); }
+    decltype(auto) get()  { return m_handle.promise().get_return(); }
 
   private:
     std::coroutine_handle<promise_type> m_handle;

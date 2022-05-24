@@ -1,9 +1,10 @@
 #pragma once
 
-#include <libkann/Layer.hpp>
+#include <libkann/Tag.hpp>
+#include <libkann/LayerDef.hpp>
 
 namespace kann
 {
-  Ref<Layer> loadLayer(const std::string& filename);
-  Ref<Layer> loadLayer(std::istream& is);
+  std::shared_ptr<const LayerDef> load_layer_def(const std::string& filename, Tag tag = Tag::ALL);
+  std::shared_ptr<const LayerDef> load_layer_def(std::istream& is, Tag tag = Tag::ALL);
 }

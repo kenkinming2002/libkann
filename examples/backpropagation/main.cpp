@@ -1,17 +1,14 @@
 #include "Renderer.hpp"
+#include "Arguments.hpp"
+#include "Progress.hpp"
 
 #include <libkann/Random.hpp>
 
-#include <libkann/layers/IdentityLayer.hpp>
-#include <libkann/layers/WeightLayer.hpp>
-#include <libkann/layers/ActivationLayer.hpp>
-#include <libkann/layers/ConvolutionalLayer.hpp>
-#include <libkann/layers/DeconvolutionalLayer.hpp>
-#include <libkann/layers/SequentialLayer.hpp>
-
-#include <libkann/Model.hpp>
 #include <libkann/Loader.hpp>
 #include <libkann/Algorithm.hpp>
+#include <libkann/Executor.hpp>
+
+#include <libkann/layer_defs/Sequential.hpp>
 
 #include <libkann/optimizers/AdamOptimizer.hpp>
 #include <libkann/optimizers/SimpleOptimizer.hpp>
@@ -23,10 +20,11 @@
 #include <cereal/archives/json.hpp>
 #include <cereal/archives/binary.hpp>
 
+#include <range/v3/all.hpp>
+#include <fmt/core.h>
+
 #include <memory>
 #include <random>
-#include <chrono>
-#include <fstream>
 #include <filesystem>
 
 static constexpr double LEARNING_RATE  = 0.05;
@@ -39,69 +37,25 @@ static constexpr size_t FEATURES_COUNT = 64;
  * least when used in conjuction with sum of square difference cost function.
  * For better performance, use Simple Optimizer with auto encoder. */
 //static const auto OPTIMIZER      = std::make_shared<kann::AdamOptimizer>(0.001, 0.9, 0.999, 1e-10);
-static const auto OPTIMIZER      = std::make_shared<kann::SimpleOptimizer>(0.05);
-
-class Arguments
-{
-public:
-  Arguments(int argc, char** argv)
-    : m_argc(argc), m_argv(argv) {}
-
-public:
-  std::string_view program_name() const
-  {
-    return m_argc != 0 ? m_argv[0] : "backpropagation";
-  }
-
-  enum class Type
-  {
-    LONG_OPTION,
-    SHORT_OPTION,
-    OTHER
-  };
-
-  struct Result
-  {
-    Type type;
-    std::string_view str;
-    char c;
-  };
-
-
-  template<typename Callback>
-  bool parse(Callback cb) const requires(std::is_invocable_r_v<bool, Callback, Result>)
-  {
-    for(int i=1; i<m_argc; ++i)
-    {
-      std::string_view arg = m_argv[i];
-      if(arg.starts_with("--"))
-      {
-        if(!cb(Result{.type = Type::LONG_OPTION, .str = arg.substr(2)}))
-          return false;
-      }
-      else if(arg.starts_with("-"))
-      {
-        for(char c : arg.substr(1))
-          if(!cb(Result{.type = Type::SHORT_OPTION, .c = c}))
-            return false;
-      }
-      else
-      {
-       if(!cb(Result{.type = Type::OTHER, .str = arg}))
-         return false;
-      }
-    }
-    return true;
-  }
-
-private:
-  int m_argc;
-  char** m_argv;
-};
+static const auto OPTIMIZER = std::make_shared<kann::SimpleOptimizer>(0.05);
+static const auto EXECUTOR  = kann::Executor::create(kann::Executor::Type::DEFAULT);
 
 void usage()
 {
-  std::cerr << "Usage: backpropagation write/feeedForward/autoencoder [target] [--gui]" << std::endl;
+  std::cerr << "Usage: backpropagation write/feedForward/autoencoder [target] [--gui]" << std::endl;
+}
+
+static inline bool is_correct(const kann::Tensor& value, const kann::Tensor& expected)
+{
+  size_t index1, index2;
+  value.asVector().maxCoeff(&index1);
+  expected.asVector().maxCoeff(&index2);
+  return index1 == index2;
+}
+
+static inline double cost(const kann::Tensor& value, const kann::Tensor& expected)
+{
+  return (expected.asVector() - value.asVector()).squaredNorm();
 }
 
 int main(int argc, char** argv)
@@ -154,14 +108,12 @@ int main(int argc, char** argv)
 
   if(!result)
   {
-    std::cout << "Hey1\n";
     usage();
     return -1;
   }
 
   if(!subcommand)
   {
-    std::cout << "Hey2\n";
     usage();
     return -1;
   }
@@ -176,28 +128,30 @@ int main(int argc, char** argv)
 
   kann::MNISTDataSet training_dataset(
     "datasets/mnist/train-images-idx3-ubyte",
-    "datasets/mnist/train-labels-idx1-ubyte"
-  );
+    "datasets/mnist/train-labels-idx1-ubyte");
 
   kann::MNISTDataSet testing_dataset(
     "datasets/mnist/t10k-images-idx3-ubyte",
-    "datasets/mnist/t10k-labels-idx1-ubyte"
-  );
+    "datasets/mnist/t10k-labels-idx1-ubyte");
 
-  auto training_inputs  = kann::load(training_dataset, kann::MNISTDataSet::COLUMN_IMAGE);
-  auto training_outputs = kann::load(training_dataset, kann::MNISTDataSet::COLUMN_LABEL);
+  auto training_images = kann::load(training_dataset, kann::MNISTDataSet::COLUMN_IMAGE);
+  auto training_labels = kann::load(training_dataset, kann::MNISTDataSet::COLUMN_LABEL);
 
-  auto testing_inputs  = kann::load(testing_dataset, kann::MNISTDataSet::COLUMN_IMAGE);
-  auto testing_outputs = kann::load(testing_dataset, kann::MNISTDataSet::COLUMN_LABEL);
+  auto testing_images = kann::load(testing_dataset, kann::MNISTDataSet::COLUMN_IMAGE);
+  auto testing_labels = kann::load(testing_dataset, kann::MNISTDataSet::COLUMN_LABEL);
 
   if(*subcommand == "write")
   {
-    for(const auto& [output_path, data] : {std::pair{"output/training", training_inputs}, std::pair{"output/testing", testing_inputs}})
+    for(const auto& [type, data] : { std::pair{"testing", testing_images}, std::pair{"training", training_images} })
     {
-      std::filesystem::create_directories(output_path);
-      for(size_t i=0; i<data.size(); ++i)
-        kann::toImage(*data[i], kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-          .saveToFile(std::string(output_path) + "/data" + std::to_string(i) + ".bmp");
+      auto dir_path  = fmt::format("output/{}", type);
+      std::filesystem::create_directories(dir_path);
+
+      for(const auto& [i, datum] : ranges::views::enumerate(data))
+      {
+        auto file_path = fmt::format("output/{}/{}.bmp", type, i);
+        kann::toImage(*datum, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH).saveToFile(file_path);
+      }
     }
   }
   else if(*subcommand == "feedforward")
@@ -205,167 +159,95 @@ int main(int argc, char** argv)
     if(!target)
       return -1;
 
-    auto layer = kann::loadLayer("examples/backpropagation/feedforward/" + std::string(*target) + ".yaml");
-    auto model = std::make_shared<kann::Model>(std::move(layer));
+    auto layer = kann::load_layer_def(fmt::format("examples/backpropagation/feedforward/{}.yaml", *target))->create(engine);
 
-    model->randomize(engine);
-    model->compile(BATCH_SIZE, OPTIMIZER, {kann::Tag::ALL});
-
-    // Testing
+    auto test = [&]()
     {
-      auto task = kann::test(model, testing_inputs, testing_outputs);
+      ProgressBar progress_bar("Testing", 10000);
+
+      size_t i = 0;
+      size_t correct_count = 0;
+
+      auto task = kann::predict(*layer, testing_images, BATCH_SIZE, *EXECUTOR);
       while(!task.step())
-        kann::displayInfo("Testing", task.info());
+      {
+        kann::PredictInfo info = task.info();
+        const auto& expected_output = *testing_labels[i++];
+        correct_count += (int)is_correct(info.output, expected_output);
+        progress_bar.update(fmt::format("cost={}", cost(info.output, expected_output)));
+      }
 
-      std::cout << "correctness:" << task.get() << std::endl;
-    }
+      fmt::print("correctness:{}\n", (double)correct_count/10000);
+    };
 
-    // Training
+    auto train = [&]()
     {
-      auto train = kann::train(model, training_inputs, training_outputs, LEARNING_RATE, 10);
-      while(!train.step())
-        kann::displayInfo("Training", train.info());
+      auto task = kann::optimize(*layer, kann::Tag::DEFAULT, OPTIMIZER, training_images, training_labels, BATCH_SIZE, *EXECUTOR);
 
-      std::cout << '\n';
-    }
-
-    // Testing
-    {
-      auto task = kann::test(model, testing_inputs, testing_outputs);
+      ProgressBar progress_bar("Testing", 60000);
       while(!task.step())
-        kann::displayInfo("Testing", task.info());
+      {
+        kann::OptimizeInfo info = task.info();
+        progress_bar.update(fmt::format("cost={}", info.cost));
+      }
+    };
 
-      std::cout << "correctness:" << task.get() << std::endl;
-    }
+    test();
+    train();
+    test();
   }
   else if(*subcommand == "autoencoder")
   {
     if(!target)
       return -1;
 
-    auto encoder_layer = kann::loadLayer("examples/backpropagation/autoencoder/" + std::string(*target) + "-encoder.yaml");
-    auto decoder_layer = kann::loadLayer("examples/backpropagation/autoencoder/" + std::string(*target) + "-decoder.yaml");
+    auto layer_def = std::make_shared<kann::SequentialLayerDef>();
+    layer_def->sub_layer_defs = {
+      kann::load_layer_def(fmt::format("examples/backpropagation/autoencoder/{}-encoder.yaml", *target)),
+      kann::load_layer_def(fmt::format("examples/backpropagation/autoencoder/{}-decoder.yaml", *target))
+    };
+    auto layer         = layer_def->create(engine);
+    auto decoder_layer = layer->sub_layers[1];
 
-    auto auto_encoder_layer = std::make_shared<kann::SequentialLayer>();
-    auto_encoder_layer->addLayer(encoder_layer, kann::Tag::ENCODER);
-    auto_encoder_layer->addLayer(decoder_layer, kann::Tag::DECODER);
-    auto_encoder_layer->randomize(engine);
-
-    auto encoder_model = std::make_shared<kann::Model>(encoder_layer);
-    auto decoder_model = std::make_shared<kann::Model>(decoder_layer);
-    auto auto_encoder_model = std::make_shared<kann::Model>(auto_encoder_layer);
-
-    decoder_model->compile(BATCH_SIZE, OPTIMIZER, {});
-    encoder_model->compile(BATCH_SIZE, OPTIMIZER, {});
-    auto_encoder_model->compile(BATCH_SIZE, OPTIMIZER, {kann::Tag::ALL});
-
-    const std::string reconstruction_output_path = "output/autoencoder-reconstruction";
-    const std::string output_path                = "output/autoencoder";
-
-    std::filesystem::create_directories(reconstruction_output_path);
-    std::filesystem::create_directories(output_path);
-
-    // Training
+    // Testing
     {
-      auto task = kann::train(auto_encoder_model, training_inputs, training_inputs, LEARNING_RATE, BATCH_SIZE);
+      ProgressBar progress_bar("Testing", 60000);
+
+      size_t i = 0;
+      auto task = kann::optimize(*layer, kann::Tag::DEFAULT, OPTIMIZER, training_images, training_images, BATCH_SIZE, *EXECUTOR);
       while(!task.step())
       {
-        kann::Info info = task.info();
-        kann::displayInfo("Training", info);
+        kann::OptimizeInfo info = task.info();
+        progress_bar.update(fmt::format("cost={}", info.cost));
         if(renderer)
-          renderer->submit(Renderer::Content{
-            .title = std::to_string(info.i) + "/" + std::to_string(info.size),
-            .images = {
-              kann::toImage(*info.input, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
-              kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-            }
-          });
-      }
-
-      std::cout << '\n';
-    }
-
-
-    // Reconstruction
-    {
-      auto task = kann::run(auto_encoder_model, training_inputs);
-      while(!task.step())
-      {
-        kann::Info info = task.info();
-        kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-          .saveToFile(reconstruction_output_path + "/result" + std::to_string(info.i) + ".bmp");
+        {
+          Renderer::Content content;
+          content.title = fmt::format("{}/60000", ++i);
+          content.images = {
+            kann::toImage(info.input,  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
+            kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
+          };
+          renderer->submit(content);
+        }
       }
     }
 
     // Generation
     {
-      auto random_data = kann::load(kann::RandomDataSet(FEATURES_COUNT, 500), kann::RandomDataSet::COLUMN_DATA);
-      auto task = kann::run(decoder_model, random_data);
+      auto latent_data = kann::load(kann::RandomDataSet(FEATURES_COUNT, 500), kann::RandomDataSet::COLUMN_DATA);
+      std::filesystem::create_directories("output/autoencoder");
+
+      ProgressBar progress_bar("Generation", 500);
+
+      size_t i = 0;
+      auto task = kann::predict(*decoder_layer, latent_data, BATCH_SIZE, *EXECUTOR);
       while(!task.step())
       {
-        kann::Info info = task.info();
-        kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-          .saveToFile(output_path + "/result" + std::to_string(info.i) + ".bmp");
+        kann::PredictInfo info = task.info();
+        progress_bar.update("");
+        kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
+          .saveToFile(fmt::format("output/autoencoder/{}.bmp", ++i));
       }
-
-    }
-  }
-  else if(*subcommand == "gan")
-  {
-    auto generator_layer     = kann::loadLayer("examples/backpropagation/gan/generator.yaml");
-    auto discriminator_layer = kann::loadLayer("examples/backpropagation/gan/discriminator.yaml");
-
-    auto gan_layer = std::make_shared<kann::SequentialLayer>();
-    gan_layer->addLayer(generator_layer    , kann::Tag::GAN_GENERATOR);
-    gan_layer->addLayer(discriminator_layer, kann::Tag::GAN_DISCRIMINATOR);
-    gan_layer->randomize(engine);
-
-    auto generator_model = std::make_shared<kann::Model>(generator_layer);
-    auto discriminator_model = std::make_shared<kann::Model>(discriminator_layer);
-    auto gan_model = std::make_shared<kann::Model>(gan_layer);
-
-    generator_model    ->compile(BATCH_SIZE, OPTIMIZER, {kann::Tag::ALL});
-    discriminator_model->compile(BATCH_SIZE, OPTIMIZER, {});
-    gan_model          ->compile(BATCH_SIZE, OPTIMIZER, {kann::Tag::GAN_GENERATOR, kann::Tag::GAN_DISCRIMINATOR});
-
-    std::string output_directory("output/gan");
-    std::filesystem::create_directories(output_directory + "/training");
-    std::filesystem::create_directories(output_directory + "/output");
-
-    // Training
-    {
-      auto latent_inputs = kann::load(kann::RandomDataSet(FEATURES_COUNT, training_inputs.size()), kann::RandomDataSet::COLUMN_DATA);
-      auto task = kann::trainGAN(gan_model, generator_model, discriminator_model, training_inputs, latent_inputs, LEARNING_RATE, BATCH_SIZE);
-      while(!task.step())
-      {
-        kann::GANInfo info = task.info();
-        kann::toImage(*info.generatorOutput, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-          .saveToFile(output_directory + "/training" + std::to_string(info.i) + ".png");
-        kann::displayInfo("Training", info);
-        if(renderer)
-          renderer->submit(Renderer::Content{
-            .title = std::to_string(info.i) + "/" + std::to_string(info.size),
-            .images = {
-              kann::toImage(*info.generatorOutput, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
-            }
-          });
-      }
-      std::cout << '\n';
-    }
-
-    // Generation
-    {
-      auto latent_inputs = kann::load(kann::RandomDataSet(FEATURES_COUNT, training_inputs.size()), kann::RandomDataSet::COLUMN_DATA);
-
-      auto task = kann::run(generator_model, latent_inputs);
-      while(!task.step())
-      {
-        kann::Info info = task.info();
-        kann::toImage(*info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
-          .saveToFile(output_directory + "/output" + std::to_string(info.i) + ".png");
-        kann::displayInfo("Training", info);
-      }
-      std::cout << '\n';
     }
   }
   else

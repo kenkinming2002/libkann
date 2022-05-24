@@ -1,226 +1,89 @@
 #include <libkann/Algorithm.hpp>
 
-#include <libkann/optimizers/SimpleOptimizer.hpp>
-#include <libkann/optimizers/AdamOptimizer.hpp>
+#include <libkann/LayerDef.hpp>
 
-#include <limits>
+#include <libkann/Differentiate.hpp>
+#include <libkann/operations/MultiplyOperation.hpp>
+#include <libkann/operations/SubtractOperation.hpp>
+
+#include <range/v3/all.hpp>
+#include <fmt/core.h>
+
+#include <numeric>
+#include <algorithm>
 
 namespace kann
 {
-  /* Note: In the implementation, we have the following pattern
-   * ```
-   *  auto info = Info{...};
-   *  co_yield info;
-   * ```
-   *
-   * In reality, we should be able to do directly
-   * ```
-   *  co_yield Info{...};
-   * ```
-   *
-   * but that leads to double-free/use-after-free error in GCC as reported in
-   * GCC Bug 103909 - co_yield of aggregate-initialized temporaries leads to
-   * segmentation faults(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103909)
-   */
-  template<typename U, typename UnaryFunc, typename T = std::result_of_t<UnaryFunc(const U&)>>
-  static std::vector<T> convert(const std::vector<U>& in, const UnaryFunc& f)
+  namespace helpers
   {
-    std::vector<T> out;
-    out.reserve(in.size());
-    for(const auto& v : in)
-      out.push_back(f(v));
-
-    return out;
-  }
-
-  template<typename... Args>
-  static void showProgressBar(std::string_view name, size_t count, size_t total, const Args&... args)
-  {
-    constexpr static size_t width = 40;
-    std::cout << "\e[?25l";
-
-    std::cout << name << "[";
-    for(size_t i=0; i<width; ++i)
-      if((float)i/width < (float)count/total)
-        std::cout << "=";
-      else
-        std::cout << " ";
-
-    std::cout << " - ";
-    std::cout << count << "/" << total;
-    std::cout << "]";
-
-    (void)(std::cout << ... << args);
-
-    std::cout << "\r";
-
-    std::cout << "\e[?25h";
-
-    if(count+1==total)
-      std::cout << std::endl;
-  }
-
-  void displayInfo(std::string_view name, const Info& info)
-  {
-    showProgressBar(name, info.i, info.size, "Cost:", info.cost);
-  }
-
-  void displayInfo(std::string_view name, const GANInfo& info)
-  {
-    showProgressBar(name, info.i, info.size, " ",
-      "GAN Output(Fake image):",           info.GANOutput->asArray()(0), ", ",
-      "Discriminator Output(Real image):", info.discriminatorOutput->asArray()(0)
-    );
-  }
-
-  std::vector<CRef<Tensor>> load(const DataSet& dataSet, size_t column)
-  {
-    const size_t size = dataSet.size();
-
-    std::vector<CRef<Tensor>> result;
-    result.reserve(dataSet.size());
-    for(size_t i=0; i<size; ++i)
-      result.push_back(dataSet.get(column, i));
-
-    return result;
-  }
-
-  Task<void, Info> run(Ref<Model> model,
-      std::vector<CRef<Tensor>> inputs)
-  {
-    for(size_t i=0; i<inputs.size(); ++i)
+    template<typename T>
+    static inline void move_append(std::vector<T>& target, std::vector<T> from)
     {
-      auto output = model->predict(inputs[i]);
-      auto info = Info{
-        .model = model,
-        .i = i,
-        .size = inputs.size(),
-        .input  = std::move(inputs[i]),
-        .output = std::move(output)
-      };
-      co_yield info;
+      target.insert(target.end(),
+        std::move_iterator(from.begin()),
+        std::move_iterator(from.end())
+      );
+    }
+
+    template<typename T, size_t N>
+    static inline std::vector<T> move_join(std::array<std::vector<T>, N> data)
+    {
+      std::vector<T> result;
+
+      size_t size = std::accumulate(data.begin(), data.end(), 0, [](size_t size, const std::vector<T>& data){
+          return size + data.size();
+      });
+      result.reserve(size);
+
+      std::for_each(data.begin(), data.end(), [&result](std::vector<T>& data){
+          result.insert(result.end(),
+              std::move_iterator(data.begin()),
+              std::move_iterator(data.end())
+          );
+      });
+
+      return result;
+    }
+
+    template<typename... Args>
+    static inline auto move_join(Args&&... args) { return move_join(std::array{std::forward<Args>(args)...}); }
+
+    static inline std::vector<std::shared_ptr<const Variable>> create_input_variables(size_t count)
+    {
+      std::vector<std::shared_ptr<const Variable>> result;
+      result.reserve(count);
+      for(size_t i=0; i<count; ++i)
+        result.push_back(std::make_shared<const Variable>()); // TODO: Add distinct name to each variable
+
+      return result;
+    }
+
+    template<typename T, typename Func, typename Ret = std::invoke_result_t<Func, const T&>>
+    static inline std::vector<Ret> map1(const std::vector<T>& variables, Func func)
+    {
+      size_t size = variables.size();
+
+      std::vector<std::shared_ptr<const Variable>> result;
+      result.reserve(size);
+      for(size_t i=0; i<size; ++i)
+        result.push_back(func(variables[i]));
+
+      return result;
+    }
+
+    template<typename T, typename U, typename Func, typename Ret = std::invoke_result_t<Func, const T&, const U&>>
+    static inline std::vector<Ret> map2(const std::vector<T>& variables1, const std::vector<U>& variables2, Func func)
+    {
+      assert(variables1.size() == variables2.size());
+      size_t size = variables1.size();
+
+      std::vector<std::shared_ptr<const Variable>> result;
+      result.reserve(size);
+      for(size_t i=0; i<size; ++i)
+        result.push_back(func(variables1[i], variables2[i]));
+
+      return result;
     }
   }
 
-  Task<void, Info> train(Ref<Model> model,
-      std::vector<CRef<Tensor>> inputs,
-      std::vector<CRef<Tensor>> expectedOutputs,
-      double learningRate, size_t batchSize)
-  {
-    assert(inputs.size() == expectedOutputs.size());
-    const size_t size = inputs.size() / batchSize * batchSize;
-
-    for(size_t i=0; i<size; i+=batchSize)
-    {
-      auto inputsBatch          = std::vector<CRef<Tensor>>(&inputs[i],          &inputs[i+batchSize]);
-      auto expectedOutputsBatch = std::vector<CRef<Tensor>>(&expectedOutputs[i], &expectedOutputs[i+batchSize]);
-
-      auto [outputsBatch, costs] = model->optimize(inputsBatch, expectedOutputsBatch, Tag::ALL);
-
-      assert(inputsBatch.size()          == batchSize);
-      assert(expectedOutputsBatch.size() == batchSize);
-      assert(outputsBatch.size()         == batchSize);
-      assert(costs.size()                == batchSize);
-
-      for(size_t j=0; j<batchSize; ++j)
-      {
-        auto info = Info{
-          .model = model,
-          .i = i,
-          .size = size,
-          .input          = std::move(inputsBatch[j]),
-          .output         = std::move(outputsBatch[j]),
-          .expectedOutput = std::move(expectedOutputsBatch[j]),
-          .cost = costs[j]
-        };
-        co_yield info;
-      }
-    }
-  }
-
-  Task<void, GANInfo> trainGAN(Ref<Model> model,
-      Ref<Model> generatorModel,
-      Ref<Model> discriminatorModel,
-      std::vector<CRef<Tensor>> inputs,
-      std::vector<CRef<Tensor>> latentInputs,
-      double learningRate, size_t batchSize)
-  {
-    assert(latentInputs.size() == inputs.size());
-    const size_t size = inputs.size() / batchSize * batchSize;
-
-    auto zero = std::make_shared<Tensor>(1);
-    zero->asArray()(0) = 0.0;
-
-    auto one = std::make_shared<Tensor>(1);
-    one->asArray()(0) = 1.0;
-
-    auto zeroBatch = std::vector<std::shared_ptr<const Tensor>>(batchSize, zero);
-    auto oneBatch  = std::vector<std::shared_ptr<const Tensor>>(batchSize, one);
-
-    for(size_t i=0; i<size; i+=batchSize)
-    {
-      auto inputsBatch = std::vector<CRef<Tensor>>(&inputs[i], &inputs[i+batchSize]);
-      auto latentInputsBatch = std::vector<CRef<Tensor>>(&latentInputs[i], &latentInputs[i+batchSize]);
-
-      // Train on real data set
-      auto [discriminatorResult, discriminatorCost] = discriminatorModel->optimize(inputsBatch, oneBatch, Tag::ALL);
-
-      // Predict on latent data set
-      auto generatorResult = convert(latentInputsBatch, [&](const auto& input){ return generatorModel->predict(input);});
-
-      // Train on latent data set
-      auto [discriminatorCombinedResult, discriminatorCombinedCost] = model->optimize(latentInputsBatch, zeroBatch, Tag::GAN_DISCRIMINATOR);
-      auto [generatorCombinedResult,     generatorCombinedCost]     = model->optimize(latentInputsBatch, oneBatch,  Tag::GAN_GENERATOR);
-
-      for(size_t j=0; j<batchSize; ++j)
-      {
-        auto info = GANInfo{
-          .GANModel = model,
-          .generatorModel = generatorModel,
-          .discriminatorModel = discriminatorModel,
-          .i = i,
-          .size = size,
-          .GANOutput           = discriminatorCombinedResult[j],
-          .generatorOutput     = generatorResult[j],
-          .discriminatorOutput = discriminatorResult[j]
-        };
-        co_yield info;
-      }
-    }
-  }
-
-  Task<double, Info> test(Ref<Model> model,
-      std::vector<CRef<Tensor>> inputs,
-      std::vector<CRef<Tensor>> expectedOutputs)
-  {
-    // How do we inplement correctness
-    assert(inputs.size() == expectedOutputs.size());
-    const size_t size = inputs.size();
-    size_t correct = 0;
-
-    for(size_t i=0; i<size; ++i)
-    {
-      auto output = model->predict(inputs[i]);
-
-      size_t index1, index2;
-      output->asArray().maxCoeff(&index1);
-      expectedOutputs[i]->asArray().maxCoeff(&index2);
-      if(index1 == index2)
-        ++correct;
-
-      auto cost = (2.0 * (output->asVector() - expectedOutputs[i]->asVector())).squaredNorm();
-
-      auto info = Info{
-        .model = model,
-        .i = i,
-        .size = size,
-        .input  = std::move(inputs[i]),
-        .output = std::move(output),
-        .cost = cost
-      };
-      co_yield info;
-    }
-
-    co_return (double)correct / size;
-  }
 }

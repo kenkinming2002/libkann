@@ -140,15 +140,19 @@ namespace kann
       std::make_shared<SubtractOperation>()
     );
 
-    output.initial_states = {
-      std::make_shared<const Tensor>(Tensor::constant(input.size, 0.0)),
-      std::make_shared<const Tensor>(Tensor::constant(input.size, 0.0)),
-      std::make_shared<const Tensor>(Tensor::constant(1, 0.0))
-    };
     output.input_states = {m, v, ts};
     output.output_states = {m_new, v_new, ts_new};
 
     return output;
+  }
+
+  std::vector<std::shared_ptr<const Tensor>> AdamOptimizer::create_initial_states(size_t size) const
+  {
+    return {
+      std::make_shared<const Tensor>(Tensor::constant(size, 0.0)),
+      std::make_shared<const Tensor>(Tensor::constant(size, 0.0)),
+      std::make_shared<const Tensor>(Tensor::constant(1, 0.0))
+    };
   }
 }
 

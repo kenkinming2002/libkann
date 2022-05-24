@@ -11,15 +11,8 @@ namespace kann
     AdamOptimizer(double alpha, double beta1, double beta2, double epsilon);
 
   public:
-    virtual ProcessOutput process(ProcessInput input) const override;
-
-  public:
-    template<typename Archive>
-    void serialize(Archive& archive)
-    {
-      archive(cereal::base_class<Optimizer>(this));
-      archive(m_alpha);
-    }
+    ProcessOutput process(ProcessInput input) const override;
+    std::vector<std::shared_ptr<const Tensor>> create_initial_states(size_t size) const override;
 
   private:
     double m_alpha;
@@ -27,7 +20,3 @@ namespace kann
     double m_epsilon;
   };
 }
-
-CEREAL_REGISTER_TYPE(kann::AdamOptimizer);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::Optimizer, kann::AdamOptimizer);
-

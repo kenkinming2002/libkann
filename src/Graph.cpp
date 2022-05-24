@@ -1,5 +1,7 @@
 #include <libkann/Graph.hpp>
 
+#include <range/v3/all.hpp>
+
 #include <stack>
 #include <yaml-cpp/emitter.h>
 
@@ -26,6 +28,7 @@ namespace kann
     {
       // TODO: Use a stack instead of an unordered_set
       std::unordered_set<CRef<Variable>> open;
+      open.insert(inputs.begin(),  inputs.end());
       open.insert(outputs.begin(), outputs.end());
       while(!open.empty())
       {
@@ -70,18 +73,18 @@ namespace kann
       std::vector<State> state;
       state.reserve(m_nodes.size());
 
-      for(size_t output_index : m_output_indices)
+      for(size_t index = 0; index < m_nodes.size() ; ++index)
       {
-        if(!visited[output_index])
+        if(!visited[index])
         {
-          visited[output_index] = true;
-          state.push_back(State{.index = output_index, .pos = 0});
+          visited[index] = true;
+          state.push_back(State{.index = index, .pos = 0});
         }
 
         while(!state.empty())
         {
-          auto& [index, pos] = state.back();
-          const Node& node = m_nodes[index];
+          auto& [child_index, pos] = state.back();
+          const Node& node = m_nodes[child_index];
           if(node.input_indices.size() != pos)
           {
             size_t parent_index = node.input_indices[pos++];
@@ -93,7 +96,7 @@ namespace kann
           }
           else
           {
-            ordering.push_back(index);
+            ordering.push_back(child_index);
             state.pop_back();
           }
         }

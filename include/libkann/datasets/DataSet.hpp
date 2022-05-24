@@ -19,4 +19,6 @@ namespace kann
   public:
     virtual ~DataSet() = default;
   };
+
+  std::vector<std::shared_ptr<const Tensor>> load(const DataSet& data_set, size_t column);
 }

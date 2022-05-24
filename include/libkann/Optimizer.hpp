@@ -18,8 +18,6 @@ namespace kann
   public:
     struct ProcessInput
     {
-      size_t size;
-
       std::shared_ptr<const Variable> parameter;
       std::shared_ptr<const Variable> gradient;
     };
@@ -28,7 +26,6 @@ namespace kann
     {
       std::shared_ptr<const Variable> parameter;
 
-      std::vector<std::shared_ptr<const Tensor>> initial_states;
       std::vector<std::shared_ptr<const Variable>> input_states;
       std::vector<std::shared_ptr<const Variable>> output_states;
     };
@@ -36,7 +33,6 @@ namespace kann
     virtual ProcessOutput process(ProcessInput input) const = 0;
 
   public:
-    template<typename Archive>
-    void serialize(Archive& archive) {}
+    virtual std::vector<std::shared_ptr<const Tensor>> create_initial_states(size_t size) const { return {}; }
   };
 }

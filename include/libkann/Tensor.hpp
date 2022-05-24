@@ -4,15 +4,13 @@
 
 #include <cereal/types/vector.hpp>
 
+#include <random>
 #include <memory>
 
 namespace kann
 {
   struct Tensor
   {
-  public:
-    static Tensor constant(size_t size, double value);
-
   public:
     Tensor() = default;
     Tensor(size_t size) : m_size(size)
@@ -82,6 +80,23 @@ namespace kann
     {
       assert(m_size == rows * cols);
       return Eigen::MatrixXd::Map(static_cast<const double*>(m_values.get()), rows, cols);
+    }
+
+  public:
+    static Tensor constant(size_t size, double value)
+    {
+      Tensor result(size);
+      result.asArray().setConstant(value);
+      return result;
+    }
+
+    template<typename PRNG>
+    static Tensor gaussian(size_t size, PRNG& prng, double mean, double variance)
+    {
+      std::normal_distribution<double> dist(mean, variance);
+      return nullaryExpr(size, [&]() {
+        return dist(prng);
+      });
     }
 
   public:
@@ -162,13 +177,6 @@ namespace kann
     size_t m_size;
     std::unique_ptr<double[]> m_values;
   };
-
-  inline Tensor Tensor::constant(size_t size, double value)
-  {
-    Tensor result(size);
-    result.asArray().setConstant(value);
-    return result;
-  }
 
   inline Tensor::Tensor(Eigen::VectorXd v) : Tensor(v.size())
   {

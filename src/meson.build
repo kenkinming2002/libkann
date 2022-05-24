@@ -1,27 +1,5 @@
-
 libkann_sources = [
-  'layers/SequentialLayer.cpp',
-  'layers/RecurrentLayer.cpp',
-  'layers/IdentityLayer.cpp',
-  'layers/WeightLayer.cpp',
-  'layers/ActivationLayer.cpp',
-  'layers/ConvolutionalLayer.cpp',
-  'layers/DeconvolutionalLayer.cpp',
-  'datasets/IDXFile.cpp',
-  'datasets/MNISTDataSet.cpp',
-  'datasets/RandomDataSet.cpp',
-  'datasets/write.cpp',
-  'Layer.cpp',
-  'Model.cpp',
-  'Loader.cpp',
-  'Graph.cpp',
-  'Algorithm.cpp',
-  'ActivationFunction.cpp',
-  'Executor.cpp',
-  'executors/DefaultExecutor.cpp',
-  'executors/ThreadedExecutor.cpp',
-  'optimizers/SimpleOptimizer.cpp',
-  'optimizers/AdamOptimizer.cpp',
+  # Operations
   'Differentiate.cpp',
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',
@@ -31,8 +9,43 @@ libkann_sources = [
   'operations/SubtractOperation.cpp',
   'operations/ConvolutionOperation.cpp',
   'operations/DeconvolutionOperation.cpp',
+
+  # Executors
+  'Graph.cpp',
+  'Executor.cpp',
+  'executors/DefaultExecutor.cpp',
+  'executors/ThreadedExecutor.cpp',
+
+  # Layers
+  'Layer.cpp',
+  'LayerDef.cpp',
+  'Loader.cpp',
+  'ActivationFunction.cpp',
+  'layer_defs/Sequential.cpp',
+  'layer_defs/Recurrent.cpp',
+  'layer_defs/Identity.cpp',
+  'layer_defs/Activation.cpp',
+  'layer_defs/Weight.cpp',
+  'layer_defs/Convolutional.cpp',
+  'layer_defs/Deconvolutional.cpp',
+
+  # Datasets
+  'datasets/DataSet.cpp',
+  'datasets/IDXFile.cpp',
+  'datasets/MNISTDataSet.cpp',
+  'datasets/RandomDataSet.cpp',
+  'datasets/write.cpp',
+
+  # Optimizers
+  'optimizers/SimpleOptimizer.cpp',
+  'optimizers/AdamOptimizer.cpp',
+
+  # Actual Machine Learning Training Algorithm
+  'algorithms/Predict.cpp',
+  'algorithms/Optimize.cpp',
 ]
 
+range_v3_dep = dependency('range-v3')
 eigen_dep = dependency('eigen3')
 threads_dep = dependency('threads')
 yaml_cpp_dep = dependency('yaml-cpp')
@@ -42,7 +55,7 @@ sfml_dep = dependency('sfml-graphics')
 
 libkann_lib = library('kann', libkann_sources,
   include_directories : ['../include'],
-  dependencies        : [cereal_dep, eigen_dep, sfml_dep, threads_dep, yaml_cpp_dep]
+  dependencies        : [cereal_dep, range_v3_dep, eigen_dep, sfml_dep, threads_dep, yaml_cpp_dep]
 )
 
 libkann_dep = declare_dependency(
