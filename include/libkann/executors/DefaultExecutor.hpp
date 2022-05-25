@@ -12,7 +12,7 @@ namespace kann
   class DefaultExecutor : public Executor
   {
   public:
-    std::vector<std::shared_ptr<const Tensor>> process(std::shared_ptr<const Graph> graph, std::vector<std::shared_ptr<const Tensor>> inputs) override;
+    std::vector<std::vector<std::shared_ptr<const Tensor>>> process(std::shared_ptr<const Graph> graph, std::vector<std::vector<std::shared_ptr<const Tensor>>> inputs) override;
 
   private:
     struct State

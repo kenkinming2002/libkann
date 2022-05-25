@@ -24,6 +24,6 @@ namespace kann
     virtual ~Executor() = default;
 
   public:
-    virtual std::vector<std::shared_ptr<const Tensor>> process(std::shared_ptr<const Graph> graph, std::vector<std::shared_ptr<const Tensor>> inputs) = 0;
+    virtual std::vector<std::vector<std::shared_ptr<const Tensor>>> process(std::shared_ptr<const Graph> graph, std::vector<std::vector<std::shared_ptr<const Tensor>>> inputs) = 0;
   };
 }

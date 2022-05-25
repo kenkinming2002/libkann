@@ -2,6 +2,8 @@
 
 #include <libkann/Operation.hpp>
 
+#include <range/v3/all.hpp>
+
 #include <unordered_map>
 #include <queue>
 
@@ -12,17 +14,6 @@
 
 namespace kann
 {
-  template<typename From, typename F>
-  static std::vector<std::result_of_t<F(const From&)>> map(const std::vector<From>& input, F f)
-  {
-    std::vector<std::result_of_t<F(const From&)>> output;
-    output.reserve(input.size());
-    for(const auto& data : input)
-      output.push_back(f(data));
-
-    return output;
-  }
-
   /* NOTE: We use posix semaphore here instead of c++20 semaphore, because the
    *       implementation in libstdc++ has bug which may result in deadlock when
    *       there are more than or equal to 3 threads operating on same semaphore
@@ -141,7 +132,7 @@ namespace kann
     size_t index;
   };
 
-  std::vector<std::shared_ptr<const Tensor>> ThreadedExecutor::process(std::shared_ptr<const Graph> graph, std::vector<std::shared_ptr<const Tensor>> inputs)
+  std::vector<std::vector<std::shared_ptr<const Tensor>>> ThreadedExecutor::process(std::shared_ptr<const Graph> graph, std::vector<std::vector<std::shared_ptr<const Tensor>>> inputs)
   {
     auto it = m_states.find(graph);
     if(it == m_states.end())
@@ -162,13 +153,12 @@ namespace kann
     // 4: Inputs
     {
       std::vector<Task> new_tasks;
-
-      size_t i = 0;
-      for(size_t input_index : graph->input_indices())
-      {
-        state.data[input_index].value = inputs[i++];
-        new_tasks.push_back(Task{.index = input_index});
-      }
+      for(const auto& [sub_input_indices, sub_inputs] : ranges::views::zip(graph->input_indices(), inputs))
+        for(const auto& [input_index, input] : ranges::views::zip(sub_input_indices, sub_inputs))
+        {
+          state.data[input_index].value = input;
+          new_tasks.push_back(Task{.index = input_index});
+        }
 
       task_set.submit(new_tasks);
     }
@@ -181,11 +171,12 @@ namespace kann
       if(!state.data[task.index].value)
       {
         // Process
-        auto inputs = map(node.input_indices, [&](size_t input_index) -> const Tensor* {
+        auto inputs = node.input_indices | ranges::views::transform([&](size_t input_index) {
             assert(state.data[input_index].value);
             return state.data[input_index].value.get();
-        });
+        }) | ranges::to_vector;
         assert(node.op);
+
         state.data[task.index].value = node.op->process(std::move(inputs));
       }
 
@@ -205,16 +196,12 @@ namespace kann
     std::vector<std::function<void()>> tasks(std::thread::hardware_concurrency(), [&]() { task_set.run(handler); });
     thread_pool.run(std::move(tasks));
 
-    //for(size_t i=0; i<std::thread::hardware_concurrency(); ++i)
-    //  futures.push_back(std::async(std::launch::async, [&]() { task_set.run(handler); }));
-
-    //for(auto& future : futures)
-    //  future.get();
-
     // 6: Outputs
-    return map(graph->output_indices(), [&](size_t output_index) {
-        return state.data[output_index].value;
-    });
+    return graph->output_indices() | ranges::views::transform([&](const auto& sub_output_indices) {
+        return sub_output_indices | ranges::views::transform([&](size_t output_index) {
+            return state.data[output_index].value;
+        }) | ranges::to_vector;
+    }) | ranges::to_vector;
   }
 }
 

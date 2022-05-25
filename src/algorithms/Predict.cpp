@@ -12,28 +12,6 @@
 
 namespace kann
 {
-  // TODO: Obsolete this via better executor API
-  template<typename T, size_t N>
-  static inline std::array<std::vector<T>, N> move_split(std::vector<T> data, std::array<size_t, N> sizes)
-  {
-    std::array<size_t, N> indices;
-    std::exclusive_scan(sizes.begin(), sizes.end(), indices.begin(), 0);
-
-    std::array<std::vector<T>, N> result;
-    std::transform(indices.begin(), indices.end(), sizes.begin(), result.begin(), [&data](size_t index, size_t size) {
-        assert(data.size() >= index + size);
-        return std::vector(
-            std::move_iterator(data.begin() + index),
-            std::move_iterator(data.begin() + index + size)
-            );
-        });
-
-    return result;
-  }
-
-  template<typename Arg, typename... Args>
-  static inline auto move_split(Arg&& arg, Args&&... args) { return move_split(std::forward<Arg>(arg), std::array{std::forward<Args>(args)...}); }
-
   namespace
   {
     struct Option
@@ -78,8 +56,8 @@ namespace kann
       }
 
       return std::make_shared<const Graph>(
-          ranges::views::concat(inputs, input_parameters, input_states) | ranges::to_vector,
-          ranges::views::concat(outputs, output_states)                 | ranges::to_vector
+          std::vector{inputs, input_parameters, input_states},
+          std::vector{outputs, output_states}
       );
     }
 
@@ -112,12 +90,11 @@ namespace kann
     auto parameters   = input.layer.get_parameters_all();
     auto input_states = input.layer.get_states_all();
 
-    auto executor_input  = ranges::views::concat(inputs, parameters, input_states) | ranges::to_vector;
-    auto executor_output = executor.process(graph, executor_input);
-    auto [outputs, output_states] =  move_split(executor_output,
-        inputs.size(),
-        input_states.size()
-    );
+    auto executor_input  = std::vector{std::move(inputs), std::move(parameters), std::move(input_states)};
+    auto executor_output = executor.process(graph, std::move(executor_input));
+
+    auto outputs       = std::move(executor_output[0]);
+    auto output_states = std::move(executor_output[1]);
 
     input.layer.set_states_all(std::move(output_states));
     output.outputs = std::move(outputs);

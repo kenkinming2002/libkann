@@ -13,7 +13,8 @@ namespace kann
   class Graph
   {
   public:
-    Graph(std::vector<std::shared_ptr<const Variable>> inputs, std::vector<std::shared_ptr<const Variable>> outputs);
+    Graph(std::vector<std::vector<std::shared_ptr<const Variable>>> inputs,
+          std::vector<std::vector<std::shared_ptr<const Variable>>> outputs);
 
   public:
     struct Node
@@ -40,7 +41,7 @@ namespace kann
 
   private:
     std::vector<Node> m_nodes;
-    std::vector<size_t> m_input_indices;
-    std::vector<size_t> m_output_indices;
+    std::vector<std::vector<size_t>> m_input_indices;
+    std::vector<std::vector<size_t>> m_output_indices;
   };
 }

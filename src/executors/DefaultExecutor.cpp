@@ -2,25 +2,11 @@
 
 #include <libkann/Operation.hpp>
 
-#include <boost/graph/graphviz.hpp>
-#include <boost/graph/topological_sort.hpp>
-
-#include <iterator>
+#include <range/v3/all.hpp>
 
 namespace kann
 {
-  template<typename From, typename F>
-  static std::vector<std::result_of_t<F(const From&)>> map(const std::vector<From>& input, F f)
-  {
-    std::vector<std::result_of_t<F(const From&)>> output;
-    output.reserve(input.size());
-    for(const auto& data : input)
-      output.push_back(f(data));
-
-    return output;
-  }
-
-  std::vector<std::shared_ptr<const Tensor>> DefaultExecutor::process(std::shared_ptr<const Graph> graph, std::vector<std::shared_ptr<const Tensor>> inputs)
+  std::vector<std::vector<std::shared_ptr<const Tensor>>> DefaultExecutor::process(std::shared_ptr<const Graph> graph, std::vector<std::vector<std::shared_ptr<const Tensor>>> inputs)
   {
     // 1: Find or Create state
     auto it = m_states.find(graph);
@@ -39,12 +25,9 @@ namespace kann
     std::fill(state.values.begin(), state.values.end(), nullptr);
 
     // 3: Inputs
-    {
-      const auto& input_indices  = graph->input_indices();
-      assert(input_indices.size() == inputs.size());
-      for(size_t i=0; i<input_indices.size(); ++i)
-        state.values[input_indices[i]] = inputs[i];
-    }
+    for(const auto& [sub_input_indices, sub_inputs] : ranges::views::zip(graph->input_indices(), inputs))
+      for(const auto& [input_index, input] : ranges::views::zip(sub_input_indices, sub_inputs))
+        state.values[input_index] = input;
 
     // 4: Compute
     const auto& nodes = graph->nodes();
@@ -54,18 +37,21 @@ namespace kann
       if(state.values[index])
         continue;
 
-      auto inputs = map(node.input_indices, [&](size_t input_index) -> const Tensor* {
+      auto inputs = node.input_indices | ranges::views::transform([&](size_t input_index) {
           assert(state.values[input_index]);
           return state.values[input_index].get();
-      });
+      }) | ranges::to_vector;
       assert(node.op);
+
       state.values[index] = node.op->process(std::move(inputs));
     }
 
     // 5: Outputs
-    return map(graph->output_indices(), [&](size_t output_index) {
-        return state.values[output_index];
-    });
+    return graph->output_indices() | ranges::views::transform([&](const auto& sub_output_indices) {
+        return sub_output_indices | ranges::views::transform([&](size_t output_index) {
+            return state.values[output_index];
+        }) | ranges::to_vector;
+    }) | ranges::to_vector;
   }
 }
 

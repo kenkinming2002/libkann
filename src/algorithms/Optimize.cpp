@@ -17,28 +17,6 @@
 
 namespace kann
 {
-  // TODO: Obsolete this via better executor API
-  template<typename T, size_t N>
-  static inline std::array<std::vector<T>, N> move_split(std::vector<T> data, std::array<size_t, N> sizes)
-  {
-    std::array<size_t, N> indices;
-    std::exclusive_scan(sizes.begin(), sizes.end(), indices.begin(), 0);
-
-    std::array<std::vector<T>, N> result;
-    std::transform(indices.begin(), indices.end(), sizes.begin(), result.begin(), [&data](size_t index, size_t size) {
-        assert(data.size() >= index + size);
-        return std::vector(
-            std::move_iterator(data.begin() + index),
-            std::move_iterator(data.begin() + index + size)
-            );
-        });
-
-    return result;
-  }
-
-  template<typename Arg, typename... Args>
-  static inline auto move_split(Arg&& arg, Args&&... args) { return move_split(std::forward<Arg>(arg), std::array{std::forward<Args>(args)...}); }
-
   namespace
   {
     struct Option
@@ -114,8 +92,8 @@ namespace kann
       }
 
       return std::make_shared<const Graph>(
-        ranges::views::concat(inputs, expected_outputs, input_parameters, input_states, optimizer_input_states) | ranges::to_vector,
-        ranges::views::concat(outputs, output_parameters, output_states, optimizer_output_states)               | ranges::to_vector
+        std::vector{inputs, expected_outputs, input_parameters, input_states, optimizer_input_states},
+        std::vector{outputs, output_parameters, output_states, optimizer_output_states}
       );
     }
 
@@ -165,15 +143,13 @@ namespace kann
     auto input_states           = input.layer.get_states_all();
     auto input_optimizer_states = optimize_state.values;
 
-    auto executor_input  = ranges::views::concat(inputs, expected_outputs, input_parameters, input_states, input_optimizer_states) | ranges::to_vector;
-    auto executor_output = executor.process(graph, executor_input);
+    auto executor_input  = std::vector{std::move(inputs), std::move(expected_outputs), std::move(input_parameters), std::move(input_states), std::move(input_optimizer_states)};
+    auto executor_output = executor.process(graph, std::move(executor_input));
 
-    auto [outputs, output_parameters, output_states, output_optimizer_states] = move_split(executor_output,
-        inputs.size(),
-        input_parameters.size(),
-        input_states.size(),
-        input_optimizer_states.size()
-    );
+    auto outputs                 = std::move(executor_output[0]);
+    auto output_parameters       = std::move(executor_output[1]);
+    auto output_states           = std::move(executor_output[2]);
+    auto output_optimizer_states = std::move(executor_output[3]);
 
     input.layer.set_states_all(std::move(output_states));
     input.layer.set_parameters_all(std::move(output_parameters));
