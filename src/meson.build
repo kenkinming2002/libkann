@@ -30,10 +30,8 @@ libkann_sources = [
   'layer_defs/Deconvolutional.cpp',
 
   # Datasets
-  'datasets/DataSet.cpp',
-  'datasets/IDXFile.cpp',
-  'datasets/MNISTDataSet.cpp',
-  'datasets/RandomDataSet.cpp',
+  'datasets/MNIST.cpp',
+  'datasets/Random.cpp',
   'datasets/write.cpp',
 
   # Optimizers

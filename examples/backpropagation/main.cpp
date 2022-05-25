@@ -13,8 +13,8 @@
 #include <libkann/optimizers/AdamOptimizer.hpp>
 #include <libkann/optimizers/SimpleOptimizer.hpp>
 
-#include <libkann/datasets/MNISTDataSet.hpp>
-#include <libkann/datasets/RandomDataSet.hpp>
+#include <libkann/datasets/MNIST.hpp>
+#include <libkann/datasets/Random.hpp>
 #include <libkann/datasets/write.hpp>
 
 #include <cereal/archives/json.hpp>
@@ -126,19 +126,11 @@ int main(int argc, char** argv)
   // 3: Computation
   std::default_random_engine engine(kann::random<std::default_random_engine::result_type>());
 
-  kann::MNISTDataSet training_dataset(
-    "datasets/mnist/train-images-idx3-ubyte",
-    "datasets/mnist/train-labels-idx1-ubyte");
+  auto training_images = kann::load_mnist_dataset_images("datasets/mnist/train-images-idx3-ubyte");
+  auto training_labels = kann::load_mnist_dataset_labels("datasets/mnist/train-labels-idx1-ubyte");
 
-  kann::MNISTDataSet testing_dataset(
-    "datasets/mnist/t10k-images-idx3-ubyte",
-    "datasets/mnist/t10k-labels-idx1-ubyte");
-
-  auto training_images = kann::load(training_dataset, kann::MNISTDataSet::COLUMN_IMAGE);
-  auto training_labels = kann::load(training_dataset, kann::MNISTDataSet::COLUMN_LABEL);
-
-  auto testing_images = kann::load(testing_dataset, kann::MNISTDataSet::COLUMN_IMAGE);
-  auto testing_labels = kann::load(testing_dataset, kann::MNISTDataSet::COLUMN_LABEL);
+  auto testing_images = kann::load_mnist_dataset_images("datasets/mnist/t10k-images-idx3-ubyte");
+  auto testing_labels = kann::load_mnist_dataset_labels("datasets/mnist/t10k-labels-idx1-ubyte");
 
   if(*subcommand == "write")
   {
@@ -150,7 +142,7 @@ int main(int argc, char** argv)
       for(const auto& [i, datum] : ranges::views::enumerate(data))
       {
         auto file_path = fmt::format("output/{}/{}.bmp", type, i);
-        kann::toImage(*datum, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH).saveToFile(file_path);
+        kann::toImage(*datum, kann::MNIST_DATASET_IMAGE_WIDTH, kann::MNIST_DATASET_IMAGE_WIDTH).saveToFile(file_path);
       }
     }
   }
@@ -224,8 +216,8 @@ int main(int argc, char** argv)
           Renderer::Content content;
           content.title = fmt::format("{}/60000", ++i);
           content.images = {
-            kann::toImage(info.input,  kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH),
-            kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
+            kann::toImage(info.input,  kann::MNIST_DATASET_IMAGE_WIDTH, kann::MNIST_DATASET_IMAGE_WIDTH),
+            kann::toImage(info.output, kann::MNIST_DATASET_IMAGE_WIDTH, kann::MNIST_DATASET_IMAGE_WIDTH)
           };
           renderer->submit(content);
         }
@@ -234,7 +226,7 @@ int main(int argc, char** argv)
 
     // Generation
     {
-      auto latent_data = kann::load(kann::RandomDataSet(FEATURES_COUNT, 500), kann::RandomDataSet::COLUMN_DATA);
+      auto latent_data = kann::create_random_data(FEATURES_COUNT, 500);
       std::filesystem::create_directories("output/autoencoder");
 
       ProgressBar progress_bar("Generation", 500);
@@ -245,7 +237,7 @@ int main(int argc, char** argv)
       {
         kann::PredictInfo info = task.info();
         progress_bar.update("");
-        kann::toImage(info.output, kann::MNISTDataSet::IMAGE_WIDTH, kann::MNISTDataSet::IMAGE_WIDTH)
+        kann::toImage(info.output, kann::MNIST_DATASET_IMAGE_WIDTH, kann::MNIST_DATASET_IMAGE_WIDTH)
           .saveToFile(fmt::format("output/autoencoder/{}.bmp", ++i));
       }
     }

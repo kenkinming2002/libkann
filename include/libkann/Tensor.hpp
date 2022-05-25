@@ -23,6 +23,9 @@ namespace kann
   public:
     size_t size() const { return m_size; }
 
+    double* data() { return m_values.get(); }
+    const double* data() const { return m_values.get(); }
+
   public:
     double& asScalar()
     {
