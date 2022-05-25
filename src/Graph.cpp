@@ -2,22 +2,11 @@
 
 #include <range/v3/all.hpp>
 
-#include <stack>
 #include <set>
+#include <unordered_map>
 
 namespace kann
 {
-  template<typename From, typename F>
-  static std::vector<std::result_of_t<F(const From&)>> map(const std::vector<From>& input, F f)
-  {
-    std::vector<std::result_of_t<F(const From&)>> output;
-    output.reserve(input.size());
-    for(const auto& data : input)
-      output.push_back(f(data));
-
-    return output;
-  }
-
   Graph::Graph(std::vector<std::vector<std::shared_ptr<const Variable>>> inputs,
                std::vector<std::vector<std::shared_ptr<const Variable>>> outputs)
   {
@@ -69,12 +58,6 @@ namespace kann
         }) | ranges::to_vector;
     }) | ranges::to_vector;
   }
-
-  struct State
-  {
-    size_t index;
-    size_t pos;
-  };
 
   static inline void topological_ordering_impl(const std::vector<Graph::Node>& nodes, std::vector<size_t>& ordering, std::vector<bool>& visited, size_t index)
   {
