@@ -45,7 +45,7 @@ namespace kann
   {
     return {
       Variable::apply(IdentityOperation(size1 + size2, size1, 0),     {variable}),
-      Variable::apply(IdentityOperation(size2 + size2, size2, size1), {variable})
+      Variable::apply(IdentityOperation(size1 + size2, size2, size1), {variable})
     };
   }
 
