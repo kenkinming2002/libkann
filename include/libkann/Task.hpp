@@ -6,13 +6,15 @@
 
 namespace kann
 {
+  // Implemention of coroutine task type
+  // with progress report
   namespace coroutine
   {
     template<typename T>
     struct PromiseYield
     {
     public:
-      auto yield_value(T t)
+      auto yield_value(T& t)
       {
         m_t.emplace(std::move(t));
         return std::suspend_always{};
@@ -76,7 +78,7 @@ namespace kann
         return Task(handle);
       }
 
-      auto initial_suspend() noexcept { return std::suspend_always{}; }
+      auto initial_suspend() noexcept { return std::suspend_never{}; }
       auto final_suspend()   noexcept { return std::suspend_always{}; }
 
       void unhandled_exception()
@@ -90,9 +92,13 @@ namespace kann
     ~Task() { if(m_handle) m_handle.destroy(); }
 
   public:
-    bool step()
+    void step()
     {
       m_handle.resume();
+    }
+
+    bool is_done() const
+    {
       return m_handle.done();
     }
 

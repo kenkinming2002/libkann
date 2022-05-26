@@ -159,9 +159,7 @@ int main(int argc, char** argv)
 
       size_t i = 0;
       size_t correct_count = 0;
-
-      auto task = kann::predict(*layer, testing_images, BATCH_SIZE, *EXECUTOR);
-      while(!task.step())
+      for(auto task = kann::predict(*layer, testing_images, BATCH_SIZE, *EXECUTOR); !task.is_done(); task.step())
       {
         kann::PredictInfo info = task.info();
         const auto& expected_output = *testing_labels[i++];
@@ -174,10 +172,8 @@ int main(int argc, char** argv)
 
     auto train = [&]()
     {
-      auto task = kann::optimize(*layer, kann::Tag::DEFAULT, OPTIMIZER, training_images, training_labels, BATCH_SIZE, *EXECUTOR);
-
       ProgressBar progress_bar("Testing", 60000);
-      while(!task.step())
+      for(auto task = kann::optimize(*layer, kann::Tag::DEFAULT, OPTIMIZER, training_images, training_labels, BATCH_SIZE, *EXECUTOR); !task.is_done(); task.step())
       {
         kann::OptimizeInfo info = task.info();
         progress_bar.update(fmt::format("cost={}", info.cost));
@@ -206,8 +202,7 @@ int main(int argc, char** argv)
       ProgressBar progress_bar("Testing", 60000);
 
       size_t i = 0;
-      auto task = kann::optimize(*layer, kann::Tag::DEFAULT, OPTIMIZER, training_images, training_images, BATCH_SIZE, *EXECUTOR);
-      while(!task.step())
+      for(auto task = kann::optimize(*layer, kann::Tag::DEFAULT, OPTIMIZER, training_images, training_images, BATCH_SIZE, *EXECUTOR); !task.is_done(); task.step())
       {
         kann::OptimizeInfo info = task.info();
         progress_bar.update(fmt::format("cost={}", info.cost));
@@ -232,8 +227,7 @@ int main(int argc, char** argv)
       ProgressBar progress_bar("Generation", 500);
 
       size_t i = 0;
-      auto task = kann::predict(*decoder_layer, latent_data, BATCH_SIZE, *EXECUTOR);
-      while(!task.step())
+      for(auto task = kann::predict(*decoder_layer, latent_data, BATCH_SIZE, *EXECUTOR); !task.is_done(); task.step())
       {
         kann::PredictInfo info = task.info();
         progress_bar.update("");
