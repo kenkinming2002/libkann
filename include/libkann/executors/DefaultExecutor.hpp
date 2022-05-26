@@ -2,8 +2,6 @@
 
 #include <libkann/Executor.hpp>
 
-#include <boost/graph/adjacency_list.hpp>
-
 #include <unordered_map>
 #include <optional>
 
