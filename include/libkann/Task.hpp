@@ -2,6 +2,7 @@
 
 #include <coroutine>
 #include <optional>
+#include <memory>
 #include <exception>
 
 namespace kann
@@ -16,7 +17,7 @@ namespace kann
     public:
       auto yield_value(T& t)
       {
-        m_t.emplace(std::move(t));
+        m_t = std::addressof(t);
         return std::suspend_always{};
       }
 
@@ -26,7 +27,7 @@ namespace kann
       }
 
     private:
-      std::optional<T> m_t;
+      T* m_t;
     };
 
     template<>
