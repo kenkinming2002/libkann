@@ -1,11 +1,12 @@
 #include <libkann/layer_defs/Recurrent.hpp>
 
-#include <range/v3/all.hpp>
-
 #include <libkann/Layer.hpp>
+#include <libkann/Variable.hpp>
 
 #include <libkann/operations/IdentityOperation.hpp>
 #include <libkann/operations/ReduceOperation.hpp>
+
+#include <range/v3/all.hpp>
 
 #include <span>
 
@@ -33,7 +34,7 @@ namespace kann
     return SequentialLayerDef::output_size() - m_memory_size;
   }
 
-  static inline std::shared_ptr<const Variable> concat(std::shared_ptr<const Variable> variable1, std::shared_ptr<const Variable> variable2, size_t size1, size_t size2)
+  static inline variable_t concat(variable_t variable1, variable_t variable2, size_t size1, size_t size2)
   {
     return Variable::apply(ReduceOperation(2), {
         Variable::apply(IdentityOperation(size1, size1 + size2, 0),     {variable1}),
@@ -41,7 +42,7 @@ namespace kann
     });
   }
 
-  static inline std::pair<std::shared_ptr<const Variable>, std::shared_ptr<const Variable>> split(std::shared_ptr<const Variable> variable, size_t size1, size_t size2)
+  static inline std::pair<variable_t, variable_t> split(variable_t variable, size_t size1, size_t size2)
   {
     return {
       Variable::apply(IdentityOperation(size1 + size2, size1, 0),     {variable}),

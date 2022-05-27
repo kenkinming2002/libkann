@@ -1,14 +1,14 @@
 #pragma once
 
+#include <libkann/Types.hpp>
 #include <libkann/Tag.hpp>
-#include <libkann/Variable.hpp>
 
 #include <cereal/types/vector.hpp>
 #include <cereal/types/polymorphic.hpp>
 
+#include <memory>
 #include <vector>
-
-#include <stddef.h>
+#include <random>
 
 namespace kann
 {
@@ -18,7 +18,7 @@ namespace kann
   public:
     // Question: How do we support tagging? Do we store tag in parent layer def or in child
     Tag tag = Tag::ALL;
-    std::vector<std::shared_ptr<const LayerDef>> sub_layer_defs;
+    std::vector<layer_def_t> sub_layer_defs;
 
   public:
     virtual ~LayerDef() = default;
@@ -44,15 +44,15 @@ namespace kann
   public:
     struct ProcessInput
     {
-      std::shared_ptr<const Variable> variable;
-      std::vector<std::shared_ptr<const Variable>> parameters;
-      std::vector<std::shared_ptr<const Variable>> states;
+      variable_t variable;
+      std::vector<variable_t> parameters;
+      std::vector<variable_t> states;
     };
 
     struct ProcessOutput
     {
-      std::shared_ptr<const Variable> variable;
-      std::vector<std::shared_ptr<const Variable>> states;
+      variable_t variable;
+      std::vector<variable_t> states;
     };
 
     virtual ProcessOutput process(ProcessInput input) const = 0;

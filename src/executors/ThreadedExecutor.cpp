@@ -1,10 +1,10 @@
 #include <libkann/executors/ThreadedExecutor.hpp>
 
+#include <libkann/Graph.hpp>
 #include <libkann/Operation.hpp>
 
 #include <range/v3/all.hpp>
 
-#include <unordered_map>
 #include <queue>
 
 #include <mutex>
@@ -132,7 +132,7 @@ namespace kann
     size_t index;
   };
 
-  std::vector<std::vector<std::shared_ptr<const Tensor>>> ThreadedExecutor::process(std::shared_ptr<const Graph> graph, std::vector<std::vector<std::shared_ptr<const Tensor>>> inputs)
+  std::vector<std::vector<tensor_t>> ThreadedExecutor::process(graph_t graph, std::vector<std::vector<tensor_t>> inputs)
   {
     auto it = m_states.find(graph);
     if(it == m_states.end())

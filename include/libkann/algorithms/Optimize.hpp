@@ -1,37 +1,30 @@
 #pragma once
 
+#include <libkann/Types.hpp>
 #include <libkann/Tag.hpp>
 #include <libkann/Task.hpp>
 
 #include <vector>
-#include <memory>
 
 namespace kann
 {
-  struct Layer;
-  struct LayerDef;
-  struct Tensor;
-
-  class Optimizer;
-  class Executor;
-
   struct BatchOptimizeInput
   {
     Layer& layer;
     Tag tag;
-    std::shared_ptr<const Optimizer> optimizer;
-    std::vector<std::shared_ptr<const Tensor>> inputs;
-    std::vector<std::shared_ptr<const Tensor>> expected_outputs;
+    optimizer_t optimizer;
+    std::vector<tensor_t> inputs;
+    std::vector<tensor_t> expected_outputs;
   };
 
   struct BatchOptimizeOutput
   {
-    std::vector<std::shared_ptr<const Tensor>> outputs;
+    std::vector<tensor_t> outputs;
   };
 
   struct OptimizeState
   {
-    std::vector<std::shared_ptr<const Tensor>> values;
+    std::vector<tensor_t> values;
   };
 
   OptimizeState create_optimize_state(const LayerDef& def, Tag tag, const Optimizer& optimizer);
@@ -45,8 +38,8 @@ namespace kann
     double cost;
   };
 
-  Task<void, OptimizeInfo> optimize(Layer& layer, Tag tag, std::shared_ptr<const Optimizer> optimizer,
-      const std::vector<std::shared_ptr<const Tensor>>& inputs,
-      const std::vector<std::shared_ptr<const Tensor>>& expected_outputs,
+  Task<void, OptimizeInfo> optimize(Layer& layer, Tag tag, optimizer_t optimizer,
+      const std::vector<tensor_t>& inputs,
+      const std::vector<tensor_t>& expected_outputs,
       size_t batch_size, Executor& executor);
 }

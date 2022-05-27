@@ -1,29 +1,21 @@
 #pragma once
 
-#include <libkann/Tag.hpp>
+#include <libkann/Types.hpp>
 #include <libkann/Task.hpp>
 
 #include <vector>
-#include <memory>
 
 namespace kann
 {
-  struct Layer;
-  struct LayerDef;
-  struct Tensor;
-
-  class Optimizer;
-  class Executor;
-
   struct BatchPredictInput
   {
     Layer& layer;
-    std::vector<std::shared_ptr<const Tensor>> inputs;
+    std::vector<tensor_t> inputs;
   };
 
   struct BatchPredictOutput
   {
-    std::vector<std::shared_ptr<const Tensor>> outputs;
+    std::vector<tensor_t> outputs;
   };
 
   BatchPredictOutput batch_predict(const BatchPredictInput& input, Executor& executor);
@@ -35,6 +27,6 @@ namespace kann
   };
 
   Task<void, PredictInfo> predict(Layer& layer,
-      const std::vector<std::shared_ptr<const Tensor>>& inputs,
+      const std::vector<tensor_t>& inputs,
       size_t batch_size, Executor& executor);
 }

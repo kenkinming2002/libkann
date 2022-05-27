@@ -1,13 +1,12 @@
 #pragma once
 
+#include <libkann/Types.hpp>
+
 #include <vector>
-#include <memory>
 
 namespace kann
 {
-  struct Tensor;
-
-  std::vector<std::shared_ptr<const Tensor>> create_random_data(size_t size, size_t count);
+  std::vector<tensor_t> create_random_data(size_t size, size_t count);
 }
 
 

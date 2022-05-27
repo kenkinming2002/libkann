@@ -3,21 +3,20 @@
 #include <libkann/Executor.hpp>
 
 #include <unordered_map>
-#include <optional>
 
 namespace kann
 {
   class DefaultExecutor : public Executor
   {
   public:
-    std::vector<std::vector<std::shared_ptr<const Tensor>>> process(std::shared_ptr<const Graph> graph, std::vector<std::vector<std::shared_ptr<const Tensor>>> inputs) override;
+    std::vector<std::vector<tensor_t>> process(graph_t graph, std::vector<std::vector<tensor_t>> inputs) override;
 
   private:
     struct State
     {
       std::vector<size_t> ordering;
-      std::vector<std::shared_ptr<const Tensor>> values;
+      std::vector<tensor_t> values;
     };
-    std::unordered_map<std::shared_ptr<const Graph>, State> m_states;
+    std::unordered_map<graph_t, State> m_states;
   };
 }

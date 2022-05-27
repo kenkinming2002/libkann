@@ -20,7 +20,7 @@ namespace kann
     return output;
   }
 
-  CRef<Variable> IdentityOperation::gradientsImpl(CRef<Variable> gradient, CRef<Variable>) const
+  variable_t IdentityOperation::gradientsImpl(variable_t gradient, variable_t) const
   {
     auto output = std::make_shared<const Variable>(std::vector{std::move(gradient)}, std::make_shared<IdentityOperation>(m_outputSize, m_inputSize, m_offset));
     return output;

@@ -1,5 +1,7 @@
 #include <libkann/datasets/write.hpp>
 
+#include <libkann/Tensor.hpp>
+
 namespace kann
 {
   sf::Image toImage(const Tensor& data, size_t width, size_t height)

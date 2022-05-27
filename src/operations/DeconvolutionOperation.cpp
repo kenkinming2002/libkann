@@ -31,7 +31,7 @@ namespace kann
     return result;
   }
 
-  std::pair<CRef<Variable>, CRef<Variable>> DeconvolutionOperation::gradientsImpl(CRef<Variable> gradient, CRef<Variable> input, CRef<Variable> kernel) const
+  std::pair<variable_t, variable_t> DeconvolutionOperation::gradientsImpl(variable_t gradient, variable_t input, variable_t kernel) const
   {
     const size_t outputWidth  = m_inputWidth + m_kernelSize - 1;
     const size_t outputHeight = m_inputHeight + m_kernelSize - 1;

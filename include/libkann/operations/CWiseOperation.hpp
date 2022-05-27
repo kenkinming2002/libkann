@@ -1,9 +1,8 @@
 #pragma once
 
-#include <libkann/operations/CWiseProductOperation.hpp>
 #include <libkann/Operation.hpp>
+#include <libkann/Variable.hpp>
 
-#include <type_traits>
 #include <utility>
 
 namespace kann
@@ -13,12 +12,12 @@ namespace kann
   class CWiseOperation : public Operation
   {
   public:
-    CRef<Tensor> process(std::vector<const Tensor*> inputs) const override
+    tensor_t process(std::vector<const Tensor*> inputs) const override
     {
       return _process(std::move(inputs), std::make_index_sequence<Count>{});
     }
 
-    std::vector<CRef<Variable>> gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs) const override
+    std::vector<variable_t> gradients(variable_t gradient, std::vector<variable_t> inputs) const override
     {
       return _gradients(std::move(gradient), std::move(inputs), std::make_index_sequence<Count>{});
     }
@@ -28,7 +27,7 @@ namespace kann
 
   private:
     template<size_t... Ints>
-    CRef<Tensor> _process(std::vector<const Tensor*> inputs, std::index_sequence<Ints...>) const
+    tensor_t _process(std::vector<const Tensor*> inputs, std::index_sequence<Ints...>) const
     {
       const size_t size = inputs.front()->size();
       auto result = std::make_shared<Tensor>(size);
@@ -46,19 +45,19 @@ namespace kann
       constexpr GradientOperation(size_t index, Derived op) : m_index(index), m_op(op) {}
 
     public:
-      CRef<Tensor> process(std::vector<const Tensor*> inputs) const override
+      tensor_t process(std::vector<const Tensor*> inputs) const override
       {
         return _process(std::move(inputs), std::make_index_sequence<Count+1>{});
       }
 
-      std::vector<CRef<Variable>> gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs) const override
+      std::vector<variable_t> gradients(variable_t gradient, std::vector<variable_t> inputs) const override
       {
         assert(false && "Unimplemented");
       }
 
     private:
       template<size_t... Ints>
-      CRef<Tensor> _process(std::vector<const Tensor*> inputs, std::index_sequence<Ints...>) const
+      tensor_t _process(std::vector<const Tensor*> inputs, std::index_sequence<Ints...>) const
       {
         const size_t size = inputs.front()->size();
         auto result = std::make_shared<Tensor>(size);
@@ -74,16 +73,16 @@ namespace kann
     };
 
     template<size_t... Ints>
-    std::vector<CRef<Variable>> _gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs, std::index_sequence<Ints...> seq) const
+    std::vector<variable_t> _gradients(variable_t gradient, std::vector<variable_t> inputs, std::index_sequence<Ints...> seq) const
     {
-      std::vector<CRef<Variable>> realInput;
+      std::vector<variable_t> realInput;
       realInput.push_back(std::move(gradient));
       realInput.insert(realInput.end(),
         std::move_iterator(inputs.begin()),
         std::move_iterator(inputs.end())
       );
 
-      std::vector<CRef<Variable>> result;
+      std::vector<variable_t> result;
       result.reserve(Count);
       auto f = [&](size_t i)
       {

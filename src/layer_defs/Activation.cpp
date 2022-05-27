@@ -1,6 +1,7 @@
 #include <libkann/layer_defs/Activation.hpp>
 
 #include <libkann/Layer.hpp>
+#include <libkann/Variable.hpp>
 
 #include <libkann/operations/CWiseOperation.hpp>
 

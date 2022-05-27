@@ -1,12 +1,8 @@
 #pragma once
 
 #include <libkann/Types.hpp>
-#include <libkann/Variable.hpp>
-#include <libkann/Tensor.hpp>
-#include <libkann/Layer.hpp>
 
-#include <cereal/types/polymorphic.hpp>
-#include <cereal/archives/binary.hpp>
+#include <vector>
 
 namespace kann
 {
@@ -18,21 +14,21 @@ namespace kann
   public:
     struct ProcessInput
     {
-      std::shared_ptr<const Variable> parameter;
-      std::shared_ptr<const Variable> gradient;
+      variable_t parameter;
+      variable_t gradient;
     };
 
     struct ProcessOutput
     {
-      std::shared_ptr<const Variable> parameter;
+      variable_t parameter;
 
-      std::vector<std::shared_ptr<const Variable>> input_states;
-      std::vector<std::shared_ptr<const Variable>> output_states;
+      std::vector<variable_t> input_states;
+      std::vector<variable_t> output_states;
     };
 
     virtual ProcessOutput process(ProcessInput input) const = 0;
 
   public:
-    virtual std::vector<std::shared_ptr<const Tensor>> create_initial_states(size_t size) const { return {}; }
+    virtual std::vector<tensor_t> create_initial_states(size_t size) const { return {}; }
   };
 }

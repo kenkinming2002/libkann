@@ -1,7 +1,11 @@
 #include <libkann/Differentiate.hpp>
 
+#include <libkann/Variable.hpp>
+
 #include <libkann/Operation.hpp>
 #include <libkann/operations/ReduceOperation.hpp>
+
+#include <unordered_set>
 
 #include <range/v3/all.hpp>
 
@@ -11,11 +15,11 @@ namespace kann
   {
     struct TopologicalSortState
     {
-      std::vector<std::shared_ptr<const Variable>> ordering;
-      std::unordered_set<std::shared_ptr<const Variable>> visited;
+      std::vector<variable_t> ordering;
+      std::unordered_set<variable_t> visited;
     };
 
-    static inline void topological_sort_impl(TopologicalSortState& state, std::shared_ptr<const Variable> variable)
+    static inline void topological_sort_impl(TopologicalSortState& state, variable_t variable)
     {
       if(state.visited.contains(variable))
         return;
@@ -27,7 +31,7 @@ namespace kann
       state.ordering.push_back(variable);
     }
 
-    static inline std::vector<std::shared_ptr<const Variable>> topological_sort(const std::vector<std::shared_ptr<const Variable>>& variables)
+    static inline std::vector<variable_t> topological_sort(const std::vector<variable_t>& variables)
     {
       TopologicalSortState state;
       for(const auto& variable : variables)
@@ -37,16 +41,16 @@ namespace kann
 
     struct Info
     {
-      std::vector<std::shared_ptr<const Variable>> gradients;
-      std::shared_ptr<const Variable> gradient;
+      std::vector<variable_t> gradients;
+      variable_t gradient;
     };
   }
 
-  std::unordered_map<std::shared_ptr<const Variable>, std::shared_ptr<const Variable>> differentiate(
-    const std::vector<std::shared_ptr<const Variable>>& variables,
-    const std::vector<std::shared_ptr<const Variable>>& gradients)
+  std::unordered_map<variable_t, variable_t> differentiate(
+    const std::vector<variable_t>& variables,
+    const std::vector<variable_t>& gradients)
   {
-    std::unordered_map<std::shared_ptr<const Variable>, Info> infos_map;
+    std::unordered_map<variable_t, Info> infos_map;
     ranges::actions::insert(infos_map, ranges::views::zip(variables, gradients | ranges::views::transform([](const auto& gradient){ return Info{.gradient = gradient}; })));
 
     auto ordering = topological_sort(variables);
@@ -74,6 +78,6 @@ namespace kann
         const auto& [variable, info] = p;
         return std::make_pair(variable, info.gradient);
     });
-    return ranges::to<std::unordered_map<std::shared_ptr<const Variable>, std::shared_ptr<const Variable>>>(gradients_map);
+    return ranges::to<std::unordered_map<variable_t, variable_t>>(gradients_map);
   }
 }

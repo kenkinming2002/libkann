@@ -1,10 +1,10 @@
 #include <libkann/layer_defs/Sequential.hpp>
 
+#include <libkann/Layer.hpp>
+#include <libkann/Variable.hpp>
+
 #include <range/v3/all.hpp>
 
-#include <libkann/Layer.hpp>
-
-#include <iostream>
 #include <span>
 
 #include <assert.h>

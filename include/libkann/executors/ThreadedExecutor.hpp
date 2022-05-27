@@ -2,15 +2,14 @@
 
 #include <libkann/Executor.hpp>
 
-#include <semaphore>
-#include <latch>
+#include <unordered_map>
 
 namespace kann
 {
   class ThreadedExecutor : public Executor
   {
   public:
-    std::vector<std::vector<std::shared_ptr<const Tensor>>> process(std::shared_ptr<const Graph> graph, std::vector<std::vector<std::shared_ptr<const Tensor>>> inputs) override;
+    std::vector<std::vector<tensor_t>> process(graph_t graph, std::vector<std::vector<tensor_t>> inputs) override;
 
   private:
     struct State
@@ -18,10 +17,10 @@ namespace kann
       struct Datum
       {
         size_t finished_count;
-        std::shared_ptr<const Tensor> value;
+        tensor_t value;
       };
       std::vector<Datum> data;
     };
-    std::unordered_map<std::shared_ptr<const Graph>, State> m_states;
+    std::unordered_map<graph_t, State> m_states;
   };
 }

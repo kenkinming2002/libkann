@@ -10,8 +10,8 @@ namespace kann
     ReduceOperation(size_t inputCount);
 
   public:
-    CRef<Tensor> process(std::vector<const Tensor*> inputs) const override;
-    std::vector<CRef<Variable>> gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> inputs) const override;
+    tensor_t process(std::vector<const Tensor*> inputs) const override;
+    std::vector<variable_t> gradients(variable_t gradient, std::vector<variable_t> inputs) const override;
 
   private:
     size_t m_inputCount;

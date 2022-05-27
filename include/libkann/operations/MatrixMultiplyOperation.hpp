@@ -17,7 +17,7 @@ namespace kann
 
   public:
     Tensor processImpl(const Tensor& a, const Tensor& b) const override;
-    std::pair<CRef<Variable>, CRef<Variable>> gradientsImpl(CRef<Variable> gradient, CRef<Variable> a, CRef<Variable> b) const override;
+    std::pair<variable_t, variable_t> gradientsImpl(variable_t gradient, variable_t a, variable_t b) const override;
 
   private:
     size_t m_m, m_n, m_k;

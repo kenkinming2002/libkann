@@ -1,6 +1,7 @@
 #include <libkann/layer_defs/Convolutional.hpp>
 
 #include <libkann/Layer.hpp>
+#include <libkann/Variable.hpp>
 
 #include <libkann/operations/IdentityOperation.hpp>
 #include <libkann/operations/ConvolutionOperation.hpp>
@@ -48,7 +49,7 @@ namespace kann
   LayerDef::ProcessOutput ConvolutionalLayerDef::process(ProcessInput input) const
   {
     // 1: Split input into channels
-    std::vector<std::shared_ptr<const Variable>> input_channels;
+    std::vector<variable_t> input_channels;
     {
       input_channels.reserve(m_input_channel_count);
       for(size_t i=0; i<m_input_channel_count; ++i)
@@ -63,7 +64,7 @@ namespace kann
     }
 
     // 2: Perform Convolution
-    std::vector<std::shared_ptr<const Variable>> results;
+    std::vector<variable_t> results;
     results.reserve(this->parameters_count());
     for(size_t j=0; j<m_output_channel_count; ++j)
       for(size_t i=0; i<m_input_channel_count; ++i)
@@ -77,7 +78,7 @@ namespace kann
       }
 
     // 3: Reduce result to obtain output channel variables
-    std::vector<std::shared_ptr<const Variable>> output_channels;
+    std::vector<variable_t> output_channels;
     for(size_t j=0; j<m_output_channel_count; ++j)
       output_channels.push_back(Variable::apply(
           ReduceOperation(m_input_channel_count),

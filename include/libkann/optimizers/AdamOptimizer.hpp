@@ -12,7 +12,7 @@ namespace kann
 
   public:
     ProcessOutput process(ProcessInput input) const override;
-    std::vector<std::shared_ptr<const Tensor>> create_initial_states(size_t size) const override;
+    std::vector<tensor_t> create_initial_states(size_t size) const override;
 
   private:
     double m_alpha;

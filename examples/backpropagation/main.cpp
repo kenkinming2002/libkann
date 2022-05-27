@@ -8,6 +8,9 @@
 #include <libkann/Algorithm.hpp>
 #include <libkann/Executor.hpp>
 
+#include <libkann/Tensor.hpp>
+#include <libkann/Layer.hpp>
+
 #include <libkann/layer_defs/Sequential.hpp>
 
 #include <libkann/optimizers/AdamOptimizer.hpp>

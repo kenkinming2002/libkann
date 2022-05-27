@@ -12,7 +12,7 @@ namespace kann
     return result;
   }
 
-  std::pair<CRef<Variable>, CRef<Variable>> CWiseProductOperation::gradientsImpl(CRef<Variable> gradient, CRef<Variable> input1, CRef<Variable> input2) const
+  std::pair<variable_t, variable_t> CWiseProductOperation::gradientsImpl(variable_t gradient, variable_t input1, variable_t input2) const
   {
     return std::make_pair(
       std::make_shared<const Variable>(std::vector{gradient, input2}, std::make_shared<CWiseProductOperation>()),

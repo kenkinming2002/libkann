@@ -1,5 +1,7 @@
 #include <libkann/algorithms/Optimize.hpp>
 
+#include <libkann/Variable.hpp>
+
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
 
@@ -21,16 +23,16 @@ namespace kann
   {
     struct Option
     {
-      std::shared_ptr<const LayerDef> def;
+      layer_def_t def;
       Tag tag;
-      std::shared_ptr<const Optimizer> optimizer;
+      optimizer_t optimizer;
       size_t batch_size;
 
       auto operator<=>(const Option& other) const = default;
     };
 
     typedef std::vector<Tag> tags_t;
-    typedef std::vector<std::shared_ptr<const Variable>> variables_t;
+    typedef std::vector<variable_t> variables_t;
 
     static inline auto create_input_variables(size_t count)
     {
@@ -38,7 +40,7 @@ namespace kann
     }
 
     // Graphs Creation
-    static inline std::shared_ptr<const Graph> create_graph(const Option& option)
+    static inline graph_t create_graph(const Option& option)
     {
       // 1: All kinds of inputs
       variables_t input_parameters = create_input_variables(option.def->parameters_all_count());
@@ -97,7 +99,7 @@ namespace kann
       );
     }
 
-    static inline std::shared_ptr<const Graph> get_graph(const BatchOptimizeInput& input)
+    static inline graph_t get_graph(const BatchOptimizeInput& input)
     {
       assert(input.layer.def);
       assert(input.inputs.size() == input.expected_outputs.size());
@@ -108,7 +110,7 @@ namespace kann
         .batch_size = input.inputs.size()
       };
 
-      static std::map<Option, std::shared_ptr<const Graph>> graphs;
+      static std::map<Option, graph_t> graphs;
       if(auto it = graphs.find(option); it != graphs.end())
         return it->second;
 
@@ -159,9 +161,9 @@ namespace kann
     return output;
   }
 
-  Task<void, OptimizeInfo> optimize(Layer& layer, Tag tag, std::shared_ptr<const Optimizer> optimizer,
-      const std::vector<std::shared_ptr<const Tensor>>& inputs,
-      const std::vector<std::shared_ptr<const Tensor>>& expected_outputs,
+  Task<void, OptimizeInfo> optimize(Layer& layer, Tag tag, optimizer_t optimizer,
+      const std::vector<tensor_t>& inputs,
+      const std::vector<tensor_t>& expected_outputs,
       size_t batch_size, Executor& executor)
   {
     OptimizeState state = create_optimize_state(*layer.def, tag, *optimizer);

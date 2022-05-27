@@ -1,5 +1,7 @@
 #include <libkann/algorithms/Predict.hpp>
 
+#include <libkann/Variable.hpp>
+
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
 
@@ -16,21 +18,21 @@ namespace kann
   {
     struct Option
     {
-      std::shared_ptr<const LayerDef> def;
+      layer_def_t def;
       size_t batch_size;
 
       auto operator<=>(const Option& other) const = default;
     };
 
     typedef std::vector<Tag> tags_t;
-    typedef std::vector<std::shared_ptr<const Variable>> variables_t;
+    typedef std::vector<variable_t> variables_t;
 
     static inline auto create_input_variables(size_t count)
     {
       return ranges::views::generate_n([]() { return std::make_shared<const Variable>(); }, count) | ranges::to_vector;
     }
 
-    static inline std::shared_ptr<const Graph> create_graph(const Option& option)
+    static inline graph_t create_graph(const Option& option)
     {
       // 1: All kinds of inputs
       variables_t input_parameters = create_input_variables(option.def->parameters_all_count());
@@ -61,7 +63,7 @@ namespace kann
       );
     }
 
-    static inline std::shared_ptr<const Graph> get_graph(const BatchPredictInput& input)
+    static inline graph_t get_graph(const BatchPredictInput& input)
     {
       assert(input.layer.def);
       Option option = {
@@ -69,7 +71,7 @@ namespace kann
         .batch_size = input.inputs.size()
       };
 
-      static std::map<Option, std::shared_ptr<const Graph>> graphs;
+      static std::map<Option, graph_t> graphs;
       if(auto it = graphs.find(option); it != graphs.end())
         return it->second;
 
@@ -103,7 +105,7 @@ namespace kann
   }
 
   Task<void, PredictInfo> predict(Layer& layer,
-      const std::vector<std::shared_ptr<const Tensor>>& inputs,
+      const std::vector<tensor_t>& inputs,
       size_t batch_size, Executor& executor)
   {
     const auto& batches = inputs | ranges::views::chunk(batch_size) | ranges::views::transform([](auto&& r) { return std::forward<decltype(r)>(r) | ranges::to_vector; });

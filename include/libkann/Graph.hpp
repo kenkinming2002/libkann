@@ -1,11 +1,8 @@
 #pragma once
 
-#include <libkann/Variable.hpp>
-#include <libkann/Operation.hpp>
-#include <libkann/Tensor.hpp>
+#include <libkann/Types.hpp>
 
 #include <vector>
-#include <memory>
 
 namespace kann
 {
@@ -13,8 +10,8 @@ namespace kann
   class Graph
   {
   public:
-    Graph(std::vector<std::vector<std::shared_ptr<const Variable>>> inputs,
-          std::vector<std::vector<std::shared_ptr<const Variable>>> outputs);
+    Graph(std::vector<std::vector<variable_t>> inputs,
+          std::vector<std::vector<variable_t>> outputs);
 
   public:
     struct Node
@@ -23,7 +20,7 @@ namespace kann
       std::vector<size_t> input_indices;
       std::vector<size_t> output_indices; // Do I need it
 
-      std::shared_ptr<const Operation> op;
+      operation_t op;
     };
 
   public:

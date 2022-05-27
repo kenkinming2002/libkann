@@ -1,6 +1,7 @@
 #include <libkann/layer_defs/Weight.hpp>
 
 #include <libkann/Layer.hpp>
+#include <libkann/Variable.hpp>
 
 #include <libkann/operations/MatrixMultiplyOperation.hpp>
 #include <libkann/operations/ReduceOperation.hpp>

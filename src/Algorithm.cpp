@@ -48,9 +48,9 @@ namespace kann
     template<typename... Args>
     static inline auto move_join(Args&&... args) { return move_join(std::array{std::forward<Args>(args)...}); }
 
-    static inline std::vector<std::shared_ptr<const Variable>> create_input_variables(size_t count)
+    static inline std::vector<variable_t> create_input_variables(size_t count)
     {
-      std::vector<std::shared_ptr<const Variable>> result;
+      std::vector<variable_t> result;
       result.reserve(count);
       for(size_t i=0; i<count; ++i)
         result.push_back(std::make_shared<const Variable>()); // TODO: Add distinct name to each variable
@@ -63,7 +63,7 @@ namespace kann
     {
       size_t size = variables.size();
 
-      std::vector<std::shared_ptr<const Variable>> result;
+      std::vector<variable_t> result;
       result.reserve(size);
       for(size_t i=0; i<size; ++i)
         result.push_back(func(variables[i]));
@@ -77,7 +77,7 @@ namespace kann
       assert(variables1.size() == variables2.size());
       size_t size = variables1.size();
 
-      std::vector<std::shared_ptr<const Variable>> result;
+      std::vector<variable_t> result;
       result.reserve(size);
       for(size_t i=0; i<size; ++i)
         result.push_back(func(variables1[i], variables2[i]));

@@ -1,10 +1,11 @@
 #include <libkann/optimizers/AdamOptimizer.hpp>
 
+#include <libkann/Variable.hpp>
+
 #include <libkann/operations/MultiplyOperation.hpp>
 #include <libkann/operations/SubtractOperation.hpp>
 #include <libkann/operations/CWiseOperation.hpp>
 
-#include <type_traits>
 #include <utility>
 
 namespace kann
@@ -71,7 +72,7 @@ namespace kann
       return result;
     }
 
-    std::pair<CRef<Variable>, CRef<Variable>> gradientsImpl(CRef<Variable> gradient, CRef<Variable>, CRef<Variable>) const override
+    std::pair<variable_t, variable_t> gradientsImpl(variable_t gradient, variable_t, variable_t) const override
     {
       assert(false && "Unimplemented");
     }
@@ -96,7 +97,7 @@ namespace kann
       return result;
     }
 
-    std::pair<CRef<Variable>, CRef<Variable>> gradientsImpl(CRef<Variable> gradient, CRef<Variable>, CRef<Variable>) const override
+    std::pair<variable_t, variable_t> gradientsImpl(variable_t gradient, variable_t, variable_t) const override
     {
       assert(false && "Unimplemented");
     }
@@ -146,7 +147,7 @@ namespace kann
     return output;
   }
 
-  std::vector<std::shared_ptr<const Tensor>> AdamOptimizer::create_initial_states(size_t size) const
+  std::vector<tensor_t> AdamOptimizer::create_initial_states(size_t size) const
   {
     return {
       std::make_shared<const Tensor>(Tensor::constant(size, 0.0)),

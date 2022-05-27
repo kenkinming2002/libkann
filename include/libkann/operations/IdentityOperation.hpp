@@ -11,7 +11,7 @@ namespace kann
 
   public:
     Tensor processImpl(const Tensor& input) const override;
-    CRef<Variable> gradientsImpl(CRef<Variable> gradient, CRef<Variable>) const override;
+    variable_t gradientsImpl(variable_t gradient, variable_t) const override;
 
   private:
     size_t m_inputSize;

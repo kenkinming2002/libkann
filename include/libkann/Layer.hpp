@@ -1,38 +1,29 @@
 #pragma once
 
-#include <libkann/Tag.hpp>
-#include <libkann/Variable.hpp>
+#include <libkann/Types.hpp>
 
 #include <cereal/types/polymorphic.hpp>
-#include <cereal/archives/binary.hpp>
 
-#include <memory>
 #include <vector>
-#include <random>
-#include <span>
-
-#include <assert.h>
-#include <stddef.h>
 
 namespace kann
 {
-  struct LayerDef;
   struct Layer
   {
   public:
-    std::shared_ptr<const LayerDef> def;
+    layer_def_t def;
 
-    std::vector<std::shared_ptr<const Tensor>> parameters;
-    std::vector<std::shared_ptr<const Tensor>> states;
+    std::vector<tensor_t> parameters;
+    std::vector<tensor_t> states;
 
   public:
     std::vector<std::shared_ptr<Layer>> sub_layers;
 
   public:
-    void set_parameters_all(std::vector<std::shared_ptr<const Tensor>> values);
-    void set_states_all(std::vector<std::shared_ptr<const Tensor>> values);
+    void set_parameters_all(std::vector<tensor_t> values);
+    void set_states_all(std::vector<tensor_t> values);
 
-    std::vector<std::shared_ptr<const Tensor>> get_parameters_all() const;
-    std::vector<std::shared_ptr<const Tensor>> get_states_all() const;
+    std::vector<tensor_t> get_parameters_all() const;
+    std::vector<tensor_t> get_states_all() const;
   };
 }

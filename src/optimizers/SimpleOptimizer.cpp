@@ -1,5 +1,7 @@
 #include <libkann/optimizers/SimpleOptimizer.hpp>
 
+#include <libkann/Variable.hpp>
+
 #include <libkann/operations/MultiplyOperation.hpp>
 #include <libkann/operations/SubtractOperation.hpp>
 

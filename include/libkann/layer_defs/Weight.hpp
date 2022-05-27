@@ -28,8 +28,8 @@ namespace kann
     size_t m_input_size, m_output_size;
 
   private:
-    std::shared_ptr<const Tensor> m_weight;
-    std::shared_ptr<const Tensor> m_bias;
+    tensor_t m_weight;
+    tensor_t m_bias;
 
   public:
     template<typename Archive>

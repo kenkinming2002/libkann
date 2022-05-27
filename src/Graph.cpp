@@ -1,5 +1,7 @@
 #include <libkann/Graph.hpp>
 
+#include <libkann/Variable.hpp>
+
 #include <range/v3/all.hpp>
 
 #include <set>
@@ -7,17 +9,17 @@
 
 namespace kann
 {
-  Graph::Graph(std::vector<std::vector<std::shared_ptr<const Variable>>> inputs,
-               std::vector<std::vector<std::shared_ptr<const Variable>>> outputs)
+  Graph::Graph(std::vector<std::vector<variable_t>> inputs,
+               std::vector<std::vector<variable_t>> outputs)
   {
     assert(ranges::all_of(inputs  | ranges::views::join, [](const auto& v) { return (bool)v; }));
     assert(ranges::all_of(outputs | ranges::views::join, [](const auto& v) { return (bool)v; }));
 
     // 1: Create nodes
-    std::unordered_map<std::shared_ptr<const Variable>, size_t> indices_map;
+    std::unordered_map<variable_t, size_t> indices_map;
     {
       // TODO: Use a stack instead of an unordered_set
-      std::set<std::shared_ptr<const Variable>> open;
+      std::set<variable_t> open;
       ranges::actions::insert(open, inputs | ranges::views::join);
       ranges::actions::insert(open, outputs | ranges::views::join);
 

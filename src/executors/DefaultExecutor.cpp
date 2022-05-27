@@ -1,12 +1,13 @@
 #include <libkann/executors/DefaultExecutor.hpp>
 
+#include <libkann/Graph.hpp>
 #include <libkann/Operation.hpp>
 
 #include <range/v3/all.hpp>
 
 namespace kann
 {
-  std::vector<std::vector<std::shared_ptr<const Tensor>>> DefaultExecutor::process(std::shared_ptr<const Graph> graph, std::vector<std::vector<std::shared_ptr<const Tensor>>> inputs)
+  std::vector<std::vector<tensor_t>> DefaultExecutor::process(graph_t graph, std::vector<std::vector<tensor_t>> inputs)
   {
     // 1: Find or Create state
     auto it = m_states.find(graph);

@@ -10,7 +10,7 @@ namespace kann
     assert(m_inputCount != 0);
   }
 
-  CRef<Tensor> ReduceOperation::process(std::vector<const Tensor*> inputs) const
+  tensor_t ReduceOperation::process(std::vector<const Tensor*> inputs) const
   {
     assert(inputs.size() == m_inputCount);
 
@@ -29,7 +29,7 @@ namespace kann
     return result;
   }
 
-  std::vector<CRef<Variable>> ReduceOperation::gradients(CRef<Variable> gradient, std::vector<CRef<Variable>> /*inputs*/) const
+  std::vector<variable_t> ReduceOperation::gradients(variable_t gradient, std::vector<variable_t> /*inputs*/) const
   {
     return std::vector(m_inputCount, gradient);
   }

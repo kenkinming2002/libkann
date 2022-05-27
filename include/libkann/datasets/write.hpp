@@ -1,10 +1,8 @@
 #pragma once
 
-#include <libkann/Tensor.hpp>
+#include <libkann/Types.hpp>
 
 #include <SFML/Graphics/Image.hpp>
-
-#include <ostream>
 
 namespace kann
 {

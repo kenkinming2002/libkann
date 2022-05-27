@@ -3,7 +3,6 @@
 #include <coroutine>
 #include <optional>
 #include <memory>
-#include <exception>
 
 namespace kann
 {

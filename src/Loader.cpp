@@ -14,7 +14,7 @@
 
 namespace kann
 {
-  static std::shared_ptr<const LayerDef> load_layer_def(YAML::Node root, Tag tag)
+  static layer_def_t load_layer_def(YAML::Node root, Tag tag)
   {
     std::shared_ptr<LayerDef> result;
 
@@ -97,13 +97,13 @@ namespace kann
     return result;
   }
 
-  std::shared_ptr<const LayerDef> load_layer_def(const std::string& filename, Tag tag)
+  layer_def_t load_layer_def(const std::string& filename, Tag tag)
   {
     YAML::Node root = YAML::LoadFile(filename);
     return load_layer_def(root, tag);
   }
 
-  std::shared_ptr<const LayerDef> load_layer_def(std::istream& is, Tag tag)
+  layer_def_t load_layer_def(std::istream& is, Tag tag)
   {
     YAML::Node root = YAML::Load(is);
     return load_layer_def(root, tag);

@@ -59,7 +59,7 @@ namespace kann
     }
   };
 
-  std::vector<std::shared_ptr<const Tensor>> load_mnist_dataset_images(const char* file_name)
+  std::vector<tensor_t> load_mnist_dataset_images(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -74,7 +74,7 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<std::shared_ptr<const Tensor>> images;
+    std::vector<tensor_t> images;
     images.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)
@@ -92,7 +92,7 @@ namespace kann
     return images;
   }
 
-  std::vector<std::shared_ptr<const Tensor>> load_mnist_dataset_labels(const char* file_name)
+  std::vector<tensor_t> load_mnist_dataset_labels(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -103,7 +103,7 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<std::shared_ptr<const Tensor>> labels;
+    std::vector<tensor_t> labels;
     labels.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)

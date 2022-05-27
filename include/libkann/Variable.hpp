@@ -1,21 +1,18 @@
 #pragma once
 
 #include <libkann/Types.hpp>
-#include <libkann/Tensor.hpp>
 
-#include <optional>
+#include <vector>
 
 namespace kann
 {
-  class Operation;
-
   /* A variable could be an adjustable constant or result of applying operation
    * on a list of other variables */
   class Variable
   {
   public:
     template<typename T>
-    static std::shared_ptr<const Variable> apply(T operation, std::vector<std::shared_ptr<const Variable>> inputs)
+    static variable_t apply(T operation, std::vector<variable_t> inputs)
     {
       return std::make_shared<const Variable>(
           std::move(inputs),
@@ -25,11 +22,11 @@ namespace kann
 
   public:
     Variable() = default;
-    Variable(std::vector<CRef<Variable>> inputs, CRef<Operation> op)
+    Variable(std::vector<variable_t> inputs, operation_t op)
       : inputs(std::move(inputs)), op(std::move(op)) {}
 
   public:
-    std::vector<CRef<Variable>> inputs;
-    CRef<Operation> op;
+    std::vector<variable_t> inputs;
+    operation_t op;
   };
 }
