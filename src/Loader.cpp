@@ -14,7 +14,7 @@
 
 namespace kann
 {
-  static layer_def_t load_layer_def(YAML::Node root, Tag tag)
+  static layer_def_t load_layer_def(YAML::Node root)
   {
     std::shared_ptr<LayerDef> result;
 
@@ -25,7 +25,7 @@ namespace kann
 
       result = std::make_shared<SequentialLayerDef>();
       result->sub_layer_defs = layers
-        | ranges::views::transform([&](YAML::Node child) { return load_layer_def(child, tag); })
+        | ranges::views::transform([&](YAML::Node child) { return load_layer_def(child); })
         | ranges::to_vector;
 
       return result;
@@ -37,7 +37,7 @@ namespace kann
 
       result = std::make_shared<RecurrentLayerDef>(memory_size);
       result->sub_layer_defs = layers
-        | ranges::views::transform([&](YAML::Node child) { return load_layer_def(child, tag); })
+        | ranges::views::transform([&](YAML::Node child) { return load_layer_def(child); })
         | ranges::to_vector;
 
       return result;
@@ -93,19 +93,19 @@ namespace kann
     else
       throw std::runtime_error("Unrecognized layer type:" + type);
 
-    result->tag = tag;
+    result->tag = Tag::ALL;
     return result;
   }
 
-  layer_def_t load_layer_def(const std::string& filename, Tag tag)
+  layer_def_t load_layer_def(const std::string& filename)
   {
     YAML::Node root = YAML::LoadFile(filename);
-    return load_layer_def(root, tag);
+    return load_layer_def(root);
   }
 
-  layer_def_t load_layer_def(std::istream& is, Tag tag)
+  layer_def_t load_layer_def(std::istream& is)
   {
     YAML::Node root = YAML::Load(is);
-    return load_layer_def(root, tag);
+    return load_layer_def(root);
   }
 }
