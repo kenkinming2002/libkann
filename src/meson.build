@@ -19,7 +19,6 @@ libkann_sources = [
   # Layers
   'Layer.cpp',
   'LayerDef.cpp',
-  'Loader.cpp',
   'ActivationFunction.cpp',
   'layer_defs/Sequential.cpp',
   'layer_defs/Recurrent.cpp',
@@ -53,11 +52,11 @@ sfml_dep = dependency('sfml-graphics')
 
 libkann_lib = library('kann', libkann_sources,
   include_directories : ['../include'],
-  dependencies        : [cereal_dep, range_v3_dep, eigen_dep, sfml_dep, threads_dep, yaml_cpp_dep]
+  dependencies        : [range_v3_dep, eigen_dep, sfml_dep, threads_dep, yaml_cpp_dep]
 )
 
 libkann_dep = declare_dependency(
   include_directories : ['../include'],
-  dependencies : [cereal_dep, eigen_dep, sfml_dep],
+  dependencies : [eigen_dep, sfml_dep],
   link_with : libkann_lib,
 )

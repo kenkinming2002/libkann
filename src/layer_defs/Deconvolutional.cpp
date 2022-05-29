@@ -11,6 +11,30 @@
 
 namespace kann
 {
+  YAML::Node DeconvolutionalLayerDef::save(layer_def_t layer_def)
+  {
+    YAML::Node node;
+    node["input_width"]          = std::static_pointer_cast<const DeconvolutionalLayerDef>(layer_def)->m_input_width;
+    node["input_height"]         = std::static_pointer_cast<const DeconvolutionalLayerDef>(layer_def)->m_input_height;
+    node["kernel_size"]          = std::static_pointer_cast<const DeconvolutionalLayerDef>(layer_def)->m_kernel_size;
+    node["input_channel_count"]  = std::static_pointer_cast<const DeconvolutionalLayerDef>(layer_def)->m_input_channel_count;
+    node["output_channel_count"] = std::static_pointer_cast<const DeconvolutionalLayerDef>(layer_def)->m_output_channel_count;
+    return node;
+  }
+
+  layer_def_t DeconvolutionalLayerDef::load(YAML::Node node)
+  {
+    auto layer_def = std::make_shared<DeconvolutionalLayerDef>();
+    layer_def->m_input_width          = node["input_width"].as<size_t>();
+    layer_def->m_input_height         = node["input_height"].as<size_t>();
+    layer_def->m_kernel_size          = node["kernel_size"].as<size_t>();
+    layer_def->m_input_channel_count  = node["input_channel_count"].as<size_t>();
+    layer_def->m_output_channel_count = node["output_channel_count"].as<size_t>();
+    return layer_def;
+  }
+
+  KANN_LAYER_DEF_SAVE_LOAD_REGISTER(deconvolution, DeconvolutionalLayerDef)
+
   DeconvolutionalLayerDef::DeconvolutionalLayerDef(size_t input_width, size_t input_height, size_t kernel_size, size_t input_channel_count, size_t output_channel_count)
     : m_input_width(input_width), m_input_height(input_height),
       m_kernel_size(kernel_size),

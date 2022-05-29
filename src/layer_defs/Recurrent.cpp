@@ -14,6 +14,31 @@
 
 namespace kann
 {
+  YAML::Node RecurrentLayerDef::save(layer_def_t layer_def)
+  {
+    YAML::Node node;
+    node["memory"] = static_pointer_cast<const RecurrentLayerDef>(layer_def)->m_memory_size;
+    node["layers"] = layer_def->sub_layer_defs
+      | ranges::views::transform([&](layer_def_t sub_layer_def) { return LayerDef::save(sub_layer_def); } )
+      | ranges::to_vector;
+    return node;
+  }
+
+  layer_def_t RecurrentLayerDef::load(YAML::Node node)
+  {
+    auto layer_def = std::make_shared<RecurrentLayerDef>();
+    layer_def->m_memory_size = node["memory"].as<size_t>();
+
+    auto layer_defs_node = node["layers"];
+    layer_def->sub_layer_defs = layer_defs_node
+      | ranges::views::transform([](YAML::Node child) { return LayerDef::load(child); })
+      | ranges::to_vector;
+
+    return layer_def;
+  }
+
+  KANN_LAYER_DEF_SAVE_LOAD_REGISTER(recurrent, RecurrentLayerDef)
+
   RecurrentLayerDef::RecurrentLayerDef(size_t memory_size)
     : m_memory_size(memory_size) {}
 
@@ -77,6 +102,5 @@ namespace kann
   {
     return { m_memory_size };
   }
-
 }
 

@@ -2,8 +2,6 @@
 
 #include <Eigen/Eigen>
 
-#include <cereal/types/vector.hpp>
-
 #include <random>
 #include <memory>
 
@@ -156,24 +154,6 @@ namespace kann
         );
       }
       return result;
-    }
-
-  public:
-    template<typename Archive>
-    void save(Archive& archive) const
-    {
-      archive(cereal::make_size_tag(m_size));
-      for(size_t i=0; i<m_size; ++i)
-        archive(m_values[i]);
-    }
-
-    template<typename Archive>
-    void load(Archive& archive)
-    {
-      archive(cereal::make_size_tag(m_size));
-      m_values = std::make_unique_for_overwrite<double[]>(m_size);
-      for(size_t i=0; i<m_size; ++i)
-        archive(m_values[i]);
     }
 
   public:

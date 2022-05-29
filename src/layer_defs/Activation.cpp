@@ -7,6 +7,51 @@
 
 namespace kann
 {
+  static inline std::string function_to_string(ActivationFunction function)
+  {
+    switch(function.type)
+    {
+    case ActivationFunction::Type::IDENTITY:
+      return "identity";
+    case ActivationFunction::Type::SIGMOID:
+      return "sigmoid";
+    case ActivationFunction::Type::TANH:
+      return "tanh";
+    default:
+      throw std::runtime_error("unknown activation function type");
+    }
+  }
+
+  static inline ActivationFunction string_to_function(std::string name)
+  {
+    if(name == "identity")
+      return ActivationFunction(ActivationFunction::Type::IDENTITY);
+    else if(name == "sigmoid")
+      return ActivationFunction(ActivationFunction::Type::SIGMOID);
+    else if(name == "tanh")
+      return ActivationFunction(ActivationFunction::Type::TANH);
+    else
+      throw std::runtime_error("Unknown activation function type - " + name);
+  }
+
+  YAML::Node ActivationLayerDef::save(layer_def_t layer_def)
+  {
+    YAML::Node node;
+    node["size"]     = std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_size;
+    node["function"] = function_to_string(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_activationFunction);
+    return node;
+  }
+
+  layer_def_t ActivationLayerDef::load(YAML::Node node)
+  {
+    auto layer_def = std::make_shared<ActivationLayerDef>();
+    layer_def->m_size               = node["size"].as<size_t>();
+    layer_def->m_activationFunction = string_to_function(node["function"].as<std::string>());
+    return layer_def;
+  }
+
+  KANN_LAYER_DEF_SAVE_LOAD_REGISTER(activation, ActivationLayerDef)
+
   ActivationLayerDef::ActivationLayerDef(size_t size, ActivationFunction activationFunction)
     : m_size(size), m_activationFunction(activationFunction) {}
 

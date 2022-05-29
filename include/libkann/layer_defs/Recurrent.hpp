@@ -7,6 +7,10 @@ namespace kann
   class RecurrentLayerDef : public SequentialLayerDef
   {
   public:
+    static YAML::Node save(layer_def_t layer_def);
+    static layer_def_t load(YAML::Node node);
+
+  public:
     RecurrentLayerDef() = default;
     RecurrentLayerDef(size_t memory_size);
 
@@ -26,17 +30,6 @@ namespace kann
 
   private:
     size_t m_memory_size;
-
-  public:
-    template<typename Archive>
-    void serialize(Archive& archive)
-    {
-      archive(cereal::base_class<SequentialLayerDef>(this));
-      archive(m_memory_size);
-    }
   };
 }
-
-CEREAL_REGISTER_TYPE(kann::RecurrentLayerDef);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::SequentialLayerDef, kann::RecurrentLayerDef);
 

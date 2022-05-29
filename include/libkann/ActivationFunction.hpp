@@ -23,13 +23,6 @@ namespace kann
     double derivative(double val) const;
 
   public:
-    template<typename Archive>
-    void serialize(Archive& archive)
-    {
-      archive(type);
-    }
-
-  public:
     Type type;
   };
 }

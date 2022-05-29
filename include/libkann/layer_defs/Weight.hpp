@@ -7,6 +7,10 @@ namespace kann
   class WeightLayerDef : public LayerDef
   {
   public:
+    static YAML::Node save(layer_def_t layer_def);
+    static layer_def_t load(YAML::Node node);
+
+  public:
     WeightLayerDef() = default;
     WeightLayerDef(size_t input_size, size_t output_size);
 
@@ -30,17 +34,5 @@ namespace kann
   private:
     tensor_t m_weight;
     tensor_t m_bias;
-
-  public:
-    template<typename Archive>
-    void serialize(Archive& archive)
-    {
-      archive(cereal::base_class<LayerDef>(this));
-      archive(m_input_size, m_output_size);
-      archive(m_weight, m_bias);
-    }
   };
 }
-
-CEREAL_REGISTER_TYPE(kann::WeightLayerDef);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::LayerDef, kann::WeightLayerDef);

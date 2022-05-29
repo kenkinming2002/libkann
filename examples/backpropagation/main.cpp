@@ -4,12 +4,12 @@
 
 #include <libkann/Random.hpp>
 
-#include <libkann/Loader.hpp>
 #include <libkann/Algorithm.hpp>
 #include <libkann/Executor.hpp>
 
 #include <libkann/Tensor.hpp>
 #include <libkann/Layer.hpp>
+#include <libkann/LayerDef.hpp>
 
 #include <libkann/layer_defs/Sequential.hpp>
 
@@ -20,12 +20,10 @@
 #include <libkann/datasets/Random.hpp>
 #include <libkann/datasets/write.hpp>
 
-#include <cereal/archives/json.hpp>
-#include <cereal/archives/binary.hpp>
-
 #include <range/v3/all.hpp>
 #include <fmt/core.h>
 
+#include <iostream>
 #include <memory>
 #include <random>
 #include <filesystem>
@@ -154,7 +152,7 @@ int main(int argc, char** argv)
     if(!target)
       return -1;
 
-    auto layer = kann::load_layer_def(fmt::format("examples/backpropagation/feedforward/{}.yaml", *target))->create(engine);
+    auto layer = kann::LayerDef::load(fmt::format("examples/backpropagation/feedforward/{}.yaml", *target))->create(engine);
 
     auto test = [&]()
     {
@@ -194,8 +192,8 @@ int main(int argc, char** argv)
 
     auto layer_def = std::make_shared<kann::SequentialLayerDef>();
     layer_def->sub_layer_defs = {
-      kann::load_layer_def(fmt::format("examples/backpropagation/autoencoder/{}-encoder.yaml", *target)),
-      kann::load_layer_def(fmt::format("examples/backpropagation/autoencoder/{}-decoder.yaml", *target))
+      kann::LayerDef::load(fmt::format("examples/backpropagation/autoencoder/{}-encoder.yaml", *target)),
+      kann::LayerDef::load(fmt::format("examples/backpropagation/autoencoder/{}-decoder.yaml", *target))
     };
     auto layer         = layer_def->create(engine);
     auto decoder_layer = layer->sub_layers[1];

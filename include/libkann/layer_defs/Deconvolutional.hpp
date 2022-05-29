@@ -7,6 +7,10 @@ namespace kann
   class DeconvolutionalLayerDef : public LayerDef
   {
   public:
+    static YAML::Node save(layer_def_t layer_def);
+    static layer_def_t load(YAML::Node node);
+
+  public:
     DeconvolutionalLayerDef() = default;
     DeconvolutionalLayerDef(size_t input_width, size_t input_height, size_t kernel_size, size_t input_channel_count, size_t output_channel_count);
 
@@ -28,19 +32,5 @@ namespace kann
     size_t m_input_width,  m_input_height;
     size_t m_kernel_size;
     size_t m_input_channel_count, m_output_channel_count;
-
-  public:
-    template<typename Archive>
-    void serialize(Archive& archive)
-    {
-      archive(cereal::base_class<LayerDef>(this));
-
-      archive(m_input_width, m_input_height);
-      archive(m_kernel_size);
-      archive(m_input_channel_count, m_output_channel_count);
-    }
   };
 }
-
-CEREAL_REGISTER_TYPE(kann::DeconvolutionalLayerDef);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::LayerDef, kann::DeconvolutionalLayerDef);

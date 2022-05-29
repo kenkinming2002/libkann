@@ -7,6 +7,10 @@ namespace kann
   class SequentialLayerDef : public LayerDef
   {
   public:
+    static YAML::Node save(layer_def_t layer_def);
+    static layer_def_t load(YAML::Node node);
+
+  public:
     SequentialLayerDef() = default;
 
   public:
@@ -18,15 +22,5 @@ namespace kann
 
   public:
     ProcessOutput process(ProcessInput input) const override;
-
-  public:
-    template<typename Archive>
-    void serialize(Archive& archive)
-    {
-      archive(cereal::base_class<LayerDef>(this));
-    }
   };
 }
-
-CEREAL_REGISTER_TYPE(kann::SequentialLayerDef);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::LayerDef, kann::SequentialLayerDef)

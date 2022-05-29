@@ -2,8 +2,6 @@
 
 #include <libkann/Types.hpp>
 
-#include <cereal/types/polymorphic.hpp>
-
 #include <vector>
 
 namespace kann

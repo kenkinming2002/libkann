@@ -8,6 +8,10 @@ namespace kann
   class ActivationLayerDef : public LayerDef
   {
   public:
+    static YAML::Node save(layer_def_t layer_def);
+    static layer_def_t load(YAML::Node node);
+
+  public:
     ActivationLayerDef() = default;
     ActivationLayerDef(size_t size, ActivationFunction activationFunction);
 
@@ -21,20 +25,8 @@ namespace kann
   public:
     ProcessOutput process(ProcessInput input) const override;
 
-  public:
-    template<typename Archive>
-    void serialize(Archive& archive)
-    {
-      archive(cereal::base_class<LayerDef>(this));
-      archive(m_size);
-      archive(m_activationFunction);
-    }
-
   private:
     size_t m_size;
     ActivationFunction m_activationFunction;
   };
 }
-
-CEREAL_REGISTER_TYPE(kann::ActivationLayerDef);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(kann::LayerDef, kann::ActivationLayerDef);
