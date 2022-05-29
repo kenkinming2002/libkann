@@ -30,9 +30,5 @@ namespace kann
 
   private:
     size_t m_input_size, m_output_size;
-
-  private:
-    tensor_t m_weight;
-    tensor_t m_bias;
   };
 }
