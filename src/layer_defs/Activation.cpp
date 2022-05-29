@@ -50,8 +50,6 @@ namespace kann
     return layer_def;
   }
 
-  KANN_LAYER_DEF_SAVE_LOAD_REGISTER(activation, ActivationLayerDef)
-
   ActivationLayerDef::ActivationLayerDef(size_t size, ActivationFunction activationFunction)
     : m_size(size), m_activationFunction(activationFunction) {}
 

@@ -31,8 +31,6 @@ namespace kann
     return layer_def;
   }
 
-  KANN_LAYER_DEF_SAVE_LOAD_REGISTER(sequential, SequentialLayerDef)
-
   std::shared_ptr<Layer> SequentialLayerDef::create(std::default_random_engine& prng) const
   {
     auto layer = std::make_shared<Layer>();

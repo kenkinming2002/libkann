@@ -37,8 +37,6 @@ namespace kann
     return layer_def;
   }
 
-  KANN_LAYER_DEF_SAVE_LOAD_REGISTER(recurrent, RecurrentLayerDef)
-
   RecurrentLayerDef::RecurrentLayerDef(size_t memory_size)
     : m_memory_size(memory_size) {}
 

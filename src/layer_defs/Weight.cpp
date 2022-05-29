@@ -24,8 +24,6 @@ namespace kann
     return layer_def;
   }
 
-  KANN_LAYER_DEF_SAVE_LOAD_REGISTER(weight, WeightLayerDef)
-
   WeightLayerDef::WeightLayerDef(size_t input_size, size_t output_size)
     : m_input_size(input_size), m_output_size(output_size) {}
 

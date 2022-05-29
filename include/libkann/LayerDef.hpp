@@ -18,10 +18,12 @@ namespace kann
   public:
     using save_t = YAML::Node(*)(layer_def_t);
     using load_t = layer_def_t(*)(YAML::Node);
+
+  public:
     static void register_save_load(std::string name, const std::type_info& type_info, save_t save, load_t load);
 
-#define KANN_LAYER_DEF_SAVE_LOAD_REGISTER(name, type) \
-  extern "C" { int kann_layer_def_save_load_init_##name = [](){ ::kann::LayerDef::register_save_load(#name, typeid(type), type::save, type::load); return 0; }(); }
+    template<typename T>
+    static void register_save_load(std::string name) { register_save_load(std::move(name), typeid(T), T::save, T::load); }
 
   public:
     static YAML::Node save(layer_def_t layer);

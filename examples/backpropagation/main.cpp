@@ -2,6 +2,7 @@
 #include "Arguments.hpp"
 #include "Progress.hpp"
 
+#include <libkann/Initialize.hpp>
 #include <libkann/Random.hpp>
 
 #include <libkann/Algorithm.hpp>
@@ -126,6 +127,8 @@ int main(int argc, char** argv)
 
   // 3: Computation
   std::default_random_engine engine(kann::random<std::default_random_engine::result_type>());
+
+  kann::initialize();
 
   auto training_images = kann::load_mnist_dataset_images("datasets/mnist/train-images-idx3-ubyte");
   auto training_labels = kann::load_mnist_dataset_labels("datasets/mnist/train-labels-idx1-ubyte");

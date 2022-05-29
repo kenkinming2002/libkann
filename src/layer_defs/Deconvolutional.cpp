@@ -33,8 +33,6 @@ namespace kann
     return layer_def;
   }
 
-  KANN_LAYER_DEF_SAVE_LOAD_REGISTER(deconvolution, DeconvolutionalLayerDef)
-
   DeconvolutionalLayerDef::DeconvolutionalLayerDef(size_t input_width, size_t input_height, size_t kernel_size, size_t input_channel_count, size_t output_channel_count)
     : m_input_width(input_width), m_input_height(input_height),
       m_kernel_size(kernel_size),

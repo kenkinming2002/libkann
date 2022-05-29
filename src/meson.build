@@ -1,4 +1,5 @@
 libkann_sources = [
+  'Initialize.cpp',
   # Operations
   'Differentiate.cpp',
   'operations/IdentityOperation.cpp',

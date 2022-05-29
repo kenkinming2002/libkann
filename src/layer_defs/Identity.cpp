@@ -25,8 +25,6 @@ namespace kann
     return layer_def;
   }
 
-  KANN_LAYER_DEF_SAVE_LOAD_REGISTER(identity, IdentityLayerDef)
-
   IdentityLayerDef::IdentityLayerDef(size_t input_size, size_t output_size, size_t offset)
     : m_input_size(input_size), m_output_size(output_size), m_offset(offset) {}
 

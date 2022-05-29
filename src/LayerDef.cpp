@@ -21,7 +21,6 @@ namespace kann
 
   void LayerDef::register_save_load(std::string name, const std::type_info& type_info, save_t save, load_t load)
   {
-    std::cout << "Registration" << std::endl;
     save_map().emplace(std::type_index(type_info), save);
     load_map().emplace(std::move(name), load);
   }
