@@ -1,5 +1,7 @@
 #include <libkann/algorithms/Predict.hpp>
 
+#include <libkann/algorithms/Helpers.hpp>
+
 #include <libkann/Variable.hpp>
 
 #include <libkann/Layer.hpp>
@@ -24,38 +26,21 @@ namespace kann
       auto operator<=>(const Option& other) const = default;
     };
 
-    typedef std::vector<Tag> tags_t;
-    typedef std::vector<variable_t> variables_t;
-
-    static inline auto create_input_variables(size_t count)
-    {
-      return ranges::views::generate_n([]() { return std::make_shared<const Variable>(); }, count) | ranges::to_vector;
-    }
-
     static inline graph_t create_graph(const Option& option)
     {
-      // 1: All kinds of inputs
-      variables_t input_parameters = create_input_variables(option.def->parameters_all_count());
-      variables_t input_states     = create_input_variables(option.def->states_all_count());
+      auto inputs           = make_input_variables(option.batch_size);
+      auto input_parameters = make_input_variables(option.def->parameters_all_count());
+      auto input_states     = make_input_variables(option.def->states_all_count());
 
-      // 2: Prediction step -> create new states
-      variables_t inputs, outputs;
-      variables_t output_states = input_states;
+      auto predict_variables_input = PredictVariablesInput{
+        .variables  = inputs,
+        .parameters = input_parameters,
+        .states     = input_states
+      };
+      auto predict_variables_output = make_predict_variables(*option.def, predict_variables_input);
 
-      inputs = create_input_variables(option.batch_size);
-      outputs.reserve(option.batch_size);
-      for(const auto& input : inputs)
-      {
-        auto process_input = LayerDef::ProcessInput{
-          .variable   = input,
-          .parameters = input_parameters,
-          .states     = output_states
-        };
-
-        auto process_output = option.def->process(process_input);
-        outputs.push_back(process_output.variable);
-        output_states = process_output.states;
-      }
+      auto outputs       = predict_variables_output.variables;
+      auto output_states = predict_variables_output.states;
 
       return std::make_shared<const Graph>(
           std::vector{inputs, input_parameters, input_states},

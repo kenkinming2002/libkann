@@ -1,5 +1,7 @@
 #include <libkann/algorithms/Optimize.hpp>
 
+#include <libkann/algorithms/Helpers.hpp>
+
 #include <libkann/Variable.hpp>
 
 #include <libkann/Layer.hpp>
@@ -31,67 +33,37 @@ namespace kann
       auto operator<=>(const Option& other) const = default;
     };
 
-    typedef std::vector<Tag> tags_t;
-    typedef std::vector<variable_t> variables_t;
-
-    static inline auto create_input_variables(size_t count)
-    {
-      return ranges::views::generate_n([]() { return std::make_shared<const Variable>(); }, count) | ranges::to_vector;
-    }
-
     // Graphs Creation
     static inline graph_t create_graph(const Option& option)
     {
-      // 1: All kinds of inputs
-      variables_t input_parameters = create_input_variables(option.def->parameters_all_count());
-      variables_t input_states     = create_input_variables(option.def->states_all_count());
+      auto inputs           = make_input_variables(option.batch_size);
+      auto expected_outputs = make_input_variables(option.batch_size);
+      auto input_parameters = make_input_variables(option.def->parameters_all_count());
+      auto input_states     = make_input_variables(option.def->states_all_count());
 
-      // 2: Prediction step -> create new states
-      variables_t inputs, outputs;
-      variables_t output_states = input_states;
+      auto predict_variables_input = PredictVariablesInput{
+        .variables  = inputs,
+        .parameters = input_parameters,
+        .states     = input_states
+      };
+      auto predict_variables_output = make_predict_variables(*option.def, predict_variables_input);
 
-      inputs = create_input_variables(option.batch_size);
-      outputs.reserve(option.batch_size);
-      for(const auto& input : inputs)
-      {
-        auto process_input = LayerDef::ProcessInput{
-          .variable   = input,
-          .parameters = input_parameters,
-          .states     = output_states
-        };
+      auto outputs       = predict_variables_output.variables;
+      auto output_states = predict_variables_output.states;
 
-        auto process_output = option.def->process(process_input);
-        outputs.push_back(process_output.variable);
-        output_states = process_output.states;
-      }
+      auto output_gradients = make_simple_output_gradients(outputs, expected_outputs);
 
-      // 3: Differentiation step
-      variables_t expected_outputs = create_input_variables(option.batch_size);
-      variables_t output_gradients = ranges::views::transform(outputs, expected_outputs, [](const auto& output, const auto& expected_output) {
-        auto diff = Variable::apply(SubtractOperation(), {output, expected_output});
-        return Variable::apply(MultiplyOperation(2.0), {std::move(diff)});
-      }) | ranges::to_vector;
-      auto gradients_map = differentiate(outputs, output_gradients);
+      auto optimize_variables_input = OptimizeVariablesInput{
+        .outputs = outputs,
+        .output_gradients = output_gradients,
+        .expected_outputs = expected_outputs,
+        .parameters       = input_parameters
+      };
+      auto optimize_variables_output = make_optimize_variables(*option.def, *option.optimizer, option.tag, optimize_variables_input);
 
-      // 4: Optimization step
-      tags_t tags = option.def->parameters_tags();
-      variables_t optimizer_input_states, optimizer_output_states;
-      variables_t output_parameters = input_parameters;
-      for(const auto& [i, input_parameter, tag] : ranges::views::zip(ranges::views::ints, input_parameters, tags))
-      {
-        if((tag & option.tag) == option.tag)
-        {
-          auto process_input = Optimizer::ProcessInput{
-            .parameter = input_parameter,
-            .gradient  = gradients_map.at(input_parameter)
-          };
-
-          auto process_output = option.optimizer->process(process_input);
-          output_parameters[i] = process_output.parameter;
-          optimizer_input_states  |= ranges::actions::push_back(process_output.input_states);
-          optimizer_output_states |= ranges::actions::push_back(process_output.output_states);
-        }
-      }
+      auto output_parameters = optimize_variables_output.parameters;
+      auto optimizer_input_states  = optimize_variables_output.input_states;
+      auto optimizer_output_states = optimize_variables_output.output_states;
 
       return std::make_shared<const Graph>(
         std::vector{inputs, expected_outputs, input_parameters, input_states, optimizer_input_states},
