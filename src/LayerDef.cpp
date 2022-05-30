@@ -7,13 +7,13 @@
 
 namespace kann
 {
-  auto& save_map()
+  static auto& save_map()
   {
     static std::unordered_map<std::type_index, LayerDef::save_t> instance;
     return instance;
   }
 
-  auto& load_map()
+  static auto& load_map()
   {
     static std::unordered_map<std::string, LayerDef::load_t> instance;
     return instance;
