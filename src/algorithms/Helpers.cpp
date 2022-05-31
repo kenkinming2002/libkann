@@ -52,7 +52,7 @@ namespace kann
     output.parameters.reserve(input.parameters.size());
 
     std::unordered_map<variable_t, variable_t> gradients_map = differentiate(input.outputs, input.output_gradients);
-    std::vector<Tag> parameter_tags = layer_def.parameters_tags();
+    std::vector<Tag> parameter_tags = layer_def.parameter_tags();
     for(const auto& [input_parameter, parameter_tag] : ranges::views::zip(input.parameters, parameter_tags))
     {
       if((parameter_tag & tag) != tag)

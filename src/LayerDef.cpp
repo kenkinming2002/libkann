@@ -49,11 +49,11 @@ namespace kann
     return load(root);
   }
 
-  std::vector<Tag> LayerDef::parameters_tags() const
+  std::vector<Tag> LayerDef::parameter_tags() const
   {
     auto parent_tags  = ranges::views::repeat_n(this->tag, this->parameters_count());
     auto childs_tags = sub_layer_defs
-      | ranges::views::transform([](const auto& sub_layer_def) -> std::vector<Tag> { return sub_layer_def->parameters_tags(); })
+      | ranges::views::transform([](const auto& sub_layer_def) -> std::vector<Tag> { return sub_layer_def->parameter_tags(); })
       | ranges::views::cache1
       | ranges::views::join;
 

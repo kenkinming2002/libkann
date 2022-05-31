@@ -49,7 +49,7 @@ namespace kann
     virtual size_t output_size() const = 0;
 
   public:
-    std::vector<Tag> parameters_tags() const;
+    std::vector<Tag> parameter_tags() const;
 
   public:
     size_t parameters_all_count() const;

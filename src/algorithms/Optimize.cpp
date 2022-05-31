@@ -97,7 +97,7 @@ namespace kann
   {
     OptimizeState optimize_state;
 
-    auto parameter_tags  = def.parameters_tags();
+    auto parameter_tags  = def.parameter_tags();
     auto parameter_sizes = def.parameters_all_sizes();
     for(auto [parameter_tag, parameter_size] : ranges::views::zip(parameter_tags, parameter_sizes))
       if((parameter_tag & tag) == tag)
