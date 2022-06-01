@@ -5,7 +5,7 @@ libkann_sources = [
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',
   'operations/MatrixProductOperation.cpp',
-  'operations/MultiplyOperation.cpp',
+  'operations/ScaleOperation.cpp',
   'operations/SubtractOperation.cpp',
   'operations/ConvolutionOperation.cpp',
   'operations/DeconvolutionOperation.cpp',

@@ -1,6 +1,6 @@
 #include <libkann/operations/SubtractOperation.hpp>
 
-#include <libkann/operations/MultiplyOperation.hpp>
+#include <libkann/operations/ScaleOperation.hpp>
 
 #include <libkann/Variable.hpp>
 
@@ -16,7 +16,7 @@ namespace kann
 
   std::pair<variable_t, variable_t> SubtractOperation::gradientsImpl(variable_t gradient, variable_t a, variable_t b) const
   {
-    return std::make_pair(gradient, std::make_shared<const Variable>(std::vector{gradient}, std::make_shared<MultiplyOperation>(-1.0)));
+    return std::make_pair(gradient, std::make_shared<const Variable>(std::vector{gradient}, std::make_shared<ScaleOperation>(-1.0)));
   }
 }
 

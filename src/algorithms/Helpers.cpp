@@ -3,7 +3,7 @@
 #include <libkann/Variable.hpp>
 #include <libkann/Differentiate.hpp>
 #include <libkann/operations/SubtractOperation.hpp>
-#include <libkann/operations/MultiplyOperation.hpp>
+#include <libkann/operations/ScaleOperation.hpp>
 
 #include <libkann/Optimizer.hpp>
 
@@ -23,7 +23,7 @@ namespace kann
     // Calculate output gradients using sum of square cost function
     return ranges::views::transform(outputs, expected_outputs, [](const auto& output, const auto& expected_output) {
       auto diff = Variable::apply(SubtractOperation(), {output, expected_output});
-      return Variable::apply(MultiplyOperation(2.0), {std::move(diff)});
+      return Variable::apply(ScaleOperation(2.0), {std::move(diff)});
     }) | ranges::to_vector;
   }
 

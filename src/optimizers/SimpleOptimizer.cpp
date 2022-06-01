@@ -2,7 +2,7 @@
 
 #include <libkann/Variable.hpp>
 
-#include <libkann/operations/MultiplyOperation.hpp>
+#include <libkann/operations/ScaleOperation.hpp>
 #include <libkann/operations/SubtractOperation.hpp>
 
 namespace kann
@@ -16,7 +16,7 @@ namespace kann
 
     auto scaledGradient = std::make_shared<const Variable>(
       std::vector{input.gradient},
-      std::make_shared<MultiplyOperation>(m_learningRate)
+      std::make_shared<ScaleOperation>(m_learningRate)
     );
 
     output.parameter = std::make_shared<const Variable>(

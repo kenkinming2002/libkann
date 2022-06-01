@@ -4,10 +4,10 @@
 
 namespace kann
 {
-  class MultiplyOperation : public UnaryOperation
+  class ScaleOperation : public UnaryOperation
   {
   public:
-    MultiplyOperation(double val);
+    ScaleOperation(double val);
 
   public:
     Tensor processImpl(const Tensor& input) const override;

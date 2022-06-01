@@ -2,7 +2,7 @@
 
 #include <libkann/Variable.hpp>
 
-#include <libkann/operations/MultiplyOperation.hpp>
+#include <libkann/operations/ScaleOperation.hpp>
 #include <libkann/operations/SubtractOperation.hpp>
 #include <libkann/operations/CWiseOperation.hpp>
 
