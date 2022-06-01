@@ -4,14 +4,14 @@
 
 namespace kann
 {
-  class ScaleOperation : public UnaryOperation
+  class ScaleOperation : public OperationImpl<ScaleOperation, 1>
   {
   public:
     ScaleOperation(double val);
 
   public:
-    Tensor processImpl(const Tensor& input) const override;
-    variable_t gradientsImpl(variable_t gradient, variable_t input) const override;
+    Tensor process_impl(inputs_t inputs) const;
+    variables_t gradients_impl(variable_t gradient, variables_t inputs) const;
 
   private:
     double m_val;

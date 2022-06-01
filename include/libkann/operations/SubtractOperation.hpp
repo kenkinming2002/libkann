@@ -4,11 +4,11 @@
 
 namespace kann
 {
-  class SubtractOperation : public BinaryOperation
+  class SubtractOperation : public OperationImpl<SubtractOperation, 2>
   {
   public:
-    Tensor processImpl(const Tensor& a, const Tensor& b) const override;
-    std::pair<variable_t, variable_t> gradientsImpl(variable_t gradient, variable_t a, variable_t b) const override;
+    Tensor process_impl(inputs_t inputs) const;
+    variables_t gradients_impl(variable_t gradient, variables_t inputs) const;
   };
 }
 

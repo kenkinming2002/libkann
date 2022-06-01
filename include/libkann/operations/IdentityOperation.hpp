@@ -4,14 +4,14 @@
 
 namespace kann
 {
-  class IdentityOperation : public UnaryOperation
+  class IdentityOperation : public OperationImpl<IdentityOperation, 1>
   {
   public:
     IdentityOperation(size_t inputSize, size_t outputSize, size_t offset);
 
   public:
-    Tensor processImpl(const Tensor& input) const override;
-    variable_t gradientsImpl(variable_t gradient, variable_t) const override;
+    Tensor process_impl(inputs_t inputs) const;
+    variables_t gradients_impl(variable_t gradient, variables_t inputs) const;
 
   private:
     size_t m_inputSize;

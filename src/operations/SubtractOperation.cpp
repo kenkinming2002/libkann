@@ -6,17 +6,18 @@
 
 namespace kann
 {
-  Tensor SubtractOperation::processImpl(const Tensor& a, const Tensor& b) const
+  Tensor SubtractOperation::process_impl(inputs_t inputs) const
   {
-    assert(a.size() == b.size());
-    Tensor result(a.size());
-    result.asArray() = a.asArray() - b.asArray();
+    const auto& [a, b] = inputs;
+    assert(a->size() == b->size());
+    Tensor result(a->size());
+    result.asArray() = a->asArray() - b->asArray();
     return result;
   }
 
-  std::pair<variable_t, variable_t> SubtractOperation::gradientsImpl(variable_t gradient, variable_t a, variable_t b) const
+  auto SubtractOperation::gradients_impl(variable_t gradient, variables_t) const -> variables_t
   {
-    return std::make_pair(gradient, std::make_shared<const Variable>(std::vector{gradient}, std::make_shared<ScaleOperation>(-1.0)));
+    return {gradient, std::make_shared<const Variable>(std::vector{gradient}, std::make_shared<ScaleOperation>(-1.0))};
   }
 }
 

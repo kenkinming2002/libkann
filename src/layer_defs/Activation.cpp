@@ -77,14 +77,16 @@ namespace kann
       : m_activationFunction(activationFunction) {}
 
   public:
-    double forward(double input) const
+    double forward(cwise_inputs_t inputs) const
     {
+      const auto& [input] = inputs;
       return m_activationFunction.normal(input);
     }
 
-    double backward(size_t index, double gradient, double input) const
+    template<size_t index>
+    double backward(double gradient, cwise_inputs_t inputs) const requires(index == 0)
     {
-      assert(index == 0);
+      const auto& [input] = inputs;
       return gradient * m_activationFunction.derivative(input);
     }
 

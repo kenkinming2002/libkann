@@ -3,6 +3,8 @@
 #include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 
+#include <range/v3/all.hpp>
+
 #include <vector>
 #include <utility>
 
@@ -20,45 +22,35 @@ namespace kann
     virtual std::vector<variable_t> gradients(variable_t gradient, std::vector<variable_t> inputs) const = 0;
   };
 
-  class UnaryOperation : public Operation
+  template<typename Derived, size_t N>
+  class OperationImpl : public Operation
   {
   public:
-    tensor_t process(std::vector<const Tensor*> inputs) const override final
+    using inputs_t    = std::array<const Tensor*, N>;
+    using variables_t = std::array<variable_t, N>;
+
+  public:
+    Tensor process_impl(inputs_t inputs) const = delete;
+    variables_t gradients_impl(variable_t gradient, variables_t inputs) const = delete;
+
+  public:
+    const Derived& derived() const { return static_cast<const Derived&>(*this); }
+
+  public:
+    tensor_t process(std::vector<const Tensor*> inputs) const override
     {
-      assert(inputs.size() == 1);
-      return std::make_shared<const Tensor>(this->processImpl(*inputs[0]));
+      inputs_t _inputs;
+      assert(inputs.size() == N);
+      ranges::move(inputs, _inputs.begin());
+      return std::make_shared<const Tensor>(derived().process_impl(_inputs));
     }
 
     std::vector<variable_t> gradients(variable_t gradient, std::vector<variable_t> inputs) const override
     {
-      assert(inputs.size() == 1);
-      auto result = this->gradientsImpl(std::move(gradient), std::move(inputs[0]));
-      return {std::move(result)};
+      variables_t _inputs;
+      assert(inputs.size() == N);
+      ranges::move(inputs, _inputs.begin());
+      return derived().gradients_impl(gradient, _inputs) | ranges::to_vector;
     }
-
-  protected:
-    virtual Tensor processImpl(const Tensor&) const = 0;
-    virtual variable_t gradientsImpl(variable_t gradient, variable_t) const = 0;
-  };
-
-  class BinaryOperation : public Operation
-  {
-  public:
-    tensor_t process(std::vector<const Tensor*> inputs) const override final
-    {
-      assert(inputs.size() == 2);
-      return std::make_shared<const Tensor>(this->processImpl(*inputs[0], *inputs[1]));
-    }
-
-    std::vector<variable_t> gradients(variable_t gradient, std::vector<variable_t> inputs) const override
-    {
-      assert(inputs.size() == 2);
-      auto result = this->gradientsImpl(std::move(gradient), std::move(inputs[0]), std::move(inputs[1]));
-      return {std::move(result.first), std::move(result.second)};
-    }
-
-  protected:
-    virtual Tensor processImpl(const Tensor&, const Tensor&) const = 0;
-    virtual std::pair<variable_t, variable_t> gradientsImpl(variable_t gradient, variable_t, variable_t) const = 0;
   };
 }

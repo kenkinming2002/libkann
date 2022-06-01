@@ -13,11 +13,13 @@ namespace kann
   class SecondMomentOperation : public CWiseOperation<SecondMomentOperation, 1>
   {
   public:
-    double forward(double a) const
+    double forward(cwise_inputs_t inputs) const
     {
+      const auto& [a] = inputs;
       return a * a;
     }
 
+    template<size_t index>
     double backward(...) const
     {
       assert(false && "Unimplemented");
@@ -31,11 +33,13 @@ namespace kann
     constexpr EMAOperation(double beta) : m_beta(beta) {}
 
   public:
-    double forward(double avg, double a) const
+    double forward(cwise_inputs_t inputs) const
     {
+      const auto& [avg, a] = inputs;
       return m_beta * avg + (1-m_beta) * a;
     }
 
+    template<size_t index>
     double backward(...) const
     {
       assert(false && "Unimplemented");
@@ -48,31 +52,34 @@ namespace kann
   class IncrementOperation : public CWiseOperation<IncrementOperation, 1>
   {
   public:
-    double forward(double a) const
+    double forward(cwise_inputs_t inputs) const
     {
+      const auto& [a] = inputs;
       return a+1;
     }
 
+    template<size_t index>
     double backward(...) const
     {
       assert(false && "Unimplemented");
     }
   };
 
-  class BiasCorrectionOperation : public BinaryOperation
+  class BiasCorrectionOperation : public OperationImpl<BiasCorrectionOperation, 2>
   {
   public:
     constexpr BiasCorrectionOperation(double beta) : m_beta(beta) {}
 
   public:
-    Tensor processImpl(const Tensor& t, const Tensor& v) const override
+    Tensor process_impl(inputs_t inputs) const
     {
-      Tensor result(v.size());
-      result.asArray() = v.asArray() / (1.0 - std::pow(m_beta, t.asScalar()));
+      const auto& [t, v] = inputs;
+      Tensor result(v->size());
+      result.asArray() = v->asArray() / (1.0 - std::pow(m_beta, t->asScalar()));
       return result;
     }
 
-    std::pair<variable_t, variable_t> gradientsImpl(variable_t gradient, variable_t, variable_t) const override
+    variables_t gradients_impl(variable_t, variables_t) const
     {
       assert(false && "Unimplemented");
     }
@@ -81,23 +88,25 @@ namespace kann
     double m_beta;
   };
 
-  class AdamOperation : public BinaryOperation
+  class AdamOperation : public OperationImpl<AdamOperation, 2>
   {
   public:
     constexpr AdamOperation(double alpha, double epsilon)
       : m_alpha(alpha), m_epsilon(epsilon) {}
 
   public:
-    Tensor processImpl(const Tensor& m_hat, const Tensor& v_hat) const override
+    Tensor process_impl(inputs_t inputs) const
     {
-      const double factor = m_alpha / (v_hat.asVector().norm() + m_epsilon);
+      const auto& [m_hat, v_hat] = inputs;
 
-      Tensor result(m_hat.size());
-      result.asArray() = factor * m_hat.asArray();
+      const double factor = m_alpha / (v_hat->asVector().norm() + m_epsilon);
+
+      Tensor result(m_hat->size());
+      result.asArray() = factor * m_hat->asArray();
       return result;
     }
 
-    std::pair<variable_t, variable_t> gradientsImpl(variable_t gradient, variable_t, variable_t) const override
+    variables_t gradients_impl(variable_t, variables_t) const
     {
       assert(false && "Unimplemented");
     }
