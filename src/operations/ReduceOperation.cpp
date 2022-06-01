@@ -1,36 +1,28 @@
 #include <libkann/operations/ReduceOperation.hpp>
 
 #include <libkann/Variable.hpp>
+#include <range/v3/all.hpp>
 
 namespace kann
 {
-  ReduceOperation::ReduceOperation(size_t inputCount)
-    : m_inputCount(inputCount)
+  ReduceOperation::ReduceOperation(size_t input_count)
+    : m_input_count(input_count)
   {
-    assert(m_inputCount != 0);
+    assert(m_input_count != 0);
   }
 
   tensor_t ReduceOperation::process(std::vector<const Tensor*> inputs) const
   {
-    assert(inputs.size() == m_inputCount);
+    Tensor result(inputs.front()->size());
+    result.asArray() = inputs.front()->asArray();
+    for(const Tensor* input : inputs | ranges::views::drop(1))
+      result.asArray() += input->asArray();
 
-    auto result = std::make_shared<Tensor>(inputs.front()->size());
-    switch(m_inputCount)
-    {
-    case 1:
-      result->asArray() = inputs.front()->asArray();
-      break;
-    default:
-      result->asArray() = inputs[0]->asArray() + inputs[1]->asArray();
-      for(size_t i=2; i<inputs.size(); ++i)
-        result->asArray() += inputs[i]->asArray();
-      break;
-    }
-    return result;
+    return std::make_shared<const Tensor>(std::move(result));
   }
 
   std::vector<variable_t> ReduceOperation::gradients(variable_t gradient, std::vector<variable_t> /*inputs*/) const
   {
-    return std::vector(m_inputCount, gradient);
+    return ranges::views::repeat_n(gradient, m_input_count) | ranges::to_vector;
   }
 }
