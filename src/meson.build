@@ -4,7 +4,7 @@ libkann_sources = [
   'Differentiate.cpp',
   'operations/IdentityOperation.cpp',
   'operations/ReduceOperation.cpp',
-  'operations/MatrixMultiplyOperation.cpp',
+  'operations/MatrixProductOperation.cpp',
   'operations/MultiplyOperation.cpp',
   'operations/SubtractOperation.cpp',
   'operations/ConvolutionOperation.cpp',

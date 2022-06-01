@@ -4,7 +4,7 @@
 
 namespace kann
 {
-  class MatrixMultiplyOperation : public BinaryOperation
+  class MatrixProductOperation : public BinaryOperation
   {
   public:
     /* Mutiply a mxk matrix with a kxn matrix.
@@ -13,7 +13,7 @@ namespace kann
      *        should be transposed
      * @param transpose 1 whether a second matrix(matrix with dimension kxn)
      *        should be transposed */
-    MatrixMultiplyOperation(size_t m, size_t n, size_t k, bool transpose1, bool transpose2);
+    MatrixProductOperation(size_t m, size_t n, size_t k, bool transpose1, bool transpose2);
 
   public:
     Tensor processImpl(const Tensor& a, const Tensor& b) const override;

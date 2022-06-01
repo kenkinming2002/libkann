@@ -3,7 +3,7 @@
 #include <libkann/Layer.hpp>
 #include <libkann/Variable.hpp>
 
-#include <libkann/operations/MatrixMultiplyOperation.hpp>
+#include <libkann/operations/MatrixProductOperation.hpp>
 #include <libkann/operations/ReduceOperation.hpp>
 
 namespace kann
@@ -56,7 +56,7 @@ namespace kann
     auto bias   = input.parameters[1];
 
     // TODO: Fuse them into a single operation
-    auto product = Variable::apply(MatrixMultiplyOperation(m_output_size, 1, m_input_size, false, false), {weight, input.variable});
+    auto product = Variable::apply(MatrixProductOperation(m_output_size, 1, m_input_size, false, false), {weight, input.variable});
     output.variable = Variable::apply(ReduceOperation(2), {product, bias});
 
     return output;
