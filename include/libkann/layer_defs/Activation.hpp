@@ -1,19 +1,26 @@
 #pragma once
 
 #include <libkann/LayerDef.hpp>
-#include <libkann/ActivationFunction.hpp>
 
 namespace kann
 {
   class ActivationLayerDef : public LayerDef
   {
   public:
+    enum class Type
+    {
+      IDENTITY,
+      SIGMOID,
+      TANH
+    };
+
+  public:
     static YAML::Node save(layer_def_t layer_def);
     static layer_def_t load(YAML::Node node);
 
   public:
     ActivationLayerDef() = default;
-    ActivationLayerDef(size_t size, ActivationFunction activationFunction);
+    ActivationLayerDef(size_t size, Type type);
 
   public:
     std::shared_ptr<Layer> create(std::default_random_engine& prng) const override;
@@ -27,6 +34,6 @@ namespace kann
 
   private:
     size_t m_size;
-    ActivationFunction m_activationFunction;
+    Type m_type;
   };
 }

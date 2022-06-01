@@ -7,29 +7,29 @@
 
 namespace kann
 {
-  static inline std::string function_to_string(ActivationFunction function)
+  static inline std::string to_string(ActivationLayerDef::Type type)
   {
-    switch(function.type)
+    switch(type)
     {
-    case ActivationFunction::Type::IDENTITY:
+    case ActivationLayerDef::Type::IDENTITY:
       return "identity";
-    case ActivationFunction::Type::SIGMOID:
+    case ActivationLayerDef::Type::SIGMOID:
       return "sigmoid";
-    case ActivationFunction::Type::TANH:
+    case ActivationLayerDef::Type::TANH:
       return "tanh";
     default:
       throw std::runtime_error("unknown activation function type");
     }
   }
 
-  static inline ActivationFunction string_to_function(std::string name)
+  static inline ActivationLayerDef::Type from_string(std::string name)
   {
     if(name == "identity")
-      return ActivationFunction(ActivationFunction::Type::IDENTITY);
+      return ActivationLayerDef::Type::IDENTITY;
     else if(name == "sigmoid")
-      return ActivationFunction(ActivationFunction::Type::SIGMOID);
+      return ActivationLayerDef::Type::SIGMOID;
     else if(name == "tanh")
-      return ActivationFunction(ActivationFunction::Type::TANH);
+      return ActivationLayerDef::Type::TANH;
     else
       throw std::runtime_error("Unknown activation function type - " + name);
   }
@@ -38,20 +38,20 @@ namespace kann
   {
     YAML::Node node;
     node["size"]     = std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_size;
-    node["function"] = function_to_string(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_activationFunction);
+    node["function"] = to_string(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_type);
     return node;
   }
 
   layer_def_t ActivationLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<ActivationLayerDef>();
-    layer_def->m_size               = node["size"].as<size_t>();
-    layer_def->m_activationFunction = string_to_function(node["function"].as<std::string>());
+    layer_def->m_size = node["size"].as<size_t>();
+    layer_def->m_type = from_string(node["function"].as<std::string>());
     return layer_def;
   }
 
-  ActivationLayerDef::ActivationLayerDef(size_t size, ActivationFunction activationFunction)
-    : m_size(size), m_activationFunction(activationFunction) {}
+  ActivationLayerDef::ActivationLayerDef(size_t size, Type type)
+    : m_size(size), m_type(type) {}
 
   std::shared_ptr<Layer> ActivationLayerDef::create(std::default_random_engine& prng) const
   {
@@ -73,31 +73,56 @@ namespace kann
   class ActivationOperation : public CWiseOperation<ActivationOperation, 1>
   {
   public:
-    constexpr ActivationOperation(ActivationFunction activationFunction)
-      : m_activationFunction(activationFunction) {}
+    constexpr ActivationOperation(ActivationLayerDef::Type type) : m_type(type) {}
 
   public:
     double forward(cwise_inputs_t inputs) const
     {
       const auto& [input] = inputs;
-      return m_activationFunction.normal(input);
+      switch(m_type)
+      {
+      case ActivationLayerDef::Type::IDENTITY:
+        return input;
+      case ActivationLayerDef::Type::SIGMOID:
+        return 1.0 /  (1.0 + std::exp(-input));
+      case ActivationLayerDef::Type::TANH:
+        return std::tanh(input);
+      default:
+        assert(false && "Unreachable");
+      }
     }
 
     template<size_t index>
     double backward(double gradient, cwise_inputs_t inputs) const requires(index == 0)
     {
       const auto& [input] = inputs;
-      return gradient * m_activationFunction.derivative(input);
+      switch(m_type)
+      {
+        case ActivationLayerDef::Type::IDENTITY:
+          return gradient;
+        case ActivationLayerDef::Type::SIGMOID:
+        {
+          double tmp = std::exp(-input);
+          return gradient * tmp / ((1+tmp) * (1+tmp));
+        }
+        case ActivationLayerDef::Type::TANH:
+        {
+          double tmp = std::cosh(input);
+          return gradient / (tmp * tmp);
+        }
+        default:
+          assert(false && "Unreachable");
+      }
     }
 
   private:
-    ActivationFunction m_activationFunction;
+    ActivationLayerDef::Type m_type;
   };
 
   LayerDef::ProcessOutput ActivationLayerDef::process(ProcessInput input) const
   {
     ProcessOutput output;
-    output.variable = Variable::apply(ActivationOperation(m_activationFunction), {input.variable});
+    output.variable = Variable::apply(ActivationOperation(m_type), {input.variable});
     output.states = input.states;
     return output;
   }

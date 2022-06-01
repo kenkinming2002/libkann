@@ -19,7 +19,6 @@ libkann_sources = [
   # Layers
   'Layer.cpp',
   'LayerDef.cpp',
-  'ActivationFunction.cpp',
   'layer_defs/Sequential.cpp',
   'layer_defs/Recurrent.cpp',
   'layer_defs/Identity.cpp',
