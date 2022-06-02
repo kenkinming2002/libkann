@@ -15,6 +15,7 @@
 #include <libkann/operations/ScaleOperation.hpp>
 #include <libkann/operations/SubtractOperation.hpp>
 
+#include <fstream>
 #include <map>
 
 #include <range/v3/all.hpp>
@@ -87,7 +88,13 @@ namespace kann
         return it->second;
 
       if(auto [it, success] = graphs.emplace(option, create_graph(option)); success)
+      {
+        std::ofstream f;
+        f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+        f.open("output/optimize.dot");
+        it->second->write_graphviz(f);
         return it->second;
+      }
 
       assert(false && "Unreachable");
     }
@@ -110,6 +117,13 @@ namespace kann
     BatchOptimizeOutput output;
 
     auto graph = get_graph(input);
+
+    {
+      std::ofstream f;
+      f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+      f.open("output/optimize.dot");
+      graph->write_graphviz(f);
+    }
 
     auto inputs                 = input.inputs;
     auto expected_outputs       = input.expected_outputs;

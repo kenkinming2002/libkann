@@ -10,6 +10,7 @@
 #include <libkann/Graph.hpp>
 #include <libkann/Executor.hpp>
 
+#include <fstream>
 #include <map>
 
 #include <range/v3/all.hpp>
@@ -61,7 +62,13 @@ namespace kann
         return it->second;
 
       if(auto [it, success] = graphs.emplace(option, create_graph(option)); success)
+      {
+        std::ofstream f;
+        f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+        f.open("output/predict.dot");
+        it->second->write_graphviz(f);
         return it->second;
+      }
 
       assert(false && "Unreachable");
     }

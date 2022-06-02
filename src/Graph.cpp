@@ -1,11 +1,17 @@
 #include <libkann/Graph.hpp>
 
 #include <libkann/Variable.hpp>
+#include <libkann/Operation.hpp>
 
 #include <range/v3/all.hpp>
 
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
 #include <set>
 #include <unordered_map>
+
+#include <cxxabi.h>
 
 namespace kann
 {
@@ -85,5 +91,36 @@ namespace kann
       topological_ordering_impl(m_nodes, ordering, visited, index);
 
     return ordering;
+  }
+
+  static inline std::string demangle(const char* name)
+  {
+    int status;
+    char* demangled_name = abi::__cxa_demangle(name, 0, 0, &status);
+    if(!demangled_name)
+      return name;
+
+    std::string tmp = demangled_name;
+    free(demangled_name);
+    return tmp;
+  }
+
+  void Graph::write_graphviz(std::ostream& os) const
+  {
+    fmt::print(os, "digraph {{\n");
+
+    // Vertices
+    for(const auto& [i, node] : ranges::views::enumerate(m_nodes))
+    {
+      const char* name = node.op ? typeid(*node.op).name() : "none";
+      fmt::print(os, "  {} [label=\"{}\"];\n", i, demangle(name));
+    }
+
+    // Edges
+    for(const auto& [input_index, node] : ranges::views::enumerate(m_nodes))
+      for(const auto& [i, output_index] : ranges::views::enumerate(node.output_indices))
+          fmt::print(os, "  {}->{} [label=\"{}\"];\n", input_index, output_index, i);
+
+    fmt::print(os, "}}\n");
   }
 }

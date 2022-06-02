@@ -42,7 +42,9 @@ libkann_sources = [
   'algorithms/Optimize.cpp',
 ]
 
+fmt_dep = dependency('fmt')
 range_v3_dep = dependency('range-v3')
+
 eigen_dep = dependency('eigen3')
 threads_dep = dependency('threads')
 yaml_cpp_dep = dependency('yaml-cpp')
@@ -52,7 +54,7 @@ sfml_dep = dependency('sfml-graphics')
 
 libkann_lib = library('kann', libkann_sources,
   include_directories : ['../include'],
-  dependencies        : [range_v3_dep, eigen_dep, sfml_dep, threads_dep, yaml_cpp_dep]
+  dependencies        : [fmt_dep, range_v3_dep, eigen_dep, sfml_dep, threads_dep, yaml_cpp_dep]
 )
 
 libkann_dep = declare_dependency(

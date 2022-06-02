@@ -3,6 +3,7 @@
 #include <coroutine>
 #include <optional>
 #include <memory>
+#include <exception>
 
 namespace kann
 {
@@ -83,7 +84,7 @@ namespace kann
 
       void unhandled_exception()
       {
-        throw;
+        std::terminate();
       }
     };
 

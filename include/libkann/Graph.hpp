@@ -36,6 +36,9 @@ namespace kann
   public:
     std::vector<size_t> topological_ordering() const;
 
+  public:
+    void write_graphviz(std::ostream& os) const;
+
   private:
     std::vector<Node> m_nodes;
     std::vector<std::vector<size_t>> m_input_indices;
