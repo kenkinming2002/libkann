@@ -2,7 +2,6 @@ libkann_sources = [
   'Initialize.cpp',
 
   # Operations
-  #'Differentiate.cpp',
   'operations/MatrixProductOperation.cpp',
   'operations/ReduceOperation.cpp',
   'operations/ScaleOperation.cpp',
@@ -38,7 +37,6 @@ libkann_sources = [
   #'optimizers/AdamOptimizer.cpp',
 
   # Actual Machine Learning Training Algorithm
-  #'algorithms/Helpers.cpp',
   'algorithms/Predict.cpp',
   'algorithms/Optimize.cpp',
 ]
