@@ -1,17 +1,17 @@
 #pragma once
 
-#include <libkann/Operation.hpp>
+#include <libkann/operations/CWiseOperation.hpp>
 
 namespace kann
 {
-  class ScaleOperation : public OperationImpl<ScaleOperation, 1>
+  class ScaleOperation : public CWiseOperation<ScaleOperation, 1, 1>
   {
   public:
-    ScaleOperation(double val);
+    ScaleOperation(size_t size, double val);
 
   public:
-    Tensor process_impl(inputs_t inputs) const;
-    variables_t gradients_impl(variable_t gradient, variables_t inputs) const;
+    cwise_outputs_t forward(cwise_inputs_t inputs) const;
+    cwise_inputs_t backward(cwise_inputs_t inputs, cwise_outputs_t output_gradients) const;
 
   private:
     double m_val;

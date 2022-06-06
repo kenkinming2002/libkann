@@ -1,7 +1,7 @@
 #include <libkann/layer_defs/Weight.hpp>
 
 #include <libkann/Layer.hpp>
-#include <libkann/Variable.hpp>
+#include <libkann/Graph.hpp>
 
 #include <libkann/operations/MatrixProductOperation.hpp>
 #include <libkann/operations/ReduceOperation.hpp>
@@ -27,6 +27,16 @@ namespace kann
   WeightLayerDef::WeightLayerDef(size_t input_size, size_t output_size)
     : m_input_size(input_size), m_output_size(output_size) {}
 
+  size_t WeightLayerDef::input_size() const
+  {
+    return m_input_size;
+  }
+
+  size_t WeightLayerDef::output_size() const
+  {
+    return m_output_size;
+  }
+
   std::shared_ptr<Layer> WeightLayerDef::create(std::default_random_engine& prng) const
   {
     auto layer = std::make_shared<Layer>();
@@ -38,37 +48,22 @@ namespace kann
     return layer;
   }
 
-  size_t WeightLayerDef::input_size() const
+  size_t WeightLayerDef::process(Graph& graph, Info& info, size_t input_index) const
   {
-    return m_input_size;
-  }
+    size_t output_index = graph.add_vertex();
+    size_t weight_index = graph.add_vertex();
+    size_t bias_index   = graph.add_vertex();
+    size_t tmp_index    = graph.add_vertex();
 
-  size_t WeightLayerDef::output_size() const
-  {
-    return m_output_size;
-  }
+    operation_t matrix_product_op = std::make_shared<MatrixProductOperation>(m_output_size, 1, m_input_size);
+    operation_t reduce_op         = std::make_shared<ReduceOperation>(m_output_size, 2);
 
-  LayerDef::ProcessOutput WeightLayerDef::process(ProcessInput input) const
-  {
-    ProcessOutput output;
+    graph.add_edge(std::move(matrix_product_op), {weight_index, input_index}, {tmp_index});
+    graph.add_edge(std::move(reduce_op),         {tmp_index, bias_index},     {output_index});
 
-    auto weight = input.parameters[0];
-    auto bias   = input.parameters[1];
+    info.add_parameter(m_input_size * m_output_size, tag, weight_index);
+    info.add_parameter(m_output_size,                tag, bias_index);
 
-    // TODO: Fuse them into a single operation
-    auto product = Variable::apply(MatrixProductOperation(m_output_size, 1, m_input_size, false, false), {weight, input.variable});
-    output.variable = Variable::apply(ReduceOperation(2), {product, bias});
-
-    return output;
-  }
-
-  size_t WeightLayerDef::parameters_count() const
-  {
-    return 2;
-  }
-
-  std::vector<size_t> WeightLayerDef::parameters_sizes() const
-  {
-    return {m_input_size * m_output_size, m_output_size};
+    return output_index;
   }
 }

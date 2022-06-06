@@ -1,7 +1,7 @@
 #include <libkann/layer_defs/Activation.hpp>
 
+#include <libkann/Graph.hpp>
 #include <libkann/Layer.hpp>
-#include <libkann/Variable.hpp>
 
 #include <libkann/operations/CWiseOperation.hpp>
 
@@ -53,13 +53,6 @@ namespace kann
   ActivationLayerDef::ActivationLayerDef(size_t size, Type type)
     : m_size(size), m_type(type) {}
 
-  std::shared_ptr<Layer> ActivationLayerDef::create(std::default_random_engine& prng) const
-  {
-    auto layer = std::make_shared<Layer>();
-    layer->def = shared_from_this();
-    return layer;
-  }
-
   size_t ActivationLayerDef::input_size() const
   {
     return m_size;
@@ -70,60 +63,79 @@ namespace kann
     return m_size;
   }
 
-  class ActivationOperation : public CWiseOperation<ActivationOperation, 1>
+  std::shared_ptr<Layer> ActivationLayerDef::create(std::default_random_engine& prng) const
+  {
+    auto layer = std::make_shared<Layer>();
+    layer->def = shared_from_this();
+    return layer;
+  }
+
+  class ActivationOperation : public CWiseOperation<ActivationOperation, 1, 1>
   {
   public:
-    constexpr ActivationOperation(ActivationLayerDef::Type type) : m_type(type) {}
+    constexpr ActivationOperation(size_t size, ActivationLayerDef::Type type)
+      : CWiseOperation<ActivationOperation, 1, 1>(size), m_type(type) {}
 
   public:
-    double forward(cwise_inputs_t inputs) const
+    cwise_outputs_t forward(cwise_inputs_t inputs) const
     {
       const auto& [input] = inputs;
-      switch(m_type)
+      double output = [&,input=input]()
       {
-      case ActivationLayerDef::Type::IDENTITY:
-        return input;
-      case ActivationLayerDef::Type::SIGMOID:
-        return 1.0 /  (1.0 + std::exp(-input));
-      case ActivationLayerDef::Type::TANH:
-        return std::tanh(input);
-      default:
-        assert(false && "Unreachable");
-      }
-    }
-
-    template<size_t index>
-    double backward(double gradient, cwise_inputs_t inputs) const requires(index == 0)
-    {
-      const auto& [input] = inputs;
-      switch(m_type)
-      {
+        switch(m_type)
+        {
         case ActivationLayerDef::Type::IDENTITY:
-          return gradient;
+          return input;
         case ActivationLayerDef::Type::SIGMOID:
-        {
-          double tmp = std::exp(-input);
-          return gradient * tmp / ((1+tmp) * (1+tmp));
-        }
+          return 1.0 /  (1.0 + std::exp(-input));
         case ActivationLayerDef::Type::TANH:
-        {
-          double tmp = std::cosh(input);
-          return gradient / (tmp * tmp);
-        }
+          return std::tanh(input);
         default:
           assert(false && "Unreachable");
-      }
+        }
+      }();
+
+      return {output};
+    }
+
+    cwise_inputs_t backward(cwise_inputs_t inputs, cwise_outputs_t output_gradients) const
+    {
+      const auto& [input] = inputs;
+      const auto& [output_gradient] = output_gradients;
+
+      double input_gradient = [&,input=input,output_gradient=output_gradient]()
+      {
+        switch(m_type)
+        {
+          case ActivationLayerDef::Type::IDENTITY:
+            return output_gradient;
+          case ActivationLayerDef::Type::SIGMOID:
+          {
+            double tmp = std::exp(-input);
+            return output_gradient * tmp / ((1+tmp) * (1+tmp));
+          }
+          case ActivationLayerDef::Type::TANH:
+          {
+            double tmp = std::cosh(input);
+            return output_gradient / (tmp * tmp);
+          }
+          default:
+            assert(false && "Unreachable");
+        }
+      }();
+
+      return {input_gradient};
     }
 
   private:
     ActivationLayerDef::Type m_type;
   };
 
-  LayerDef::ProcessOutput ActivationLayerDef::process(ProcessInput input) const
+  size_t ActivationLayerDef::process(Graph& graph, Info& info, size_t input_index) const
   {
-    ProcessOutput output;
-    output.variable = Variable::apply(ActivationOperation(m_type), {input.variable});
-    output.states = input.states;
-    return output;
+    size_t output_index = graph.add_vertex();
+    operation_t op = std::make_shared<ActivationOperation>(m_size, m_type);
+    graph.add_edge(std::move(op), {input_index}, {output_index});
+    return output_index;
   }
 }

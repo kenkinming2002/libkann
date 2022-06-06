@@ -14,13 +14,11 @@ namespace kann
     SequentialLayerDef() = default;
 
   public:
-    std::shared_ptr<Layer> create(std::default_random_engine& prng) const override;
-
-  public:
     size_t input_size() const override;
     size_t output_size() const override;
 
   public:
-    ProcessOutput process(ProcessInput input) const override;
+    std::shared_ptr<Layer> create(std::default_random_engine& prng) const override;
+    size_t process(Graph& graph, Info& info, size_t input_index) const override;
   };
 }

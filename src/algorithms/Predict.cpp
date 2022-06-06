@@ -1,118 +1,44 @@
 #include <libkann/algorithms/Predict.hpp>
 
-#include <libkann/algorithms/Helpers.hpp>
-
-#include <libkann/Variable.hpp>
-
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
-
 #include <libkann/Graph.hpp>
 #include <libkann/Executor.hpp>
 
-#include <fstream>
-#include <map>
-
-#include <range/v3/all.hpp>
-
 namespace kann
 {
-  namespace
+  std::vector<tensor_t> predict(Layer& layer, Executor& executor, const std::vector<tensor_t>& inputs)
   {
-    struct Option
-    {
-      layer_def_t def;
-      size_t batch_size;
+    kann::Graph graph;
 
-      auto operator<=>(const Option& other) const = default;
+    // Forward pass
+    size_t input_index = graph.add_vertex();
+    kann::LayerDef::Info info;
+    size_t output_index = layer.def->process(graph, info, input_index);
+
+    // Executor
+    Executor::Target target{
+      .graph = std::move(graph),
+      .input_indices  = {{input_index},  std::move(info.parameter_indices), std::move(info.input_state_indices)},
+      .output_indices = {{output_index}, std::move(info.output_state_indices)}
     };
 
-    static inline graph_t create_graph(const Option& option)
+    // Compute
+    std::vector<tensor_t> parameters = layer.get_parameters_all();
+    std::vector<tensor_t> states     = layer.get_states_all();
+
+    std::vector<tensor_t> outputs;
+    outputs.reserve(inputs.size());
+    for(const tensor_t& input : inputs)
     {
-      auto inputs           = make_input_variables(option.batch_size);
-      auto input_parameters = make_input_variables(option.def->parameters_all_count());
-      auto input_states     = make_input_variables(option.def->states_all_count());
-
-      auto predict_variables_input = PredictVariablesInput{
-        .variables  = inputs,
-        .parameters = input_parameters,
-        .states     = input_states
-      };
-      auto predict_variables_output = make_predict_variables(*option.def, predict_variables_input);
-
-      auto outputs       = predict_variables_output.variables;
-      auto output_states = predict_variables_output.states;
-
-      return std::make_shared<const Graph>(
-          std::vector{inputs, input_parameters, input_states},
-          std::vector{outputs, output_states}
-      );
+      auto executor_inputs = {{input}, parameters, std::move(states)};
+      auto executor_outputs = executor.run(target, std::move(executor_inputs));
+      outputs.push_back(std::move(executor_outputs[0].front()));
+      states = std::move(executor_outputs[1]);
     }
 
-    static inline graph_t get_graph(const BatchPredictInput& input)
-    {
-      assert(input.layer.def);
-      Option option = {
-        .def = input.layer.def,
-        .batch_size = input.inputs.size()
-      };
+    layer.set_states_all(std::move(states));
 
-      static std::map<Option, graph_t> graphs;
-      if(auto it = graphs.find(option); it != graphs.end())
-        return it->second;
-
-      if(auto [it, success] = graphs.emplace(option, create_graph(option)); success)
-      {
-        std::ofstream f;
-        f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-        f.open("output/predict.dot");
-        it->second->write_graphviz(f);
-        return it->second;
-      }
-
-      assert(false && "Unreachable");
-    }
-  }
-
-  BatchPredictOutput batch_predict(const BatchPredictInput& input, Executor& executor)
-  {
-    BatchPredictOutput output;
-
-    auto graph = get_graph(input);
-
-    auto inputs       = input.inputs;
-    auto parameters   = input.layer.get_parameters_all();
-    auto input_states = input.layer.get_states_all();
-
-    auto executor_input  = std::vector{std::move(inputs), std::move(parameters), std::move(input_states)};
-    auto executor_output = executor.process(graph, std::move(executor_input));
-
-    auto outputs       = std::move(executor_output[0]);
-    auto output_states = std::move(executor_output[1]);
-
-    input.layer.set_states_all(std::move(output_states));
-    output.outputs = std::move(outputs);
-
-    return output;
-  }
-
-  Task<void, PredictInfo> predict(Layer& layer,
-      const std::vector<tensor_t>& inputs,
-      size_t batch_size, Executor& executor)
-  {
-    const auto& batches = inputs | ranges::views::chunk(batch_size) | ranges::views::transform([](auto&& r) { return std::forward<decltype(r)>(r) | ranges::to_vector; });
-    for(const auto& inputs_batch : batches)
-    {
-      kann::BatchPredictInput batch_predict_input = { .layer = layer, .inputs = inputs_batch };
-      kann::BatchPredictOutput batch_predict_output = kann::batch_predict(batch_predict_input, executor);
-      for(const auto& [input, output] : ranges::views::zip(inputs_batch, batch_predict_output.outputs))
-      {
-        PredictInfo info = {
-          .input           = *input,
-          .output          = *output
-        };
-        co_yield info;
-      }
-    }
+    return outputs;
   }
 }

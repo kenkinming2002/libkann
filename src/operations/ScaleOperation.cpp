@@ -1,23 +1,19 @@
 #include <libkann/operations/ScaleOperation.hpp>
 
-#include <libkann/Variable.hpp>
-
 namespace kann
 {
-  ScaleOperation::ScaleOperation(double val) : m_val(val) {}
+  ScaleOperation::ScaleOperation(size_t size, double val)
+    : CWiseOperation<ScaleOperation, 1, 1>(size), m_val(val) {}
 
-  Tensor ScaleOperation::process_impl(inputs_t inputs) const
+  auto ScaleOperation::forward(cwise_inputs_t inputs) const -> cwise_outputs_t
   {
-    const auto& [input] = inputs;
-
-    Tensor result(input->size());
-    result.asArray() = input->asArray() * m_val;
-    return result;
+    auto [input] = inputs;
+    return {input * m_val};
   }
 
-  auto ScaleOperation::gradients_impl(variable_t gradient, variables_t) const -> variables_t
+  auto ScaleOperation::backward(cwise_inputs_t inputs, cwise_outputs_t output_gradients) const -> cwise_inputs_t
   {
-    assert(m_val != 0.0);
-    return {std::make_shared<const Variable>(std::vector{gradient}, std::make_shared<ScaleOperation>(m_val))};
+    auto [gradient] = output_gradients;
+    return {gradient * m_val};
   }
 }

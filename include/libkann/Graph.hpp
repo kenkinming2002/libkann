@@ -2,7 +2,12 @@
 
 #include <libkann/Types.hpp>
 
+#include <unordered_map>
 #include <vector>
+#include <optional>
+#include <iosfwd>
+
+#include <assert.h>
 
 namespace kann
 {
@@ -10,38 +15,44 @@ namespace kann
   class Graph
   {
   public:
-    Graph(std::vector<std::vector<variable_t>> inputs,
-          std::vector<std::vector<variable_t>> outputs);
-
-  public:
-    struct Node
+    struct Vertex
     {
-      // TODO: Rename to parent and child indices
-      std::vector<size_t> input_indices;
-      std::vector<size_t> output_indices; // Do I need it
+      std::optional<size_t> in_edge_index;
+      std::vector<size_t> out_edge_indices;
+      std::optional<size_t> gradient_index;
+    };
 
+    struct Edge
+    {
       operation_t op;
+      std::vector<size_t> input_indices;
+      std::vector<size_t> output_indices;
     };
 
   public:
-    size_t size() const { return m_nodes.size(); }
+    size_t edges_count()    const { return m_edges.size(); }
+    size_t vertices_count() const { return m_vertices.size(); }
 
   public:
-    const auto& input_indices() const { return m_input_indices; }
-    const auto& output_indices() const { return m_output_indices; }
+    const Edge& edge(size_t index)     const { assert(index < edges_count());    return m_edges[index]; }
+    const Vertex& vertex(size_t index) const { assert(index < vertices_count()); return m_vertices[index]; }
 
   public:
-    const auto& nodes() const { return m_nodes; }
+    size_t add_vertex();
+    void add_edge(operation_t op, std::vector<size_t> input_indices, std::vector<size_t> output_indices);
 
   public:
-    std::vector<size_t> topological_ordering() const;
-
-  public:
-    void write_graphviz(std::ostream& os) const;
+    void set_gradient_index(size_t index, size_t gradient_index);
+    size_t get_gradient_index(size_t index);
 
   private:
-    std::vector<Node> m_nodes;
-    std::vector<std::vector<size_t>> m_input_indices;
-    std::vector<std::vector<size_t>> m_output_indices;
+    void differentiate(size_t edge_index);
+
+  public:
+    void write_graphviz(std::ostream& os);
+
+  private:
+    std::vector<Vertex> m_vertices;
+    std::vector<Edge> m_edges;
   };
 }

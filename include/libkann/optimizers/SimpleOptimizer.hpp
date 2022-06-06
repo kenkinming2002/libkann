@@ -11,7 +11,7 @@ namespace kann
     SimpleOptimizer(double learningRate);
 
   public:
-    ProcessOutput process(ProcessInput input) const override;
+    size_t process(Graph& graph, Info& info, size_t size, size_t index, size_t gradient_index) const override;
 
   private:
     double m_learningRate;

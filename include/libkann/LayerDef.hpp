@@ -7,7 +7,6 @@
 
 #include <typeinfo>
 
-#include <memory>
 #include <vector>
 #include <random>
 
@@ -42,45 +41,37 @@ namespace kann
     virtual ~LayerDef() = default;
 
   public:
-    virtual std::shared_ptr<Layer> create(std::default_random_engine& prng) const = 0;
-
-  public:
     virtual size_t input_size() const = 0;
     virtual size_t output_size() const = 0;
 
   public:
-    std::vector<Tag> parameter_tags() const;
-
-  public:
-    size_t parameters_all_count() const;
-    size_t states_all_count() const;
-
-  public:
-    std::vector<size_t> parameters_all_sizes() const;
-    std::vector<size_t> states_all_sizes() const;
-
-  public:
-    struct ProcessInput
+    struct Info
     {
-      variable_t variable;
-      std::vector<variable_t> parameters;
-      std::vector<variable_t> states;
+      std::vector<size_t> parameter_sizes;
+      std::vector<Tag>    parameter_tags;
+      std::vector<size_t> parameter_indices;
+
+      std::vector<size_t> state_sizes;
+      std::vector<size_t> input_state_indices;
+      std::vector<size_t> output_state_indices;
+
+      void add_parameter(size_t size, Tag tag, size_t index)
+      {
+        parameter_sizes.push_back(size);
+        parameter_tags.push_back(tag);
+        parameter_indices.push_back(index);
+      }
+
+      void add_state(size_t size, size_t input_index, size_t output_index)
+      {
+        state_sizes.push_back(size);
+        input_state_indices.push_back(input_index);
+        output_state_indices.push_back(output_index);
+      }
     };
 
-    struct ProcessOutput
-    {
-      variable_t variable;
-      std::vector<variable_t> states;
-    };
-
-    virtual ProcessOutput process(ProcessInput input) const = 0;
-
-  protected:
-    virtual size_t parameters_count() const { return 0; }
-    virtual size_t states_count()     const { return 0; }
-
-  protected:
-    virtual std::vector<size_t> parameters_sizes() const { return {}; }
-    virtual std::vector<size_t> states_sizes()     const { return {}; }
+  public:
+    virtual std::shared_ptr<Layer> create(std::default_random_engine& prng) const = 0;
+    virtual size_t process(Graph& graph, Info& info, size_t input_index) const = 0;
   };
 }

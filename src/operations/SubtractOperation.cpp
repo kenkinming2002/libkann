@@ -1,23 +1,20 @@
 #include <libkann/operations/SubtractOperation.hpp>
 
-#include <libkann/operations/ScaleOperation.hpp>
-
-#include <libkann/Variable.hpp>
-
 namespace kann
 {
-  Tensor SubtractOperation::process_impl(inputs_t inputs) const
+  SubtractOperation::SubtractOperation(size_t size)
+    : CWiseOperation<SubtractOperation, 2, 1>(size) {}
+
+  auto SubtractOperation::forward(cwise_inputs_t inputs) const -> cwise_outputs_t
   {
-    const auto& [a, b] = inputs;
-    assert(a->size() == b->size());
-    Tensor result(a->size());
-    result.asArray() = a->asArray() - b->asArray();
-    return result;
+    auto [a, b] = inputs;
+    return {a - b};
   }
 
-  auto SubtractOperation::gradients_impl(variable_t gradient, variables_t) const -> variables_t
+  auto SubtractOperation::backward(cwise_inputs_t inputs, cwise_outputs_t output_gradients) const -> cwise_inputs_t
   {
-    return {gradient, std::make_shared<const Variable>(std::vector{gradient}, std::make_shared<ScaleOperation>(-1.0))};
+    auto [gradient] = output_gradients;
+    return {gradient, -gradient};
   }
 }
 

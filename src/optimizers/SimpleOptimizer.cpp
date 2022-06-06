@@ -1,6 +1,6 @@
 #include <libkann/optimizers/SimpleOptimizer.hpp>
 
-#include <libkann/Variable.hpp>
+#include <libkann/Graph.hpp>
 
 #include <libkann/operations/ScaleOperation.hpp>
 #include <libkann/operations/SubtractOperation.hpp>
@@ -10,20 +10,16 @@ namespace kann
   SimpleOptimizer::SimpleOptimizer(double learningRate)
     : m_learningRate(learningRate) {}
 
-  Optimizer::ProcessOutput SimpleOptimizer::process(ProcessInput input) const
+  size_t SimpleOptimizer::process(Graph& graph, Info& info, size_t size, size_t index, size_t gradient_index) const
   {
-    ProcessOutput output;
+    size_t new_index = graph.add_vertex();
+    size_t tmp_index = graph.add_vertex();
 
-    auto scaledGradient = std::make_shared<const Variable>(
-      std::vector{input.gradient},
-      std::make_shared<ScaleOperation>(m_learningRate)
-    );
+    operation_t scale_op    = std::make_shared<ScaleOperation>(size, m_learningRate);
+    operation_t subtract_op = std::make_shared<SubtractOperation>(size);
+    graph.add_edge(scale_op, {gradient_index}, {tmp_index});
+    graph.add_edge(subtract_op, {index, tmp_index}, {new_index});
 
-    output.parameter = std::make_shared<const Variable>(
-      std::vector{input.parameter, std::move(scaledGradient)},
-      std::make_shared<SubtractOperation>()
-    );
-
-    return output;
+    return new_index;
   }
 }

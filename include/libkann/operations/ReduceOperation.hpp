@@ -7,13 +7,14 @@ namespace kann
   class ReduceOperation : public Operation
   {
   public:
-    ReduceOperation(size_t input_count);
+    ReduceOperation(size_t size, size_t count);
 
   public:
-    tensor_t process(std::vector<const Tensor*> inputs) const override;
-    std::vector<variable_t> gradients(variable_t gradient, std::vector<variable_t> inputs) const override;
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override;
+    operation_t differentiate() const override;
 
   private:
-    size_t m_input_count;
+    size_t m_size;
+    size_t m_count;
   };
 }

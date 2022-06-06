@@ -1,58 +1,62 @@
 #include <libkann/operations/MatrixProductOperation.hpp>
 
-#include <libkann/Variable.hpp>
-
 namespace kann
 {
-  MatrixProductOperation::MatrixProductOperation(size_t m, size_t n, size_t k, bool transpose1, bool transpose2)
-    : m_m(m), m_n(n), m_k(k), m_transpose1(transpose1), m_transpose2(transpose2) {}
+  MatrixProductOperation::MatrixProductOperation(size_t m, size_t n, size_t k)
+    : m_m(m), m_n(n), m_k(k) {}
 
-  Tensor MatrixProductOperation::process_impl(inputs_t inputs) const
+  auto MatrixProductOperation::process_impl(inputs_t inputs) const -> outputs_t
   {
+    // a: m_m * m_k
+    // b: m_k * m_n
     const auto& [a, b] = inputs;
 
-    Tensor result(m_m * m_n);
+    Tensor output(m_m * m_n);
     if(m_k == 1)
-    {
-      // a is a mx1 matrix, b is a 1xn matrix
-      result.asMatrix(m_m,m_n).noalias() = a->asVector() * b->asRowVector();
-    }
+      output.asMatrix(m_m,m_n).noalias() = a->asVector() * b->asRowVector();
     else
-    {
-      if(m_transpose1)
-      {
-        if(m_transpose2)
-          result.asMatrix(m_m,m_n).noalias() = a->asMatrix(m_k, m_m).transpose() * b->asMatrix(m_n, m_k).transpose();
-        else
-          result.asMatrix(m_m,m_n).noalias() = a->asMatrix(m_k, m_m).transpose() * b->asMatrix(m_k, m_n);
-      }
-      else
-      {
-        if(m_transpose2)
-          result.asMatrix(m_m,m_n).noalias() = a->asMatrix(m_m, m_k) * b->asMatrix(m_n, m_k).transpose();
-        else
-          result.asMatrix(m_m,m_n).noalias() = a->asMatrix(m_m, m_k) * b->asMatrix(m_k, m_n);
-      }
-    }
+      output.asMatrix(m_m,m_n).noalias() = a->asMatrix(m_m, m_k) * b->asMatrix(m_k, m_n);
 
-    return result;
+    return { std::move(output) };
   }
 
-  auto MatrixProductOperation::gradients_impl(variable_t gradient, variables_t inputs) const -> variables_t
+  class MatrixProductGradientOperation : public OperationImpl<MatrixProductGradientOperation, 3, 2>
   {
-    const auto& [a, b] = inputs;
-    if(m_transpose1 || m_transpose2)
-      throw std::runtime_error("Not Implemented");
+  public:
+    MatrixProductGradientOperation(size_t m, size_t n, size_t k)
+    : m_m(m), m_n(n), m_k(k) {}
 
-    /* Note:
-     *  variable gradient refers to a mxn matrix
-     *  variable a refers to a mxk matrix
-     *  variable b refers to a kxn matrix
-     */
-    return {
-      std::make_shared<const Variable>(std::vector{gradient, b}, std::make_shared<MatrixProductOperation>(m_m, m_k, m_n, false, true)),
-      std::make_shared<const Variable>(std::vector{a, gradient}, std::make_shared<MatrixProductOperation>(m_k, m_n, m_m, true, false))
-    };
+  public:
+    outputs_t process_impl(inputs_t inputs) const
+    {
+      // a: m_m * m_k
+      // b: m_k * m_n
+      // output_gradient : m_m * m_n
+      const auto& [a, b, output_gradient] = inputs;
+
+      Tensor gradient_a(m_m * m_k);
+      Tensor gradient_b(m_k * m_n);
+
+      if(m_n == 1)
+        gradient_a.asMatrix(m_m, m_k) = output_gradient->asVector() * b->asRowVector();
+      else
+        gradient_a.asMatrix(m_m, m_k) = output_gradient->asMatrix(m_m, m_n) * b->asMatrix(m_k, m_n).transpose();
+
+      if(m_m == 1)
+        gradient_b.asMatrix(m_k, m_n) = a->asVector() * output_gradient->asRowVector();
+      else
+        gradient_b.asMatrix(m_k, m_n) = a->asMatrix(m_m, m_k).transpose() * output_gradient->asMatrix(m_m, m_n);
+
+      return { std::move(gradient_a), std::move(gradient_b) };
+    }
+
+  private:
+    size_t m_m, m_n, m_k;
+  };
+
+  operation_t MatrixProductOperation::differentiate() const
+  {
+    return std::make_shared<MatrixProductGradientOperation>(m_m, m_n, m_k);
   }
 }
 

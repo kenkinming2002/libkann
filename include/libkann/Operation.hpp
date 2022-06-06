@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libkann/Utility.hpp>
 #include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 
@@ -18,39 +19,44 @@ namespace kann
     virtual ~Operation() = default;
 
   public:
-    virtual tensor_t process(std::vector<const Tensor*> inputs) const = 0;
-    virtual std::vector<variable_t> gradients(variable_t gradient, std::vector<variable_t> inputs) const = 0;
+    virtual std::vector<tensor_t> process(std::vector<tensor_t> inputs) const
+    {
+      assert(false && "Unimplemented");
+    }
+
+    /* Given an M to N operation op,
+     * op.differentiate() is an M+N to M operation
+     * where the M+N inputs are:
+     *
+     * 1: M original inputs
+     * 2: N output gradients */
+    virtual operation_t differentiate() const
+    {
+      assert(false && "Unimplemented");
+    }
   };
 
-  template<typename Derived, size_t N>
+  template<typename Derived, size_t M, size_t N>
   class OperationImpl : public Operation
   {
   public:
-    using inputs_t    = std::array<const Tensor*, N>;
-    using variables_t = std::array<variable_t, N>;
+    using inputs_t  = std::array<tensor_t, M>;
+    using outputs_t = std::array<Tensor, N>;
 
   public:
-    Tensor process_impl(inputs_t inputs) const = delete;
-    variables_t gradients_impl(variable_t gradient, variables_t inputs) const = delete;
+    outputs_t process_impl(inputs_t inputs) const = delete;
 
-  public:
+  private:
     const Derived& derived() const { return static_cast<const Derived&>(*this); }
 
   public:
-    tensor_t process(std::vector<const Tensor*> inputs) const override
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override
     {
-      inputs_t _inputs;
-      assert(inputs.size() == N);
-      ranges::move(inputs, _inputs.begin());
-      return std::make_shared<const Tensor>(derived().process_impl(_inputs));
-    }
-
-    std::vector<variable_t> gradients(variable_t gradient, std::vector<variable_t> inputs) const override
-    {
-      variables_t _inputs;
-      assert(inputs.size() == N);
-      ranges::move(inputs, _inputs.begin());
-      return derived().gradients_impl(gradient, _inputs) | ranges::to_vector;
+      inputs_t _inputs = inputs | to_array<tensor_t, M>();
+      outputs_t _outputs = derived().process_impl(std::move(_inputs));
+      return _outputs
+        | ranges::views::transform([](Tensor& v) -> tensor_t { return std::make_shared<const Tensor>(std::move(v)); })
+        | ranges::to_vector;
     }
   };
 }

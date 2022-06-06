@@ -1,31 +1,32 @@
 libkann_sources = [
   'Initialize.cpp',
+
   # Operations
-  'Differentiate.cpp',
-  'operations/IdentityOperation.cpp',
-  'operations/ReduceOperation.cpp',
+  #'Differentiate.cpp',
   'operations/MatrixProductOperation.cpp',
+  'operations/ReduceOperation.cpp',
   'operations/ScaleOperation.cpp',
   'operations/SubtractOperation.cpp',
-  'operations/ConvolutionOperation.cpp',
-  'operations/DeconvolutionOperation.cpp',
+  #'operations/IdentityOperation.cpp',
+  #'operations/ConvolutionOperation.cpp',
+  #'operations/DeconvolutionOperation.cpp',
 
   # Executors
   'Graph.cpp',
   'Executor.cpp',
   'executors/DefaultExecutor.cpp',
-  'executors/ThreadedExecutor.cpp',
+  #'executors/ThreadedExecutor.cpp',
 
   # Layers
   'Layer.cpp',
   'LayerDef.cpp',
   'layer_defs/Sequential.cpp',
-  'layer_defs/Recurrent.cpp',
-  'layer_defs/Identity.cpp',
+  #'layer_defs/Recurrent.cpp',
+  #'layer_defs/Identity.cpp',
   'layer_defs/Activation.cpp',
   'layer_defs/Weight.cpp',
-  'layer_defs/Convolutional.cpp',
-  'layer_defs/Deconvolutional.cpp',
+  #'layer_defs/Convolutional.cpp',
+  #'layer_defs/Deconvolutional.cpp',
 
   # Datasets
   'datasets/MNIST.cpp',
@@ -34,10 +35,10 @@ libkann_sources = [
 
   # Optimizers
   'optimizers/SimpleOptimizer.cpp',
-  'optimizers/AdamOptimizer.cpp',
+  #'optimizers/AdamOptimizer.cpp',
 
   # Actual Machine Learning Training Algorithm
-  'algorithms/Helpers.cpp',
+  #'algorithms/Helpers.cpp',
   'algorithms/Predict.cpp',
   'algorithms/Optimize.cpp',
 ]

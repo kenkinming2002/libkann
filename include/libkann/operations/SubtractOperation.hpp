@@ -1,14 +1,17 @@
 #pragma once
 
-#include <libkann/Operation.hpp>
+#include <libkann/operations/CWiseOperation.hpp>
 
 namespace kann
 {
-  class SubtractOperation : public OperationImpl<SubtractOperation, 2>
+  class SubtractOperation : public CWiseOperation<SubtractOperation, 2, 1>
   {
   public:
-    Tensor process_impl(inputs_t inputs) const;
-    variables_t gradients_impl(variable_t gradient, variables_t inputs) const;
+    SubtractOperation(size_t size);
+
+  public:
+    cwise_outputs_t forward(cwise_inputs_t inputs) const;
+    cwise_inputs_t backward(cwise_inputs_t inputs, cwise_outputs_t output_gradients) const;
   };
 }
 
