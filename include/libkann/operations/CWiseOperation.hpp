@@ -43,11 +43,11 @@ namespace kann
       {
         cwise_inputs_t cwise_inputs;
         for(size_t j=0; j<M; ++j)
-          cwise_inputs[j] = inputs[j]->asArray()(i);
+          cwise_inputs[j] = (*inputs[j])[i];
 
         cwise_outputs_t cwise_outputs = derived().forward(cwise_inputs);
         for(size_t j=0; j<N; ++j)
-          outputs[j].asArray()(i) = cwise_outputs[j];
+          outputs[j][i] = cwise_outputs[j];
       }
 
       return outputs;
@@ -86,15 +86,15 @@ namespace kann
         {
           cwise_inputs_t cwise_inputs;
           for(size_t j=0; j<M; ++j)
-            cwise_inputs[j] = inputs[j]->asArray()(i);
+            cwise_inputs[j] = (*inputs[j])[i];
 
           cwise_outputs_t cwise_output_gradients;
           for(size_t j=0; j<N; ++j)
-            cwise_output_gradients[j] = inputs[M+j]->asArray()(i);
+            cwise_output_gradients[j] = (*inputs[M+j])[i];
 
           cwise_inputs_t cwise_input_gradients = m_derived.backward(cwise_inputs, cwise_output_gradients);
           for(size_t j=0; j<M; ++j)
-            input_gradients[j].asArray()(i) = cwise_input_gradients[j];
+            input_gradients[j][i] = cwise_input_gradients[j];
         }
 
         return input_gradients;
