@@ -18,6 +18,11 @@ namespace kann
     return vertex_index;
   }
 
+  std::vector<size_t> Graph::add_vertices(size_t count)
+  {
+    return ranges::views::generate_n(std::bind(&Graph::add_vertex, this), count) | ranges::to_vector;
+  }
+
   void Graph::add_edge(operation_t op, std::vector<size_t> input_indices, std::vector<size_t> output_indices)
   {
     size_t edge_index = m_edges.size();

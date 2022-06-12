@@ -1,40 +1,35 @@
 type: "sequential"
 layers:
   - type: "convolution"
-    input_width: 28
-    input_height: 28
-    kernel_size: 5
     input_channel_count: 1
     output_channel_count: 3
+    input_width: 28
+    input_height: 28
+    output_width: 32
+    output_height: 32
+    kernel_width: 5
+    kernel_height: 5
 
   - type: "activation"
-    size: 1728
+    size: 3072
     function: "sigmoid"
 
   - type: "convolution"
-    input_width: 24
-    input_height: 24
-    kernel_size: 5
     input_channel_count: 3
     output_channel_count: 3
+    input_width: 32
+    input_height: 32
+    output_width: 28
+    output_height: 28
+    kernel_width: 5
+    kernel_height: 5
 
   - type: "activation"
-    size: 1200
-    function: "sigmoid"
-
-  - type: "convolution"
-    input_width: 20
-    input_height: 20
-    kernel_size: 5
-    input_channel_count: 3
-    output_channel_count: 1
-
-  - type: "activation"
-    size: 256
+    size: 2352
     function: "sigmoid"
 
   - type: "weight"
-    input_size: 256
+    input_size: 2352
     output_size: 10
 
   - type: "activation"

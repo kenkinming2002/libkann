@@ -2,6 +2,8 @@
 
 #include <libkann/LayerDef.hpp>
 
+#include <libkann/Vec.hpp>
+
 namespace kann
 {
   class ConvolutionalLayerDef : public LayerDef
@@ -12,25 +14,18 @@ namespace kann
 
   public:
     ConvolutionalLayerDef() = default;
-    ConvolutionalLayerDef(size_t input_width, size_t input_height, size_t kernel_size, size_t input_channel_count, size_t output_channel_count);
-
-  public:
-    std::shared_ptr<Layer> create(std::default_random_engine& prng) const override;
+    ConvolutionalLayerDef(size_t input_channel_count, size_t output_channel_count, Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
 
   public:
     size_t input_size() const override;
     size_t output_size() const override;
 
   public:
-    ProcessOutput process(ProcessInput input) const override;
-
-  protected:
-    size_t parameters_count() const override;
-    std::vector<size_t> parameters_sizes() const override;
+    std::shared_ptr<Layer> create(std::default_random_engine& prng) const override;
+    size_t process(Graph& graph, Info& info, size_t input_index) const override;
 
   private:
-    size_t m_input_width,  m_input_height;
-    size_t m_kernel_size;
     size_t m_input_channel_count, m_output_channel_count;
+    Vec2 m_input_size, m_output_size, m_kernel_size;
   };
 }

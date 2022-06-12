@@ -1,14 +1,17 @@
 libkann_sources = [
   'Initialize.cpp',
 
+  'Tensor.cpp',
+
   # Operations
   'operations/MatrixProductOperation.cpp',
   'operations/ReduceOperation.cpp',
+  'operations/CopyOperation.cpp',
+  'operations/SplitOperation.cpp',
+  'operations/ConcatOperation.cpp',
   'operations/ScaleOperation.cpp',
   'operations/SubtractOperation.cpp',
-  #'operations/IdentityOperation.cpp',
-  #'operations/ConvolutionOperation.cpp',
-  #'operations/DeconvolutionOperation.cpp',
+  'operations/ConvolutionOperation.cpp',
 
   # Executors
   'Graph.cpp',
@@ -21,11 +24,9 @@ libkann_sources = [
   'LayerDef.cpp',
   'layer_defs/Sequential.cpp',
   #'layer_defs/Recurrent.cpp',
-  #'layer_defs/Identity.cpp',
   'layer_defs/Activation.cpp',
   'layer_defs/Weight.cpp',
-  #'layer_defs/Convolutional.cpp',
-  #'layer_defs/Deconvolutional.cpp',
+  'layer_defs/Convolutional.cpp',
 
   # Datasets
   'datasets/MNIST.cpp',

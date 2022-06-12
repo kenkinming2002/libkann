@@ -1,56 +1,39 @@
 #include <libkann/operations/ConvolutionOperation.hpp>
 
-#include <libkann/operations/DeconvolutionOperation.hpp>
-
-#include <libkann/Variable.hpp>
-
 namespace kann
 {
-  ConvolutionOperation::ConvolutionOperation(size_t inputWidth, size_t inputHeight, size_t kernelSize)
-    : m_inputWidth(inputWidth), m_inputHeight(inputHeight), m_kernelSize(kernelSize)
-  {
-    assert(m_inputWidth  > m_kernelSize);
-    assert(m_inputHeight > m_kernelSize);
-  }
+  CrossCorrelationOperation::CrossCorrelationOperation(Vec2 input_size, Vec2 output_size, Vec2 kernel_size)
+    : m_input_size(input_size), m_output_size(output_size), m_kernel_size(kernel_size) {}
 
-  Tensor ConvolutionOperation::process_impl(std::array<const Tensor*, 2> inputs) const
+  auto CrossCorrelationOperation::process_impl(inputs_t inputs) const -> outputs_t
   {
     const auto& [input, kernel] = inputs;
-
-    const size_t outputWidth  = m_inputWidth - m_kernelSize + 1;
-    const size_t outputHeight = m_inputHeight - m_kernelSize + 1;
-
-    Tensor result(outputWidth * outputHeight);
-    result.asArray().setZero();
-
-    for(size_t i=0; i<outputWidth; ++i)
-      for(size_t j=0; j<outputHeight; ++j)
-      {
-        const auto inputMatrix  = input->asMatrix(m_inputHeight, m_inputWidth);
-        const auto kernelMatrix = kernel->asMatrix(m_kernelSize, m_kernelSize);
-        auto resultMatrix = result.asMatrix(outputHeight, outputWidth);
-
-        const auto inputBlock = inputMatrix.block(i, j, m_kernelSize, m_kernelSize);
-        resultMatrix(i,j) += inputBlock.cwiseProduct(kernelMatrix).sum();
-      }
-
-    return result;
+    Tensor output = Tensor::cross_correlate(*input, *kernel, m_input_size, m_output_size, m_kernel_size);
+    return { std::move(output) };
   }
 
-  auto ConvolutionOperation::gradients_impl(variable_t gradient, variables_t inputs) const -> variables_t
+  class CrossCorrelationGradientOperation : public OperationImpl<CrossCorrelationGradientOperation, 3, 2>
   {
-    const auto& [input, kernel] = inputs;
+  public:
+    CrossCorrelationGradientOperation(Vec2 input_size, Vec2 output_size, Vec2 kernel_size)
+      : m_input_size(input_size), m_output_size(output_size), m_kernel_size(kernel_size) {}
 
-    const size_t outputWidth  = m_inputWidth - m_kernelSize + 1;
-    const size_t outputHeight = m_inputHeight - m_kernelSize + 1;
+  public:
+    outputs_t process_impl(inputs_t inputs) const
+    {
+      const auto& [input, kernel, output_gradient] = inputs;
+      Tensor input_gradient  = Tensor::convolve(*output_gradient, *kernel, m_output_size, m_input_size, m_kernel_size);
+      Tensor kernel_gradient = Tensor::cross_correlate(*input, *output_gradient, m_input_size, m_kernel_size, m_output_size);
+      return { std::move(input_gradient), std::move(kernel_gradient) };
+    }
 
-    // TODO: Support non square input/output, this requires support for
-    //       non-square kernel
-    assert(outputWidth == outputHeight);
-    return {
-      std::make_shared<const Variable>(std::vector{gradient, kernel}, std::make_shared<DeconvolutionOperation>(outputWidth, outputHeight, m_kernelSize)),
-      std::make_shared<const Variable>(std::vector{input, gradient}, std::make_shared<ConvolutionOperation>(m_inputWidth, m_inputHeight, outputWidth))
-    };
+  private:
+    Vec2 m_input_size, m_output_size, m_kernel_size;
+  };
+
+  operation_t CrossCorrelationOperation::differentiate() const
+  {
+    return std::make_shared<CrossCorrelationGradientOperation>(m_input_size, m_output_size, m_kernel_size);
   }
 }
 

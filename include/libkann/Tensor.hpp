@@ -1,8 +1,11 @@
 #pragma once
 
+#include <libkann/Vec.hpp>
+
 #include <Eigen/Eigen>
 
 #include <random>
+#include <span>
 #include <memory>
 
 namespace kann
@@ -91,6 +94,16 @@ namespace kann
       });
     }
 
+  public:
+    static Tensor cross_correlate(const Tensor& input, const Tensor& kernel, Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
+    static Tensor convolve(const Tensor& input, const Tensor& kernel, Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
+
+  public:
+    static Tensor reduce(std::vector<const Tensor*> values);
+
+  public:
+    static Tensor concat(std::vector<const Tensor*> values, size_t size, size_t count);
+    static std::vector<Tensor> split(const Tensor& value, size_t size, size_t count);
 
   // Helpers
   public:

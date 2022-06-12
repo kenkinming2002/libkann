@@ -1,21 +1,22 @@
 #pragma once
 
 #include <libkann/Operation.hpp>
+#include <libkann/Vec.hpp>
 
 namespace kann
 {
-  class ConvolutionOperation : public OperationImpl<ConvolutionOperation, 2>
+  // This should be cross-correlation
+  class CrossCorrelationOperation : public OperationImpl<CrossCorrelationOperation, 2, 1>
   {
   public:
-    ConvolutionOperation(size_t inputWidth, size_t inputHeight, size_t kernelSize);
+    CrossCorrelationOperation(Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
 
   public:
-    Tensor process_impl(inputs_t inputs) const;
-    variables_t gradients_impl(variable_t gradient, variables_t inputs) const;
+    outputs_t process_impl(inputs_t inputs) const;
+    operation_t differentiate() const override;
 
   private:
-    size_t m_inputWidth, m_inputHeight;
-    size_t m_kernelSize;
+    Vec2 m_input_size, m_output_size, m_kernel_size;
   };
 }
 

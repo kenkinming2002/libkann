@@ -39,6 +39,7 @@ namespace kann
 
   public:
     size_t add_vertex();
+    std::vector<size_t> add_vertices(size_t count);
     void add_edge(operation_t op, std::vector<size_t> input_indices, std::vector<size_t> output_indices);
 
   public:

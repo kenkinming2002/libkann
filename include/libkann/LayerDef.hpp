@@ -3,6 +3,7 @@
 #include <libkann/Types.hpp>
 #include <libkann/Tag.hpp>
 
+#include <range/v3/all.hpp>
 #include <yaml-cpp/yaml.h>
 
 #include <typeinfo>
@@ -67,6 +68,18 @@ namespace kann
         state_sizes.push_back(size);
         input_state_indices.push_back(input_index);
         output_state_indices.push_back(output_index);
+      }
+
+      void add_parameters(size_t size, Tag tag, const std::vector<size_t>& indices)
+      {
+        for(size_t index : indices)
+          add_parameter(size, tag, index);
+      }
+
+      void add_states(size_t size, const std::vector<size_t>& input_indices, const std::vector<size_t>& output_indices)
+      {
+        for(const auto& [input_index, output_index] : ranges::views::zip(input_indices, output_indices))
+          add_state(size, input_index, output_index);
       }
     };
 
