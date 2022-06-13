@@ -1,0 +1,48 @@
+#pragma once
+
+#include <libkann/Types.hpp>
+#include <libkann/Tag.hpp>
+#include <libkann/Graph.hpp>
+
+namespace kann
+{
+  struct Context
+  {
+    Graph graph;
+
+    // Input/Output
+    size_t input_index;
+    size_t output_index;
+    size_t expected_output_index;
+
+    // Parameters
+    std::vector<size_t> parameter_sizes;
+    std::vector<Tag>    parameter_tags;
+    std::vector<size_t> parameter_indices;
+
+    std::vector<size_t> parameter_gradient_indices;
+
+    std::vector<size_t> new_parameter_indices;
+
+    // States
+    std::vector<size_t> state_sizes;
+    std::vector<size_t> input_state_indices;
+    std::vector<size_t> output_state_indices;
+
+    std::vector<tensor_t> state_gradient_values;
+    std::vector<size_t> state_gradient_indices;
+
+    // Optimizer states
+    std::vector<tensor_t> optimizer_initial_state_values;
+    std::vector<size_t> optimizer_input_state_indices;
+    std::vector<size_t> optimizer_output_state_indices;
+
+    void forward_pass(Layer& layer);
+
+    // TODO: Embed output size into graph vertex
+    // TODO: Take in a loss function
+    void gradient_pass(size_t output_size);
+    void backward_pass();
+    void training_pass(const Optimizer& optimizer);
+  };
+}

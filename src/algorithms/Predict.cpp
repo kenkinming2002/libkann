@@ -1,28 +1,31 @@
 #include <libkann/algorithms/Predict.hpp>
 
+#include "Context.hpp"
+
 #include <libkann/algorithms/ProgressBar.hpp>
 
 #include <libkann/Layer.hpp>
-#include <libkann/LayerDef.hpp>
-#include <libkann/Graph.hpp>
 #include <libkann/Executor.hpp>
 
 namespace kann
 {
   std::vector<tensor_t> predict(Layer& layer, Executor& executor, const std::vector<tensor_t>& inputs)
   {
-    kann::Graph graph;
-
-    // Forward pass
-    size_t input_index = graph.add_vertex();
-    kann::LayerDef::Info info;
-    size_t output_index = layer.def->process(graph, info, input_index);
+    Context context;
+    context.forward_pass(layer);
 
     // Executor
     Executor::Target target{
-      .graph = std::move(graph),
-      .input_indices  = {{input_index},  std::move(info.parameter_indices), std::move(info.input_state_indices)},
-      .output_indices = {{output_index}, std::move(info.output_state_indices)}
+      .graph = std::move(context.graph),
+      .input_indices  = {
+        {context.input_index},
+        std::move(context.parameter_indices),
+        std::move(context.input_state_indices)
+      },
+      .output_indices = {
+        {context.output_index},
+        std::move(context.output_state_indices)
+      }
     };
 
     // Compute
