@@ -3,6 +3,7 @@
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
 #include <libkann/Graph.hpp>
+#include <libkann/Tensor.hpp>
 #include <libkann/Executor.hpp>
 #include <libkann/Optimizer.hpp>
 
@@ -34,6 +35,17 @@ namespace kann
     graph.add_edge(std::move(scale_op),    {tmp_index}, {output_gradient_index});
     graph.set_gradient_index(output_index, output_gradient_index);
 
+    // Have zero gradient for state output
+    std::vector<size_t> state_gradient_indices;
+    std::vector<tensor_t> state_gradient_values;
+    for(const auto& [size, index] : ranges::views::zip(layer_def_info.state_sizes, layer_def_info.output_state_indices))
+    {
+      size_t gradient_index = graph.add_vertex();
+      state_gradient_indices.push_back(gradient_index);
+      state_gradient_values.push_back(std::make_shared<const Tensor>(Tensor::constant(size, 0.0)));
+      graph.set_gradient_index(index, gradient_index);
+    }
+
     std::vector<size_t> new_paramter_indices;
     kann::Optimizer::Info optimizer_info;
     for(const auto& [size, index] : ranges::views::zip(layer_def_info.parameter_sizes, layer_def_info.parameter_indices))
@@ -52,7 +64,7 @@ namespace kann
     // Executor
     Executor::Target target{
       .graph = std::move(graph),
-      .input_indices  = {{input_index},  {expected_output_index}, std::move(layer_def_info.parameter_indices), std::move(layer_def_info.input_state_indices),  std::move(optimizer_info.input_states_indices)},
+      .input_indices  = {{input_index},  {expected_output_index}, std::move(layer_def_info.parameter_indices), std::move(layer_def_info.input_state_indices),  std::move(optimizer_info.input_states_indices), std::move(state_gradient_indices)},
       .output_indices = {{output_index},                          std::move(new_paramter_indices),             std::move(layer_def_info.output_state_indices), std::move(optimizer_info.output_states_indices)}
     };
 
@@ -65,7 +77,7 @@ namespace kann
     outputs.reserve(inputs.size());
     for(const auto& [input, expected_output] : ranges::views::zip(inputs, expected_outputs))
     {
-      auto executor_inputs = {{input}, {expected_output}, std::move(parameters), std::move(states), std::move(optimizer_states)};
+      auto executor_inputs = {{input}, {expected_output}, std::move(parameters), std::move(states), std::move(optimizer_states), state_gradient_values};
       auto executor_outputs = executor.run(target, std::move(executor_inputs));
       outputs.push_back(std::move(executor_outputs[0].front()));
       parameters       = std::move(executor_outputs[1]);

@@ -82,5 +82,6 @@ int main(int argc, char** argv)
 {
   kann::initialize();
   run("examples/backpropagation/feedforward/normal.yaml");
+  run("examples/backpropagation/feedforward/recurrent.yaml");
   run("examples/backpropagation/feedforward/convolution.yaml");
 }
