@@ -1,5 +1,6 @@
 #include <libkann/layer_defs/Weight.hpp>
 
+#include <libkann/Tensor.hpp>
 #include <libkann/Layer.hpp>
 #include <libkann/Graph.hpp>
 

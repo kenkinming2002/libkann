@@ -1,5 +1,9 @@
 #include <libkann/operations/ConcatOperation.hpp>
 
+#include <libkann/Tensor.hpp>
+
+#include <range/v3/all.hpp>
+
 namespace kann
 {
   ConcatOperation::ConcatOperation(size_t size, size_t count)

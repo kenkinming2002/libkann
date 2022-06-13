@@ -1,5 +1,9 @@
 #include <libkann/operations/SplitOperation.hpp>
 
+#include <libkann/Tensor.hpp>
+
+#include <range/v3/all.hpp>
+
 namespace kann
 {
   SplitOperation::SplitOperation(size_t size, size_t count)

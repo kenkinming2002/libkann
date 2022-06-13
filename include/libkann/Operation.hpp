@@ -1,14 +1,8 @@
 #pragma once
 
-#include <libkann/Utility.hpp>
 #include <libkann/Types.hpp>
-#include <libkann/Tensor.hpp>
-
-#include <range/v3/all.hpp>
 
 #include <vector>
-#include <utility>
-
 #include <assert.h>
 
 namespace kann

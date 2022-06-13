@@ -1,5 +1,9 @@
 #include <libkann/operations/CopyOperation.hpp>
 
+#include <libkann/Tensor.hpp>
+
+#include <range/v3/all.hpp>
+
 namespace kann
 {
   CopyOperation::CopyOperation(size_t size, size_t count)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Types.hpp>
+#include <libkann/Tensor.hpp>
 #include <libkann/operations/Impl.hpp>
 
 #include <vector>
