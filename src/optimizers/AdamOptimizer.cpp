@@ -4,8 +4,8 @@
 
 #include <libkann/operations/Impl.hpp>
 #include <libkann/operations/CWise.hpp>
-#include <libkann/operations/ScaleOperation.hpp>
-#include <libkann/operations/SubtractOperation.hpp>
+#include <libkann/operations/Scale.hpp>
+#include <libkann/operations/Subtract.hpp>
 
 #include <tuple>
 

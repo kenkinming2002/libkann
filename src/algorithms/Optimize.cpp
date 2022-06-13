@@ -6,8 +6,8 @@
 #include <libkann/Executor.hpp>
 #include <libkann/Optimizer.hpp>
 
-#include <libkann/operations/SubtractOperation.hpp>
-#include <libkann/operations/ScaleOperation.hpp>
+#include <libkann/operations/Subtract.hpp>
+#include <libkann/operations/Scale.hpp>
 
 #include <fstream>
 

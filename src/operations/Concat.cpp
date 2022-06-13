@@ -1,4 +1,4 @@
-#include <libkann/operations/ConcatOperation.hpp>
+#include <libkann/operations/Concat.hpp>
 
 #include <libkann/Tensor.hpp>
 

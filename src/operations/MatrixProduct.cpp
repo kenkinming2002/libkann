@@ -1,4 +1,4 @@
-#include <libkann/operations/MatrixProductOperation.hpp>
+#include <libkann/operations/MatrixProduct.hpp>
 
 #include <libkann/operations/Impl.hpp>
 

@@ -4,14 +4,14 @@ libkann_sources = [
   'Tensor.cpp',
 
   # Operations
-  'operations/MatrixProductOperation.cpp',
-  'operations/ReduceOperation.cpp',
-  'operations/CopyOperation.cpp',
-  'operations/SplitOperation.cpp',
-  'operations/ConcatOperation.cpp',
-  'operations/ScaleOperation.cpp',
-  'operations/SubtractOperation.cpp',
-  'operations/CrossCorrelationOperation.cpp',
+  'operations/MatrixProduct.cpp',
+  'operations/Reduce.cpp',
+  'operations/Copy.cpp',
+  'operations/Split.cpp',
+  'operations/Concat.cpp',
+  'operations/Scale.cpp',
+  'operations/Subtract.cpp',
+  'operations/CrossCorrelation.cpp',
 
   # Executors
   'Graph.cpp',

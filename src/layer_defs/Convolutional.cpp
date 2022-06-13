@@ -4,11 +4,11 @@
 #include <libkann/Layer.hpp>
 #include <libkann/Graph.hpp>
 
-#include <libkann/operations/CrossCorrelationOperation.hpp>
-#include <libkann/operations/ReduceOperation.hpp>
-#include <libkann/operations/CopyOperation.hpp>
-#include <libkann/operations/SplitOperation.hpp>
-#include <libkann/operations/ConcatOperation.hpp>
+#include <libkann/operations/CrossCorrelation.hpp>
+#include <libkann/operations/Reduce.hpp>
+#include <libkann/operations/Copy.hpp>
+#include <libkann/operations/Split.hpp>
+#include <libkann/operations/Concat.hpp>
 
 #include <range/v3/all.hpp>
 

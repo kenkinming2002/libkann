@@ -1,4 +1,4 @@
-#include <libkann/operations/SubtractOperation.hpp>
+#include <libkann/operations/Subtract.hpp>
 
 #include <libkann/operations/CWise.hpp>
 

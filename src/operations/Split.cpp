@@ -1,4 +1,4 @@
-#include <libkann/operations/SplitOperation.hpp>
+#include <libkann/operations/Split.hpp>
 
 #include <libkann/Tensor.hpp>
 

@@ -1,4 +1,4 @@
-#include <libkann/operations/CopyOperation.hpp>
+#include <libkann/operations/Copy.hpp>
 
 #include <libkann/Tensor.hpp>
 

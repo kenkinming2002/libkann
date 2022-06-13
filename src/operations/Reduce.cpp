@@ -1,4 +1,4 @@
-#include <libkann/operations/ReduceOperation.hpp>
+#include <libkann/operations/Reduce.hpp>
 
 #include <libkann/Tensor.hpp>
 

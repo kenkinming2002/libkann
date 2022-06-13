@@ -1,4 +1,4 @@
-#include <libkann/operations/CrossCorrelationOperation.hpp>
+#include <libkann/operations/CrossCorrelation.hpp>
 
 #include <libkann/operations/Impl.hpp>
 

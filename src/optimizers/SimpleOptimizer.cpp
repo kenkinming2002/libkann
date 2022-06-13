@@ -2,8 +2,8 @@
 
 #include <libkann/Graph.hpp>
 
-#include <libkann/operations/ScaleOperation.hpp>
-#include <libkann/operations/SubtractOperation.hpp>
+#include <libkann/operations/Scale.hpp>
+#include <libkann/operations/Subtract.hpp>
 
 namespace kann
 {

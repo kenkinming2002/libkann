@@ -1,4 +1,4 @@
-#include <libkann/operations/ScaleOperation.hpp>
+#include <libkann/operations/Scale.hpp>
 
 #include <libkann/operations/CWise.hpp>
 

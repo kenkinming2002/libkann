@@ -4,8 +4,8 @@
 #include <libkann/Layer.hpp>
 #include <libkann/Graph.hpp>
 
-#include <libkann/operations/MatrixProductOperation.hpp>
-#include <libkann/operations/ReduceOperation.hpp>
+#include <libkann/operations/MatrixProduct.hpp>
+#include <libkann/operations/Reduce.hpp>
 
 namespace kann
 {

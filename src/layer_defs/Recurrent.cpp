@@ -3,8 +3,8 @@
 #include <libkann/Layer.hpp>
 #include <libkann/Variable.hpp>
 
-#include <libkann/operations/IdentityOperation.hpp>
-#include <libkann/operations/ReduceOperation.hpp>
+#include <libkann/operations/Identity.hpp>
+#include <libkann/operations/Reduce.hpp>
 
 #include <range/v3/all.hpp>
 
