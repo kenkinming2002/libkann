@@ -1,8 +1,11 @@
 #pragma once
 
+#include <libkann/Vec.hpp>
+
 #include <Eigen/Eigen>
 
 #include <random>
+#include <span>
 #include <memory>
 
 namespace kann
@@ -16,8 +19,7 @@ namespace kann
       m_values = std::make_unique_for_overwrite<double[]>(m_size);
     }
 
-    Tensor(Eigen::VectorXd data);
-
+  // Properties
   public:
     size_t size() const { return m_size; }
 
@@ -25,80 +27,8 @@ namespace kann
     const double* data() const { return m_values.get(); }
 
   public:
-    double& asScalar()
-    {
-      assert(m_size == 1);
-      return m_values[0];
-    }
-
-    const double& asScalar() const
-    {
-      assert(m_size == 1);
-      return m_values[0];
-    }
-
-  public:
-    auto asArray() &
-    {
-      return Eigen::ArrayXd::Map(m_values.get(), m_size);
-    }
-
-    auto asArray() const &
-    {
-      return Eigen::ArrayXd::Map(static_cast<const double*>(m_values.get()), m_size);
-    }
-
-  public:
-    auto asVector() &
-    {
-      return Eigen::VectorXd::Map(m_values.get(), m_size);
-    }
-
-    auto asVector() const &
-    {
-      return Eigen::VectorXd::Map(static_cast<const double*>(m_values.get()), m_size);
-    }
-
-  public:
-    auto asRowVector() &
-    {
-      return Eigen::RowVectorXd::Map(m_values.get(), m_size);
-    }
-
-    auto asRowVector() const &
-    {
-      return Eigen::RowVectorXd::Map(static_cast<const double*>(m_values.get()), m_size);
-    }
-
-  public:
-    auto asMatrix(size_t rows, size_t cols) &
-    {
-      assert(m_size == rows * cols);
-      return Eigen::MatrixXd::Map(m_values.get(), rows, cols);
-    }
-
-    auto asMatrix(size_t rows, size_t cols) const &
-    {
-      assert(m_size == rows * cols);
-      return Eigen::MatrixXd::Map(static_cast<const double*>(m_values.get()), rows, cols);
-    }
-
-  public:
-    static Tensor constant(size_t size, double value)
-    {
-      Tensor result(size);
-      result.asArray().setConstant(value);
-      return result;
-    }
-
-    template<typename PRNG>
-    static Tensor gaussian(size_t size, PRNG& prng, double mean, double variance)
-    {
-      std::normal_distribution<double> dist(mean, variance);
-      return nullaryExpr(size, [&]() {
-        return dist(prng);
-      });
-    }
+    double& operator[](size_t i)             { assert(i<size()); return m_values[i]; }
+    const double& operator[](size_t i) const { assert(i<size()); return m_values[i]; }
 
   public:
     template<typename NullaryOp>
@@ -106,7 +36,7 @@ namespace kann
     {
       Tensor result(size);
       for(size_t i=0; i<size; ++i)
-        result.asArray()(i) = op();
+        result[i] = op();
 
       return result;
     }
@@ -116,7 +46,7 @@ namespace kann
     {
       Tensor result(value.size());
       for(size_t i=0; i<value.size(); ++i)
-        result.asArray()(i) = op(value.asArray()(i));
+        result[i] = op(value[i]);
 
       return result;
     }
@@ -129,12 +59,8 @@ namespace kann
 
       Tensor result(lhs.size());
       for(size_t i=0; i<size; ++i)
-      {
-        result.asArray()(i) = op(
-          lhs.asArray()(i),
-          rhs.asArray()(i)
-        );
-      }
+        result[i] = op(lhs[i], rhs[i]);
+
       return result;
     }
 
@@ -146,23 +72,62 @@ namespace kann
 
       Tensor result(size);
       for(size_t i=0; i<size; ++i)
-      {
-        result.asArray()(i) = op(
-          arg1.asArray()(i),
-          arg2.asArray()(i),
-          arg3.asArray()(i)
-        );
-      }
+        result[i] = op(arg1[i], arg2[i], arg3[i]);
+
       return result;
     }
+
+  public:
+    static Tensor constant(size_t size, double value)
+    {
+      return nullaryExpr(size, [&](){
+        return value;
+      });
+    }
+
+    template<typename PRNG>
+    static Tensor gaussian(size_t size, PRNG& prng, double mean, double variance)
+    {
+      std::normal_distribution<double> dist(mean, variance);
+      return nullaryExpr(size, [&]() {
+        return dist(prng);
+      });
+    }
+
+  public:
+    static Tensor cross_correlate(const Tensor& input, const Tensor& kernel, Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
+    static Tensor convolve(const Tensor& input, const Tensor& kernel, Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
+
+  public:
+    static Tensor reduce(std::vector<const Tensor*> values);
+
+  public:
+    static Tensor concat(std::vector<const Tensor*> values, size_t size, size_t count);
+    static std::vector<Tensor> split(const Tensor& value, size_t size, size_t count);
+
+  // Helpers
+  public:
+    double& asScalar()             { assert(m_size == 1); return m_values[0]; }
+    const double& asScalar() const { assert(m_size == 1); return m_values[0]; }
+
+  public:
+    auto asArray()       & { return Eigen::ArrayXd::Map(data(), size()); }
+    auto asArray() const & { return Eigen::ArrayXd::Map(data(), size()); }
+
+  public:
+    auto asVector()       & { return Eigen::VectorXd::Map(data(), size()); }
+    auto asVector() const & { return Eigen::VectorXd::Map(data(), size()); }
+
+  public:
+    auto asRowVector()       & { return Eigen::RowVectorXd::Map(data(), size()); }
+    auto asRowVector() const & { return Eigen::RowVectorXd::Map(data(), size()); }
+
+  public:
+    auto asMatrix(size_t rows, size_t cols)       & { assert(size() == rows * cols); return Eigen::MatrixXd::Map(data(), rows, cols); }
+    auto asMatrix(size_t rows, size_t cols) const & { assert(size() == rows * cols); return Eigen::MatrixXd::Map(data(), rows, cols); }
 
   public:
     size_t m_size;
     std::unique_ptr<double[]> m_values;
   };
-
-  inline Tensor::Tensor(Eigen::VectorXd v) : Tensor(v.size())
-  {
-    asVector() = v;
-  }
 }

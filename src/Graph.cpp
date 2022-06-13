@@ -1,6 +1,5 @@
 #include <libkann/Graph.hpp>
 
-#include <libkann/Variable.hpp>
 #include <libkann/Operation.hpp>
 
 #include <range/v3/all.hpp>
@@ -8,89 +7,40 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
-#include <set>
-#include <unordered_map>
-
 #include <cxxabi.h>
 
 namespace kann
 {
-  Graph::Graph(std::vector<std::vector<variable_t>> inputs,
-               std::vector<std::vector<variable_t>> outputs)
+  size_t Graph::add_vertex()
   {
-    assert(ranges::all_of(inputs  | ranges::views::join, [](const auto& v) { return (bool)v; }));
-    assert(ranges::all_of(outputs | ranges::views::join, [](const auto& v) { return (bool)v; }));
-
-    // 1: Create nodes
-    std::unordered_map<variable_t, size_t> indices_map;
-    {
-      // TODO: Use a stack instead of an unordered_set
-      std::set<variable_t> open;
-      ranges::actions::insert(open, inputs | ranges::views::join);
-      ranges::actions::insert(open, outputs | ranges::views::join);
-
-      while(!open.empty())
-      {
-        auto variable = open.extract(open.begin()).value();
-        if(indices_map.contains(variable))
-          continue;
-
-        size_t index = m_nodes.size();
-        m_nodes.push_back(Node{.op = variable->op });
-        indices_map.emplace(variable, index);
-        ranges::actions::insert(open, variable->inputs);
-      }
-    }
-
-    // 2: Create edges
-    for(const auto& [output, output_index] : indices_map)
-    {
-      m_nodes[output_index].input_indices = output->inputs
-        | ranges::views::transform([&](const auto& input) { return indices_map.at(input); })
-        | ranges::to_vector;
-
-      for(size_t input_index : m_nodes[output_index].input_indices)
-        m_nodes[input_index].output_indices.push_back(output_index);
-    }
-
-    // 3: Save input/output indices
-    m_input_indices = inputs | ranges::views::transform([&](const auto& sub_inputs) {
-        return sub_inputs | ranges::views::transform([&](const auto& input){
-            return indices_map.at(input);
-        }) | ranges::to_vector;
-    }) | ranges::to_vector;
-
-    m_output_indices = outputs | ranges::views::transform([&](const auto& sub_outputs) {
-        return sub_outputs | ranges::views::transform([&](const auto& output){
-            return indices_map.at(output);
-        }) | ranges::to_vector;
-    }) | ranges::to_vector;
+    size_t vertex_index = m_vertices.size();
+    m_vertices.push_back(Vertex{});
+    return vertex_index;
   }
 
-  static inline void topological_ordering_impl(const std::vector<Graph::Node>& nodes, std::vector<size_t>& ordering, std::vector<bool>& visited, size_t index)
+  std::vector<size_t> Graph::add_vertices(size_t count)
   {
-    if(visited[index])
-      return;
-
-    visited[index] = true;
-    for(size_t parent_index : nodes[index].input_indices)
-      topological_ordering_impl(nodes, ordering, visited, parent_index);
-
-    ordering.push_back(index);
+    return ranges::views::generate_n(std::bind(&Graph::add_vertex, this), count) | ranges::to_vector;
   }
 
-  std::vector<size_t> Graph::topological_ordering() const
+  void Graph::add_edge(operation_t op, std::vector<size_t> input_indices, std::vector<size_t> output_indices)
   {
-    std::vector<size_t> ordering;
-    std::vector<bool> visited;
+    size_t edge_index = m_edges.size();
 
-    ordering.reserve(m_nodes.size());
-    visited.resize(m_nodes.size(), false);
+    for(size_t input_index : input_indices)
+      m_vertices[input_index].out_edge_indices.push_back(edge_index);
 
-    for(size_t index = 0; index<m_nodes.size(); ++index)
-      topological_ordering_impl(m_nodes, ordering, visited, index);
+    for(size_t output_index : output_indices)
+    {
+      assert(!m_vertices[output_index].in_edge_index);
+      m_vertices[output_index].in_edge_index = edge_index;
+    }
 
-    return ordering;
+    m_edges.push_back(Edge{
+      .op             = std::move(op),
+      .input_indices  = std::move(input_indices),
+      .output_indices = std::move(output_indices)
+    });
   }
 
   static inline std::string demangle(const char* name)
@@ -105,21 +55,86 @@ namespace kann
     return tmp;
   }
 
-  void Graph::write_graphviz(std::ostream& os) const
+  void Graph::set_gradient_index(size_t index, size_t gradient_index)
+  {
+    assert(!m_vertices[index].gradient_index);
+    m_vertices[index].gradient_index = gradient_index;
+  }
+
+  size_t Graph::get_gradient_index(size_t index)
+  {
+    if(!m_vertices[index].gradient_index)
+    {
+      // Ensure it has only one out-going edges
+      assert(m_vertices[index].out_edge_indices.size() == 1);
+      size_t edge_index = m_vertices[index].out_edge_indices.front();
+      differentiate(edge_index);
+    }
+
+    assert(m_vertices[index].gradient_index);
+    return *m_vertices[index].gradient_index;
+  }
+
+  void Graph::differentiate(size_t edge_index)
+  {
+    // Copy to avoid invalidation
+    std::vector<size_t> input_indices  = m_edges[edge_index].input_indices;
+    std::vector<size_t> output_indices = m_edges[edge_index].output_indices;
+    operation_t gradient_op            = m_edges[edge_index].op->differentiate();
+
+    std::vector<size_t> input_gradient_indices  = input_indices | ranges::views::transform([this](size_t input_index)
+    {
+      size_t input_gradient_index = add_vertex();
+      set_gradient_index(input_index, input_gradient_index);
+      return input_gradient_index;
+    }) | ranges::to_vector;
+
+    std::vector<size_t> output_gradient_indices = output_indices | ranges::views::transform([this](size_t output_index)
+    {
+      return get_gradient_index(output_index);
+    }) | ranges::to_vector;
+
+    add_edge(gradient_op,
+      ranges::views::concat(input_indices, output_gradient_indices) | ranges::to_vector,
+      input_gradient_indices
+    );
+  }
+
+  void Graph::write_graphviz(std::ostream& os)
   {
     fmt::print(os, "digraph {{\n");
 
     // Vertices
-    for(const auto& [i, node] : ranges::views::enumerate(m_nodes))
+    for(const auto& [i, vertex] : ranges::views::enumerate(m_vertices))
     {
-      const char* name = node.op ? typeid(*node.op).name() : "none";
-      fmt::print(os, "  {} [label=\"{}\"];\n", i, demangle(name));
+      const char* color = [vertex=vertex](){
+        if(vertex.in_edge_index && !vertex.out_edge_indices.empty())
+          return "black";
+
+        if(!vertex.out_edge_indices.empty())
+          return "red";
+
+        if(vertex.in_edge_index)
+          return "green";
+
+        return "gray";
+      }();
+      fmt::print(os, "vertex_{} [color={}];\n", i, color);
     }
 
     // Edges
-    for(const auto& [input_index, node] : ranges::views::enumerate(m_nodes))
-      for(const auto& [i, output_index] : ranges::views::enumerate(node.output_indices))
-          fmt::print(os, "  {}->{} [label=\"{}\"];\n", input_index, output_index, i);
+    for(const auto& [i, edge] : ranges::views::enumerate(m_edges))
+    {
+      const Operation& op = *edge.op;
+      const char* op_name = typeid(op).name();
+      fmt::print(os, "edge_{} [color=transparent,label=\"{}\"];\n", i, demangle(op_name).substr(6));
+
+      for(size_t input_index : edge.input_indices)
+        fmt::print(os, "vertex_{} -> edge_{};\n", input_index, i);
+
+      for(size_t output_index : edge.output_indices)
+        fmt::print(os, "edge_{} -> vertex_{};\n", i, output_index);
+    }
 
     fmt::print(os, "}}\n");
   }

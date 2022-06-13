@@ -1,14 +1,13 @@
 #include <libkann/layer_defs/Recurrent.hpp>
 
 #include <libkann/Layer.hpp>
-#include <libkann/Variable.hpp>
+#include <libkann/Graph.hpp>
+#include <libkann/Tensor.hpp>
 
-#include <libkann/operations/IdentityOperation.hpp>
-#include <libkann/operations/ReduceOperation.hpp>
+#include <libkann/operations/Split2.hpp>
+#include <libkann/operations/Concat2.hpp>
 
 #include <range/v3/all.hpp>
-
-#include <span>
 
 #include <assert.h>
 
@@ -40,65 +39,47 @@ namespace kann
   RecurrentLayerDef::RecurrentLayerDef(size_t memory_size)
     : m_memory_size(memory_size) {}
 
-  std::shared_ptr<Layer> RecurrentLayerDef::create(std::default_random_engine& prng) const
-  {
-    auto layer = SequentialLayerDef::create(prng);
-    layer->states = { std::make_shared<const Tensor>(Tensor::constant(m_memory_size, 0.0)) };
-    return layer;
-  }
-
   size_t RecurrentLayerDef::input_size() const
   {
-    return SequentialLayerDef::input_size() - m_memory_size;
+    return sub_layer_defs.front()->input_size() - m_memory_size;
   }
 
   size_t RecurrentLayerDef::output_size() const
   {
-    return SequentialLayerDef::output_size() - m_memory_size;
+    return sub_layer_defs.back()->output_size() - m_memory_size;
   }
 
-  static inline variable_t concat(variable_t variable1, variable_t variable2, size_t size1, size_t size2)
+
+  std::shared_ptr<Layer> RecurrentLayerDef::create(std::default_random_engine& prng) const
   {
-    return Variable::apply(ReduceOperation(2), {
-        Variable::apply(IdentityOperation(size1, size1 + size2, 0),     {variable1}),
-        Variable::apply(IdentityOperation(size2, size1 + size2, size1), {variable2})
-    });
+    auto layer = std::make_shared<Layer>();
+    layer->def = shared_from_this();
+    layer->sub_layers = sub_layer_defs
+      | ranges::views::transform([&prng](const auto& sub_layer_def) { return sub_layer_def->create(prng); })
+      | ranges::to_vector;
+    layer->states = { std::make_shared<const Tensor>(Tensor::constant(m_memory_size, 0.0)) };
+    return layer;
   }
 
-  static inline std::pair<variable_t, variable_t> split(variable_t variable, size_t size1, size_t size2)
+  size_t RecurrentLayerDef::process(Graph& graph, Info& info, size_t input_index) const
   {
-    return {
-      Variable::apply(IdentityOperation(size1 + size2, size1, 0),     {variable}),
-      Variable::apply(IdentityOperation(size1 + size2, size2, size1), {variable})
-    };
-  }
+    size_t real_input_index  = graph.add_vertex();
+    size_t real_output_index = real_input_index;
+    for(const layer_def_t& sub_layer_def : sub_layer_defs)
+      real_output_index = sub_layer_def->process(graph, info, real_output_index);
 
-  LayerDef::ProcessOutput RecurrentLayerDef::process(ProcessInput process_input) const
-  {
-    // Remove memory state from input
-    auto input        = process_input.variable;
-    auto memory_input = process_input.states.front();
+    size_t memory_index      = graph.add_vertex();
+    size_t new_memory_index  = graph.add_vertex();
+    size_t output_index      = graph.add_vertex();
 
-    process_input.states.erase(process_input.states.begin());
-    process_input.variable = concat(input, memory_input, this->input_size(), m_memory_size);
+    operation_t concat2_op = std::make_shared<Concat2Operation>(this->input_size(),  m_memory_size);
+    graph.add_edge(std::move(concat2_op), {input_index, memory_index}, {real_input_index});
 
-    ProcessOutput process_output = SequentialLayerDef::process(std::move(process_input));
-    auto [output, memory_output] = split(process_output.variable, this->output_size(), m_memory_size);
+    operation_t split2_op  = std::make_shared<Split2Operation>(this->output_size(), m_memory_size);
+    graph.add_edge(std::move(split2_op), {real_output_index}, {output_index, new_memory_index});
 
-    process_output.states.insert(process_output.states.begin(), memory_output);
-    process_output.variable = std::move(output);
-
-    return process_output;
-  }
-
-  size_t RecurrentLayerDef::states_count() const
-  {
-    return 1;
-  }
-
-  std::vector<size_t> RecurrentLayerDef::states_sizes() const
-  {
-    return { m_memory_size };
+    info.add_state(m_memory_size, memory_index, new_memory_index);
+    return output_index;
   }
 }
 

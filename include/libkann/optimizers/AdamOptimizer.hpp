@@ -11,8 +11,7 @@ namespace kann
     AdamOptimizer(double alpha, double beta1, double beta2, double epsilon);
 
   public:
-    ProcessOutput process(ProcessInput input) const override;
-    std::vector<tensor_t> create_initial_states(size_t size) const override;
+    size_t process(Graph& graph, Info& info, size_t size, size_t index, size_t gradient_index) const override;
 
   private:
     double m_alpha;

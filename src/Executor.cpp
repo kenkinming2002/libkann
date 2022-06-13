@@ -1,7 +1,9 @@
 #include <libkann/Executor.hpp>
 
 #include <libkann/executors/DefaultExecutor.hpp>
-#include <libkann/executors/ThreadedExecutor.hpp>
+//#include <libkann/executors/ThreadedExecutor.hpp>
+
+#include <assert.h>
 
 namespace kann
 {
@@ -12,7 +14,9 @@ namespace kann
     case Type::DEFAULT:
       return std::make_unique<DefaultExecutor>();
     case Type::THREADED:
-      return std::make_unique<ThreadedExecutor>();
+      //return std::make_unique<ThreadedExecutor>();
+    default:
+      assert(false);
     }
   }
 }

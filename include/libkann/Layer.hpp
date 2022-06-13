@@ -18,6 +18,10 @@ namespace kann
     std::vector<std::shared_ptr<Layer>> sub_layers;
 
   public:
+    size_t parameters_all_count() const;
+    size_t states_all_count() const;
+
+  public:
     void set_parameters_all(std::vector<tensor_t> values);
     void set_states_all(std::vector<tensor_t> values);
 

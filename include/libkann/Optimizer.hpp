@@ -12,23 +12,21 @@ namespace kann
     virtual ~Optimizer() = default;
 
   public:
-    struct ProcessInput
+    struct Info
     {
-      variable_t parameter;
-      variable_t gradient;
+      std::vector<tensor_t> initial_states;
+      std::vector<size_t> input_states_indices;
+      std::vector<size_t> output_states_indices;
+
+      void add_state(tensor_t initial, size_t input_index, size_t output_index)
+      {
+        initial_states.push_back(initial);
+        input_states_indices.push_back(input_index);
+        output_states_indices.push_back(output_index);
+      }
     };
-
-    struct ProcessOutput
-    {
-      variable_t parameter;
-
-      std::vector<variable_t> input_states;
-      std::vector<variable_t> output_states;
-    };
-
-    virtual ProcessOutput process(ProcessInput input) const = 0;
 
   public:
-    virtual std::vector<tensor_t> create_initial_states(size_t size) const { return {}; }
+    virtual size_t process(Graph& graph, Info& info, size_t size, size_t index, size_t gradient_index) const = 0;
   };
 }

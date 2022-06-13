@@ -6,7 +6,6 @@ namespace kann
 {
   struct Tensor;
 
-  class Variable;
   class Operation;
 
   struct LayerDef;
@@ -20,7 +19,6 @@ namespace kann
   typedef std::shared_ptr<const Tensor> tensor_t;
 
   typedef std::shared_ptr<const Operation> operation_t;
-  typedef std::shared_ptr<const Variable> variable_t;
 
   typedef std::shared_ptr<const LayerDef> layer_def_t;
   typedef std::shared_ptr<Layer> layer_t;
