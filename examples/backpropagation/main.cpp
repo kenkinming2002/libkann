@@ -11,7 +11,9 @@
 #include <libkann/Graph.hpp>
 #include <libkann/Executor.hpp>
 
+#include <libkann/optimizers/AdamOptimizer.hpp>
 #include <libkann/optimizers/SimpleOptimizer.hpp>
+
 #include <libkann/layer_defs/Sequential.hpp>
 
 #include <libkann/datasets/MNIST.hpp>
@@ -39,7 +41,9 @@ void run(const std::string& filename)
 {
   static std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
   static auto executor  = kann::Executor::create(kann::Executor::Type::DEFAULT);
-  static auto optimizer = std::make_shared<kann::SimpleOptimizer>(LEARNING_RATE);
+
+  //static auto optimizer = std::make_shared<kann::SimpleOptimizer>(LEARNING_RATE);
+  static auto optimizer = std::make_shared<kann::AdamOptimizer>(0.0001, 0.9, 0.999, 1e-10);
 
   static auto testing_images = kann::load_mnist_dataset_images("datasets/mnist/t10k-images-idx3-ubyte");
   static auto testing_labels = kann::load_mnist_dataset_labels("datasets/mnist/t10k-labels-idx1-ubyte");
