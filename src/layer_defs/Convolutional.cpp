@@ -3,7 +3,7 @@
 #include <libkann/Layer.hpp>
 #include <libkann/Graph.hpp>
 
-#include <libkann/operations/ConvolutionOperation.hpp>
+#include <libkann/operations/CrossCorrelationOperation.hpp>
 #include <libkann/operations/ReduceOperation.hpp>
 #include <libkann/operations/CopyOperation.hpp>
 #include <libkann/operations/SplitOperation.hpp>

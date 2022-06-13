@@ -1,4 +1,4 @@
-#include <libkann/operations/ConvolutionOperation.hpp>
+#include <libkann/operations/CrossCorrelationOperation.hpp>
 
 #include <libkann/operations/Impl.hpp>
 

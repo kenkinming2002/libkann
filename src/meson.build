@@ -11,7 +11,7 @@ libkann_sources = [
   'operations/ConcatOperation.cpp',
   'operations/ScaleOperation.cpp',
   'operations/SubtractOperation.cpp',
-  'operations/ConvolutionOperation.cpp',
+  'operations/CrossCorrelationOperation.cpp',
 
   # Executors
   'Graph.cpp',
