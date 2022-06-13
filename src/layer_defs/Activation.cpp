@@ -3,7 +3,8 @@
 #include <libkann/Graph.hpp>
 #include <libkann/Layer.hpp>
 
-#include <libkann/operations/CWiseOperation.hpp>
+#include <libkann/Operation.hpp>
+#include <libkann/operations/CWise.hpp>
 
 namespace kann
 {
@@ -70,64 +71,74 @@ namespace kann
     return layer;
   }
 
-  class ActivationOperation : public CWiseOperation<ActivationOperation, 1, 1>
+  class ActivationGradientOperation : public Operation
   {
   public:
-    constexpr ActivationOperation(size_t size, ActivationLayerDef::Type type)
-      : CWiseOperation<ActivationOperation, 1, 1>(size), m_type(type) {}
+    constexpr ActivationGradientOperation(size_t size, ActivationLayerDef::Type type)
+      : m_size(size), m_type(type) {}
 
   public:
-    cwise_outputs_t forward(cwise_inputs_t inputs) const
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override
     {
-      const auto& [input] = inputs;
-      double output = [&,input=input]()
-      {
-        switch(m_type)
-        {
-        case ActivationLayerDef::Type::IDENTITY:
-          return input;
-        case ActivationLayerDef::Type::SIGMOID:
-          return 1.0 /  (1.0 + std::exp(-input));
-        case ActivationLayerDef::Type::TANH:
-          return std::tanh(input);
-        default:
-          assert(false && "Unreachable");
-        }
-      }();
-
-      return {output};
-    }
-
-    cwise_inputs_t backward(cwise_inputs_t inputs, cwise_outputs_t output_gradients) const
-    {
-      const auto& [input] = inputs;
-      const auto& [output_gradient] = output_gradients;
-
-      double input_gradient = [&,input=input,output_gradient=output_gradient]()
+      return operation_process_cwise_impl<2,1>(std::move(inputs), m_size, [this](double input, double output_gradient)
       {
         switch(m_type)
         {
           case ActivationLayerDef::Type::IDENTITY:
-            return output_gradient;
+            return std::make_tuple(output_gradient);
           case ActivationLayerDef::Type::SIGMOID:
           {
             double tmp = std::exp(-input);
-            return output_gradient * tmp / ((1+tmp) * (1+tmp));
+            return std::make_tuple(output_gradient * tmp / ((1+tmp) * (1+tmp)));
           }
           case ActivationLayerDef::Type::TANH:
           {
             double tmp = std::cosh(input);
-            return output_gradient / (tmp * tmp);
+            return std::make_tuple(output_gradient / (tmp * tmp));
           }
           default:
             assert(false && "Unreachable");
         }
-      }();
-
-      return {input_gradient};
+      });
     }
 
   private:
+    size_t m_size;
+    ActivationLayerDef::Type m_type;
+  };
+
+  class ActivationOperation : public Operation
+  {
+  public:
+    constexpr ActivationOperation(size_t size, ActivationLayerDef::Type type)
+      : m_size(size), m_type(type) {}
+
+  public:
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override
+    {
+      return operation_process_cwise_impl<1,1>(std::move(inputs), m_size, [this](double input)
+      {
+        switch(m_type)
+        {
+        case ActivationLayerDef::Type::IDENTITY:
+          return std::make_tuple(input);
+        case ActivationLayerDef::Type::SIGMOID:
+          return std::make_tuple(1.0 /  (1.0 + std::exp(-input)));
+        case ActivationLayerDef::Type::TANH:
+          return std::make_tuple(std::tanh(input));
+        default:
+          assert(false && "Unreachable");
+        }
+      });
+    }
+
+    operation_t differentiate() const override
+    {
+      return std::make_shared<ActivationGradientOperation>(m_size, m_type);
+    }
+
+  private:
+    size_t m_size;
     ActivationLayerDef::Type m_type;
   };
 

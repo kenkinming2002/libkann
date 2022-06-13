@@ -6,13 +6,13 @@
 namespace kann
 {
   // This should be cross-correlation
-  class CrossCorrelationOperation : public OperationImpl<CrossCorrelationOperation, 2, 1>
+  class CrossCorrelationOperation : public Operation
   {
   public:
     CrossCorrelationOperation(Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
 
   public:
-    outputs_t process_impl(inputs_t inputs) const;
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override;
     operation_t differentiate() const override;
 
   private:

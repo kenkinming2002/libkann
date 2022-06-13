@@ -4,14 +4,14 @@
 
 namespace kann
 {
-  class MatrixProductOperation : public OperationImpl<MatrixProductOperation, 2, 1>
+  class MatrixProductOperation : public Operation
   {
   public:
     /* Mutiply a mxk matrix with a kxn matrix.*/
     MatrixProductOperation(size_t m, size_t n, size_t k);
 
   public:
-    outputs_t process_impl(inputs_t inputs) const;
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override;
     operation_t differentiate() const override;
 
   private:

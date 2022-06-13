@@ -1,19 +1,40 @@
 #include <libkann/operations/ScaleOperation.hpp>
 
+#include <libkann/operations/CWise.hpp>
+
 namespace kann
 {
   ScaleOperation::ScaleOperation(size_t size, double val)
-    : CWiseOperation<ScaleOperation, 1, 1>(size), m_val(val) {}
+    : m_size(size), m_val(val) {}
 
-  auto ScaleOperation::forward(cwise_inputs_t inputs) const -> cwise_outputs_t
+  std::vector<tensor_t> ScaleOperation::process(std::vector<tensor_t> inputs) const
   {
-    auto [input] = inputs;
-    return {input * m_val};
+    return operation_process_cwise_impl<1,1>(std::move(inputs), m_size, [this](double input) {
+      return std::make_tuple(input * m_val);
+    });
   }
 
-  auto ScaleOperation::backward(cwise_inputs_t inputs, cwise_outputs_t output_gradients) const -> cwise_inputs_t
+  class ScaleGradientOperation : public Operation
   {
-    auto [gradient] = output_gradients;
-    return {gradient * m_val};
+  public:
+    ScaleGradientOperation(size_t size, double val)
+      : m_size(size), m_val(val) {}
+
+  public:
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const
+    {
+      return operation_process_cwise_impl<2,1>(std::move(inputs), m_size, [this](double input, double output_gradient) {
+        return std::make_tuple(output_gradient * m_val);
+      });
+    }
+
+  private:
+    size_t m_size;
+    double m_val;
+  };
+
+  operation_t ScaleOperation::differentiate() const
+  {
+    return std::make_shared<ScaleGradientOperation>(m_size, m_val);
   }
 }

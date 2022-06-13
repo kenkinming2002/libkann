@@ -1,19 +1,20 @@
 #pragma once
 
-#include <libkann/operations/CWiseOperation.hpp>
+#include <libkann/Operation.hpp>
 
 namespace kann
 {
-  class ScaleOperation : public CWiseOperation<ScaleOperation, 1, 1>
+  class ScaleOperation : public Operation
   {
   public:
     ScaleOperation(size_t size, double val);
 
   public:
-    cwise_outputs_t forward(cwise_inputs_t inputs) const;
-    cwise_inputs_t backward(cwise_inputs_t inputs, cwise_outputs_t output_gradients) const;
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override;
+    operation_t differentiate() const override;
 
   private:
+    size_t m_size;
     double m_val;
   };
 }

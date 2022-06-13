@@ -1,20 +1,40 @@
 #include <libkann/operations/SubtractOperation.hpp>
 
+#include <libkann/operations/CWise.hpp>
+
 namespace kann
 {
   SubtractOperation::SubtractOperation(size_t size)
-    : CWiseOperation<SubtractOperation, 2, 1>(size) {}
+    : m_size(size) {}
 
-  auto SubtractOperation::forward(cwise_inputs_t inputs) const -> cwise_outputs_t
+  std::vector<tensor_t> SubtractOperation::process(std::vector<tensor_t> inputs) const
   {
-    auto [a, b] = inputs;
-    return {a - b};
+    return operation_process_cwise_impl<2,1>(std::move(inputs), m_size, [](double a, double b) {
+      return std::make_tuple(a-b);
+    });
   }
 
-  auto SubtractOperation::backward(cwise_inputs_t inputs, cwise_outputs_t output_gradients) const -> cwise_inputs_t
+  class SubtractGradientOperation : public Operation
   {
-    auto [gradient] = output_gradients;
-    return {gradient, -gradient};
+  public:
+    SubtractGradientOperation(size_t size)
+      : m_size(size) {}
+
+  public:
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const
+    {
+      return operation_process_cwise_impl<3,2>(std::move(inputs), m_size, [](double a, double b, double output_gradient) {
+        return std::make_tuple(output_gradient, -output_gradient);
+      });
+    }
+
+  private:
+    size_t m_size;
+  };
+
+  operation_t SubtractOperation::differentiate() const
+  {
+    return std::make_shared<SubtractGradientOperation>(m_size);
   }
 }
 

@@ -1,53 +1,51 @@
 #include <libkann/operations/MatrixProductOperation.hpp>
 
+#include <libkann/operations/Impl.hpp>
+
 namespace kann
 {
   MatrixProductOperation::MatrixProductOperation(size_t m, size_t n, size_t k)
     : m_m(m), m_n(n), m_k(k) {}
 
-  auto MatrixProductOperation::process_impl(inputs_t inputs) const -> outputs_t
+  std::vector<tensor_t> MatrixProductOperation::process(std::vector<tensor_t> inputs) const
   {
-    // a: m_m * m_k
-    // b: m_k * m_n
-    const auto& [a, b] = inputs;
-
-    Tensor output(m_m * m_n);
-    if(m_k == 1)
-      output.asMatrix(m_m,m_n).noalias() = a->asVector() * b->asRowVector();
-    else
-      output.asMatrix(m_m,m_n).noalias() = a->asMatrix(m_m, m_k) * b->asMatrix(m_k, m_n);
-
-    return { std::move(output) };
+    return operation_process_impl<2, 1>(std::move(inputs), [this](const Tensor& a, const Tensor& b)
+    {
+      Tensor output(m_m * m_n);
+      if(m_k == 1)
+        output.asMatrix(m_m,m_n).noalias() = a.asVector() * b.asRowVector();
+      else
+        output.asMatrix(m_m,m_n).noalias() = a.asMatrix(m_m, m_k) * b.asMatrix(m_k, m_n);
+      return std::make_tuple(std::move(output));
+    });
   }
 
-  class MatrixProductGradientOperation : public OperationImpl<MatrixProductGradientOperation, 3, 2>
+  class MatrixProductGradientOperation : public Operation
   {
   public:
     MatrixProductGradientOperation(size_t m, size_t n, size_t k)
     : m_m(m), m_n(n), m_k(k) {}
 
   public:
-    outputs_t process_impl(inputs_t inputs) const
+    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override
     {
-      // a: m_m * m_k
-      // b: m_k * m_n
-      // output_gradient : m_m * m_n
-      const auto& [a, b, output_gradient] = inputs;
+      return operation_process_impl<3, 2>(std::move(inputs), [this](const Tensor& a, const Tensor& b, const Tensor& output_gradient)
+      {
+        Tensor gradient_a(m_m * m_k);
+        Tensor gradient_b(m_k * m_n);
 
-      Tensor gradient_a(m_m * m_k);
-      Tensor gradient_b(m_k * m_n);
+        if(m_n == 1)
+          gradient_a.asMatrix(m_m, m_k) = output_gradient.asVector() * b.asRowVector();
+        else
+          gradient_a.asMatrix(m_m, m_k) = output_gradient.asMatrix(m_m, m_n) * b.asMatrix(m_k, m_n).transpose();
 
-      if(m_n == 1)
-        gradient_a.asMatrix(m_m, m_k) = output_gradient->asVector() * b->asRowVector();
-      else
-        gradient_a.asMatrix(m_m, m_k) = output_gradient->asMatrix(m_m, m_n) * b->asMatrix(m_k, m_n).transpose();
+        if(m_m == 1)
+          gradient_b.asMatrix(m_k, m_n) = a.asVector() * output_gradient.asRowVector();
+        else
+          gradient_b.asMatrix(m_k, m_n) = a.asMatrix(m_m, m_k).transpose() * output_gradient.asMatrix(m_m, m_n);
 
-      if(m_m == 1)
-        gradient_b.asMatrix(m_k, m_n) = a->asVector() * output_gradient->asRowVector();
-      else
-        gradient_b.asMatrix(m_k, m_n) = a->asMatrix(m_m, m_k).transpose() * output_gradient->asMatrix(m_m, m_n);
-
-      return { std::move(gradient_a), std::move(gradient_b) };
+        return std::make_tuple(std::move(gradient_a), std::move(gradient_b));
+      });
     }
 
   private:
