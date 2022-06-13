@@ -9,6 +9,8 @@ libkann_sources = [
   'operations/Copy.cpp',
   'operations/Split.cpp',
   'operations/Concat.cpp',
+  'operations/Split2.cpp',
+  'operations/Concat2.cpp',
   'operations/Scale.cpp',
   'operations/Subtract.cpp',
   'operations/CrossCorrelation.cpp',
