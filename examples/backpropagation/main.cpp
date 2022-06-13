@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 #include "Arguments.hpp"
-#include "Progress.hpp"
 
 #include <libkann/Initialize.hpp>
 #include <libkann/Random.hpp>
@@ -22,8 +21,8 @@
 
 #include <libkann/Algorithm.hpp>
 
+#include <fmt/core.h>
 #include <range/v3/all.hpp>
-
 
 static constexpr double LEARNING_RATE  = 0.05;
 static constexpr size_t BATCH_SIZE     = 10;

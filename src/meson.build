@@ -40,6 +40,7 @@ libkann_sources = [
   'optimizers/AdamOptimizer.cpp',
 
   # Actual Machine Learning Training Algorithm
+  'algorithms/ProgressBar.cpp',
   'algorithms/Predict.cpp',
   'algorithms/Optimize.cpp',
 ]

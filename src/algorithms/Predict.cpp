@@ -1,5 +1,7 @@
 #include <libkann/algorithms/Predict.hpp>
 
+#include <libkann/algorithms/ProgressBar.hpp>
+
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
 #include <libkann/Graph.hpp>
@@ -29,12 +31,15 @@ namespace kann
 
     std::vector<tensor_t> outputs;
     outputs.reserve(inputs.size());
+
+    ProgressBar progress_bar("training", inputs.size());
     for(const tensor_t& input : inputs)
     {
       auto executor_inputs = {{input}, parameters, std::move(states)};
       auto executor_outputs = executor.run(target, std::move(executor_inputs));
       outputs.push_back(std::move(executor_outputs[0].front()));
       states = std::move(executor_outputs[1]);
+      progress_bar.update("");
     }
 
     layer.set_states_all(std::move(states));

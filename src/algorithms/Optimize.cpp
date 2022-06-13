@@ -1,5 +1,7 @@
 #include <libkann/algorithms/Optimize.hpp>
 
+#include <libkann/algorithms/ProgressBar.hpp>
+
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
 #include <libkann/Graph.hpp>
@@ -75,6 +77,8 @@ namespace kann
 
     std::vector<tensor_t> outputs;
     outputs.reserve(inputs.size());
+
+    ProgressBar progress_bar("training", inputs.size());
     for(const auto& [input, expected_output] : ranges::views::zip(inputs, expected_outputs))
     {
       auto executor_inputs = {{input}, {expected_output}, std::move(parameters), std::move(states), std::move(optimizer_states), state_gradient_values};
@@ -83,6 +87,7 @@ namespace kann
       parameters       = std::move(executor_outputs[1]);
       states           = std::move(executor_outputs[2]);
       optimizer_states = std::move(executor_outputs[3]);
+      progress_bar.update("");
     }
 
     layer.set_parameters_all(std::move(parameters));
