@@ -4,14 +4,19 @@
 
 #include <range/v3/all.hpp>
 
+#include <stdlib.h>
+
 namespace kann
 {
-  std::vector<tensor_t> create_random_data(size_t size, size_t count)
+  std::vector<Tensor> create_random_data(Shape shape, size_t count)
   {
-    return ranges::views::generate_n([size]() -> tensor_t {
-      auto result = std::make_shared<Tensor>(size);
-      result->asArray().setRandom();
-      return result;
+    return ranges::views::generate_n([&]() {
+      MutableTensor result = MutableTensor::create(shape);
+      ranges::generate_n(result.data(), result.size(), []() {
+        double tmp = (double)rand() / RAND_MAX;
+        return 2.0 * tmp - 1.0;
+      });
+      return std::move(result).as_const();
     }, count) | ranges::to_vector;
   }
 }

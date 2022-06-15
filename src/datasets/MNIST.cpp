@@ -59,7 +59,7 @@ namespace kann
     }
   };
 
-  std::vector<tensor_t> load_mnist_dataset_images(const char* file_name)
+  std::vector<Tensor> load_mnist_dataset_images(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -74,25 +74,25 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<tensor_t> images;
+    std::vector<Tensor> images;
     images.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)
     {
-      auto image = std::make_shared<Tensor>(MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH);
+      MutableTensor image = MutableTensor::create(Shape{MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH});
 
       uint8_t image_data[MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH];
       if(!idx_file.file.read(reinterpret_cast<char*>(image_data), sizeof image_data))
         throw std::runtime_error("MNIST Data Set - Invalid file format");
 
-      ranges::copy(image_data | ranges::views::transform([](uint8_t b) { return (double)b / 255; }), image->data());
-      images.push_back(std::move(image));
+      ranges::copy(image_data | ranges::views::transform([](uint8_t b) { return (double)b / 255; }), image.data());
+      images.push_back(std::move(image).as_const());
     }
 
     return images;
   }
 
-  std::vector<tensor_t> load_mnist_dataset_labels(const char* file_name)
+  std::vector<Tensor> load_mnist_dataset_labels(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -103,19 +103,19 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<tensor_t> labels;
+    std::vector<Tensor> labels;
     labels.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)
     {
-      auto label = std::make_shared<Tensor>(10);
+      MutableTensor label = MutableTensor::create(Shape{10});
 
       uint8_t label_data;
       if(!idx_file.file.read(reinterpret_cast<char*>(&label_data), sizeof label_data))
         throw std::runtime_error("MNIST Data Set - Invalid file format");
 
-      ranges::copy(ranges::views::ints(0,10) | ranges::views::transform([label_data](auto i) -> double { return i == label_data ? 1.0 : 0.0; }), label->data());
-      labels.push_back(std::move(label));
+      ranges::copy(ranges::views::ints(0,10) | ranges::views::transform([label_data](auto i) -> double { return i == label_data ? 1.0 : 0.0; }), label.data());
+      labels.push_back(std::move(label).as_const());
     }
 
     return labels;

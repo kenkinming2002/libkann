@@ -31,9 +31,9 @@ libkann_sources = [
   #'layer_defs/Convolutional.cpp',
 
   # Datasets
-  #'datasets/MNIST.cpp',
-  #'datasets/Random.cpp',
-  #'datasets/write.cpp',
+  'datasets/MNIST.cpp',
+  'datasets/Random.cpp',
+  'datasets/write.cpp',
 
   # Optimizers
   #'optimizers/SimpleOptimizer.cpp',
