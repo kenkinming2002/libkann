@@ -17,7 +17,7 @@ libkann_sources = [
   #'operations/CrossCorrelation.cpp',
 
   # Executors
-  #'Graph.cpp',
+  'Graph.cpp',
   #'Executor.cpp',
   #'executors/DefaultExecutor.cpp',
   #'executors/ThreadedExecutor.cpp',
