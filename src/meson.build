@@ -1,49 +1,49 @@
 libkann_sources = [
-  'Initialize.cpp',
+  #'Initialize.cpp',
 
-  'Tensor.cpp',
+  #'Tensor.cpp',
 
   # Operations
-  'operations/MatrixProduct.cpp',
-  'operations/Reduce.cpp',
-  'operations/Copy.cpp',
-  'operations/Split.cpp',
-  'operations/Concat.cpp',
-  'operations/Split2.cpp',
-  'operations/Concat2.cpp',
-  'operations/Scale.cpp',
-  'operations/Subtract.cpp',
-  'operations/CrossCorrelation.cpp',
+  #'operations/MatrixProduct.cpp',
+  #'operations/Reduce.cpp',
+  #'operations/Copy.cpp',
+  #'operations/Split.cpp',
+  #'operations/Concat.cpp',
+  #'operations/Split2.cpp',
+  #'operations/Concat2.cpp',
+  #'operations/Scale.cpp',
+  #'operations/Subtract.cpp',
+  #'operations/CrossCorrelation.cpp',
 
   # Executors
-  'Graph.cpp',
-  'Executor.cpp',
-  'executors/DefaultExecutor.cpp',
+  #'Graph.cpp',
+  #'Executor.cpp',
+  #'executors/DefaultExecutor.cpp',
   #'executors/ThreadedExecutor.cpp',
 
   # Layers
-  'Layer.cpp',
-  'LayerDef.cpp',
-  'layer_defs/Sequential.cpp',
-  'layer_defs/Recurrent.cpp',
-  'layer_defs/Activation.cpp',
-  'layer_defs/Weight.cpp',
-  'layer_defs/Convolutional.cpp',
+  #'Layer.cpp',
+  #'LayerDef.cpp',
+  #'layer_defs/Sequential.cpp',
+  #'layer_defs/Recurrent.cpp',
+  #'layer_defs/Activation.cpp',
+  #'layer_defs/Weight.cpp',
+  #'layer_defs/Convolutional.cpp',
 
   # Datasets
-  'datasets/MNIST.cpp',
-  'datasets/Random.cpp',
-  'datasets/write.cpp',
+  #'datasets/MNIST.cpp',
+  #'datasets/Random.cpp',
+  #'datasets/write.cpp',
 
   # Optimizers
-  'optimizers/SimpleOptimizer.cpp',
-  'optimizers/AdamOptimizer.cpp',
+  #'optimizers/SimpleOptimizer.cpp',
+  #'optimizers/AdamOptimizer.cpp',
 
   # Actual Machine Learning Training Algorithm
   'algorithms/ProgressBar.cpp',
-  'algorithms/Context.cpp',
-  'algorithms/Predict.cpp',
-  'algorithms/Optimize.cpp',
+  #'algorithms/Context.cpp',
+  #'algorithms/Predict.cpp',
+  #'algorithms/Optimize.cpp',
 ]
 
 fmt_dep = dependency('fmt')

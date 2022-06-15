@@ -4,8 +4,6 @@
 
 namespace kann
 {
-  struct Tensor;
-
   class Operation;
 
   struct LayerDef;
@@ -15,8 +13,6 @@ namespace kann
 
   class Graph;
   class Executor;
-
-  typedef std::shared_ptr<const Tensor> tensor_t;
 
   typedef std::shared_ptr<const Operation> operation_t;
 
