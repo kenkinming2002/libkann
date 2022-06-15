@@ -22,8 +22,8 @@ libkann_sources = [
   #'executors/ThreadedExecutor.cpp',
 
   # Layers
-  #'Layer.cpp',
-  #'LayerDef.cpp',
+  'Layer.cpp',
+  'LayerDef.cpp',
   #'layer_defs/Sequential.cpp',
   #'layer_defs/Recurrent.cpp',
   #'layer_defs/Activation.cpp',
