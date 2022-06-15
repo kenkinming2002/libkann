@@ -202,4 +202,16 @@ namespace kann
   using TensorRef        = TensorBase<RefStorage>;
   using MutableTensor    = TensorBase<MutableStorage>;
   using Tensor           = TensorBase<Storage>;
+
+  namespace math
+  {
+    /* X = x_1 * ... * x_m
+     * Y = y_1 * ... * y_k
+     * Z = z_1 * ... * z_n
+     *
+     * op(a): X * Y
+     * op(b): Y * Z
+     * output: X * Z */
+    Tensor product(Tensor a, Tensor b, size_t M, size_t N, size_t K, bool transpose_a, bool transpose_b);
+  }
 }
