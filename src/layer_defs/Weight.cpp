@@ -5,7 +5,7 @@
 #include <libkann/Graph.hpp>
 
 #include <libkann/operations/MatrixProduct.hpp>
-#include <libkann/operations/Reduce.hpp>
+#include <libkann/operations/Add.hpp>
 
 namespace kann
 {
@@ -28,14 +28,14 @@ namespace kann
   WeightLayerDef::WeightLayerDef(size_t input_size, size_t output_size)
     : m_input_size(input_size), m_output_size(output_size) {}
 
-  size_t WeightLayerDef::input_size() const
+  Shape WeightLayerDef::input_shape() const
   {
-    return m_input_size;
+    return Shape{m_input_size};
   }
 
-  size_t WeightLayerDef::output_size() const
+  Shape WeightLayerDef::output_shape() const
   {
-    return m_output_size;
+    return Shape{m_output_size};
   }
 
   std::shared_ptr<Layer> WeightLayerDef::create(std::default_random_engine& prng) const
@@ -43,8 +43,8 @@ namespace kann
     auto layer = std::make_shared<Layer>();
     layer->def = shared_from_this();
     layer->parameters = {
-      std::make_shared<const Tensor>(Tensor::gaussian(m_input_size * m_output_size, prng, 0.0, 1.0 / std::sqrt(m_input_size))),
-      std::make_shared<const Tensor>(Tensor::gaussian(m_output_size               , prng, 0.0, 1.0 / std::sqrt(m_input_size)))
+      MutableTensor::normal(Shape{m_output_size, m_input_size}, prng, 0.0, 1.0 / std::sqrt(m_input_size)).as_const(),
+      MutableTensor::normal(Shape{m_output_size}              , prng, 0.0, 1.0 / std::sqrt(m_input_size)).as_const()
     };
     return layer;
   }
@@ -56,14 +56,14 @@ namespace kann
     size_t bias_index   = graph.add_vertex();
     size_t tmp_index    = graph.add_vertex();
 
-    operation_t matrix_product_op = std::make_shared<MatrixProductOperation>(m_output_size, 1, m_input_size);
-    operation_t reduce_op         = std::make_shared<ReduceOperation>(m_output_size, 2);
+    operation_t matrix_product_op = std::make_shared<MatrixProductOperation>();
+    operation_t add_op            = std::make_shared<AddOperation>(Shape(m_output_size));
 
     graph.add_edge(std::move(matrix_product_op), {weight_index, input_index}, {tmp_index});
-    graph.add_edge(std::move(reduce_op),         {tmp_index, bias_index},     {output_index});
+    graph.add_edge(std::move(add_op),            {tmp_index, bias_index},     {output_index});
 
-    info.add_parameter(m_input_size * m_output_size, tag, weight_index);
-    info.add_parameter(m_output_size,                tag, bias_index);
+    info.add_parameter(Shape{m_output_size, m_input_size}, tag, weight_index);
+    info.add_parameter(Shape{m_output_size},               tag, bias_index);
 
     return output_index;
   }

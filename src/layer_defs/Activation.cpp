@@ -38,7 +38,7 @@ namespace kann
   YAML::Node ActivationLayerDef::save(layer_def_t layer_def)
   {
     YAML::Node node;
-    node["size"]     = std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_size;
+    node["shape"]    = Shape::to_vector(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_shape);
     node["function"] = to_string(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_type);
     return node;
   }
@@ -46,22 +46,20 @@ namespace kann
   layer_def_t ActivationLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<ActivationLayerDef>();
-    layer_def->m_size = node["size"].as<size_t>();
-    layer_def->m_type = from_string(node["function"].as<std::string>());
+    layer_def->m_shape = Shape::from_vector(node["shape"].as<std::vector<size_t>>());
+    layer_def->m_type  = from_string(node["function"].as<std::string>());
     return layer_def;
   }
 
-  ActivationLayerDef::ActivationLayerDef(size_t size, Type type)
-    : m_size(size), m_type(type) {}
 
-  size_t ActivationLayerDef::input_size() const
+  Shape ActivationLayerDef::input_shape() const
   {
-    return m_size;
+    return m_shape;
   }
 
-  size_t ActivationLayerDef::output_size() const
+  Shape ActivationLayerDef::output_shape() const
   {
-    return m_size;
+    return m_shape;
   }
 
   std::shared_ptr<Layer> ActivationLayerDef::create(std::default_random_engine& prng) const
@@ -74,13 +72,13 @@ namespace kann
   class ActivationGradientOperation : public Operation
   {
   public:
-    constexpr ActivationGradientOperation(size_t size, ActivationLayerDef::Type type)
-      : m_size(size), m_type(type) {}
+    constexpr ActivationGradientOperation(Shape shape, ActivationLayerDef::Type type)
+      : m_shape(shape), m_type(type) {}
 
   public:
-    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override
+    std::vector<Tensor> process(std::vector<Tensor> inputs) const override
     {
-      return operation_process_cwise_impl<2,1>(std::move(inputs), m_size, [this](double input, double output_gradient)
+      return operation_process_cwise_impl<2,1>(std::move(inputs), m_shape, [this](double input, double output_gradient)
       {
         switch(m_type)
         {
@@ -103,20 +101,20 @@ namespace kann
     }
 
   private:
-    size_t m_size;
+    Shape m_shape;
     ActivationLayerDef::Type m_type;
   };
 
   class ActivationOperation : public Operation
   {
   public:
-    constexpr ActivationOperation(size_t size, ActivationLayerDef::Type type)
-      : m_size(size), m_type(type) {}
+    constexpr ActivationOperation(Shape shape, ActivationLayerDef::Type type)
+      : m_shape(shape), m_type(type) {}
 
   public:
-    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override
+    std::vector<Tensor> process(std::vector<Tensor> inputs) const override
     {
-      return operation_process_cwise_impl<1,1>(std::move(inputs), m_size, [this](double input)
+      return operation_process_cwise_impl<1,1>(std::move(inputs), m_shape, [this](double input)
       {
         switch(m_type)
         {
@@ -134,18 +132,18 @@ namespace kann
 
     operation_t differentiate() const override
     {
-      return std::make_shared<ActivationGradientOperation>(m_size, m_type);
+      return std::make_shared<ActivationGradientOperation>(m_shape, m_type);
     }
 
   private:
-    size_t m_size;
+    Shape m_shape;
     ActivationLayerDef::Type m_type;
   };
 
   size_t ActivationLayerDef::process(Graph& graph, Info& info, size_t input_index) const
   {
     size_t output_index = graph.add_vertex();
-    operation_t op = std::make_shared<ActivationOperation>(m_size, m_type);
+    operation_t op = std::make_shared<ActivationOperation>(m_shape, m_type);
     graph.add_edge(std::move(op), {input_index}, {output_index});
     return output_index;
   }

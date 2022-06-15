@@ -15,8 +15,8 @@ namespace kann
     WeightLayerDef(size_t input_size, size_t output_size);
 
   public:
-    size_t input_size() const override;
-    size_t output_size() const override;
+    Shape input_shape() const override;
+    Shape output_shape() const override;
 
   public:
     std::shared_ptr<Layer> create(std::default_random_engine& prng) const override;
