@@ -1,10 +1,10 @@
 libkann_sources = [
   #'Initialize.cpp',
 
-  #'Tensor.cpp',
+  'Tensor.cpp',
 
   # Operations
-  #'operations/MatrixProduct.cpp',
+  'operations/MatrixProduct.cpp',
   #'operations/Reduce.cpp',
   #'operations/Copy.cpp',
   #'operations/Split.cpp',
