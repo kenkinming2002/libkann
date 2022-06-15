@@ -1,6 +1,7 @@
 #pragma once
 
 #include <libkann/Types.hpp>
+#include <libkann/Tensor.hpp>
 
 #include <vector>
 #include <assert.h>
@@ -13,7 +14,7 @@ namespace kann
     virtual ~Operation() = default;
 
   public:
-    virtual std::vector<tensor_t> process(std::vector<tensor_t> inputs) const
+    virtual std::vector<Tensor> process(std::vector<Tensor> inputs) const
     {
       assert(false && "Unimplemented");
     }
