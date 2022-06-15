@@ -11,8 +11,9 @@ libkann_sources = [
   #'operations/Concat.cpp',
   #'operations/Split2.cpp',
   #'operations/Concat2.cpp',
-  #'operations/Scale.cpp',
-  #'operations/Subtract.cpp',
+  'operations/Scale.cpp',
+  'operations/Add.cpp',
+  'operations/Subtract.cpp',
   #'operations/CrossCorrelation.cpp',
 
   # Executors

@@ -4,12 +4,12 @@
 
 namespace kann
 {
-  ScaleOperation::ScaleOperation(size_t size, double val)
-    : m_size(size), m_val(val) {}
+  ScaleOperation::ScaleOperation(Shape shape, double val)
+    : m_shape(shape), m_val(val) {}
 
-  std::vector<tensor_t> ScaleOperation::process(std::vector<tensor_t> inputs) const
+  std::vector<Tensor> ScaleOperation::process(std::vector<Tensor> inputs) const
   {
-    return operation_process_cwise_impl<1,1>(std::move(inputs), m_size, [this](double input) {
+    return operation_process_cwise_impl<1,1>(std::move(inputs), m_shape, [this](double input) {
       return std::make_tuple(input * m_val);
     });
   }
@@ -17,24 +17,24 @@ namespace kann
   class ScaleGradientOperation : public Operation
   {
   public:
-    ScaleGradientOperation(size_t size, double val)
-      : m_size(size), m_val(val) {}
+    ScaleGradientOperation(Shape shape, double val)
+      : m_shape(shape), m_val(val) {}
 
   public:
-    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const
+    std::vector<Tensor> process(std::vector<Tensor> inputs) const
     {
-      return operation_process_cwise_impl<2,1>(std::move(inputs), m_size, [this](double input, double output_gradient) {
+      return operation_process_cwise_impl<2,1>(std::move(inputs), m_shape, [this](double input, double output_gradient) {
         return std::make_tuple(output_gradient * m_val);
       });
     }
 
   private:
-    size_t m_size;
+    Shape m_shape;
     double m_val;
   };
 
   operation_t ScaleOperation::differentiate() const
   {
-    return std::make_shared<ScaleGradientOperation>(m_size, m_val);
+    return std::make_shared<ScaleGradientOperation>(m_shape, m_val);
   }
 }

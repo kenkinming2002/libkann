@@ -4,10 +4,10 @@
 
 namespace kann
 {
-  class SubtractOperation : public Operation
+  class AddOperation : public Operation
   {
   public:
-    SubtractOperation(Shape shape);
+    AddOperation(Shape shape);
 
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const override;
@@ -17,5 +17,6 @@ namespace kann
     Shape m_shape;
   };
 }
+
 
 
