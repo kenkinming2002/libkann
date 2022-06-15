@@ -2,6 +2,7 @@
 
 #include <libkann/Types.hpp>
 #include <libkann/Tag.hpp>
+#include <libkann/Shape.hpp>
 
 #include <range/v3/all.hpp>
 #include <yaml-cpp/yaml.h>
@@ -42,44 +43,44 @@ namespace kann
     virtual ~LayerDef() = default;
 
   public:
-    virtual size_t input_size() const = 0;
-    virtual size_t output_size() const = 0;
+    virtual Shape input_shape() const = 0;
+    virtual Shape output_shape() const = 0;
 
   public:
     struct Info
     {
-      std::vector<size_t> parameter_sizes;
+      std::vector<Shape>  parameter_shapes;
       std::vector<Tag>    parameter_tags;
       std::vector<size_t> parameter_indices;
 
-      std::vector<size_t> state_sizes;
+      std::vector<Shape> state_shapes;
       std::vector<size_t> input_state_indices;
       std::vector<size_t> output_state_indices;
 
-      void add_parameter(size_t size, Tag tag, size_t index)
+      void add_parameter(Shape shape, Tag tag, size_t index)
       {
-        parameter_sizes.push_back(size);
+        parameter_shapes.push_back(shape);
         parameter_tags.push_back(tag);
         parameter_indices.push_back(index);
       }
 
-      void add_state(size_t size, size_t input_index, size_t output_index)
+      void add_state(Shape shape, size_t input_index, size_t output_index)
       {
-        state_sizes.push_back(size);
+        state_shapes.push_back(shape);
         input_state_indices.push_back(input_index);
         output_state_indices.push_back(output_index);
       }
 
-      void add_parameters(size_t size, Tag tag, const std::vector<size_t>& indices)
+      void add_parameters(Shape shape, Tag tag, const std::vector<size_t>& indices)
       {
         for(size_t index : indices)
-          add_parameter(size, tag, index);
+          add_parameter(shape, tag, index);
       }
 
-      void add_states(size_t size, const std::vector<size_t>& input_indices, const std::vector<size_t>& output_indices)
+      void add_states(Shape shape, const std::vector<size_t>& input_indices, const std::vector<size_t>& output_indices)
       {
         for(const auto& [input_index, output_index] : ranges::views::zip(input_indices, output_indices))
-          add_state(size, input_index, output_index);
+          add_state(shape, input_index, output_index);
       }
     };
 

@@ -9,7 +9,7 @@
 
 namespace kann
 {
-  std::vector<tensor_t> predict(Layer& layer, Executor& executor, const std::vector<tensor_t>& inputs)
+  std::vector<Tensor> predict(Layer& layer, Executor& executor, const std::vector<Tensor>& inputs)
   {
     Context context;
     context.forward_pass(layer);
@@ -29,14 +29,14 @@ namespace kann
     };
 
     // Compute
-    std::vector<tensor_t> parameters = layer.get_parameters_all();
-    std::vector<tensor_t> states     = layer.get_states_all();
+    std::vector<Tensor> parameters = layer.get_parameters_all();
+    std::vector<Tensor> states     = layer.get_states_all();
 
-    std::vector<tensor_t> outputs;
+    std::vector<Tensor> outputs;
     outputs.reserve(inputs.size());
 
     ProgressBar progress_bar("training", inputs.size());
-    for(const tensor_t& input : inputs)
+    for(const Tensor& input : inputs)
     {
       auto executor_inputs = {{input}, parameters, std::move(states)};
       auto executor_outputs = executor.run(target, std::move(executor_inputs));

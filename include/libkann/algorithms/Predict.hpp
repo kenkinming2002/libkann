@@ -1,10 +1,11 @@
 #pragma once
 
 #include <libkann/Types.hpp>
+#include <libkann/Tensor.hpp>
 
 #include <vector>
 
 namespace kann
 {
-  std::vector<tensor_t> predict(Layer& layer, Executor& executor, const std::vector<tensor_t>& inputs);
+  std::vector<Tensor> predict(Layer& layer, Executor& executor, const std::vector<Tensor>& inputs);
 }
