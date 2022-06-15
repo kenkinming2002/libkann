@@ -1,5 +1,5 @@
 libkann_sources = [
-  #'Initialize.cpp',
+  'Initialize.cpp',
 
   'Tensor.cpp',
 
