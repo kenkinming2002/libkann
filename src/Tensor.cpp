@@ -6,27 +6,37 @@
 
 namespace kann
 {
+  using EigenArray  = Eigen::ArrayXd;
+  using EigenMatrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
+  template<typename Storage>
+  static inline auto to_eigen_array(const TensorBase<Storage>& tensor)
+  {
+    return EigenArray::Map(tensor.data(), tensor.size());
+  }
+
+  template<typename Storage>
+  static inline auto to_eigen_matrix(const TensorBase<Storage>& tensor)
+  {
+    assert(tensor.is_matrix());
+    return EigenMatrix::Map(tensor.data(),
+      tensor.shape().dimension(0),
+      tensor.shape().dimension(1)
+    );
+  }
+
+  namespace utils
+  {
+    size_t max_coeff(TensorRef value)
+    {
+      size_t coeff;
+      to_eigen_array(value).maxCoeff(&coeff);
+      return coeff;
+    }
+  }
+
   namespace math
   {
-    using EigenArray  = Eigen::ArrayXd;
-    using EigenMatrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-
-    template<typename Storage>
-    static inline auto to_eigen_array(const TensorBase<Storage>& tensor)
-    {
-      return EigenArray::Map(tensor.data(), tensor.size());
-    }
-
-    template<typename Storage>
-    static inline auto to_eigen_matrix(const TensorBase<Storage>& tensor)
-    {
-      assert(tensor.is_matrix());
-      return EigenMatrix::Map(tensor.data(),
-        tensor.shape().dimension(0),
-        tensor.shape().dimension(1)
-      );
-    }
-
     Tensor product(Tensor a, Tensor b, size_t M, size_t N, size_t K, bool transpose_a, bool transpose_b)
     {
       const auto& [shape_a1, shape_a2] = transpose_a ? a.shape().split(K, M) : a.shape().split(M, K);

@@ -203,6 +203,11 @@ namespace kann
   using MutableTensor    = TensorBase<MutableStorage>;
   using Tensor           = TensorBase<Storage>;
 
+  namespace utils
+  {
+    size_t max_coeff(TensorRef value);
+  }
+
   namespace math
   {
     /* X = x_1 * ... * x_m

@@ -5,7 +5,7 @@ layers:
     output_size : 30
 
   - type: "activation"
-    size: 30
+    shape: [30]
     function: "sigmoid"
 
   - type: "weight"
@@ -13,7 +13,7 @@ layers:
     output_size : 30
 
   - type: "activation"
-    size: 30
+    shape: [30]
     function: "sigmoid"
 
   - type: "weight"
@@ -21,7 +21,7 @@ layers:
     output_size : 30
 
   - type: "activation"
-    size: 30
+    shape: [30]
     function: "sigmoid"
 
   - type: "weight"
@@ -29,5 +29,5 @@ layers:
     output_size : 10
 
   - type: "activation"
-    size: 10
+    shape: [10]
     function: "sigmoid"
