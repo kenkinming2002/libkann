@@ -37,7 +37,7 @@ libkann_sources = [
   'datasets/write.cpp',
 
   # Optimizers
-  #'optimizers/SimpleOptimizer.cpp',
+  'optimizers/SimpleOptimizer.cpp',
   #'optimizers/AdamOptimizer.cpp',
 
   # Actual Machine Learning Training Algorithm
