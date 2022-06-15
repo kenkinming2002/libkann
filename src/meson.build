@@ -18,7 +18,7 @@ libkann_sources = [
 
   # Executors
   'Graph.cpp',
-  #'Executor.cpp',
+  'Executor.cpp',
   #'executors/DefaultExecutor.cpp',
   #'executors/ThreadedExecutor.cpp',
 

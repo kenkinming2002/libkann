@@ -1,6 +1,7 @@
 #pragma once
 
 #include <libkann/Types.hpp>
+#include <libkann/Tensor.hpp>
 #include <libkann/Graph.hpp>
 
 #include <vector>
@@ -25,6 +26,6 @@ namespace kann
     virtual ~Executor() = default;
 
   public:
-    virtual std::vector<std::vector<tensor_t>> run(const Target& target, std::vector<std::vector<tensor_t>> inputs) const = 0;
+    virtual std::vector<std::vector<Tensor>> run(const Target& target, std::vector<std::vector<Tensor>> inputs) const = 0;
   };
 }
