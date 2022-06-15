@@ -7,14 +7,14 @@
 
 namespace kann
 {
-  static inline void set_value(const Graph& graph, std::vector<tensor_t>& values, size_t index, tensor_t value)
+  static inline void set_value(const Graph& graph, std::vector<std::optional<Tensor>>& values, size_t index, Tensor value)
   {
     assert(!graph.vertex(index).in_edge_index);
     assert(!values[index]);
     values[index] = value;
   }
 
-  static inline tensor_t get_value(const Graph& graph, std::vector<tensor_t>& values, size_t index)
+  static inline Tensor get_value(const Graph& graph, std::vector<std::optional<Tensor>>& values, size_t index)
   {
     if(!values[index])
     {
@@ -23,11 +23,11 @@ namespace kann
 
       assert(vertex.in_edge_index);
       const Graph::Edge& edge = graph.edge(*vertex.in_edge_index);
-      std::vector<tensor_t> inputs = edge.input_indices
+      std::vector<Tensor> inputs = edge.input_indices
         | ranges::views::transform([&graph, &values](size_t input_index) { return get_value(graph, values, input_index); })
         | ranges::to_vector;
 
-      std::vector<tensor_t> outputs = edge.op->process(std::move(inputs));
+      std::vector<Tensor> outputs = edge.op->process(std::move(inputs));
       for(const auto& [output_index, output] : ranges::views::zip(edge.output_indices, outputs))
       {
         assert(!values[output_index]);
@@ -36,12 +36,12 @@ namespace kann
     }
 
     assert(values[index]);
-    return values[index];
+    return *values[index];
   }
 
-  std::vector<std::vector<tensor_t>> DefaultExecutor::run(const Target& target, std::vector<std::vector<tensor_t>> inputs) const
+  std::vector<std::vector<Tensor>> DefaultExecutor::run(const Target& target, std::vector<std::vector<Tensor>> inputs) const
   {
-    std::vector<tensor_t> values;
+    std::vector<std::optional<Tensor>> values;
     values.resize(target.graph.vertices_count());
 
     for(const auto& [i, sub_input_indices] : ranges::views::enumerate(target.input_indices))
