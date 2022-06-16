@@ -218,5 +218,19 @@ namespace kann
      * op(b): Y * Z
      * output: X * Z */
     Tensor product(Tensor a, Tensor b, size_t M, size_t N, size_t K, bool transpose_a, bool transpose_b);
+
+    /* X = x_1 * ... * x_m
+     * Y = y_1 * ... * y_k
+     * Z = z_1 * ... * z_n
+     *
+     * op(input):  X * Y * i_1 * i_2
+     * op(kernel): Y * Z * k_1 * k_2
+     * output:     X * Z * j_1 * j_2
+     *
+     * Effect: the same as product with X, Y, Z regarded as tensor of tensor of
+     *         rank i_1 * i_2, k_1 * k_2 and j_1 * j_2 respectively, and
+     *         multiplication replaced with 2d convolution/cross correlation. */
+    Tensor cross_correlate2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
+    Tensor convolve2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
   }
 }

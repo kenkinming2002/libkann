@@ -77,6 +77,23 @@ namespace kann
       return std::make_pair(result1, result2);
     }
 
+    constexpr std::tuple<Shape, Shape, Shape> split(size_t rank1, size_t rank2, size_t rank3) const
+    {
+      assert(rank1+rank2==m_dimension_count);
+
+      Shape result1, result2, result3;
+      result1.m_dimension_count = rank1;
+      result2.m_dimension_count = rank2;
+      result3.m_dimension_count = rank3;
+      for(size_t i=0; i<rank1; ++i)
+        result1.m_dimensions[i] = m_dimensions[i];
+      for(size_t i=0; i<rank2; ++i)
+        result2.m_dimensions[i] = m_dimensions[rank1+i];
+      for(size_t i=0; i<rank3; ++i)
+        result3.m_dimensions[i] = m_dimensions[rank1+rank2+i];
+      return std::make_tuple(result1, result2, result3);
+    }
+
     static constexpr Shape concat(Shape a, Shape b)
     {
       Shape shape;
@@ -88,6 +105,27 @@ namespace kann
         shape.m_dimensions[a.m_dimension_count+i] = b.m_dimensions[i];
       return shape;
     }
+
+    static constexpr Shape concat(Shape a, Shape b, Shape c)
+    {
+      Shape shape;
+      shape.m_dimension_count = a.m_dimension_count + b.m_dimension_count + c.m_dimension_count;
+      assert(shape.m_dimension_count <= MAX_DIMENSION);
+      for(size_t i=0; i<a.m_dimension_count; ++i)
+        shape.m_dimensions[i] = a.m_dimensions[i];
+      for(size_t i=0; i<b.m_dimension_count; ++i)
+        shape.m_dimensions[a.m_dimension_count+i] = b.m_dimensions[i];
+      for(size_t i=0; i<c.m_dimension_count; ++i)
+        shape.m_dimensions[a.m_dimension_count+b.m_dimension_count+i] = c.m_dimensions[i];
+      return shape;
+    }
+
+  public:
+    constexpr Shape front(size_t count) const      { assert(m_dimension_count>=count); return this->split(count, m_dimension_count - count).first; }
+    constexpr Shape drop_front(size_t count) const { assert(m_dimension_count>=count); return this->split(count, m_dimension_count - count).second; }
+
+    constexpr Shape back(size_t count) const      { assert(m_dimension_count>=count); return this->split(m_dimension_count - count, count).second; }
+    constexpr Shape drop_back(size_t count) const { assert(m_dimension_count>=count); return this->split(m_dimension_count - count, count).first; }
 
   private:
     // TODO: Use fixed size vector
