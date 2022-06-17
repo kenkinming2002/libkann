@@ -217,7 +217,7 @@ namespace kann
      * op(a): X * Y
      * op(b): Y * Z
      * output: X * Z */
-    Tensor product(Tensor a, Tensor b, size_t M, size_t N, size_t K, bool transpose_a, bool transpose_b);
+    Tensor product(Tensor a, Tensor b, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_a, bool transpose_b);
 
     /* X = x_1 * ... * x_m
      * Y = y_1 * ... * y_k

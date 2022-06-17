@@ -37,10 +37,10 @@ namespace kann
 
   namespace math
   {
-    Tensor product(Tensor a, Tensor b, size_t M, size_t N, size_t K, bool transpose_a, bool transpose_b)
+    Tensor product(Tensor a, Tensor b, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_a, bool transpose_b)
     {
-      const auto& [shape_a1, shape_a2] = transpose_a ? a.shape().split(K, M) : a.shape().split(M, K);
-      const auto& [shape_b1, shape_b2] = transpose_b ? b.shape().split(N, K) : b.shape().split(K, N);
+      const auto& [shape_a1, shape_a2] = transpose_a ? a.shape().split(rank_k, rank_m) : a.shape().split(rank_m, rank_k);
+      const auto& [shape_b1, shape_b2] = transpose_b ? b.shape().split(rank_n, rank_k) : b.shape().split(rank_k, rank_n);
 
       const auto& [shape_m, shape_k1] = transpose_a ? std::make_pair(shape_a2, shape_a1) :std::make_pair(shape_a1, shape_a2);
       const auto& [shape_k2, shape_n] = transpose_b ? std::make_pair(shape_b2, shape_b1) :std::make_pair(shape_b1, shape_b2);
