@@ -12,7 +12,6 @@ namespace kann
 
   public:
     DenseLayerDef() = default;
-    DenseLayerDef(size_t input_size, size_t output_size);
 
   public:
     Shape input_shape() const override;
@@ -23,6 +22,6 @@ namespace kann
     size_t process(Graph& graph, Info& info, size_t input_index) const override;
 
   private:
-    size_t m_input_size, m_output_size;
+    Shape m_input_shape, m_output_shape;
   };
 }

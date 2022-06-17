@@ -1,32 +1,32 @@
 type: "sequential"
 layers:
   - type: "dense"
-    input_size : 784
-    output_size : 30
+    input_shape : [784]
+    output_shape : [30]
 
   - type: "activation"
     shape: [30]
     function: "sigmoid"
 
   - type: "dense"
-    input_size : 30
-    output_size : 30
+    input_shape : [30]
+    output_shape : [30]
 
   - type: "activation"
     shape: [30]
     function: "sigmoid"
 
   - type: "dense"
-    input_size : 30
-    output_size : 30
+    input_shape : [30]
+    output_shape : [30]
 
   - type: "activation"
     shape: [30]
     function: "sigmoid"
 
   - type: "dense"
-    input_size : 30
-    output_size : 10
+    input_shape : [30]
+    output_shape : [10]
 
   - type: "activation"
     shape: [10]
