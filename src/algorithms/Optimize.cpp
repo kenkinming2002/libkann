@@ -13,11 +13,11 @@
 
 namespace kann
 {
-  void optimize(Layer& layer, Tag tag, const Optimizer& optimizer, Executor& executor, const std::vector<tensor_t>& inputs, const std::vector<tensor_t>& expected_outputs)
+  void optimize(Layer& layer, Tag tag, const Optimizer& optimizer, Executor& executor, const std::vector<Tensor>& inputs, const std::vector<Tensor>& expected_outputs)
   {
     Context context;
     context.forward_pass(layer);
-    context.gradient_pass(layer.def->output_size());
+    context.gradient_pass(layer.def->output_shape());
     context.backward_pass();
     context.training_pass(optimizer);
 
@@ -46,13 +46,13 @@ namespace kann
     };
 
     // Compute
-    std::vector<tensor_t> parameters       = layer.get_parameters_all();
-    std::vector<tensor_t> states           = layer.get_states_all();
+    std::vector<Tensor> parameters       = layer.get_parameters_all();
+    std::vector<Tensor> states           = layer.get_states_all();
 
-    std::vector<tensor_t> state_gradient_values = std::move(context.state_gradient_values);
-    std::vector<tensor_t> optimizer_states      = std::move(context.optimizer_initial_state_values);
+    std::vector<Tensor> state_gradient_values = std::move(context.state_gradient_values);
+    std::vector<Tensor> optimizer_states      = std::move(context.optimizer_initial_state_values);
 
-    std::vector<tensor_t> outputs;
+    std::vector<Tensor> outputs;
     outputs.reserve(inputs.size());
 
     ProgressBar progress_bar("training", inputs.size());

@@ -9,14 +9,15 @@ namespace kann
   class CrossCorrelationOperation : public Operation
   {
   public:
-    CrossCorrelationOperation(Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
+    CrossCorrelationOperation(Vec2 kernel_size, Vec2 padding_size);
 
   public:
-    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override;
+    std::vector<Tensor> process(std::vector<Tensor> inputs) const override;
     operation_t differentiate() const override;
 
   private:
-    Vec2 m_input_size, m_output_size, m_kernel_size;
+    Vec2 m_kernel_size;
+    Vec2 m_padding_size;
   };
 }
 

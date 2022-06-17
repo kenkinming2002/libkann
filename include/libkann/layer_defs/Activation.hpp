@@ -20,18 +20,17 @@ namespace kann
 
   public:
     ActivationLayerDef() = default;
-    ActivationLayerDef(size_t size, Type type);
 
   public:
-    size_t input_size() const override;
-    size_t output_size() const override;
+    Shape input_shape() const override;
+    Shape output_shape() const override;
 
   public:
     std::shared_ptr<Layer> create(std::default_random_engine& prng) const override;
     size_t process(Graph& graph, Info& info, size_t input_index) const override;
 
   private:
-    size_t m_size;
+    Shape m_shape;
     Type m_type;
   };
 }

@@ -1,20 +1,21 @@
 #pragma once
 
 #include <libkann/Operation.hpp>
+#include <libkann/Shape.hpp>
 
 namespace kann
 {
   class ScaleOperation : public Operation
   {
   public:
-    ScaleOperation(size_t size, double val);
+    ScaleOperation(Shape shape, double val);
 
   public:
-    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override;
+    std::vector<Tensor> process(std::vector<Tensor> inputs) const override;
     operation_t differentiate() const override;
 
   private:
-    size_t m_size;
+    Shape m_shape;
     double m_val;
   };
 }

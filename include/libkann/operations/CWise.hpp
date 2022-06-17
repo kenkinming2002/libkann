@@ -2,7 +2,6 @@
 
 #include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
-#include <libkann/operations/Impl.hpp>
 
 #include <vector>
 #include <tuple>
@@ -12,23 +11,22 @@ namespace kann
 {
   /* impl takes multiple argument and return a tuple like type */
   template<size_t M, size_t N, typename Impl>
-  std::vector<tensor_t> operation_process_cwise_impl(std::vector<tensor_t> inputs, size_t size, Impl impl)
+  std::vector<Tensor> operation_process_cwise_impl(std::vector<Tensor> inputs, Shape shape, Impl impl)
   {
-    return operation_process_impl<M, N>(std::move(inputs), [&](const auto&... inputs)
-    {
-      return [&]<std::size_t... Js>(std::index_sequence<Js...>){
-        std::array<Tensor, N> outputs;
-        for(Tensor& output : outputs)
-          output = Tensor(size);
+    return [&]<std::size_t... Is, std::size_t... Js>(std::index_sequence<Is...>, std::index_sequence<Js...>) {
+      assert(inputs.size() == M);
+      assert(ranges::all_of(inputs, [&shape](const Tensor& input) { return input.shape() == shape; }));
 
-        for(size_t i=0; i<size; ++i)
-        {
-          auto cwise_outputs = impl(inputs[i]...);
-          ((outputs[Js][i] = std::move(std::get<Js>(cwise_outputs))), ...);
-        }
+      std::array<MutableTensor, N> outputs{((void)Js, MutableTensor::create(shape))...};
+      const size_t size = shape.size();
+      for(size_t i = 0; i<size; ++i)
+      {
+        auto cwise_outputs = impl(inputs[Is].get(i)...);
+        static_assert(std::tuple_size_v<decltype(cwise_outputs)> == N);
+        ((outputs[Js].get(i) = std::get<Js>(cwise_outputs)), ...);
+      }
 
-        return outputs;
-      }(std::make_index_sequence<N>());
-    });
+      return std::vector{outputs[Js].as_const()...};
+    }(std::make_index_sequence<M>(), std::make_index_sequence<N>());
   }
 }

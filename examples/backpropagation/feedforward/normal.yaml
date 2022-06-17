@@ -1,33 +1,33 @@
 type: "sequential"
 layers:
-  - type: "weight"
-    input_size : 784
-    output_size : 30
+  - type: "dense"
+    input_shape : [784]
+    output_shape : [30]
 
   - type: "activation"
-    size: 30
+    shape: [30]
     function: "sigmoid"
 
-  - type: "weight"
-    input_size : 30
-    output_size : 30
+  - type: "dense"
+    input_shape : [30]
+    output_shape : [30]
 
   - type: "activation"
-    size: 30
+    shape: [30]
     function: "sigmoid"
 
-  - type: "weight"
-    input_size : 30
-    output_size : 30
+  - type: "dense"
+    input_shape : [30]
+    output_shape : [30]
 
   - type: "activation"
-    size: 30
+    shape: [30]
     function: "sigmoid"
 
-  - type: "weight"
-    input_size : 30
-    output_size : 10
+  - type: "dense"
+    input_shape : [30]
+    output_shape : [10]
 
   - type: "activation"
-    size: 10
+    shape: [10]
     function: "sigmoid"

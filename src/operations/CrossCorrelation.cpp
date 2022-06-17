@@ -4,40 +4,44 @@
 
 namespace kann
 {
-  CrossCorrelationOperation::CrossCorrelationOperation(Vec2 input_size, Vec2 output_size, Vec2 kernel_size)
-    : m_input_size(input_size), m_output_size(output_size), m_kernel_size(kernel_size) {}
+  CrossCorrelationOperation::CrossCorrelationOperation(Vec2 kernel_size, Vec2 padding_size)
+    : m_kernel_size(kernel_size), m_padding_size(padding_size) {}
 
-  std::vector<tensor_t> CrossCorrelationOperation::process(std::vector<tensor_t> inputs) const
+  std::vector<Tensor> CrossCorrelationOperation::process(std::vector<Tensor> inputs) const
   {
-    return operation_process_impl<2, 1>(std::move(inputs), [this](const Tensor& input, const Tensor& kernel) {
-      return std::make_tuple(Tensor::cross_correlate(input, kernel, m_input_size, m_output_size, m_kernel_size));
+    return operation_process_impl<2, 1>(std::move(inputs), [this](const Tensor& inputs, const Tensor& kernels) {
+      return std::make_tuple(math::cross_correlate2d(inputs, kernels,
+            inputs.shape().rank() - 3,
+            kernels.shape().rank() - 3,
+            1, false, false, m_padding_size));
     });
   }
 
   class CrossCorrelationGradientOperation : public Operation
   {
   public:
-    CrossCorrelationGradientOperation(Vec2 input_size, Vec2 output_size, Vec2 kernel_size)
-      : m_input_size(input_size), m_output_size(output_size), m_kernel_size(kernel_size) {}
+    CrossCorrelationGradientOperation(Vec2 kernel_size, Vec2 padding_size)
+      : m_kernel_size(kernel_size), m_padding_size(padding_size) {}
 
   public:
-    std::vector<tensor_t> process(std::vector<tensor_t> inputs) const override
+    std::vector<Tensor> process(std::vector<Tensor> inputs) const override
     {
-      return operation_process_impl<3, 2>(std::move(inputs), [this](const Tensor& input, const Tensor& kernel, const Tensor& output_gradient) {
+      return operation_process_impl<3, 2>(std::move(inputs), [this](const Tensor& inputs, const Tensor& kernels, const Tensor& output_gradients) {
         return std::make_tuple(
-          Tensor::convolve(output_gradient, kernel, m_output_size, m_input_size, m_kernel_size),
-          Tensor::cross_correlate(input, output_gradient, m_input_size, m_kernel_size, m_output_size)
+          math::convolve2d(output_gradients, kernels,       inputs.shape().rank() - 3, 1, kernels.shape().rank() - 3, false, true, m_kernel_size - m_padding_size - Vec2(1,1) ),
+          math::cross_correlate2d(inputs, output_gradients, 1, kernels.shape().rank() - 3, inputs.shape().rank() - 3, false, true, m_padding_size)
         );
       });
     }
 
   private:
-    Vec2 m_input_size, m_output_size, m_kernel_size;
+    Vec2 m_kernel_size;
+    Vec2 m_padding_size;
   };
 
   operation_t CrossCorrelationOperation::differentiate() const
   {
-    return std::make_shared<CrossCorrelationGradientOperation>(m_input_size, m_output_size, m_kernel_size);
+    return std::make_shared<CrossCorrelationGradientOperation>(m_kernel_size, m_padding_size);
   }
 }
 

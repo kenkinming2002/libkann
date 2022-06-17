@@ -11,7 +11,7 @@ namespace kann
     AdamOptimizer(double alpha, double beta1, double beta2, double epsilon);
 
   public:
-    size_t process(Graph& graph, Info& info, size_t size, size_t index, size_t gradient_index) const override;
+    size_t process(Graph& graph, Info& info, Shape shape, size_t index, size_t gradient_index) const override;
 
   private:
     double m_alpha;

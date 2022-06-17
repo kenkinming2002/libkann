@@ -28,14 +28,14 @@ namespace kann
     return layer_def;
   }
 
-  size_t SequentialLayerDef::input_size() const
+  Shape SequentialLayerDef::input_shape() const
   {
-    return sub_layer_defs.front()->input_size();
+    return sub_layer_defs.front()->input_shape();
   }
 
-  size_t SequentialLayerDef::output_size() const
+  Shape SequentialLayerDef::output_shape() const
   {
-    return sub_layer_defs.back()->output_size();
+    return sub_layer_defs.back()->output_shape();
   }
 
 

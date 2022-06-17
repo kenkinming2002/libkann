@@ -1,133 +1,238 @@
 #pragma once
 
 #include <libkann/Vec.hpp>
+#include <libkann/Shape.hpp>
 
-#include <Eigen/Eigen>
+#include <range/v3/all.hpp>
 
-#include <random>
-#include <span>
 #include <memory>
 
 namespace kann
 {
-  struct Tensor
+  /* A storage could be
+   *
+   * 1: MutableRefStorage
+   * 2: RefStorage
+   * 1: SharedStorage
+   * 4: ExclusiveStorage
+   *
+   * where the convesion diagram is
+   *    Storage     ->    RefStorage
+   *        ^                  ^
+   *        |                  |
+   * MutableStorage -> MutableRefStorage
+   *
+   * To facilitate conversion, there are possibly 2 method on each storage:
+   * 1: as_const()
+   * 2: as_ref()
+   *
+   * A storage of given size could also be
+   * created for MutableStorage via member method create(size_t). While it may
+   * be tempting to create the same method for Storage, creating storage and
+   * then not being able to modify it is rather pointness, which is why it is
+   * not provided. */
+
+  template<typename StorageType>
+  struct TensorBase
   {
   public:
-    Tensor() = default;
-    Tensor(size_t size) : m_size(size)
-    {
-      m_values = std::make_unique_for_overwrite<double[]>(m_size);
-    }
-
-  // Properties
-  public:
-    size_t size() const { return m_size; }
-
-    double* data() { return m_values.get(); }
-    const double* data() const { return m_values.get(); }
+    TensorBase(StorageType storage, size_t offset, Shape shape)
+      : m_storage(std::move(storage)), m_offset(std::move(offset)), m_shape(std::move(shape)) {}
 
   public:
-    double& operator[](size_t i)             { assert(i<size()); return m_values[i]; }
-    const double& operator[](size_t i) const { assert(i<size()); return m_values[i]; }
-
-  public:
-    template<typename NullaryOp>
-    static Tensor nullaryExpr(size_t size, const NullaryOp& op)
+    static TensorBase create(Shape shape)
     {
-      Tensor result(size);
-      for(size_t i=0; i<size; ++i)
-        result[i] = op();
-
-      return result;
-    }
-
-    template<typename UnaryOp>
-    static Tensor unaryExpr(const Tensor& value, const UnaryOp& op)
-    {
-      Tensor result(value.size());
-      for(size_t i=0; i<value.size(); ++i)
-        result[i] = op(value[i]);
-
-      return result;
-    }
-
-    template<typename BinaryOp>
-    static Tensor binaryExpr(const Tensor& lhs, const Tensor& rhs, const BinaryOp& op)
-    {
-      assert(lhs.size() == rhs.size());
-      const size_t size = lhs.size();
-
-      Tensor result(lhs.size());
-      for(size_t i=0; i<size; ++i)
-        result[i] = op(lhs[i], rhs[i]);
-
-      return result;
-    }
-
-    template<typename TernaryOp>
-    static Tensor ternaryExpr(const Tensor& arg1, const Tensor& arg2, const Tensor& arg3, const TernaryOp& op)
-    {
-      assert(arg1.size() == arg2.size() && arg2.size() == arg3.size());
-      const size_t size = arg1.size();
-
-      Tensor result(size);
-      for(size_t i=0; i<size; ++i)
-        result[i] = op(arg1[i], arg2[i], arg3[i]);
-
-      return result;
+      size_t size = shape.size();
+      return TensorBase(StorageType::create(size), 0, std::move(shape));
     }
 
   public:
-    static Tensor constant(size_t size, double value)
+    // Explicit namespace qualification to subvert injected class name to use
+    // class template argument deduction
+    auto as_const() { return kann::TensorBase(m_storage.as_const(), m_offset, m_shape); }
+    auto as_ref() const { return kann::TensorBase(m_storage.as_ref(), m_offset, m_shape); }
+
+  // Indexing and reshaping operation
+  public:
+    TensorBase operator[](size_t i) const
     {
-      return nullaryExpr(size, [&](){
-        return value;
-      });
+      Shape new_shape = m_shape.split(1, m_shape.rank() - 1).second;
+      size_t stride = new_shape.size();
+      return TensorBase(m_storage, m_offset + i * stride, std::move(new_shape));
+    }
+
+    TensorBase reshape(Shape new_shape) const
+    {
+      assert(m_shape.size() == new_shape.size());
+      return TensorBase(m_storage, m_offset, new_shape);
+    }
+
+  public:
+    auto data() const { return m_storage.data() + m_offset; }
+    auto size() const { return m_shape.size(); }
+
+  public:
+    auto& get(size_t i) const { assert(i<size()); return data()[i]; }
+
+  public:
+    bool is_scalar() const { return m_shape.is_scalar(); }
+    bool is_vector() const { return m_shape.is_vector(); }
+    bool is_matrix() const { return m_shape.is_matrix(); }
+
+  public:
+    const Shape& shape() const { return m_shape; }
+
+  public:
+    void fill(double value)
+    {
+      ranges::fill_n(data(), size(), value);
     }
 
     template<typename PRNG>
-    static Tensor gaussian(size_t size, PRNG& prng, double mean, double variance)
+    void fill_normal(PRNG& prng, double mean, double stddev)
     {
-      std::normal_distribution<double> dist(mean, variance);
-      return nullaryExpr(size, [&]() {
-        return dist(prng);
-      });
+      std::normal_distribution<double> dist(mean, stddev);
+      ranges::generate_n(data(), size(), [&]() { return dist(prng); });
     }
 
   public:
-    static Tensor cross_correlate(const Tensor& input, const Tensor& kernel, Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
-    static Tensor convolve(const Tensor& input, const Tensor& kernel, Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
+    static TensorBase constant(Shape shape, double value)
+    {
+      TensorBase result = TensorBase::create(std::move(shape));
+      result.fill(value);
+      return result;
+    }
 
-  public:
-    static Tensor reduce(std::vector<const Tensor*> values);
+    template<typename PRNG>
+    static TensorBase normal(Shape shape, PRNG& prng, double mean, double stddev)
+    {
+      TensorBase result = TensorBase::create(std::move(shape));
+      result.fill_normal(prng, mean, stddev);
+      return result;
+    }
 
-  public:
-    static Tensor concat(std::vector<const Tensor*> values, size_t size, size_t count);
-    static std::vector<Tensor> split(const Tensor& value, size_t size, size_t count);
+  private:
+    StorageType m_storage;
 
-  // Helpers
-  public:
-    double& asScalar()             { assert(m_size == 1); return m_values[0]; }
-    const double& asScalar() const { assert(m_size == 1); return m_values[0]; }
-
-  public:
-    auto asArray()       & { return Eigen::ArrayXd::Map(data(), size()); }
-    auto asArray() const & { return Eigen::ArrayXd::Map(data(), size()); }
-
-  public:
-    auto asVector()       & { return Eigen::VectorXd::Map(data(), size()); }
-    auto asVector() const & { return Eigen::VectorXd::Map(data(), size()); }
-
-  public:
-    auto asRowVector()       & { return Eigen::RowVectorXd::Map(data(), size()); }
-    auto asRowVector() const & { return Eigen::RowVectorXd::Map(data(), size()); }
-
-  public:
-    auto asMatrix(size_t rows, size_t cols)       & { assert(size() == rows * cols); return Eigen::MatrixXd::Map(data(), rows, cols); }
-    auto asMatrix(size_t rows, size_t cols) const & { assert(size() == rows * cols); return Eigen::MatrixXd::Map(data(), rows, cols); }
-
-  public:
-    size_t m_size;
-    std::unique_ptr<double[]> m_values;
+  private:
+    size_t m_offset;
+    Shape m_shape;
   };
+
+  struct RefStorage
+  {
+  public:
+    RefStorage(const double* data, size_t size) : m_data(data), m_size(size) {}
+
+  public:
+    const double* data() const { return m_data; }
+    size_t size() const { return m_size; }
+
+  public:
+    RefStorage as_const() const { return *this; }
+    RefStorage as_ref() const { return *this; }
+
+  private:
+    const double* m_data;
+    size_t m_size;
+  };
+
+  struct MutableRefStorage
+  {
+  public:
+    MutableRefStorage(double* data, size_t size) : m_data(data), m_size(size) {}
+
+  public:
+    double* data() const { return m_data; }
+    size_t size() const { return m_size; }
+
+  public:
+    RefStorage as_const() const { return RefStorage(m_data, m_size); }
+    MutableRefStorage as_ref() const { return *this; }
+
+  private:
+    double* m_data;
+    size_t m_size;
+  };
+
+  struct Storage
+  {
+  public:
+    Storage(std::shared_ptr<const double[]> data, size_t size) : m_data(std::move(data)), m_size(size) {}
+
+  public:
+    const double* data() const { return m_data.get(); }
+    size_t size() const { return m_size; }
+
+  public:
+    Storage as_const() const { return *this; }
+    RefStorage as_ref() const { return RefStorage(data(), size()); }
+
+  private:
+    std::shared_ptr<const double[]> m_data;
+    size_t m_size;
+  };
+
+  struct MutableStorage
+  {
+  public:
+    MutableStorage(std::shared_ptr<double[]> data, size_t size) : m_data(std::move(data)), m_size(size) {}
+
+  public:
+    double* data() const { return m_data.get(); }
+    size_t size() const { return m_size; }
+
+  public:
+    Storage as_const() const { return Storage(m_data, m_size); }
+    MutableRefStorage as_ref() const { return MutableRefStorage(data(), size()); }
+
+  public:
+    static MutableStorage create(size_t size)
+    {
+      // make_shared_for_overwrite is available only for gcc 12
+      return MutableStorage(std::make_unique_for_overwrite<double[]>(size), size);
+    }
+
+  private:
+    std::shared_ptr<double[]> m_data;
+    size_t m_size;
+  };
+
+  using MutableTensorRef = TensorBase<MutableRefStorage>;
+  using TensorRef        = TensorBase<RefStorage>;
+  using MutableTensor    = TensorBase<MutableStorage>;
+  using Tensor           = TensorBase<Storage>;
+
+  namespace utils
+  {
+    size_t max_coeff(TensorRef value);
+  }
+
+  namespace math
+  {
+    double norm(TensorRef value);
+
+    /* X = x_1 * ... * x_m
+     * Y = y_1 * ... * y_k
+     * Z = z_1 * ... * z_n
+     *
+     * op(a): X * Y
+     * op(b): Y * Z
+     * output: X * Z */
+    Tensor product(Tensor a, Tensor b, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_a, bool transpose_b);
+
+    /* X = x_1 * ... * x_m
+     * Y = y_1 * ... * y_k
+     * Z = z_1 * ... * z_n
+     *
+     * op(input):  X * Y * i_1 * i_2
+     * op(kernel): Y * Z * k_1 * k_2
+     * output:     X * Z * j_1 * j_2
+     *
+     * Effect: the same as product with X, Y, Z regarded as tensor of tensor of
+     *         rank i_1 * i_2, k_1 * k_2 and j_1 * j_2 respectively, and
+     *         multiplication replaced with 2d convolution/cross correlation. */
+    Tensor cross_correlate2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
+    Tensor convolve2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
+  }
 }
