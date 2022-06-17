@@ -20,7 +20,7 @@ namespace kann
     {
       assert(dimensions.size() <= MAX_DIMENSION);
       Shape shape;
-      shape.m_dimension_count = dimensions.size();
+      shape.m_rank = dimensions.size();
       for(size_t i=0; i<dimensions.size(); ++i)
         shape.m_dimensions[i] = dimensions[i];
       return shape;
@@ -29,22 +29,22 @@ namespace kann
     static std::vector<size_t> to_vector(Shape shape)
     {
       return shape.m_dimensions
-        | ranges::views::take_exactly(shape.m_dimension_count)
+        | ranges::views::take_exactly(shape.m_rank)
         | ranges::to_vector;
     }
 
   public:
-    constexpr Shape() : m_dimension_count(0) {}
+    constexpr Shape() : m_rank(0) {}
     template<typename... Dimensions>
     constexpr explicit Shape(Dimensions... dimensions)
-      : m_dimension_count(sizeof...(Dimensions)),
+      : m_rank(sizeof...(Dimensions)),
         m_dimensions{static_cast<size_t>(dimensions)...} {}
 
   public:
-    constexpr size_t dimension_count() const { return m_dimension_count; }
+    constexpr size_t rank() const { return m_rank; }
     constexpr size_t dimension(size_t i) const
     {
-      assert(i<dimension_count());
+      assert(i<rank());
       return m_dimensions[i];
     }
 
@@ -52,24 +52,24 @@ namespace kann
     constexpr size_t size() const
     {
       size_t size = 1;
-      for(size_t i=0; i<dimension_count(); ++i)
+      for(size_t i=0; i<rank(); ++i)
         size *= dimension(i);
       return size;
     }
 
   public:
-    bool is_scalar() const { return dimension_count() == 0; }
-    bool is_vector() const { return dimension_count() == 1; }
-    bool is_matrix() const { return dimension_count() == 2; }
+    bool is_scalar() const { return rank() == 0; }
+    bool is_vector() const { return rank() == 1; }
+    bool is_matrix() const { return rank() == 2; }
 
   public:
     constexpr std::pair<Shape, Shape> split(size_t rank1, size_t rank2) const
     {
-      assert(rank1+rank2==m_dimension_count);
+      assert(rank1+rank2==m_rank);
 
       Shape result1, result2;
-      result1.m_dimension_count = rank1;
-      result2.m_dimension_count = rank2;
+      result1.m_rank = rank1;
+      result2.m_rank = rank2;
       for(size_t i=0; i<rank1; ++i)
         result1.m_dimensions[i] = m_dimensions[i];
       for(size_t i=0; i<rank2; ++i)
@@ -79,12 +79,12 @@ namespace kann
 
     constexpr std::tuple<Shape, Shape, Shape> split(size_t rank1, size_t rank2, size_t rank3) const
     {
-      assert(rank1+rank2==m_dimension_count);
+      assert(rank1+rank2==m_rank);
 
       Shape result1, result2, result3;
-      result1.m_dimension_count = rank1;
-      result2.m_dimension_count = rank2;
-      result3.m_dimension_count = rank3;
+      result1.m_rank = rank1;
+      result2.m_rank = rank2;
+      result3.m_rank = rank3;
       for(size_t i=0; i<rank1; ++i)
         result1.m_dimensions[i] = m_dimensions[i];
       for(size_t i=0; i<rank2; ++i)
@@ -97,48 +97,48 @@ namespace kann
     static constexpr Shape concat(Shape a, Shape b)
     {
       Shape shape;
-      shape.m_dimension_count = a.m_dimension_count + b.m_dimension_count;
-      assert(shape.m_dimension_count <= MAX_DIMENSION);
-      for(size_t i=0; i<a.m_dimension_count; ++i)
+      shape.m_rank = a.m_rank + b.m_rank;
+      assert(shape.m_rank <= MAX_DIMENSION);
+      for(size_t i=0; i<a.m_rank; ++i)
         shape.m_dimensions[i] = a.m_dimensions[i];
-      for(size_t i=0; i<b.m_dimension_count; ++i)
-        shape.m_dimensions[a.m_dimension_count+i] = b.m_dimensions[i];
+      for(size_t i=0; i<b.m_rank; ++i)
+        shape.m_dimensions[a.m_rank+i] = b.m_dimensions[i];
       return shape;
     }
 
     static constexpr Shape concat(Shape a, Shape b, Shape c)
     {
       Shape shape;
-      shape.m_dimension_count = a.m_dimension_count + b.m_dimension_count + c.m_dimension_count;
-      assert(shape.m_dimension_count <= MAX_DIMENSION);
-      for(size_t i=0; i<a.m_dimension_count; ++i)
+      shape.m_rank = a.m_rank + b.m_rank + c.m_rank;
+      assert(shape.m_rank <= MAX_DIMENSION);
+      for(size_t i=0; i<a.m_rank; ++i)
         shape.m_dimensions[i] = a.m_dimensions[i];
-      for(size_t i=0; i<b.m_dimension_count; ++i)
-        shape.m_dimensions[a.m_dimension_count+i] = b.m_dimensions[i];
-      for(size_t i=0; i<c.m_dimension_count; ++i)
-        shape.m_dimensions[a.m_dimension_count+b.m_dimension_count+i] = c.m_dimensions[i];
+      for(size_t i=0; i<b.m_rank; ++i)
+        shape.m_dimensions[a.m_rank+i] = b.m_dimensions[i];
+      for(size_t i=0; i<c.m_rank; ++i)
+        shape.m_dimensions[a.m_rank+b.m_rank+i] = c.m_dimensions[i];
       return shape;
     }
 
   public:
-    constexpr Shape front(size_t count) const      { assert(m_dimension_count>=count); return this->split(count, m_dimension_count - count).first; }
-    constexpr Shape drop_front(size_t count) const { assert(m_dimension_count>=count); return this->split(count, m_dimension_count - count).second; }
+    constexpr Shape front(size_t count) const      { assert(m_rank>=count); return this->split(count, m_rank - count).first; }
+    constexpr Shape drop_front(size_t count) const { assert(m_rank>=count); return this->split(count, m_rank - count).second; }
 
-    constexpr Shape back(size_t count) const      { assert(m_dimension_count>=count); return this->split(m_dimension_count - count, count).second; }
-    constexpr Shape drop_back(size_t count) const { assert(m_dimension_count>=count); return this->split(m_dimension_count - count, count).first; }
+    constexpr Shape back(size_t count) const      { assert(m_rank>=count); return this->split(m_rank - count, count).second; }
+    constexpr Shape drop_back(size_t count) const { assert(m_rank>=count); return this->split(m_rank - count, count).first; }
 
   private:
     // TODO: Use fixed size vector
-    size_t m_dimension_count;
+    size_t m_rank;
     std::array<size_t, MAX_DIMENSION> m_dimensions;
   };
 
   inline bool operator==(const Shape& lhs, const Shape& rhs)
   {
-    if(lhs.dimension_count() != rhs.dimension_count())
+    if(lhs.rank() != rhs.rank())
       return false;
 
-    for(size_t i=0; i<lhs.dimension_count(); ++i)
+    for(size_t i=0; i<lhs.rank(); ++i)
       if(lhs.dimension(i) != rhs.dimension(i))
         return false;
 

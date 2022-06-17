@@ -131,8 +131,8 @@ namespace kann
 
     static inline Shape get_output_shape(Shape input_shape, Shape kernel_shape, Vec2 padding_size)
     {
-      assert(input_shape.dimension_count() == 2);
-      assert(kernel_shape.dimension_count() == 2);
+      assert(input_shape.rank() == 2);
+      assert(kernel_shape.rank() == 2);
       Vec2 input_size  = Vec2(input_shape.dimension(0), input_shape.dimension(1));
       Vec2 kernel_size = Vec2(kernel_shape.dimension(0), kernel_shape.dimension(1));
       Vec2 output_size = (input_size + 2 * padding_size) - (kernel_size - Vec2(1,1));

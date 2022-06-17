@@ -53,7 +53,7 @@ namespace kann
     size_t bias_index   = graph.add_vertex();
     size_t tmp_index    = graph.add_vertex();
 
-    operation_t tensor_product_op = std::make_shared<TensorProductOperation>(m_output_shape.dimension_count(), 0, m_input_shape.dimension_count());
+    operation_t tensor_product_op = std::make_shared<TensorProductOperation>(m_output_shape.rank(), 0, m_input_shape.rank());
     operation_t add_op            = std::make_shared<AddOperation>(m_output_shape);
 
     graph.add_edge(std::move(tensor_product_op), {weight_index, input_index}, {tmp_index});

@@ -56,7 +56,7 @@ namespace kann
   public:
     TensorBase operator[](size_t i) const
     {
-      Shape new_shape = m_shape.split(1, m_shape.dimension_count() - 1).second;
+      Shape new_shape = m_shape.split(1, m_shape.rank() - 1).second;
       size_t stride = new_shape.size();
       return TensorBase(m_storage, m_offset + i * stride, std::move(new_shape));
     }

@@ -11,8 +11,8 @@ namespace kann
   {
     return operation_process_impl<2, 1>(std::move(inputs), [this](const Tensor& inputs, const Tensor& kernels) {
       return std::make_tuple(math::cross_correlate2d(inputs, kernels,
-            inputs.shape().dimension_count() - 3,
-            kernels.shape().dimension_count() - 3,
+            inputs.shape().rank() - 3,
+            kernels.shape().rank() - 3,
             1, false, false, m_padding_size));
     });
   }
@@ -28,8 +28,8 @@ namespace kann
     {
       return operation_process_impl<3, 2>(std::move(inputs), [this](const Tensor& inputs, const Tensor& kernels, const Tensor& output_gradients) {
         return std::make_tuple(
-          math::convolve2d(output_gradients, kernels,       inputs.shape().dimension_count() - 3, 1, kernels.shape().dimension_count() - 3, false, true, m_kernel_size - m_padding_size - Vec2(1,1) ),
-          math::cross_correlate2d(inputs, output_gradients, 1, kernels.shape().dimension_count() - 3, inputs.shape().dimension_count() - 3, false, true, m_padding_size)
+          math::convolve2d(output_gradients, kernels,       inputs.shape().rank() - 3, 1, kernels.shape().rank() - 3, false, true, m_kernel_size - m_padding_size - Vec2(1,1) ),
+          math::cross_correlate2d(inputs, output_gradients, 1, kernels.shape().rank() - 3, inputs.shape().rank() - 3, false, true, m_padding_size)
         );
       });
     }
