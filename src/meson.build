@@ -4,32 +4,24 @@ libkann_sources = [
   'Tensor.cpp',
 
   # Operations
-  'operations/TensorProduct.cpp',
-  #'operations/Reduce.cpp',
-  #'operations/Copy.cpp',
-  #'operations/Split.cpp',
-  #'operations/Concat.cpp',
-  #'operations/Split2.cpp',
-  #'operations/Concat2.cpp',
-  'operations/Scale.cpp',
   'operations/Add.cpp',
-  'operations/Subtract.cpp',
   'operations/CrossCorrelation.cpp',
+  'operations/Scale.cpp',
+  'operations/Subtract.cpp',
+  'operations/TensorProduct.cpp',
 
   # Executors
   'Graph.cpp',
   'Executor.cpp',
   'executors/DefaultExecutor.cpp',
-  #'executors/ThreadedExecutor.cpp',
 
   # Layers
   'Layer.cpp',
   'LayerDef.cpp',
-  'layer_defs/Sequential.cpp',
-  #'layer_defs/Recurrent.cpp',
   'layer_defs/Activation.cpp',
-  'layer_defs/Dense.cpp',
   'layer_defs/Convolutional.cpp',
+  'layer_defs/Dense.cpp',
+  'layer_defs/Sequential.cpp',
 
   # Datasets
   'datasets/MNIST.cpp',
