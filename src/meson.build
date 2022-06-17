@@ -29,7 +29,7 @@ libkann_sources = [
   #'layer_defs/Recurrent.cpp',
   'layer_defs/Activation.cpp',
   'layer_defs/Weight.cpp',
-  #'layer_defs/Convolutional.cpp',
+  'layer_defs/Convolutional.cpp',
 
   # Datasets
   'datasets/MNIST.cpp',

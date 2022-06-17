@@ -88,6 +88,10 @@ namespace kann
         Shape _K1, _K2;
         std::tie(M, _K1, P) = decompose(a.shape(), rank_m, rank_k, transpose_a);
         std::tie(_K2, N, Q) = decompose(b.shape(), rank_k, rank_n, transpose_b);
+
+        assert(_K1 == _K2);
+        K = _K1;
+
         R = shape_impl(P, Q);
       }
 
@@ -117,7 +121,7 @@ namespace kann
             for(size_t k = 0; k<K.size(); ++k)
             {
               TensorRef a_elem = transpose_a ? a[k][i] : a[i][k];
-              TensorRef b_elem = transpose_b ? a[j][k] : a[k][j];
+              TensorRef b_elem = transpose_b ? b[j][k] : b[k][j];
               MutableTensorRef c_elem = c[i][j];
               impl(a_elem, b_elem, c_elem);
             }
@@ -137,7 +141,7 @@ namespace kann
 
     static inline auto pad(Eigen::Ref<const EigenMatrix> matrix, Vec2 padding_size)
     {
-      return EigenMatrix::NullaryExpr([=](Eigen::Index row, Eigen::Index col)
+      return EigenMatrix::NullaryExpr(matrix.rows() + 2 * padding_size.height(), matrix.cols() + 2 * padding_size.width(), [=](Eigen::Index row, Eigen::Index col)
       {
         if(static_cast<Eigen::Index>(padding_size.height()) <= row && row < matrix.rows() + static_cast<Eigen::Index>(padding_size.height())  &&
            static_cast<Eigen::Index>(padding_size.width())  <= col && col < matrix.cols() + static_cast<Eigen::Index>(padding_size.width()))

@@ -33,7 +33,7 @@ static bool correct(const kann::Tensor& value1, const kann::Tensor& value2)
   return kann::utils::max_coeff(value1.as_ref()) == kann::utils::max_coeff(value2.as_ref());
 }
 
-void run(const std::string& filename)
+void run(const std::string& filename, kann::Shape shape)
 {
   static std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
   static auto executor  = kann::Executor::create(kann::Executor::Type::DEFAULT);
@@ -47,8 +47,8 @@ void run(const std::string& filename)
   static auto training_images = kann::load_mnist_dataset_images("datasets/mnist/train-images-idx3-ubyte");
   static auto training_labels = kann::load_mnist_dataset_labels("datasets/mnist/train-labels-idx1-ubyte");
 
-  testing_images  |= ranges::actions::transform(std::bind(&kann::Tensor::reshape, std::placeholders::_1, kann::Shape(784)));
-  training_images |= ranges::actions::transform(std::bind(&kann::Tensor::reshape, std::placeholders::_1, kann::Shape(784)));
+  testing_images  |= ranges::actions::transform(std::bind(&kann::Tensor::reshape, std::placeholders::_1, shape));
+  training_images |= ranges::actions::transform(std::bind(&kann::Tensor::reshape, std::placeholders::_1, shape));
 
   auto layer = kann::LayerDef::load(filename)->create(prng);
 
@@ -80,7 +80,6 @@ void run(const std::string& filename)
 int main(int argc, char** argv)
 {
   kann::initialize();
-  run("examples/backpropagation/feedforward/normal.yaml");
-  //run("examples/backpropagation/feedforward/recurrent.yaml");
-  //run("examples/backpropagation/feedforward/convolution.yaml");
+  run("examples/backpropagation/feedforward/normal.yaml", kann::Shape(784));
+  run("examples/backpropagation/feedforward/convolution.yaml", kann::Shape(1, 28, 28));
 }

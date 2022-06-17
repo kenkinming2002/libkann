@@ -11,7 +11,7 @@ layers:
     kernel_height: 5
 
   - type: "activation"
-    size: 3072
+    shape: [3, 32, 32]
     function: "sigmoid"
 
   - type: "convolution"
@@ -25,13 +25,5 @@ layers:
     kernel_height: 5
 
   - type: "activation"
-    size: 2352
-    function: "sigmoid"
-
-  - type: "weight"
-    input_size: 2352
-    output_size: 10
-
-  - type: "activation"
-    size: 10
+    shape: [3, 28, 28]
     function: "sigmoid"
