@@ -4,7 +4,7 @@
 
 namespace kann
 {
-  class MatrixProductOperation : public Operation
+  class TensorProductOperation : public Operation
   {
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const override;

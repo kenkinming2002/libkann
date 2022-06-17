@@ -1,10 +1,10 @@
-#include <libkann/operations/MatrixProduct.hpp>
+#include <libkann/operations/TensorProduct.hpp>
 
 #include <libkann/operations/Impl.hpp>
 
 namespace kann
 {
-  std::vector<Tensor> MatrixProductOperation::process(std::vector<Tensor> inputs) const
+  std::vector<Tensor> TensorProductOperation::process(std::vector<Tensor> inputs) const
   {
     return operation_process_impl<2, 1>(std::move(inputs), [](const Tensor& a, const Tensor& b) {
       return std::make_tuple(math::product(a, b,
@@ -14,7 +14,7 @@ namespace kann
     });
   }
 
-  class MatrixProductGradientOperation : public Operation
+  class TensorProductGradientOperation : public Operation
   {
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const override
@@ -27,9 +27,9 @@ namespace kann
     }
   };
 
-  operation_t MatrixProductOperation::differentiate() const
+  operation_t TensorProductOperation::differentiate() const
   {
-    return std::make_shared<MatrixProductGradientOperation>();
+    return std::make_shared<TensorProductGradientOperation>();
   }
 }
 

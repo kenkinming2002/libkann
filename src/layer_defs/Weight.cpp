@@ -4,7 +4,7 @@
 #include <libkann/Layer.hpp>
 #include <libkann/Graph.hpp>
 
-#include <libkann/operations/MatrixProduct.hpp>
+#include <libkann/operations/TensorProduct.hpp>
 #include <libkann/operations/Add.hpp>
 
 namespace kann
@@ -56,10 +56,10 @@ namespace kann
     size_t bias_index   = graph.add_vertex();
     size_t tmp_index    = graph.add_vertex();
 
-    operation_t matrix_product_op = std::make_shared<MatrixProductOperation>();
+    operation_t tensor_product_op = std::make_shared<TensorProductOperation>();
     operation_t add_op            = std::make_shared<AddOperation>(Shape(m_output_size));
 
-    graph.add_edge(std::move(matrix_product_op), {weight_index, input_index}, {tmp_index});
+    graph.add_edge(std::move(tensor_product_op), {weight_index, input_index}, {tmp_index});
     graph.add_edge(std::move(add_op),            {tmp_index, bias_index},     {output_index});
 
     info.add_parameter(Shape{m_output_size, m_input_size}, tag, weight_index);

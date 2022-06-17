@@ -4,7 +4,7 @@ libkann_sources = [
   'Tensor.cpp',
 
   # Operations
-  'operations/MatrixProduct.cpp',
+  'operations/TensorProduct.cpp',
   #'operations/Reduce.cpp',
   #'operations/Copy.cpp',
   #'operations/Split.cpp',
