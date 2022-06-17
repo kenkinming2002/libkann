@@ -10,7 +10,7 @@
 #include <libkann/Graph.hpp>
 #include <libkann/Executor.hpp>
 
-//#include <libkann/optimizers/AdamOptimizer.hpp>
+#include <libkann/optimizers/AdamOptimizer.hpp>
 #include <libkann/optimizers/SimpleOptimizer.hpp>
 
 #include <libkann/layer_defs/Sequential.hpp>
@@ -33,13 +33,10 @@ static bool correct(const kann::Tensor& value1, const kann::Tensor& value2)
   return kann::utils::max_coeff(value1.as_ref()) == kann::utils::max_coeff(value2.as_ref());
 }
 
-void run(const std::string& filename, kann::Shape shape)
+void run(const std::string& filename, kann::optimizer_t optimizer, kann::Shape shape)
 {
   static std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
   static auto executor  = kann::Executor::create(kann::Executor::Type::DEFAULT);
-
-  static auto optimizer = std::make_shared<kann::SimpleOptimizer>(LEARNING_RATE);
-  //static auto optimizer = std::make_shared<kann::AdamOptimizer>(0.0001, 0.9, 0.999, 1e-10);
 
   static auto testing_images = kann::load_mnist_dataset_images("datasets/mnist/t10k-images-idx3-ubyte");
   static auto testing_labels = kann::load_mnist_dataset_labels("datasets/mnist/t10k-labels-idx1-ubyte");
@@ -79,7 +76,20 @@ void run(const std::string& filename, kann::Shape shape)
 
 int main(int argc, char** argv)
 {
+  static auto simple_optimizer = std::make_shared<kann::SimpleOptimizer>(LEARNING_RATE);
+  static auto adam_optimizer   = std::make_shared<kann::AdamOptimizer>(0.0001, 0.9, 0.999, 1e-10);
+
   kann::initialize();
-  run("examples/backpropagation/feedforward/normal.yaml", kann::Shape(784));
-  run("examples/backpropagation/feedforward/convolution.yaml", kann::Shape(1, 28, 28));
+
+  fmt::print("Normal - Adam\n");
+  run("examples/backpropagation/feedforward/normal.yaml",      adam_optimizer, kann::Shape(784));
+
+  fmt::print("Convolution - Adam\n");
+  run("examples/backpropagation/feedforward/convolution.yaml", adam_optimizer, kann::Shape(1, 28, 28));
+
+  fmt::print("Normal - Simple\n");
+  run("examples/backpropagation/feedforward/normal.yaml",      simple_optimizer, kann::Shape(784));
+
+  fmt::print("Convolution - Simple\n");
+  run("examples/backpropagation/feedforward/convolution.yaml", simple_optimizer, kann::Shape(1, 28, 28));
 }

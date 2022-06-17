@@ -37,6 +37,14 @@ namespace kann
 
   namespace math
   {
+    double norm(TensorRef value)
+    {
+      double sum = 0.0;
+      for(size_t i=0; i<value.size(); ++i)
+        sum += value.get(i) * value.get(i);
+      return std::sqrt(sum);
+    }
+
     Tensor product(Tensor a, Tensor b, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_a, bool transpose_b)
     {
       const auto& [shape_a1, shape_a2] = transpose_a ? a.shape().split(rank_k, rank_m) : a.shape().split(rank_m, rank_k);

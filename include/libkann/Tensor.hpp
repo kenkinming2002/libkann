@@ -210,6 +210,8 @@ namespace kann
 
   namespace math
   {
+    double norm(TensorRef value);
+
     /* X = x_1 * ... * x_m
      * Y = y_1 * ... * y_k
      * Z = z_1 * ... * z_n

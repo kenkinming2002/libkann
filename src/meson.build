@@ -30,7 +30,7 @@ libkann_sources = [
 
   # Optimizers
   'optimizers/SimpleOptimizer.cpp',
-  #'optimizers/AdamOptimizer.cpp',
+  'optimizers/AdamOptimizer.cpp',
 
   # Actual Machine Learning Training Algorithm
   'algorithms/ProgressBar.cpp',
