@@ -28,7 +28,7 @@ libkann_sources = [
   'layer_defs/Sequential.cpp',
   #'layer_defs/Recurrent.cpp',
   'layer_defs/Activation.cpp',
-  'layer_defs/Weight.cpp',
+  'layer_defs/Dense.cpp',
   'layer_defs/Convolutional.cpp',
 
   # Datasets

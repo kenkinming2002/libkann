@@ -1,6 +1,6 @@
 type: "sequential"
 layers:
-  - type: "weight"
+  - type: "dense"
     input_size : 784
     output_size : 30
 
@@ -8,7 +8,7 @@ layers:
     shape: [30]
     function: "sigmoid"
 
-  - type: "weight"
+  - type: "dense"
     input_size : 30
     output_size : 30
 
@@ -16,7 +16,7 @@ layers:
     shape: [30]
     function: "sigmoid"
 
-  - type: "weight"
+  - type: "dense"
     input_size : 30
     output_size : 30
 
@@ -24,7 +24,7 @@ layers:
     shape: [30]
     function: "sigmoid"
 
-  - type: "weight"
+  - type: "dense"
     input_size : 30
     output_size : 10
 

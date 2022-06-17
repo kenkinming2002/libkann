@@ -1,4 +1,4 @@
-#include <libkann/layer_defs/Weight.hpp>
+#include <libkann/layer_defs/Dense.hpp>
 
 #include <libkann/Tensor.hpp>
 #include <libkann/Layer.hpp>
@@ -9,36 +9,36 @@
 
 namespace kann
 {
-  YAML::Node WeightLayerDef::save(layer_def_t layer_def)
+  YAML::Node DenseLayerDef::save(layer_def_t layer_def)
   {
     YAML::Node node;
-    node["input_size"]  = std::static_pointer_cast<const WeightLayerDef>(layer_def)->m_input_size;
-    node["output_size"] = std::static_pointer_cast<const WeightLayerDef>(layer_def)->m_output_size;
+    node["input_size"]  = std::static_pointer_cast<const DenseLayerDef>(layer_def)->m_input_size;
+    node["output_size"] = std::static_pointer_cast<const DenseLayerDef>(layer_def)->m_output_size;
     return node;
   }
 
-  layer_def_t WeightLayerDef::load(YAML::Node node)
+  layer_def_t DenseLayerDef::load(YAML::Node node)
   {
-    auto layer_def = std::make_shared<WeightLayerDef>();
+    auto layer_def = std::make_shared<DenseLayerDef>();
     layer_def->m_input_size  = node["input_size"].as<size_t>();
     layer_def->m_output_size = node["output_size"].as<size_t>();
     return layer_def;
   }
 
-  WeightLayerDef::WeightLayerDef(size_t input_size, size_t output_size)
+  DenseLayerDef::DenseLayerDef(size_t input_size, size_t output_size)
     : m_input_size(input_size), m_output_size(output_size) {}
 
-  Shape WeightLayerDef::input_shape() const
+  Shape DenseLayerDef::input_shape() const
   {
     return Shape{m_input_size};
   }
 
-  Shape WeightLayerDef::output_shape() const
+  Shape DenseLayerDef::output_shape() const
   {
     return Shape{m_output_size};
   }
 
-  std::shared_ptr<Layer> WeightLayerDef::create(std::default_random_engine& prng) const
+  std::shared_ptr<Layer> DenseLayerDef::create(std::default_random_engine& prng) const
   {
     auto layer = std::make_shared<Layer>();
     layer->def = shared_from_this();
@@ -49,7 +49,7 @@ namespace kann
     return layer;
   }
 
-  size_t WeightLayerDef::process(Graph& graph, Info& info, size_t input_index) const
+  size_t DenseLayerDef::process(Graph& graph, Info& info, size_t input_index) const
   {
     size_t output_index = graph.add_vertex();
     size_t weight_index = graph.add_vertex();

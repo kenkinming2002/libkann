@@ -4,15 +4,15 @@
 
 namespace kann
 {
-  class WeightLayerDef : public LayerDef
+  class DenseLayerDef : public LayerDef
   {
   public:
     static YAML::Node save(layer_def_t layer_def);
     static layer_def_t load(YAML::Node node);
 
   public:
-    WeightLayerDef() = default;
-    WeightLayerDef(size_t input_size, size_t output_size);
+    DenseLayerDef() = default;
+    DenseLayerDef(size_t input_size, size_t output_size);
 
   public:
     Shape input_shape() const override;
