@@ -68,10 +68,6 @@ namespace kann
   public:
     KANN_EXPORT virtual std::shared_ptr<Layer> create(std::default_random_engine& prng) const = 0;
     KANN_EXPORT virtual size_t process(Graph& graph, Info& info, size_t input_index) const = 0;
-    KANN_EXPORT virtual size_t batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const
-    {
-      assert(batch_size == 1);
-      return process(graph, info, input_index);
-    }
+    KANN_EXPORT virtual size_t batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const { assert(false && "Unimplemented"); }
   };
 }
