@@ -8,7 +8,8 @@
 #include <libkann/Tensor.hpp>
 #include <libkann/LayerDef.hpp>
 #include <libkann/Graph.hpp>
-#include <libkann/Executor.hpp>
+
+#include <libkann/executors/DefaultExecutor.hpp>
 
 #include <libkann/optimizers/AdamOptimizer.hpp>
 #include <libkann/optimizers/SimpleOptimizer.hpp>
@@ -36,7 +37,7 @@ static bool correct(const kann::Tensor& value1, const kann::Tensor& value2)
 void run(const std::string& filename, kann::optimizer_t optimizer, kann::Shape shape)
 {
   static std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
-  static auto executor  = kann::Executor::create(kann::Executor::Type::DEFAULT);
+  static auto executor  = std::make_shared<kann::DefaultExecutor>();
 
   static auto testing_images = kann::load_mnist_dataset_images("datasets/mnist/t10k-images-idx3-ubyte");
   static auto testing_labels = kann::load_mnist_dataset_labels("datasets/mnist/t10k-labels-idx1-ubyte");

@@ -12,7 +12,6 @@ libkann_sources = [
 
   # Executors
   'Graph.cpp',
-  'Executor.cpp',
   'executors/DefaultExecutor.cpp',
 
   # Layers

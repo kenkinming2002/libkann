@@ -21,10 +21,6 @@ namespace kann
     };
 
   public:
-    enum class Type { DEFAULT, THREADED };
-    KANN_EXPORT static std::unique_ptr<Executor> create(Type type);
-
-  public:
     KANN_EXPORT virtual ~Executor() = default;
 
   public:
