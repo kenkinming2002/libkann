@@ -1,17 +1,19 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Operation.hpp>
 
 namespace kann
 {
-  class AddOperation : public Operation
+  class KANN_EXPORT AddOperation : public Operation
   {
   public:
-    AddOperation(Shape shape);
+    KANN_EXPORT AddOperation(Shape shape);
 
   public:
-    std::vector<Tensor> process(std::vector<Tensor> inputs) const override;
-    operation_t differentiate() const override;
+    KANN_EXPORT std::vector<Tensor> process(std::vector<Tensor> inputs) const override;
+    KANN_EXPORT operation_t differentiate() const override;
 
   private:
     Shape m_shape;

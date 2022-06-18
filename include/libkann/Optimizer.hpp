@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 
@@ -10,7 +12,7 @@ namespace kann
   class Optimizer
   {
   public:
-    virtual ~Optimizer() = default;
+    KANN_EXPORT virtual ~Optimizer() = default;
 
   public:
     struct Info
@@ -19,7 +21,7 @@ namespace kann
       std::vector<size_t> input_states_indices;
       std::vector<size_t> output_states_indices;
 
-      void add_state(Tensor initial, size_t input_index, size_t output_index)
+      KANN_EXPORT void add_state(Tensor initial, size_t input_index, size_t output_index)
       {
         initial_states.push_back(std::move(initial));
         input_states_indices.push_back(input_index);
@@ -28,6 +30,6 @@ namespace kann
     };
 
   public:
-    virtual size_t process(Graph& graph, Info& info, Shape shape, size_t index, size_t gradient_index) const = 0;
+    KANN_EXPORT virtual size_t process(Graph& graph, Info& info, Shape shape, size_t index, size_t gradient_index) const = 0;
   };
 }

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 namespace kann
 {
-  void initialize();
+  KANN_EXPORT void initialize();
 }

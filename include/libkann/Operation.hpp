@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 
@@ -11,10 +13,10 @@ namespace kann
   class Operation
   {
   public:
-    virtual ~Operation() = default;
+    KANN_EXPORT virtual ~Operation() = default;
 
   public:
-    virtual std::vector<Tensor> process(std::vector<Tensor> inputs) const
+    KANN_EXPORT virtual std::vector<Tensor> process(std::vector<Tensor> inputs) const
     {
       assert(false && "Unimplemented");
     }
@@ -25,7 +27,7 @@ namespace kann
      *
      * 1: M original inputs
      * 2: N output gradients */
-    virtual operation_t differentiate() const
+    KANN_EXPORT virtual operation_t differentiate() const
     {
       assert(false && "Unimplemented");
     }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 
@@ -19,10 +21,10 @@ namespace kann
     std::vector<std::shared_ptr<Layer>> sub_layers;
 
   public:
-    void set_parameters_all(std::vector<Tensor> values);
-    void set_states_all(std::vector<Tensor> values);
+    KANN_EXPORT void set_parameters_all(std::vector<Tensor> values);
+    KANN_EXPORT void set_states_all(std::vector<Tensor> values);
 
-    std::vector<Tensor> get_parameters_all() const;
-    std::vector<Tensor> get_states_all() const;
+    KANN_EXPORT std::vector<Tensor> get_parameters_all() const;
+    KANN_EXPORT std::vector<Tensor> get_states_all() const;
   };
 }

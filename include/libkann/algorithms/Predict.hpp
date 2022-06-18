@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 
@@ -7,5 +9,5 @@
 
 namespace kann
 {
-  std::vector<Tensor> predict(Layer& layer, Executor& executor, const std::vector<Tensor>& inputs);
+  KANN_EXPORT std::vector<Tensor> predict(Layer& layer, Executor& executor, const std::vector<Tensor>& inputs);
 }

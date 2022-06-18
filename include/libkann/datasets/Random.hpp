@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Types.hpp>
 #include <libkann/Shape.hpp>
 #include <libkann/Tensor.hpp>
@@ -8,7 +10,7 @@
 
 namespace kann
 {
-  std::vector<Tensor> create_random_data(Shape shape, size_t count);
+  KANN_EXPORT std::vector<Tensor> create_random_data(Shape shape, size_t count);
 }
 
 

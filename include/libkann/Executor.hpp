@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 #include <libkann/Graph.hpp>
@@ -8,7 +10,7 @@
 
 namespace kann
 {
-  class Executor
+  class KANN_EXPORT Executor
   {
   public:
     struct Target
@@ -20,12 +22,12 @@ namespace kann
 
   public:
     enum class Type { DEFAULT, THREADED };
-    static std::unique_ptr<Executor> create(Type type);
+    KANN_EXPORT static std::unique_ptr<Executor> create(Type type);
 
   public:
-    virtual ~Executor() = default;
+    KANN_EXPORT virtual ~Executor() = default;
 
   public:
-    virtual std::vector<std::vector<Tensor>> run(const Target& target, std::vector<std::vector<Tensor>> inputs) const = 0;
+    KANN_EXPORT virtual std::vector<std::vector<Tensor>> run(const Target& target, std::vector<std::vector<Tensor>> inputs) const = 0;
   };
 }

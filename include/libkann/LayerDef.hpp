@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Types.hpp>
 #include <libkann/Tag.hpp>
 #include <libkann/Shape.hpp>
@@ -21,18 +23,18 @@ namespace kann
     using load_t = layer_def_t(*)(YAML::Node);
 
   public:
-    static void register_save_load(std::string name, const std::type_info& type_info, save_t save, load_t load);
+    KANN_EXPORT static void register_save_load(std::string name, const std::type_info& type_info, save_t save, load_t load);
 
     template<typename T>
     static void register_save_load(std::string name) { register_save_load(std::move(name), typeid(T), T::save, T::load); }
 
   public:
-    static YAML::Node save(layer_def_t layer);
-    static layer_def_t load(YAML::Node node);
+    KANN_EXPORT static YAML::Node save(layer_def_t layer);
+    KANN_EXPORT static layer_def_t load(YAML::Node node);
 
   public:
-    static layer_def_t load(const std::string& filename);
-    static layer_def_t load(std::istream& is);
+    KANN_EXPORT static layer_def_t load(const std::string& filename);
+    KANN_EXPORT static layer_def_t load(std::istream& is);
 
   public:
     // Question: How do we support tagging? Do we store tag in parent layer def or in child
@@ -40,11 +42,11 @@ namespace kann
     std::vector<layer_def_t> sub_layer_defs;
 
   public:
-    virtual ~LayerDef() = default;
+    KANN_EXPORT virtual ~LayerDef() = default;
 
   public:
-    virtual Shape input_shape() const = 0;
-    virtual Shape output_shape() const = 0;
+    KANN_EXPORT virtual Shape input_shape() const = 0;
+    KANN_EXPORT virtual Shape output_shape() const = 0;
 
   public:
     struct Info
@@ -85,7 +87,7 @@ namespace kann
     };
 
   public:
-    virtual std::shared_ptr<Layer> create(std::default_random_engine& prng) const = 0;
-    virtual size_t process(Graph& graph, Info& info, size_t input_index) const = 0;
+    KANN_EXPORT virtual std::shared_ptr<Layer> create(std::default_random_engine& prng) const = 0;
+    KANN_EXPORT virtual size_t process(Graph& graph, Info& info, size_t input_index) const = 0;
   };
 }

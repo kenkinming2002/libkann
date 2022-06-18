@@ -51,7 +51,8 @@ sfml_dep = dependency('sfml-graphics')
 
 libkann_lib = library('kann', libkann_sources,
   include_directories : ['../include'],
-  dependencies        : [fmt_dep, range_v3_dep, eigen_dep, sfml_dep, threads_dep, yaml_cpp_dep]
+  dependencies        : [fmt_dep, range_v3_dep, eigen_dep, sfml_dep, threads_dep, yaml_cpp_dep],
+  gnu_symbol_visibility : 'hidden'
 )
 
 libkann_dep = declare_dependency(

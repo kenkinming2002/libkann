@@ -1,12 +1,14 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Executor.hpp>
 
 namespace kann
 {
-  class DefaultExecutor : public Executor
+  class KANN_EXPORT DefaultExecutor : public Executor
   {
   public:
-    std::vector<std::vector<Tensor>> run(const Target& target, std::vector<std::vector<Tensor>> inputs) const override;
+    KANN_EXPORT std::vector<std::vector<Tensor>> run(const Target& target, std::vector<std::vector<Tensor>> inputs) const override;
   };
 }

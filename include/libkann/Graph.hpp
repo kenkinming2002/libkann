@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Types.hpp>
 
 #include <unordered_map>
@@ -38,19 +40,19 @@ namespace kann
     const Vertex& vertex(size_t index) const { assert(index < vertices_count()); return m_vertices[index]; }
 
   public:
-    size_t add_vertex();
-    std::vector<size_t> add_vertices(size_t count);
-    void add_edge(operation_t op, std::vector<size_t> input_indices, std::vector<size_t> output_indices);
+    KANN_EXPORT size_t add_vertex();
+    KANN_EXPORT std::vector<size_t> add_vertices(size_t count);
+    KANN_EXPORT void add_edge(operation_t op, std::vector<size_t> input_indices, std::vector<size_t> output_indices);
 
   public:
-    void set_gradient_index(size_t index, size_t gradient_index);
-    size_t get_gradient_index(size_t index);
+    KANN_EXPORT void set_gradient_index(size_t index, size_t gradient_index);
+    KANN_EXPORT size_t get_gradient_index(size_t index);
 
   private:
     void differentiate(size_t edge_index);
 
   public:
-    void write_graphviz(std::ostream& os);
+    KANN_EXPORT void write_graphviz(std::ostream& os);
 
   private:
     std::vector<Vertex> m_vertices;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <libkann/Types.hpp>
 #include <libkann/Tensor.hpp>
 
@@ -7,5 +9,5 @@
 
 namespace kann
 {
-  sf::Image toImage(TensorRef data);
+  KANN_EXPORT sf::Image toImage(TensorRef data);
 }
