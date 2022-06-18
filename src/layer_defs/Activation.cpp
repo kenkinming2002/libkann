@@ -140,10 +140,10 @@ namespace kann
     ActivationLayerDef::Type m_type;
   };
 
-  size_t ActivationLayerDef::process(Graph& graph, Info& info, size_t input_index) const
+  size_t ActivationLayerDef::batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const
   {
     size_t output_index = graph.add_vertex();
-    operation_t op = std::make_shared<ActivationOperation>(m_shape, m_type);
+    operation_t op = std::make_shared<ActivationOperation>(Shape::concat(Shape(batch_size), m_shape), m_type);
     graph.add_edge(std::move(op), {input_index}, {output_index});
     return output_index;
   }

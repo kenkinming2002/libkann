@@ -56,7 +56,7 @@ void run(const std::string& filename, kann::optimizer_t optimizer)
   }
 
   // Training
-  kann::optimize(*layer, kann::Tag::ALL, *optimizer, *executor, training_images, training_labels);
+  kann::optimize(*layer, kann::Tag::ALL, *optimizer, *executor, BATCH_SIZE, training_images, training_labels);
 
   // Testing on training set
   {
@@ -76,7 +76,7 @@ void run(const std::string& filename, kann::optimizer_t optimizer)
 int main(int argc, char** argv)
 {
   static auto simple_optimizer = std::make_shared<kann::SimpleOptimizer>(LEARNING_RATE);
-  static auto adam_optimizer   = std::make_shared<kann::AdamOptimizer>(0.0001, 0.9, 0.999, 1e-10);
+  static auto adam_optimizer   = std::make_shared<kann::AdamOptimizer>(0.005, 0.9, 0.999, 1e-10);
 
   kann::initialize();
 

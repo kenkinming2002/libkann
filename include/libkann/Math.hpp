@@ -7,6 +7,8 @@
 
 namespace kann::math
 {
+  KANN_EXPORT void add_to(MutableTensorRef to, TensorRef value);
+
   KANN_EXPORT double norm(TensorRef value);
 
   /* X = x_1 * ... * x_m

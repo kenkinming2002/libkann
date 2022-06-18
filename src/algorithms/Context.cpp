@@ -10,11 +10,13 @@
 
 namespace kann
 {
-  void Context::forward_pass(Layer& layer)
+  void Context::forward_pass(Layer& layer, size_t batch_size)
   {
     kann::LayerDef::Info info;
-    input_index = graph.add_vertex();
-    output_index = layer.def->process(graph, info, input_index);
+    inputs_index = graph.add_vertex();
+    outputs_index = layer.def->batch_process(graph, info, batch_size, inputs_index);
+
+    this->batch_size = batch_size;
 
     parameter_shapes     = std::move(info.parameter_shapes);
     parameter_tags       = std::move(info.parameter_tags);
@@ -29,18 +31,20 @@ namespace kann
   // TODO: Take in a loss function
   void Context::gradient_pass(Shape output_shape)
   {
-    expected_output_index = graph.add_vertex();
+    Shape outputs_shape = Shape::concat(Shape(batch_size), output_shape);
+
+    expected_outputs_index = graph.add_vertex();
 
     // 1: Output Gradient
     size_t output_gradient_index = graph.add_vertex();
     size_t tmp_index             = graph.add_vertex();
 
-    operation_t subtract_op = std::make_shared<SubtractOperation>(output_shape);
-    operation_t scale_op    = std::make_shared<ScaleOperation>(output_shape, 2.0);
+    operation_t subtract_op = std::make_shared<SubtractOperation>(outputs_shape);
+    operation_t scale_op    = std::make_shared<ScaleOperation>(outputs_shape, 2.0);
 
-    graph.add_edge(std::move(subtract_op), {output_index, expected_output_index}, {tmp_index});
+    graph.add_edge(std::move(subtract_op), {outputs_index, expected_outputs_index}, {tmp_index});
     graph.add_edge(std::move(scale_op),    {tmp_index}, {output_gradient_index});
-    graph.set_gradient_index(output_index, output_gradient_index);
+    graph.set_gradient_index(outputs_index, output_gradient_index);
 
     // 2: State output gradient (set to zero)
     for(const auto& [shape, index] : ranges::views::zip(state_shapes, output_state_indices))

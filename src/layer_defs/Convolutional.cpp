@@ -55,13 +55,14 @@ namespace kann
     return Shape{m_output_channel_count, m_output_size.height(), m_output_size.width()};
   }
 
-  size_t ConvolutionalLayerDef::process(Graph& graph, Info& info, size_t input_index) const
+  size_t ConvolutionalLayerDef::batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const
   {
     size_t output_index = graph.add_vertex();
     size_t kernels_index = graph.add_vertex();
 
     Vec2 padding_size = ((m_output_size - m_input_size) + (m_kernel_size - Vec2(1,1))) / 2;
-    operation_t op = std::make_shared<CrossCorrelationOperation>(m_kernel_size, padding_size);
+
+    operation_t op = std::make_shared<CrossCorrelationOperation>(1, 1, 1, m_kernel_size, padding_size);
     graph.add_edge(std::move(op), {input_index, kernels_index}, {output_index});
 
     info.add_parameter(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()}, tag, kernels_index);

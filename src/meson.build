@@ -6,6 +6,7 @@ libkann_sources = [
 
   # Operations
   'operations/Add.cpp',
+  'operations/Broadcast.cpp',
   'operations/CrossCorrelation.cpp',
   'operations/Scale.cpp',
   'operations/Subtract.cpp',
@@ -36,6 +37,7 @@ libkann_sources = [
   # Actual Machine Learning Training Algorithm
   'algorithms/ProgressBar.cpp',
   'algorithms/Context.cpp',
+  'algorithms/Batch.cpp',
   'algorithms/Predict.cpp',
   'algorithms/Optimize.cpp',
 ]

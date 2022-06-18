@@ -10,5 +10,5 @@
 
 namespace kann
 {
-  KANN_EXPORT void optimize(Layer& layer, Tag tag, const Optimizer& optimizer, Executor& executor, const std::vector<Tensor>& inputs, const std::vector<Tensor>& expected_outputs);
+  KANN_EXPORT void optimize(Layer& layer, Tag tag, const Optimizer& optimizer, Executor& executor, size_t batch_size, const std::vector<Tensor>& inputs, const std::vector<Tensor>& expected_outputs);
 }
