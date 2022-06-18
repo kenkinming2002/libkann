@@ -29,6 +29,7 @@ libkann_sources = [
   'datasets/write.cpp',
 
   # Optimizers
+  'Optimizer.cpp',
   'optimizers/SimpleOptimizer.cpp',
   'optimizers/AdamOptimizer.cpp',
 

@@ -6,7 +6,6 @@
 #include <libkann/Tag.hpp>
 #include <libkann/Shape.hpp>
 
-#include <range/v3/all.hpp>
 #include <yaml-cpp/yaml.h>
 
 #include <typeinfo>
@@ -59,31 +58,11 @@ namespace kann
       std::vector<size_t> input_state_indices;
       std::vector<size_t> output_state_indices;
 
-      void add_parameter(Shape shape, Tag tag, size_t index)
-      {
-        parameter_shapes.push_back(shape);
-        parameter_tags.push_back(tag);
-        parameter_indices.push_back(index);
-      }
+      KANN_EXPORT void add_parameter(Shape shape, Tag tag, size_t index);
+      KANN_EXPORT void add_state(Shape shape, size_t input_index, size_t output_index);
 
-      void add_state(Shape shape, size_t input_index, size_t output_index)
-      {
-        state_shapes.push_back(shape);
-        input_state_indices.push_back(input_index);
-        output_state_indices.push_back(output_index);
-      }
-
-      void add_parameters(Shape shape, Tag tag, const std::vector<size_t>& indices)
-      {
-        for(size_t index : indices)
-          add_parameter(shape, tag, index);
-      }
-
-      void add_states(Shape shape, const std::vector<size_t>& input_indices, const std::vector<size_t>& output_indices)
-      {
-        for(const auto& [input_index, output_index] : ranges::views::zip(input_indices, output_indices))
-          add_state(shape, input_index, output_index);
-      }
+      KANN_EXPORT void add_parameters(Shape shape, Tag tag, const std::vector<size_t>& indices);
+      KANN_EXPORT void add_states(Shape shape, const std::vector<size_t>& input_indices, const std::vector<size_t>& output_indices);
     };
 
   public:
