@@ -11,7 +11,7 @@ namespace kann
     ProgressBar(std::string_view title, size_t total_count);
 
   public:
-    void update(std::string_view content);
+    void update(std::string_view content, size_t count = 1);
 
   private:
     std::string_view m_title;

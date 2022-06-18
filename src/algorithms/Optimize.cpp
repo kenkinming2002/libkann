@@ -68,7 +68,7 @@ namespace kann
       parameters       = std::move(executor_outputs[1]);
       states           = std::move(executor_outputs[2]);
       optimizer_states = std::move(executor_outputs[3]);
-      progress_bar.update("");
+      progress_bar.update("", batch_size);
     }
 
     layer.set_parameters_all(std::move(parameters));
