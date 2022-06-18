@@ -13,10 +13,6 @@ namespace kann
     static layer_def_t load(YAML::Node node);
 
   public:
-    ConvolutionalLayerDef() = default;
-    ConvolutionalLayerDef(size_t input_channel_count, size_t output_channel_count, Vec2 input_size, Vec2 output_size, Vec2 kernel_size);
-
-  public:
     Shape input_shape() const override;
     Shape output_shape() const override;
 

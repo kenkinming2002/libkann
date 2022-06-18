@@ -33,11 +33,6 @@ namespace kann
     return layer_def;
   }
 
-  ConvolutionalLayerDef::ConvolutionalLayerDef(size_t input_channel_count, size_t output_channel_count, Vec2 input_size, Vec2 output_size, Vec2 kernel_size)
-    : m_input_channel_count(input_channel_count), m_output_channel_count(output_channel_count),
-      m_input_size(input_size), m_output_size(output_size), m_kernel_size(kernel_size) {}
-
-
   std::shared_ptr<Layer> ConvolutionalLayerDef::create(std::default_random_engine& prng) const
   {
     auto layer = std::make_shared<Layer>();

@@ -19,9 +19,6 @@ namespace kann
     static layer_def_t load(YAML::Node node);
 
   public:
-    ActivationLayerDef() = default;
-
-  public:
     Shape input_shape() const override;
     Shape output_shape() const override;
 
