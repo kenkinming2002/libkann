@@ -56,6 +56,6 @@ libkann_lib = library('kann', libkann_sources,
 
 libkann_dep = declare_dependency(
   include_directories : ['../include'],
-  dependencies : [eigen_dep, sfml_dep],
+  dependencies : [sfml_dep],
   link_with : libkann_lib,
 )
