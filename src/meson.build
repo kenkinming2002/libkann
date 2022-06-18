@@ -6,6 +6,7 @@ libkann_sources = [
 
   # Operations
   'operations/Add.cpp',
+  'operations/Broadcast.cpp',
   'operations/CrossCorrelation.cpp',
   'operations/Scale.cpp',
   'operations/Subtract.cpp',

@@ -56,7 +56,7 @@ void run(const std::string& filename, kann::optimizer_t optimizer)
   }
 
   // Training
-  kann::optimize(*layer, kann::Tag::ALL, *optimizer, *executor, 1, training_images, training_labels);
+  kann::optimize(*layer, kann::Tag::ALL, *optimizer, *executor, BATCH_SIZE, training_images, training_labels);
 
   // Testing on training set
   {

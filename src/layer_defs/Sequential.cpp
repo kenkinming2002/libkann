@@ -49,11 +49,11 @@ namespace kann
     return layer;
   }
 
-  size_t SequentialLayerDef::process(Graph& graph, Info& info, size_t input_index) const
+  size_t SequentialLayerDef::batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const
   {
     size_t output_index = input_index;
     for(const layer_def_t& sub_layer_def : sub_layer_defs)
-      output_index = sub_layer_def->process(graph, info, output_index);
+      output_index = sub_layer_def->batch_process(graph, info, batch_size, output_index);
 
     return output_index;
   }

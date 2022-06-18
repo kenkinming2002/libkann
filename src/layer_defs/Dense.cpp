@@ -5,6 +5,7 @@
 #include <libkann/Graph.hpp>
 
 #include <libkann/operations/TensorProduct.hpp>
+#include <libkann/operations/Broadcast.hpp>
 #include <libkann/operations/Add.hpp>
 
 namespace kann
@@ -40,26 +41,30 @@ namespace kann
     auto layer = std::make_shared<Layer>();
     layer->def = shared_from_this();
     layer->parameters = {
-      MutableTensor::normal(Shape::concat(m_output_shape, m_input_shape), prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const(),
+      MutableTensor::normal(Shape::concat(m_input_shape, m_output_shape), prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const(),
       MutableTensor::normal(m_output_shape,                               prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const()
     };
     return layer;
   }
 
-  size_t DenseLayerDef::process(Graph& graph, Info& info, size_t input_index) const
+  size_t DenseLayerDef::batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const
   {
     size_t output_index = graph.add_vertex();
     size_t weight_index = graph.add_vertex();
     size_t bias_index   = graph.add_vertex();
-    size_t tmp_index    = graph.add_vertex();
 
-    operation_t tensor_product_op = std::make_shared<TensorProductOperation>(m_output_shape.rank(), 0, m_input_shape.rank());
-    operation_t add_op            = std::make_shared<AddOperation>(m_output_shape);
+    size_t product_index = graph.add_vertex();
+    size_t broadcast_index = graph.add_vertex();
 
-    graph.add_edge(std::move(tensor_product_op), {weight_index, input_index}, {tmp_index});
-    graph.add_edge(std::move(add_op),            {tmp_index, bias_index},     {output_index});
+    operation_t tensor_product_op = std::make_shared<TensorProductOperation>(1, m_output_shape.rank(), m_input_shape.rank());
+    operation_t broadcast_op      = std::make_shared<BroadcastOperation>(Shape(batch_size));
+    operation_t add_op            = std::make_shared<AddOperation>(Shape::concat(Shape(batch_size), m_output_shape));
 
-    info.add_parameter(Shape::concat(m_output_shape, m_input_shape),  tag, weight_index);
+    graph.add_edge(std::move(tensor_product_op), {input_index, weight_index},      {product_index});
+    graph.add_edge(std::move(broadcast_op),      {bias_index},                     {broadcast_index});
+    graph.add_edge(std::move(add_op),            {product_index, broadcast_index}, {output_index});
+
+    info.add_parameter(Shape::concat(m_input_shape, m_output_shape),  tag, weight_index);
     info.add_parameter(m_output_shape,                                tag, bias_index);
 
     return output_index;

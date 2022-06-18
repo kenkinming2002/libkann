@@ -7,4 +7,5 @@
 namespace kann::utils
 {
   KANN_EXPORT size_t max_coeff(TensorRef value);
+  KANN_EXPORT void copy(TensorRef from, MutableTensorRef to);
 }
