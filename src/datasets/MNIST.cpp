@@ -79,7 +79,7 @@ namespace kann
 
     for(uint32_t i=0; i<count; ++i)
     {
-      MutableTensor image = MutableTensor::create(Shape{MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH});
+      MutableTensor image = MutableTensor::create(Shape{1, MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH});
 
       uint8_t image_data[MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH];
       if(!idx_file.file.read(reinterpret_cast<char*>(image_data), sizeof image_data))

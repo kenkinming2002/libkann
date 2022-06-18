@@ -34,7 +34,7 @@ static bool correct(const kann::Tensor& value1, const kann::Tensor& value2)
   return kann::utils::max_coeff(value1.as_ref()) == kann::utils::max_coeff(value2.as_ref());
 }
 
-void run(const std::string& filename, kann::optimizer_t optimizer, kann::Shape shape)
+void run(const std::string& filename, kann::optimizer_t optimizer)
 {
   static std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
   static auto executor  = std::make_shared<kann::DefaultExecutor>();
@@ -44,9 +44,6 @@ void run(const std::string& filename, kann::optimizer_t optimizer, kann::Shape s
 
   static auto training_images = kann::load_mnist_dataset_images("datasets/mnist/train-images-idx3-ubyte");
   static auto training_labels = kann::load_mnist_dataset_labels("datasets/mnist/train-labels-idx1-ubyte");
-
-  testing_images  |= ranges::actions::transform(std::bind(&kann::Tensor::reshape, std::placeholders::_1, shape));
-  training_images |= ranges::actions::transform(std::bind(&kann::Tensor::reshape, std::placeholders::_1, shape));
 
   auto layer = kann::LayerDef::load(filename)->create(prng);
 
@@ -83,14 +80,14 @@ int main(int argc, char** argv)
   kann::initialize();
 
   fmt::print("Normal - Adam\n");
-  run("examples/backpropagation/feedforward/normal.yaml",      adam_optimizer, kann::Shape(784));
+  run("examples/backpropagation/feedforward/normal.yaml",      adam_optimizer);
 
   fmt::print("Convolution - Adam\n");
-  run("examples/backpropagation/feedforward/convolution.yaml", adam_optimizer, kann::Shape(1, 28, 28));
+  run("examples/backpropagation/feedforward/convolution.yaml", adam_optimizer);
 
   fmt::print("Normal - Simple\n");
-  run("examples/backpropagation/feedforward/normal.yaml",      simple_optimizer, kann::Shape(784));
+  run("examples/backpropagation/feedforward/normal.yaml",      simple_optimizer);
 
   fmt::print("Convolution - Simple\n");
-  run("examples/backpropagation/feedforward/convolution.yaml", simple_optimizer, kann::Shape(1, 28, 28));
+  run("examples/backpropagation/feedforward/convolution.yaml", simple_optimizer);
 }
