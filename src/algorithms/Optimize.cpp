@@ -1,6 +1,7 @@
 #include <libkann/algorithms/Optimize.hpp>
 
 #include "Context.hpp"
+#include "Batch.hpp"
 
 #include <libkann/Types.hpp>
 #include <libkann/Layer.hpp>
@@ -13,10 +14,10 @@
 
 namespace kann
 {
-  void optimize(Layer& layer, Tag tag, const Optimizer& optimizer, Executor& executor, const std::vector<Tensor>& inputs, const std::vector<Tensor>& expected_outputs)
+  void optimize(Layer& layer, Tag tag, const Optimizer& optimizer, Executor& executor, size_t batch_size, const std::vector<Tensor>& inputs, const std::vector<Tensor>& expected_outputs)
   {
     Context context;
-    context.forward_pass(layer);
+    context.forward_pass(layer, batch_size);
     context.gradient_pass(layer.def->output_shape());
     context.backward_pass();
     context.training_pass(optimizer);
@@ -30,15 +31,15 @@ namespace kann
     Executor::Target target{
       .graph = std::move(context.graph),
       .input_indices  = {
-        {context.input_index},
-        {context.expected_output_index},
+        {context.inputs_index},
+        {context.expected_outputs_index},
         std::move(context.parameter_indices),
         std::move(context.input_state_indices),
         std::move(context.optimizer_input_state_indices),
         std::move(context.state_gradient_indices)
       },
       .output_indices = {
-        {context.output_index},
+        {context.outputs_index},
         std::move(context.new_parameter_indices),
         std::move(context.output_state_indices),
         std::move(context.optimizer_output_state_indices)
@@ -52,15 +53,18 @@ namespace kann
     std::vector<Tensor> state_gradient_values = std::move(context.state_gradient_values);
     std::vector<Tensor> optimizer_states      = std::move(context.optimizer_initial_state_values);
 
-    std::vector<Tensor> outputs;
-    outputs.reserve(inputs.size());
+    std::vector<Tensor> input_batches           = batch(inputs, batch_size);
+    std::vector<Tensor> expected_output_batches = batch(expected_outputs, batch_size);
+
+    std::vector<Tensor> output_batches;
+    output_batches.reserve(input_batches.size());
 
     ProgressBar progress_bar("training", inputs.size());
-    for(const auto& [input, expected_output] : ranges::views::zip(inputs, expected_outputs))
+    for(const auto& [input_batch, expected_output_batch] : ranges::views::zip(input_batches, expected_output_batches))
     {
-      auto executor_inputs = {{input}, {expected_output}, std::move(parameters), std::move(states), std::move(optimizer_states), state_gradient_values};
+      auto executor_inputs = {{input_batch}, {expected_output_batch}, std::move(parameters), std::move(states), std::move(optimizer_states), state_gradient_values};
       auto executor_outputs = executor.run(target, std::move(executor_inputs));
-      outputs.push_back(std::move(executor_outputs[0].front()));
+      output_batches.push_back(std::move(executor_outputs[0].front()));
       parameters       = std::move(executor_outputs[1]);
       states           = std::move(executor_outputs[2]);
       optimizer_states = std::move(executor_outputs[3]);

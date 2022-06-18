@@ -12,10 +12,13 @@ namespace kann
   {
     Graph graph;
 
+    // Config
+    size_t batch_size;
+
     // Input/Output
-    size_t input_index;
-    size_t output_index;
-    size_t expected_output_index;
+    size_t inputs_index;
+    size_t outputs_index;
+    size_t expected_outputs_index;
 
     // Parameters
     std::vector<Shape> parameter_shapes;
@@ -39,7 +42,7 @@ namespace kann
     std::vector<size_t> optimizer_input_state_indices;
     std::vector<size_t> optimizer_output_state_indices;
 
-    void forward_pass(Layer& layer);
+    void forward_pass(Layer& layer, size_t batch_size);
 
     // TODO: Embed output size into graph vertex
     // TODO: Take in a loss function

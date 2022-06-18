@@ -36,6 +36,7 @@ libkann_sources = [
   # Actual Machine Learning Training Algorithm
   'algorithms/ProgressBar.cpp',
   'algorithms/Context.cpp',
+  'algorithms/Batch.cpp',
   'algorithms/Predict.cpp',
   'algorithms/Optimize.cpp',
 ]
