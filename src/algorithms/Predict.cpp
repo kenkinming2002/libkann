@@ -37,8 +37,7 @@ namespace kann
 
     std::vector<Tensor> output_batches;
     output_batches.reserve(input_batches.size());
-
-    ProgressBar progress_bar("training", inputs.size());
+    ProgressBar progress_bar("testing", inputs.size());
     for(const Tensor& input_batch : input_batches)
     {
       auto executor_inputs = {{input_batch}, parameters, std::move(states)};
