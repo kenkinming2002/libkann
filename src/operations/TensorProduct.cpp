@@ -2,6 +2,8 @@
 
 #include <libkann/operations/Impl.hpp>
 
+#include <libkann/Math.hpp>
+
 namespace kann
 {
   TensorProductOperation::TensorProductOperation(size_t rank_m, size_t rank_n, size_t rank_k)

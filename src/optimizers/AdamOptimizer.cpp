@@ -7,6 +7,8 @@
 #include <libkann/operations/Scale.hpp>
 #include <libkann/operations/Subtract.hpp>
 
+#include <libkann/Math.hpp>
+
 #include <tuple>
 
 namespace kann

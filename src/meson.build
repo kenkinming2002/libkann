@@ -1,7 +1,8 @@
 libkann_sources = [
   'Initialize.cpp',
 
-  'Tensor.cpp',
+  'Math.cpp',
+  'Utils.cpp',
 
   # Operations
   'operations/Add.cpp',

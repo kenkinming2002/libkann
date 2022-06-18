@@ -2,6 +2,8 @@
 
 #include <libkann/operations/Impl.hpp>
 
+#include <libkann/Math.hpp>
+
 namespace kann
 {
   CrossCorrelationOperation::CrossCorrelationOperation(Vec2 kernel_size, Vec2 padding_size)

@@ -6,6 +6,7 @@
 
 #include <libkann/Layer.hpp>
 #include <libkann/Tensor.hpp>
+#include <libkann/Utils.hpp>
 #include <libkann/LayerDef.hpp>
 #include <libkann/Graph.hpp>
 
