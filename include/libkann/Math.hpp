@@ -7,8 +7,6 @@
 
 namespace kann::math
 {
-  KANN_EXPORT void add_to(MutableTensorRef to, TensorRef value);
-
   KANN_EXPORT float norm(TensorRef value);
 
   KANN_EXPORT Tensor broadcast(Tensor value, Shape shape);

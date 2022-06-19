@@ -33,13 +33,6 @@ namespace kann::math
     );
   }
 
-  void add_to(MutableTensorRef to, TensorRef value)
-  {
-    assert(to.shape() == value.shape());
-    for(size_t i=0; i<to.size(); ++i)
-      to.get(i) += value.get(i);
-  }
-
   float norm(TensorRef value)
   {
     float sum = 0.0;

@@ -29,10 +29,4 @@ namespace kann::utils
     to_eigen_array(value).maxCoeff(&coeff);
     return coeff;
   }
-
-  void copy(TensorRef from, MutableTensorRef to)
-  {
-    assert(from.shape() == to.shape());
-    ranges::copy_n(from.data(), from.size(), to.data());
-  }
 }
