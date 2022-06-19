@@ -2,34 +2,42 @@ type: "sequential"
 layers:
   - type: "convolution"
     input_channel_count: 1
-    output_channel_count: 3
+    output_channel_count: 5
     input_width: 28
     input_height: 28
-    output_width: 32
-    output_height: 32
+    output_width: 24
+    output_height: 24
     kernel_width: 5
     kernel_height: 5
 
   - type: "activation"
-    shape: [3, 32, 32]
+    shape: [5, 24, 24]
     function: "sigmoid"
 
   - type: "convolution"
-    input_channel_count: 3
-    output_channel_count: 3
-    input_width: 32
-    input_height: 32
-    output_width: 28
-    output_height: 28
+    input_channel_count: 5
+    output_channel_count: 5
+    input_width: 24
+    input_height: 24
+    output_width: 20
+    output_height: 20
     kernel_width: 5
     kernel_height: 5
 
   - type: "activation"
-    shape: [3, 28, 28]
+    shape: [5, 20, 20]
     function: "sigmoid"
 
   - type: "dense"
-    input_shape : [3, 28, 28]
+    input_shape : [5, 20, 20]
+    output_shape : [100]
+
+  - type: "activation"
+    shape: [100]
+    function: "sigmoid"
+
+  - type: "dense"
+    input_shape : [100]
     output_shape : [10]
 
   - type: "activation"
