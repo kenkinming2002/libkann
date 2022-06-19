@@ -26,7 +26,7 @@
 #include <fmt/core.h>
 #include <range/v3/all.hpp>
 
-static constexpr double LEARNING_RATE  = 0.05;
+static constexpr float LEARNING_RATE  = 0.05;
 static constexpr size_t BATCH_SIZE     = 10;
 static constexpr size_t FEATURES_COUNT = 64;
 

@@ -10,7 +10,7 @@ namespace kann
   class KANN_EXPORT ScaleOperation : public Operation
   {
   public:
-    KANN_EXPORT ScaleOperation(Shape shape, double val);
+    KANN_EXPORT ScaleOperation(Shape shape, float val);
 
   public:
     KANN_EXPORT std::vector<Tensor> process(std::vector<Tensor> inputs) const override;
@@ -18,7 +18,7 @@ namespace kann
 
   private:
     Shape m_shape;
-    double m_val;
+    float m_val;
   };
 }
 

@@ -80,20 +80,20 @@ namespace kann
     const Shape& shape() const { return m_shape; }
 
   public:
-    void fill(double value)
+    void fill(float value)
     {
       ranges::fill_n(data(), size(), value);
     }
 
     template<typename PRNG>
-    void fill_normal(PRNG& prng, double mean, double stddev)
+    void fill_normal(PRNG& prng, float mean, float stddev)
     {
-      std::normal_distribution<double> dist(mean, stddev);
+      std::normal_distribution<float> dist(mean, stddev);
       ranges::generate_n(data(), size(), [&]() { return dist(prng); });
     }
 
   public:
-    static TensorBase constant(Shape shape, double value)
+    static TensorBase constant(Shape shape, float value)
     {
       TensorBase result = TensorBase::create(std::move(shape));
       result.fill(value);
@@ -101,7 +101,7 @@ namespace kann
     }
 
     template<typename PRNG>
-    static TensorBase normal(Shape shape, PRNG& prng, double mean, double stddev)
+    static TensorBase normal(Shape shape, PRNG& prng, float mean, float stddev)
     {
       TensorBase result = TensorBase::create(std::move(shape));
       result.fill_normal(prng, mean, stddev);
@@ -119,10 +119,10 @@ namespace kann
   struct RefStorage
   {
   public:
-    RefStorage(const double* data, size_t size) : m_data(data), m_size(size) {}
+    RefStorage(const float* data, size_t size) : m_data(data), m_size(size) {}
 
   public:
-    const double* data() const { return m_data; }
+    const float* data() const { return m_data; }
     size_t size() const { return m_size; }
 
   public:
@@ -130,17 +130,17 @@ namespace kann
     RefStorage as_ref() const { return *this; }
 
   private:
-    const double* m_data;
+    const float* m_data;
     size_t m_size;
   };
 
   struct MutableRefStorage
   {
   public:
-    MutableRefStorage(double* data, size_t size) : m_data(data), m_size(size) {}
+    MutableRefStorage(float* data, size_t size) : m_data(data), m_size(size) {}
 
   public:
-    double* data() const { return m_data; }
+    float* data() const { return m_data; }
     size_t size() const { return m_size; }
 
   public:
@@ -148,17 +148,17 @@ namespace kann
     MutableRefStorage as_ref() const { return *this; }
 
   private:
-    double* m_data;
+    float* m_data;
     size_t m_size;
   };
 
   struct Storage
   {
   public:
-    Storage(std::shared_ptr<const double[]> data, size_t size) : m_data(std::move(data)), m_size(size) {}
+    Storage(std::shared_ptr<const float[]> data, size_t size) : m_data(std::move(data)), m_size(size) {}
 
   public:
-    const double* data() const { return m_data.get(); }
+    const float* data() const { return m_data.get(); }
     size_t size() const { return m_size; }
 
   public:
@@ -166,17 +166,17 @@ namespace kann
     RefStorage as_ref() const { return RefStorage(data(), size()); }
 
   private:
-    std::shared_ptr<const double[]> m_data;
+    std::shared_ptr<const float[]> m_data;
     size_t m_size;
   };
 
   struct MutableStorage
   {
   public:
-    MutableStorage(std::shared_ptr<double[]> data, size_t size) : m_data(std::move(data)), m_size(size) {}
+    MutableStorage(std::shared_ptr<float[]> data, size_t size) : m_data(std::move(data)), m_size(size) {}
 
   public:
-    double* data() const { return m_data.get(); }
+    float* data() const { return m_data.get(); }
     size_t size() const { return m_size; }
 
   public:
@@ -187,11 +187,11 @@ namespace kann
     static MutableStorage create(size_t size)
     {
       // make_shared_for_overwrite is available only for gcc 12
-      return MutableStorage(std::make_unique_for_overwrite<double[]>(size), size);
+      return MutableStorage(std::make_unique_for_overwrite<float[]>(size), size);
     }
 
   private:
-    std::shared_ptr<double[]> m_data;
+    std::shared_ptr<float[]> m_data;
     size_t m_size;
   };
 

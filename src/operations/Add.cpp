@@ -9,7 +9,7 @@ namespace kann
 
   std::vector<Tensor> AddOperation::process(std::vector<Tensor> inputs) const
   {
-    return operation_process_cwise_impl<2,1>(std::move(inputs), m_shape, [](double a, double b) {
+    return operation_process_cwise_impl<2,1>(std::move(inputs), m_shape, [](float a, float b) {
       return std::make_tuple(a+b);
     });
   }
@@ -23,7 +23,7 @@ namespace kann
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const
     {
-      return operation_process_cwise_impl<3,2>(std::move(inputs), m_shape, [](double a, double b, double output_gradient) {
+      return operation_process_cwise_impl<3,2>(std::move(inputs), m_shape, [](float a, float b, float output_gradient) {
         return std::make_tuple(output_gradient, output_gradient);
       });
     }

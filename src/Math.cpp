@@ -6,8 +6,8 @@
 
 namespace kann::math
 {
-  using EigenArray  = Eigen::ArrayXd;
-  using EigenMatrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  using EigenArray  = Eigen::ArrayXf;
+  using EigenMatrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
   template<typename Storage>
   static inline auto to_eigen_array(const TensorBase<Storage>& tensor)
@@ -32,9 +32,9 @@ namespace kann::math
       to.get(i) += value.get(i);
   }
 
-  double norm(TensorRef value)
+  float norm(TensorRef value)
   {
-    double sum = 0.0;
+    float sum = 0.0;
     for(size_t i=0; i<value.size(); ++i)
       sum += value.get(i) * value.get(i);
     return std::sqrt(sum);
@@ -150,7 +150,7 @@ namespace kann::math
          static_cast<Eigen::Index>(padding_size.width())  <= col && col < matrix.cols() + static_cast<Eigen::Index>(padding_size.width()))
         return matrix(row - padding_size.height(), col - padding_size.width());
 
-      return 0.0;
+      return 0.0f;
     });
   }
 
@@ -159,7 +159,7 @@ namespace kann::math
     auto _input = to_eigen_matrix(input);
     auto _kernel = to_eigen_matrix(kernel);
     auto _output = to_eigen_matrix(output);
-    _output += Eigen::MatrixXd::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
+    _output += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
       return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel).sum();
     });
   }
@@ -169,7 +169,7 @@ namespace kann::math
     auto _input = to_eigen_matrix(input);
     auto _kernel = to_eigen_matrix(kernel);
     auto _output = to_eigen_matrix(output);
-    _output += Eigen::MatrixXd::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
+    _output += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
       return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel.reverse()).sum();
     });
   }

@@ -9,7 +9,7 @@ namespace kann::math
 {
   KANN_EXPORT void add_to(MutableTensorRef to, TensorRef value);
 
-  KANN_EXPORT double norm(TensorRef value);
+  KANN_EXPORT float norm(TensorRef value);
 
   /* X = x_1 * ... * x_m
    * Y = y_1 * ... * y_k

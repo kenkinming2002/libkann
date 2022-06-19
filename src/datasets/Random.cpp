@@ -13,7 +13,7 @@ namespace kann
     return ranges::views::generate_n([&]() {
       MutableTensor result = MutableTensor::create(shape);
       ranges::generate_n(result.data(), result.size(), []() {
-        double tmp = (double)rand() / RAND_MAX;
+        float tmp = (float)rand() / RAND_MAX;
         return 2.0 * tmp - 1.0;
       });
       return std::move(result).as_const();

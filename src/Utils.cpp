@@ -4,8 +4,8 @@
 
 namespace kann::utils
 {
-  using EigenArray  = Eigen::ArrayXd;
-  using EigenMatrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  using EigenArray  = Eigen::ArrayXf;
+  using EigenMatrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
   template<typename Storage>
   static inline auto to_eigen_array(const TensorBase<Storage>& tensor)

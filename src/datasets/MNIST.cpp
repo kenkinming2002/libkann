@@ -85,7 +85,7 @@ namespace kann
       if(!idx_file.file.read(reinterpret_cast<char*>(image_data), sizeof image_data))
         throw std::runtime_error("MNIST Data Set - Invalid file format");
 
-      ranges::copy(image_data | ranges::views::transform([](uint8_t b) { return (double)b / 255; }), image.data());
+      ranges::copy(image_data | ranges::views::transform([](uint8_t b) { return (float)b / 255; }), image.data());
       images.push_back(std::move(image).as_const());
     }
 
@@ -114,7 +114,7 @@ namespace kann
       if(!idx_file.file.read(reinterpret_cast<char*>(&label_data), sizeof label_data))
         throw std::runtime_error("MNIST Data Set - Invalid file format");
 
-      ranges::copy(ranges::views::ints(0,10) | ranges::views::transform([label_data](auto i) -> double { return i == label_data ? 1.0 : 0.0; }), label.data());
+      ranges::copy(ranges::views::ints(0,10) | ranges::views::transform([label_data](auto i) -> float { return i == label_data ? 1.0 : 0.0; }), label.data());
       labels.push_back(std::move(label).as_const());
     }
 

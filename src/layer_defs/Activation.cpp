@@ -78,7 +78,7 @@ namespace kann
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const override
     {
-      return operation_process_cwise_impl<2,1>(std::move(inputs), m_shape, [this](double input, double output_gradient)
+      return operation_process_cwise_impl<2,1>(std::move(inputs), m_shape, [this](float input, float output_gradient)
       {
         switch(m_type)
         {
@@ -86,12 +86,12 @@ namespace kann
             return std::make_tuple(output_gradient);
           case ActivationLayerDef::Type::SIGMOID:
           {
-            double tmp = std::exp(-input);
+            float tmp = std::exp(-input);
             return std::make_tuple(output_gradient * tmp / ((1+tmp) * (1+tmp)));
           }
           case ActivationLayerDef::Type::TANH:
           {
-            double tmp = std::cosh(input);
+            float tmp = std::cosh(input);
             return std::make_tuple(output_gradient / (tmp * tmp));
           }
           default:
@@ -114,14 +114,14 @@ namespace kann
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const override
     {
-      return operation_process_cwise_impl<1,1>(std::move(inputs), m_shape, [this](double input)
+      return operation_process_cwise_impl<1,1>(std::move(inputs), m_shape, [this](float input)
       {
         switch(m_type)
         {
         case ActivationLayerDef::Type::IDENTITY:
           return std::make_tuple(input);
         case ActivationLayerDef::Type::SIGMOID:
-          return std::make_tuple(1.0 /  (1.0 + std::exp(-input)));
+          return std::make_tuple(1.0f /  (1.0f + std::exp(-input)));
         case ActivationLayerDef::Type::TANH:
           return std::make_tuple(std::tanh(input));
         default:

@@ -7,7 +7,7 @@
 
 namespace kann
 {
-  SimpleOptimizer::SimpleOptimizer(double learningRate)
+  SimpleOptimizer::SimpleOptimizer(float learningRate)
     : m_learningRate(learningRate) {}
 
   size_t SimpleOptimizer::process(Graph& graph, Info& info, Shape shape, size_t index, size_t gradient_index) const

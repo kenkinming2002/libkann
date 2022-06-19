@@ -13,7 +13,7 @@
 
 namespace kann
 {
-  AdamOptimizer::AdamOptimizer(double alpha, double beta1, double beta2, double epsilon)
+  AdamOptimizer::AdamOptimizer(float alpha, float beta1, float beta2, float epsilon)
     : m_alpha(alpha), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon) {}
 
   class SecondMomentOperation : public Operation
@@ -24,7 +24,7 @@ namespace kann
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const override
     {
-      return operation_process_cwise_impl<1, 1>(std::move(inputs), m_shape, [](double input) {
+      return operation_process_cwise_impl<1, 1>(std::move(inputs), m_shape, [](float input) {
         return std::make_tuple(input * input);
       });
     }
@@ -37,19 +37,19 @@ namespace kann
   class EMAOperation : public Operation
   {
   public:
-    constexpr EMAOperation(Shape shape, double beta) : m_shape(shape), m_beta(beta) {}
+    constexpr EMAOperation(Shape shape, float beta) : m_shape(shape), m_beta(beta) {}
 
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const override
     {
-      return operation_process_cwise_impl<2, 1>(std::move(inputs), m_shape, [this](double avg, double input) {
+      return operation_process_cwise_impl<2, 1>(std::move(inputs), m_shape, [this](float avg, float input) {
         return std::make_tuple(m_beta * avg + (1-m_beta) * input);
       });
     }
 
   private:
     Shape m_shape;
-    double m_beta;
+    float m_beta;
   };
 
   class IncrementOperation : public Operation
@@ -60,7 +60,7 @@ namespace kann
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const override
     {
-      return operation_process_cwise_impl<1, 1>(std::move(inputs), Shape{}, [](double input) {
+      return operation_process_cwise_impl<1, 1>(std::move(inputs), Shape{}, [](float input) {
         return std::make_tuple(input + 1.0);
       });
     }
@@ -69,7 +69,7 @@ namespace kann
   class BiasCorrectionOperation : public Operation
   {
   public:
-    constexpr BiasCorrectionOperation(double beta) : m_beta(beta) {}
+    constexpr BiasCorrectionOperation(float beta) : m_beta(beta) {}
 
   public:
     std::vector<Tensor> process(std::vector<Tensor> inputs) const override
@@ -79,7 +79,7 @@ namespace kann
         assert(t.shape().is_scalar());
         MutableTensor result = MutableTensor::create(v.shape());
 
-        const double factor = 1.0 / (1.0 - std::pow(m_beta, t.get(0)));
+        const float factor = 1.0 / (1.0 - std::pow(m_beta, t.get(0)));
         for(size_t i=0; i<result.size(); ++i)
           result.get(i) = v.get(i) * factor;
 
@@ -88,13 +88,13 @@ namespace kann
     }
 
   private:
-    double m_beta;
+    float m_beta;
   };
 
   class AdamOperation : public Operation
   {
   public:
-    constexpr AdamOperation(double alpha, double epsilon)
+    constexpr AdamOperation(float alpha, float epsilon)
       : m_alpha(alpha), m_epsilon(epsilon) {}
 
   public:
@@ -103,7 +103,7 @@ namespace kann
       return operation_process_impl<2, 1>(std::move(inputs), [this](const Tensor& m_hat, const Tensor& v_hat)
       {
         MutableTensor result = MutableTensor::create(m_hat.shape());
-        const double factor = m_alpha / (math::norm(v_hat.as_ref()) + m_epsilon);
+        const float factor = m_alpha / (math::norm(v_hat.as_ref()) + m_epsilon);
         for(size_t i=0; i<result.size(); ++i)
           result.get(i) = m_hat.get(i) * factor;
 
@@ -112,8 +112,8 @@ namespace kann
     }
 
   private:
-    double m_alpha;
-    double m_epsilon;
+    float m_alpha;
+    float m_epsilon;
   };
 
   size_t AdamOptimizer::process(Graph& graph, Info& info, Shape shape, size_t index, size_t gradient_index) const
