@@ -7,12 +7,20 @@
 namespace kann::math
 {
   using EigenArray  = Eigen::ArrayXf;
+  using EigenVector = Eigen::RowVectorXf;
   using EigenMatrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
   template<typename Storage>
   static inline auto to_eigen_array(const TensorBase<Storage>& tensor)
   {
     return EigenArray::Map(tensor.data(), tensor.size());
+  }
+
+  template<typename Storage>
+  static inline auto to_eigen_vector(const TensorBase<Storage>& tensor)
+  {
+    assert(tensor.is_vector());
+    return EigenVector::Map(tensor.data(), tensor.shape().size());
   }
 
   template<typename Storage>
@@ -38,6 +46,36 @@ namespace kann::math
     for(size_t i=0; i<value.size(); ++i)
       sum += value.get(i) * value.get(i);
     return std::sqrt(sum);
+  }
+
+  Tensor broadcast(Tensor value, Shape shape)
+  {
+    const Shape& shape_left  = shape;
+    const Shape& shape_right = value.shape();
+    const Shape& shape_total = Shape::concat(shape_left, shape_right);
+
+    MutableTensor result = MutableTensor::create(shape_total);
+    {
+      auto _value  = to_eigen_vector(value.as_ref().reshape(Shape(shape_right.size())));
+      auto _result = to_eigen_matrix(result.as_ref().reshape(Shape(shape_left.size(), shape_right.size())));
+      _result.rowwise() = _value;
+    }
+    return result.as_const();
+  }
+
+  Tensor reduce(Tensor value, Shape shape)
+  {
+    const Shape& shape_total = value.shape();
+    const Shape& shape_left  = shape;
+    const Shape& shape_right = shape_total.drop_front(shape.rank());
+
+    MutableTensor result = MutableTensor::create(shape_right);
+    {
+      auto _value  = to_eigen_matrix(value.as_ref().reshape(Shape(shape_left.size(), shape_right.size())));
+      auto _result = to_eigen_vector(result.as_ref().reshape(Shape(shape_right.size())));
+      _result = _value.colwise().sum();
+    }
+    return result.as_const();
   }
 
   Tensor product(Tensor a, Tensor b, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_a, bool transpose_b)

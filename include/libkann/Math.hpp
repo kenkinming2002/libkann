@@ -11,6 +11,9 @@ namespace kann::math
 
   KANN_EXPORT float norm(TensorRef value);
 
+  KANN_EXPORT Tensor broadcast(Tensor value, Shape shape);
+  KANN_EXPORT Tensor reduce(Tensor value, Shape shape);
+
   /* X = x_1 * ... * x_m
    * Y = y_1 * ... * y_k
    * Z = z_1 * ... * z_n
