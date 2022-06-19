@@ -159,7 +159,7 @@ namespace kann::math
     auto _input = to_eigen_matrix(input);
     auto _kernel = to_eigen_matrix(kernel);
     auto _output = to_eigen_matrix(output);
-    _output += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
+    _output.noalias() += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
       return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel).sum();
     });
   }
@@ -169,7 +169,7 @@ namespace kann::math
     auto _input = to_eigen_matrix(input);
     auto _kernel = to_eigen_matrix(kernel);
     auto _output = to_eigen_matrix(output);
-    _output += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
+    _output.noalias() += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
       return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel.reverse()).sum();
     });
   }
