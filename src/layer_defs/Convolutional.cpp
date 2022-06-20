@@ -8,7 +8,7 @@
 
 namespace kann
 {
-  YAML::Node ConvolutionalLayerDef::save(layer_def_t layer_def)
+  YAML::Node ConvolutionalLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
     node["input_channel_count"]  = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->m_input_channel_count;
@@ -22,7 +22,7 @@ namespace kann
     return node;
   }
 
-  layer_def_t ConvolutionalLayerDef::load(YAML::Node node)
+  std::shared_ptr<const LayerDef> ConvolutionalLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<ConvolutionalLayerDef>();
     layer_def->m_input_channel_count  = node["input_channel_count"].as<size_t>();

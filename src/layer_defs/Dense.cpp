@@ -6,7 +6,7 @@
 
 namespace kann
 {
-  YAML::Node DenseLayerDef::save(layer_def_t layer_def)
+  YAML::Node DenseLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
     node["input_shape"]  = Shape::to_vector(std::static_pointer_cast<const DenseLayerDef>(layer_def)->m_input_shape);
@@ -14,7 +14,7 @@ namespace kann
     return node;
   }
 
-  layer_def_t DenseLayerDef::load(YAML::Node node)
+  std::shared_ptr<const LayerDef> DenseLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<DenseLayerDef>();
     layer_def->m_input_shape  = Shape::from_vector(node["input_shape"].as<std::vector<size_t>>());

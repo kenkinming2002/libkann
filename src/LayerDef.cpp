@@ -25,25 +25,25 @@ namespace kann
     load_map().emplace(std::move(name), load);
   }
 
-  YAML::Node LayerDef::save(layer_def_t layer)
+  YAML::Node LayerDef::save(std::shared_ptr<const LayerDef> layer)
   {
     auto type_index = std::type_index(typeid(*layer));
     return save_map().at(type_index)(layer);
   }
 
-  layer_def_t LayerDef::load(YAML::Node node)
+  std::shared_ptr<const LayerDef> LayerDef::load(YAML::Node node)
   {
     auto name = node["type"].as<std::string>();
     return load_map().at(name)(node);
   }
 
-  layer_def_t LayerDef::load(const std::string& filename)
+  std::shared_ptr<const LayerDef> LayerDef::load(const std::string& filename)
   {
     YAML::Node root = YAML::LoadFile(filename);
     return load(root);
   }
 
-  layer_def_t LayerDef::load(std::istream& is)
+  std::shared_ptr<const LayerDef> LayerDef::load(std::istream& is)
   {
     YAML::Node root = YAML::Load(is);
     return load(root);

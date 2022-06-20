@@ -9,16 +9,16 @@
 
 namespace kann
 {
-  YAML::Node SequentialLayerDef::save(layer_def_t layer_def)
+  YAML::Node SequentialLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
     node["layers"] = layer_def->sub_layer_defs
-      | ranges::views::transform([&](layer_def_t sub_layer_def) { return LayerDef::save(sub_layer_def); } )
+      | ranges::views::transform([&](std::shared_ptr<const LayerDef> sub_layer_def) { return LayerDef::save(sub_layer_def); } )
       | ranges::to_vector;
     return node;
   }
 
-  layer_def_t SequentialLayerDef::load(YAML::Node node)
+  std::shared_ptr<const LayerDef> SequentialLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<SequentialLayerDef>();
     auto layer_defs_node = node["layers"];

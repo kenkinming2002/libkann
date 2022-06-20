@@ -1,8 +1,6 @@
 #pragma once
 
 #include <libkann/Export.hpp>
-
-#include <libkann/Types.hpp>
 #include <libkann/Variable.hpp>
 
 #include <vector>

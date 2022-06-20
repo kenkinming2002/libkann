@@ -1,11 +1,10 @@
 #pragma once
 
 #include <libkann/Export.hpp>
-
-#include <libkann/Types.hpp>
-#include <libkann/Tensor.hpp>
 #include <libkann/Tag.hpp>
 #include <libkann/Shape.hpp>
+#include <libkann/Tensor.hpp>
+#include <libkann/LayerStorage.hpp>
 
 #include <yaml-cpp/yaml.h>
 
@@ -20,8 +19,8 @@ namespace kann
   struct LayerDef : public std::enable_shared_from_this<LayerDef>
   {
   public:
-    using save_t = YAML::Node(*)(layer_def_t);
-    using load_t = layer_def_t(*)(YAML::Node);
+    using save_t = YAML::Node(*)(std::shared_ptr<const LayerDef>);
+    using load_t = std::shared_ptr<const LayerDef>(*)(YAML::Node);
 
   public:
     KANN_EXPORT static void register_save_load(std::string name, const std::type_info& type_info, save_t save, load_t load);
@@ -30,17 +29,17 @@ namespace kann
     static void register_save_load(std::string name) { register_save_load(std::move(name), typeid(T), T::save, T::load); }
 
   public:
-    KANN_EXPORT static YAML::Node save(layer_def_t layer);
-    KANN_EXPORT static layer_def_t load(YAML::Node node);
+    KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer);
+    KANN_EXPORT static std::shared_ptr<const LayerDef> load(YAML::Node node);
 
   public:
-    KANN_EXPORT static layer_def_t load(const std::string& filename);
-    KANN_EXPORT static layer_def_t load(std::istream& is);
+    KANN_EXPORT static std::shared_ptr<const LayerDef> load(const std::string& filename);
+    KANN_EXPORT static std::shared_ptr<const LayerDef> load(std::istream& is);
 
   public:
     // Question: How do we support tagging? Do we store tag in parent layer def or in child
     Tag tag = Tag::ALL;
-    std::vector<layer_def_t> sub_layer_defs;
+    std::vector<std::shared_ptr<const LayerDef>> sub_layer_defs;
 
   public:
     KANN_EXPORT virtual ~LayerDef() = default;

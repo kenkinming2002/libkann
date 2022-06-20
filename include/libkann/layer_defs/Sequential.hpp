@@ -9,8 +9,8 @@ namespace kann
   class KANN_EXPORT SequentialLayerDef : public LayerDef
   {
   public:
-    KANN_EXPORT static YAML::Node save(layer_def_t layer_def);
-    KANN_EXPORT static layer_def_t load(YAML::Node node);
+    KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer_def);
+    KANN_EXPORT static std::shared_ptr<const LayerDef> load(YAML::Node node);
 
   public:
     KANN_EXPORT std::shared_ptr<LayerStorage> create(std::default_random_engine& prng) const override;

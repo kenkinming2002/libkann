@@ -34,7 +34,7 @@ namespace kann
       throw std::runtime_error("Unknown activation function type - " + name);
   }
 
-  YAML::Node ActivationLayerDef::save(layer_def_t layer_def)
+  YAML::Node ActivationLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
     node["shape"]    = Shape::to_vector(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_shape);
@@ -42,7 +42,7 @@ namespace kann
     return node;
   }
 
-  layer_def_t ActivationLayerDef::load(YAML::Node node)
+  std::shared_ptr<const LayerDef> ActivationLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<ActivationLayerDef>();
     layer_def->m_shape = Shape::from_vector(node["shape"].as<std::vector<size_t>>());
