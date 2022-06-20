@@ -3,7 +3,7 @@
 #include <libkann/Export.hpp>
 
 #include <libkann/Types.hpp>
-#include <libkann/Tensor.hpp>
+#include <libkann/Variable.hpp>
 
 #include <vector>
 
@@ -12,10 +12,8 @@ namespace kann
   struct LayerStorage
   {
   public:
-    layer_def_t def;
-
-    std::vector<Tensor> parameters;
-    std::vector<Tensor> states;
+    std::vector<Variable> parameters;
+    std::vector<Variable> states;
 
   public:
     std::vector<std::shared_ptr<LayerStorage>> sub_layer_storages;
