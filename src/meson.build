@@ -4,18 +4,6 @@ libkann_sources = [
   'Math.cpp',
   'Utils.cpp',
 
-  # Operations
-  #'operations/Add.cpp',
-  #'operations/Broadcast.cpp',
-  #'operations/CrossCorrelation.cpp',
-  #'operations/Scale.cpp',
-  #'operations/Subtract.cpp',
-  #'operations/TensorProduct.cpp',
-
-  # Executors
-  #'Graph.cpp',
-  #'executors/DefaultExecutor.cpp',
-
   # Layers
   'LayerStorage.cpp',
   'LayerDef.cpp',
