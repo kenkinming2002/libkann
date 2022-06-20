@@ -19,12 +19,5 @@ namespace kann
 
   public:
     std::vector<std::shared_ptr<LayerStorage>> sub_layer_storages;
-
-  public:
-    KANN_EXPORT void set_parameters_all(std::vector<Tensor> values);
-    KANN_EXPORT void set_states_all(std::vector<Tensor> values);
-
-    KANN_EXPORT std::vector<Tensor> get_parameters_all() const;
-    KANN_EXPORT std::vector<Tensor> get_states_all() const;
   };
 }
