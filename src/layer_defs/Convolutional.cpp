@@ -1,10 +1,10 @@
 #include <libkann/layer_defs/Convolutional.hpp>
 
 #include <libkann/Tensor.hpp>
+#include <libkann/Layer.hpp>
 #include <libkann/LayerStorage.hpp>
-#include <libkann/Graph.hpp>
 
-#include <libkann/operations/CrossCorrelation.hpp>
+#include <libkann/Math.hpp>
 
 namespace kann
 {
@@ -36,12 +36,9 @@ namespace kann
   std::shared_ptr<LayerStorage> ConvolutionalLayerDef::create(std::default_random_engine& prng) const
   {
     auto layer_storage = std::make_shared<LayerStorage>();
-    layer_storage->def = shared_from_this();
-    layer_storage->parameters = { MutableTensor::normal(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()},
-      prng,
-      0.0,
-      1.0 / (m_kernel_size.width() * m_kernel_size.height())
-    ).as_const() };
+    layer_storage->parameters = {
+      Variable{.value = MutableTensor::normal(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()}, prng, 0.0, 1.0 / (m_kernel_size.width() * m_kernel_size.height())).as_const()}
+    };
     return layer_storage;
   }
 
@@ -55,17 +52,22 @@ namespace kann
     return Shape{m_output_channel_count, m_output_size.height(), m_output_size.width()};
   }
 
-  size_t ConvolutionalLayerDef::batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const
+  Tensor ConvolutionalLayerDef::forward(Layer& layer, Tensor inputs) const
   {
-    size_t output_index = graph.add_vertex();
-    size_t kernels_index = graph.add_vertex();
+    const Variable& kernels = layer.storage->parameters[0];
+    layer.saved_tensors = { inputs };
 
-    Vec2 padding_size = ((m_output_size - m_input_size) + (m_kernel_size - Vec2(1,1))) / 2;
+    const Vec2 padding_size = ((m_output_size - m_input_size) + (m_kernel_size - Vec2(1,1))) / 2;
+    return math::cross_correlate2d(inputs, kernels.value, 1, 1, 1, false, false, padding_size);
+  }
 
-    operation_t op = std::make_shared<CrossCorrelationOperation>(1, 1, 1, m_kernel_size, padding_size);
-    graph.add_edge(std::move(op), {input_index, kernels_index}, {output_index});
+  Tensor ConvolutionalLayerDef::backward(Layer& layer, Tensor output_gradients) const
+  {
+    Variable& kernels = layer.storage->parameters[0];
+    const Tensor& inputs = layer.saved_tensors[0];
 
-    info.add_parameter(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()}, tag, kernels_index);
-    return output_index;
+    const Vec2 padding_size = ((m_output_size - m_input_size) + (m_kernel_size - Vec2(1,1))) / 2;
+    kernels.gradient = math::cross_correlate2d(inputs, output_gradients, 1, 1, 1, true, false, padding_size);
+    return math::convolve2d(output_gradients, kernels.value, 1, 1, 1, false, true, (m_kernel_size - Vec2(1,1)) - padding_size);
   }
 }
