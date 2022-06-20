@@ -16,7 +16,7 @@
 namespace kann
 {
   struct Layer;
-  struct LayerDef : public std::enable_shared_from_this<LayerDef>
+  struct LayerDef
   {
   public:
     using save_t = YAML::Node(*)(std::shared_ptr<const LayerDef>);
