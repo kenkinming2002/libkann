@@ -20,7 +20,7 @@ libkann_sources = [
 
   # Optimizers
   #'Optimizer.cpp',
-  #'optimizers/SimpleOptimizer.cpp',
+  'optimizers/SimpleOptimizer.cpp',
   #'optimizers/AdamOptimizer.cpp',
 
   'Batch.cpp',
