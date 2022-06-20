@@ -49,11 +49,10 @@ namespace kann
     layer.saved_tensors = { inputs };
 
     const size_t batch_size = inputs.shape().dimension(0);
-    MutableTensor product = MutableTensor::create(Shape::concat(Shape(batch_size), m_output_shape));
-    math::product(inputs.as_ref(), false, weight.value.as_ref(), false, product.as_ref());
-
-    Tensor broadcast = math::broadcast(bias.value, Shape(batch_size));
-    return math::add(std::move(product).as_const(), std::move(broadcast));
+    MutableTensor outputs = MutableTensor::create(Shape::concat(Shape(batch_size), m_output_shape));
+    math::product(inputs.as_ref(), false, weight.value.as_ref(), false, outputs.as_ref());
+    math::broadcast_add(bias.value.as_ref(), outputs.as_ref());
+    return outputs.as_const();
   }
 
   Tensor DenseLayerDef::backward(Layer& layer, Tensor output_gradients) const
