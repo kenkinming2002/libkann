@@ -34,4 +34,42 @@ namespace kann::math
    *         multiplication replaced with 2d convolution/cross correlation. */
   KANN_EXPORT Tensor cross_correlate2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
   KANN_EXPORT Tensor convolve2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
+
+  template<typename Impl>
+  Tensor cwise(Tensor a, Impl impl)
+  {
+    const Shape& shape = a.shape();
+    const size_t size = a.size();
+    MutableTensor result = MutableTensor::create(shape);
+    for(size_t i=0; i<size; ++i)
+      result.get(i) = impl(a.get(i));
+
+    return std::move(result).as_const();
+  }
+
+  template<typename Impl>
+  Tensor cwise(Tensor a, Tensor b, Impl impl)
+  {
+    assert(a.shape() == b.shape());
+    const Shape& shape = a.shape();
+    const size_t size = a.size();
+    MutableTensor result = MutableTensor::create(shape);
+    for(size_t i=0; i<size; ++i)
+      result.get(i) = impl(a.get(i), b.get(i));
+
+    return std::move(result).as_const();
+  }
+
+  template<typename Impl>
+  Tensor cwise(Tensor a, Tensor b, Tensor c, Impl impl)
+  {
+    assert(a.shape() == b.shape() && b.shape() == c.shape());
+    const Shape& shape = a.shape();
+    const size_t size = a.size();
+    MutableTensor result = MutableTensor::create(shape);
+    for(size_t i=0; i<size; ++i)
+      result.get(i) = impl(a.get(i), b.get(i), c.get(i));
+
+    return std::move(result).as_const();
+  }
 }
