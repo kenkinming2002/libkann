@@ -12,7 +12,7 @@ namespace kann
 
   public:
     virtual Tensor forward(Tensor input) = 0;
-    virtual Tensor backward(Tensor output) = 0;
+    virtual Tensor backward(Tensor output_gradient) = 0;
 
   public:
     std::vector<Tensor> saved_tensors;
