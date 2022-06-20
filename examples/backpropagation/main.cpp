@@ -2,21 +2,22 @@
 #include <libkann/Random.hpp>
 
 #include <libkann/Tensor.hpp>
+#include <libkann/Math.hpp>
 #include <libkann/Utils.hpp>
+
 #include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 #include <libkann/LayerDef.hpp>
-#include <libkann/Graph.hpp>
 
-#include <libkann/executors/DefaultExecutor.hpp>
-
-#include <libkann/optimizers/AdamOptimizer.hpp>
 #include <libkann/optimizers/SimpleOptimizer.hpp>
+#include <libkann/optimizers/AdamOptimizer.hpp>
 
 #include <libkann/datasets/MNIST.hpp>
 #include <libkann/datasets/Random.hpp>
 #include <libkann/datasets/write.hpp>
 
-#include <libkann/Algorithm.hpp>
+#include <libkann/Batch.hpp>
+#include <libkann/ProgressBar.hpp>
 
 #include <fmt/core.h>
 
@@ -50,8 +51,11 @@ int main(int argc, char** argv)
 
   std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
 
-  const kann::layer_t layer = kann::LayerDef::load(file_name)->create(prng);
-  const kann::optimizer_t optimizer = [&optimizer_name, &optimizer_parameters]() -> kann::optimizer_t
+  const std::shared_ptr<const kann::LayerDef> def   = kann::LayerDef::load(file_name);
+  const std::shared_ptr<kann::LayerStorage> storage = def->create(prng);
+  const std::shared_ptr<kann::Layer> layer          = kann::Layer::create_from(def, storage);
+
+  std::shared_ptr<kann::Optimizer> optimizer = [&optimizer_name, &optimizer_parameters]() -> std::shared_ptr<kann::Optimizer>
   {
     if(optimizer_name == "simple")
     {
@@ -87,43 +91,110 @@ int main(int argc, char** argv)
   const std::vector<kann::Tensor> mnist_training_images = kann::load_mnist_dataset_images("datasets/mnist/train-images-idx3-ubyte");
   const std::vector<kann::Tensor> mnist_training_labels = kann::load_mnist_dataset_labels("datasets/mnist/train-labels-idx1-ubyte");
 
-  const std::shared_ptr<kann::Executor> executor = std::make_shared<kann::DefaultExecutor>();
-
-  // Testing
+  // Initial testing
   {
-    auto predictions = kann::predict(*layer, *executor, mnist_testing_images);
-    size_t correct_count = ranges::count_if(ranges::views::zip(mnist_testing_labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
+    const std::vector<kann::Tensor>& images = mnist_testing_images;
+    const std::vector<kann::Tensor>& labels = mnist_testing_labels;
+
+    const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
+
+    std::vector<kann::Tensor> prediction_batches;
+
+    kann::ProgressBar progress_bar("testing", 10000);
+    for(const kann::Tensor& image_batch : image_batches)
+    {
+      prediction_batches.push_back(layer->forward(image_batch));
+      progress_bar.update("", batch_size);
+    }
+
+    const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
+    size_t correct_count = ranges::count_if(ranges::views::zip(labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
     fmt::print("Initial testing accuracy:{}/10000\n", correct_count);
   }
 
-  // Training
   for(size_t i=0; i<epoch; ++i)
   {
     fmt::print("=> Epoch {} begin\n", i);
     {
       // Training
       {
-        std::vector<std::pair<kann::Tensor, kann::Tensor>> training_data = ranges::views::zip(mnist_training_images, mnist_training_labels) | ranges::to_vector;
-        ranges::shuffle(training_data, prng);
+        std::vector<kann::Tensor> images = mnist_training_images;
+        std::vector<kann::Tensor> labels = mnist_training_labels;
 
-        std::vector<kann::Tensor> training_images = training_data | ranges::views::keys   | ranges::to_vector;
-        std::vector<kann::Tensor> training_labels = training_data | ranges::views::values | ranges::to_vector;
+        // Shuffle
+        {
+          std::uniform_int_distribution<size_t> dist(0, 60000-1);
+          for(size_t i=0; i<60000; ++i)
+          {
+            size_t index1 = dist(prng), index2 = dist(prng);
+            if(index1 == index2)
+              continue;
 
-        kann::optimize(*layer, kann::Tag::ALL, *optimizer, *executor, batch_size, training_images, training_labels);
+            std::swap(images[index1], images[index2]);
+            std::swap(labels[index1], labels[index2]);
+          }
+        }
+
+        kann::ProgressBar progress_bar("training", 60000);
+
+        const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
+        const std::vector<kann::Tensor>& label_batches = kann::batch(labels, batch_size);
+        for(const auto& [image_batch, label_batch] : ranges::views::zip(image_batches, label_batches))
+        {
+          kann::Tensor prediction_batch = layer->forward(image_batch);
+          kann::Tensor gradient_batch = kann::math::cwise(label_batch, prediction_batch, [](float label_value, float prediction_value) {
+            return prediction_value - label_value;
+          });
+          layer->backward(gradient_batch);
+
+          layer->storage->foreach_parameters([&optimizer](kann::Variable& variable) { optimizer->optimize(variable); });
+          optimizer->step();
+
+          const float loss = kann::math::norm(gradient_batch.as_ref());
+          progress_bar.update(fmt::format("loss={}", loss), batch_size);
+        }
       }
 
-      // Testing on training set
+      // Testing training
       {
-        auto predictions = kann::predict(*layer, *executor, mnist_training_images);
-        size_t correct_count = ranges::count_if(ranges::views::zip(mnist_training_labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
-        fmt::print("  Training set accuracy:{}/60000\n", correct_count);
+        const std::vector<kann::Tensor>& images = mnist_training_images;
+        const std::vector<kann::Tensor>& labels = mnist_training_labels;
+
+        const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
+
+        std::vector<kann::Tensor> prediction_batches;
+
+        kann::ProgressBar progress_bar("testing", 60000);
+        for(const kann::Tensor& image_batch : image_batches)
+        {
+          prediction_batches.push_back(layer->forward(image_batch));
+          progress_bar.update("", batch_size);
+        }
+
+        const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
+        size_t correct_count = ranges::count_if(ranges::views::zip(labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
+        fmt::print("Training dataset accuracy:{}/60000\n", correct_count);
       }
 
-      // Testing on testing set
+      // Testing testing
       {
-        auto predictions = kann::predict(*layer, *executor, mnist_testing_images);
-        size_t correct_count = ranges::count_if(ranges::views::zip(mnist_testing_labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
-        fmt::print("  Testing set accurracy:{}/10000\n", correct_count);
+        const std::vector<kann::Tensor>& images = mnist_testing_images;
+        const std::vector<kann::Tensor>& labels = mnist_testing_labels;
+
+        const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
+
+        std::vector<kann::Tensor> prediction_batches;
+
+        kann::ProgressBar progress_bar("testing", 10000);
+        for(const kann::Tensor& image_batch : image_batches)
+        {
+          prediction_batches.push_back(layer->forward(image_batch));
+          progress_bar.update("", batch_size);
+        }
+
+        const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
+        size_t correct_count = ranges::count_if(ranges::views::zip(labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
+        fmt::print("Testing dataset accuracy:{}/10000\n", correct_count);
       }
     }
     fmt::print("<= Epoch {} end\n", i);

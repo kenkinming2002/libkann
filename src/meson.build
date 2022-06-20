@@ -4,20 +4,9 @@ libkann_sources = [
   'Math.cpp',
   'Utils.cpp',
 
-  # Operations
-  'operations/Add.cpp',
-  'operations/Broadcast.cpp',
-  'operations/CrossCorrelation.cpp',
-  'operations/Scale.cpp',
-  'operations/Subtract.cpp',
-  'operations/TensorProduct.cpp',
-
-  # Executors
-  'Graph.cpp',
-  'executors/DefaultExecutor.cpp',
-
   # Layers
   'Layer.cpp',
+  'LayerStorage.cpp',
   'LayerDef.cpp',
   'layer_defs/Activation.cpp',
   'layer_defs/Convolutional.cpp',
@@ -30,16 +19,17 @@ libkann_sources = [
   'datasets/write.cpp',
 
   # Optimizers
-  'Optimizer.cpp',
+  #'Optimizer.cpp',
   'optimizers/SimpleOptimizer.cpp',
   'optimizers/AdamOptimizer.cpp',
 
+  'Batch.cpp',
+  'ProgressBar.cpp',
+
   # Actual Machine Learning Training Algorithm
-  'algorithms/ProgressBar.cpp',
-  'algorithms/Context.cpp',
-  'algorithms/Batch.cpp',
-  'algorithms/Predict.cpp',
-  'algorithms/Optimize.cpp',
+  #'algorithms/Context.cpp',
+  #'algorithms/Predict.cpp',
+  #'algorithms/Optimize.cpp',
 ]
 
 fmt_dep = dependency('fmt')

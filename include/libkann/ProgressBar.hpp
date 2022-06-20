@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libkann/Export.hpp>
+
 #include <math.h>
 #include <string_view>
 
@@ -8,10 +10,10 @@ namespace kann
   class ProgressBar
   {
   public:
-    ProgressBar(std::string_view title, size_t total_count);
+    KANN_EXPORT ProgressBar(std::string_view title, size_t total_count);
 
   public:
-    void update(std::string_view content, size_t count = 1);
+    KANN_EXPORT void update(std::string_view content, size_t count = 1);
 
   private:
     std::string_view m_title;

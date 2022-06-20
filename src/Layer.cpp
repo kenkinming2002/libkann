@@ -1,52 +1,23 @@
 #include <libkann/Layer.hpp>
 
-#include <libkann/LayerDef.hpp>
-
-#include <span>
-
-#include <assert.h>
-
 namespace kann
 {
-  typedef std::vector<Tensor> attr_t;
-  typedef std::span<Tensor> view_t;
-  typedef attr_t Layer::* attr_ptr_t;
-
-  static inline void set_attribute_all_impl(Layer& layer, attr_ptr_t attr_ptr, view_t& view)
+  std::shared_ptr<Layer> Layer::create_from(std::shared_ptr<const LayerDef> def, std::shared_ptr<LayerStorage> storage)
   {
-    attr_t& attr = layer.*attr_ptr;
-
-    std::copy_n(view.begin(), attr.size(), attr.begin());
-    view = view.subspan(attr.size());
-    for(auto& sub_layer : layer.sub_layers)
-      set_attribute_all_impl(*sub_layer, attr_ptr, view);
+    std::shared_ptr<Layer> layer = std::make_shared<Layer>();
+    layer->sub_layers = ranges::views::transform(def->sub_layer_defs, storage->sub_layer_storages, &Layer::create_from) | ranges::to_vector;
+    layer->def        = std::move(def);
+    layer->storage    = std::move(storage);
+    return layer;
   }
 
-  static inline void set_attribute_all(Layer& layer, attr_ptr_t attr_ptr, attr_t attr)
+  Tensor Layer::forward(Tensor inputs)
   {
-    view_t view(attr);
-    set_attribute_all_impl(layer, attr_ptr, view);
-    assert(view.empty());
+    return this->def->forward(*this, std::move(inputs));
   }
 
-  void Layer::set_parameters_all(std::vector<Tensor> values) { set_attribute_all(*this, &Layer::parameters, values); }
-  void Layer::set_states_all(std::vector<Tensor> values)     { set_attribute_all(*this, &Layer::states,     values); }
-
-  static inline void get_attribute_all_impl(const Layer& layer, attr_ptr_t attr_ptr, attr_t& target)
+  Tensor Layer::backward(Tensor output_gradients)
   {
-    const attr_t& attr = layer.*attr_ptr;
-    target |= ranges::actions::push_back(attr);
-    for(auto& sub_layer : layer.sub_layers)
-      get_attribute_all_impl(*sub_layer, attr_ptr, target);
+    return this->def->backward(*this, std::move(output_gradients));
   }
-
-  static inline attr_t get_attribute_all(const Layer& layer, attr_ptr_t attr_ptr)
-  {
-    attr_t attr;
-    get_attribute_all_impl(layer, attr_ptr, attr);
-    return attr;
-  }
-
-  std::vector<Tensor> Layer::get_parameters_all() const { return get_attribute_all(*this, &Layer::parameters); }
-  std::vector<Tensor> Layer::get_states_all()     const { return get_attribute_all(*this, &Layer::states); }
 }

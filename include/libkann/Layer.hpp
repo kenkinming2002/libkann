@@ -1,30 +1,25 @@
 #pragma once
 
-#include <libkann/Export.hpp>
-
-#include <libkann/Types.hpp>
-#include <libkann/Tensor.hpp>
-
-#include <vector>
+#include <libkann/Function.hpp>
+#include <libkann/LayerDef.hpp>
+#include <libkann/LayerStorage.hpp>
 
 namespace kann
 {
-  struct Layer
+  struct KANN_EXPORT Layer : public Function
   {
   public:
-    layer_def_t def;
+    KANN_EXPORT static std::shared_ptr<Layer> create_from(std::shared_ptr<const LayerDef> def, std::shared_ptr<LayerStorage> storage);
 
-    std::vector<Tensor> parameters;
-    std::vector<Tensor> states;
+  public:
+    std::shared_ptr<const LayerDef> def;
+    std::shared_ptr<LayerStorage> storage;
 
   public:
     std::vector<std::shared_ptr<Layer>> sub_layers;
 
   public:
-    KANN_EXPORT void set_parameters_all(std::vector<Tensor> values);
-    KANN_EXPORT void set_states_all(std::vector<Tensor> values);
-
-    KANN_EXPORT std::vector<Tensor> get_parameters_all() const;
-    KANN_EXPORT std::vector<Tensor> get_states_all() const;
+    KANN_EXPORT Tensor forward(Tensor inputs) override;
+    KANN_EXPORT Tensor backward(Tensor outputs) override;
   };
 }

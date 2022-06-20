@@ -1,6 +1,7 @@
 #include <libkann/layer_defs/Sequential.hpp>
 
 #include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 
 #include <range/v3/all.hpp>
 
@@ -8,16 +9,16 @@
 
 namespace kann
 {
-  YAML::Node SequentialLayerDef::save(layer_def_t layer_def)
+  YAML::Node SequentialLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
     node["layers"] = layer_def->sub_layer_defs
-      | ranges::views::transform([&](layer_def_t sub_layer_def) { return LayerDef::save(sub_layer_def); } )
+      | ranges::views::transform([&](std::shared_ptr<const LayerDef> sub_layer_def) { return LayerDef::save(sub_layer_def); } )
       | ranges::to_vector;
     return node;
   }
 
-  layer_def_t SequentialLayerDef::load(YAML::Node node)
+  std::shared_ptr<const LayerDef> SequentialLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<SequentialLayerDef>();
     auto layer_defs_node = node["layers"];
@@ -26,6 +27,15 @@ namespace kann
       | ranges::to_vector;
 
     return layer_def;
+  }
+
+  std::shared_ptr<LayerStorage> SequentialLayerDef::create(std::default_random_engine& prng) const
+  {
+    auto layer_storage = std::make_shared<LayerStorage>();
+    layer_storage->sub_layer_storages = sub_layer_defs
+      | ranges::views::transform([&prng](const auto& sub_layer_def) { return sub_layer_def->create(prng); })
+      | ranges::to_vector;
+    return layer_storage;
   }
 
   Shape SequentialLayerDef::input_shape() const
@@ -38,23 +48,21 @@ namespace kann
     return sub_layer_defs.back()->output_shape();
   }
 
-
-  std::shared_ptr<Layer> SequentialLayerDef::create(std::default_random_engine& prng) const
+  Tensor SequentialLayerDef::forward(Layer& layer, Tensor inputs) const
   {
-    auto layer = std::make_shared<Layer>();
-    layer->def = shared_from_this();
-    layer->sub_layers = sub_layer_defs
-      | ranges::views::transform([&prng](const auto& sub_layer_def) { return sub_layer_def->create(prng); })
-      | ranges::to_vector;
-    return layer;
+    Tensor outputs = std::move(inputs);
+    for(auto& sub_layer : layer.sub_layers)
+      outputs = sub_layer->forward(std::move(outputs));
+
+    return outputs;
   }
 
-  size_t SequentialLayerDef::batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const
+  Tensor SequentialLayerDef::backward(Layer& layer, Tensor output_gradients) const
   {
-    size_t output_index = input_index;
-    for(const layer_def_t& sub_layer_def : sub_layer_defs)
-      output_index = sub_layer_def->batch_process(graph, info, batch_size, output_index);
+    Tensor input_gradients = std::move(output_gradients);
+    for(auto& sub_layer : layer.sub_layers | ranges::views::reverse)
+      input_gradients = sub_layer->backward(std::move(input_gradients));
 
-    return output_index;
+    return input_gradients;
   }
 }
