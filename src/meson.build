@@ -24,9 +24,9 @@ libkann_sources = [
   'optimizers/AdamOptimizer.cpp',
 
   'Batch.cpp',
+  'ProgressBar.cpp',
 
   # Actual Machine Learning Training Algorithm
-  'algorithms/ProgressBar.cpp',
   #'algorithms/Context.cpp',
   #'algorithms/Predict.cpp',
   #'algorithms/Optimize.cpp',

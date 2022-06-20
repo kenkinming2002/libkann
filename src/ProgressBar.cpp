@@ -1,4 +1,4 @@
-#include <libkann/algorithms/ProgressBar.hpp>
+#include <libkann/ProgressBar.hpp>
 
 #include <fmt/core.h>
 
