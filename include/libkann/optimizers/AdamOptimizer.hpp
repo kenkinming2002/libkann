@@ -21,6 +21,6 @@ namespace kann
     float m_epsilon;
 
   private:
-    size_t m_timestep = 0;
+    size_t m_timestep = 1;
   };
 }
