@@ -6,14 +6,14 @@
 
 namespace kann
 {
-  struct Layer : public Function
+  struct KANN_EXPORT Layer : public Function
   {
   public:
     std::shared_ptr<const LayerDef> def;
     std::shared_ptr<LayerStorage> storage;
 
   public:
-    Tensor forward(Tensor inputs) override;
-    Tensor backward(Tensor outputs) override;
+    KANN_EXPORT Tensor forward(Tensor inputs) override;
+    KANN_EXPORT Tensor backward(Tensor outputs) override;
   };
 }
