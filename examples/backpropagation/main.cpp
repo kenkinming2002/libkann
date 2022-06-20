@@ -142,7 +142,7 @@ int main(int argc, char** argv)
         for(const auto& [image_batch, label_batch] : ranges::views::zip(image_batches, label_batches))
         {
           kann::Tensor prediction_batch = layer->forward(image_batch);
-          kann::Tensor gradient_batch = kann::math::cwise(label_batch, prediction_batch, [](double label_value, double prediction_value) {
+          kann::Tensor gradient_batch = kann::math::cwise(label_batch, prediction_batch, [](float label_value, float prediction_value) {
             return prediction_value - label_value;
           });
           layer->backward(gradient_batch);

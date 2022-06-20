@@ -10,7 +10,7 @@ namespace kann
   void SimpleOptimizer::optimize(Variable& variable) const
   {
     assert(variable.gradient);
-    variable.value = math::cwise(variable.value, *variable.gradient, [this](double value, double gradient) {
+    variable.value = math::cwise(variable.value, *variable.gradient, [this](float value, float gradient) {
       return value - gradient * m_learningRate;
     });
   }
