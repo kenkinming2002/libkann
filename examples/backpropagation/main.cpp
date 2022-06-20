@@ -3,20 +3,16 @@
 
 #include <libkann/Tensor.hpp>
 #include <libkann/Utils.hpp>
+
+#include <libkann/Layer.hpp>
 #include <libkann/LayerStorage.hpp>
 #include <libkann/LayerDef.hpp>
-#include <libkann/Graph.hpp>
-
-#include <libkann/executors/DefaultExecutor.hpp>
-
-#include <libkann/optimizers/AdamOptimizer.hpp>
-#include <libkann/optimizers/SimpleOptimizer.hpp>
 
 #include <libkann/datasets/MNIST.hpp>
 #include <libkann/datasets/Random.hpp>
 #include <libkann/datasets/write.hpp>
 
-#include <libkann/Algorithm.hpp>
+#include <libkann/Batch.hpp>
 
 #include <fmt/core.h>
 
@@ -50,32 +46,37 @@ int main(int argc, char** argv)
 
   std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
 
-  const kann::layer_t layer = kann::LayerDef::load(file_name)->create(prng);
-  const kann::optimizer_t optimizer = [&optimizer_name, &optimizer_parameters]() -> kann::optimizer_t
-  {
-    if(optimizer_name == "simple")
-    {
-      const float learning_rate = std::stof(optimizer_parameters);
-      return std::make_shared<kann::SimpleOptimizer>(learning_rate);
-    }
-    else if(optimizer_name == "adam")
-    {
-      std::stringstream ss(optimizer_parameters);
-      auto next = [&]() -> float
-      {
-        std::string str;
-        if(!std::getline(ss, str, ','))
-          throw std::runtime_error(fmt::format("Adam optimizer:Invalid parameters:{}", optimizer_parameters));
+  const std::shared_ptr<const kann::LayerDef> def   = kann::LayerDef::load(file_name);
+  const std::shared_ptr<kann::LayerStorage> storage = def->create(prng);
 
-        return std::stof(str);
-      };
+  kann::Layer layer;
+  layer.def     = def;
+  layer.storage = storage;
+  //const kann::optimizer_t optimizer = [&optimizer_name, &optimizer_parameters]() -> kann::optimizer_t
+  //{
+  //  if(optimizer_name == "simple")
+  //  {
+  //    const float learning_rate = std::stof(optimizer_parameters);
+  //    return std::make_shared<kann::SimpleOptimizer>(learning_rate);
+  //  }
+  //  else if(optimizer_name == "adam")
+  //  {
+  //    std::stringstream ss(optimizer_parameters);
+  //    auto next = [&]() -> float
+  //    {
+  //      std::string str;
+  //      if(!std::getline(ss, str, ','))
+  //        throw std::runtime_error(fmt::format("Adam optimizer:Invalid parameters:{}", optimizer_parameters));
 
-      const float alpha = next(), beta1 = next(), beta2 = next(), epsilon = next();
-      return std::make_shared<kann::AdamOptimizer>(alpha, beta1, beta2, epsilon);
-    }
-    else
-      throw std::runtime_error(fmt::format("Unknown optimizer name:{}", optimizer_name));
-  }();
+  //      return std::stof(str);
+  //    };
+
+  //    const float alpha = next(), beta1 = next(), beta2 = next(), epsilon = next();
+  //    return std::make_shared<kann::AdamOptimizer>(alpha, beta1, beta2, epsilon);
+  //  }
+  //  else
+  //    throw std::runtime_error(fmt::format("Unknown optimizer name:{}", optimizer_name));
+  //}();
 
   const size_t batch_size = std::stoull(batch_size_str);
   const size_t epoch      = std::stoull(epoch_str);
@@ -87,45 +88,50 @@ int main(int argc, char** argv)
   const std::vector<kann::Tensor> mnist_training_images = kann::load_mnist_dataset_images("datasets/mnist/train-images-idx3-ubyte");
   const std::vector<kann::Tensor> mnist_training_labels = kann::load_mnist_dataset_labels("datasets/mnist/train-labels-idx1-ubyte");
 
-  const std::shared_ptr<kann::Executor> executor = std::make_shared<kann::DefaultExecutor>();
-
-  // Testing
   {
-    auto predictions = kann::predict(*layer, *executor, mnist_testing_images);
-    size_t correct_count = ranges::count_if(ranges::views::zip(mnist_testing_labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
+    const std::vector<kann::Tensor>& images = mnist_testing_images;
+    const std::vector<kann::Tensor>& labels = mnist_testing_labels;
+
+    const std::vector<kann::Tensor>& image_batches = kann::batch(mnist_testing_images, batch_size);
+    const std::vector<kann::Tensor>& prediction_batches = image_batches
+      | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer.forward(image_batch); })
+      | ranges::to_vector;
+
+    const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
+    size_t correct_count = ranges::count_if(ranges::views::zip(labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
     fmt::print("Initial testing accuracy:{}/10000\n", correct_count);
   }
 
   // Training
-  for(size_t i=0; i<epoch; ++i)
-  {
-    fmt::print("=> Epoch {} begin\n", i);
-    {
-      // Training
-      {
-        std::vector<std::pair<kann::Tensor, kann::Tensor>> training_data = ranges::views::zip(mnist_training_images, mnist_training_labels) | ranges::to_vector;
-        ranges::shuffle(training_data, prng);
+  //for(size_t i=0; i<epoch; ++i)
+  //{
+  //  fmt::print("=> Epoch {} begin\n", i);
+  //  {
+  //    // Training
+  //    {
+  //      std::vector<std::pair<kann::Tensor, kann::Tensor>> training_data = ranges::views::zip(mnist_training_images, mnist_training_labels) | ranges::to_vector;
+  //      ranges::shuffle(training_data, prng);
 
-        std::vector<kann::Tensor> training_images = training_data | ranges::views::keys   | ranges::to_vector;
-        std::vector<kann::Tensor> training_labels = training_data | ranges::views::values | ranges::to_vector;
+  //      std::vector<kann::Tensor> training_images = training_data | ranges::views::keys   | ranges::to_vector;
+  //      std::vector<kann::Tensor> training_labels = training_data | ranges::views::values | ranges::to_vector;
 
-        kann::optimize(*layer, kann::Tag::ALL, *optimizer, *executor, batch_size, training_images, training_labels);
-      }
+  //      kann::optimize(*layer, kann::Tag::ALL, *optimizer, *executor, batch_size, training_images, training_labels);
+  //    }
 
-      // Testing on training set
-      {
-        auto predictions = kann::predict(*layer, *executor, mnist_training_images);
-        size_t correct_count = ranges::count_if(ranges::views::zip(mnist_training_labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
-        fmt::print("  Training set accuracy:{}/60000\n", correct_count);
-      }
+  //    // Testing on training set
+  //    {
+  //      auto predictions = kann::predict(*layer, *executor, mnist_training_images);
+  //      size_t correct_count = ranges::count_if(ranges::views::zip(mnist_training_labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
+  //      fmt::print("  Training set accuracy:{}/60000\n", correct_count);
+  //    }
 
-      // Testing on testing set
-      {
-        auto predictions = kann::predict(*layer, *executor, mnist_testing_images);
-        size_t correct_count = ranges::count_if(ranges::views::zip(mnist_testing_labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
-        fmt::print("  Testing set accurracy:{}/10000\n", correct_count);
-      }
-    }
-    fmt::print("<= Epoch {} end\n", i);
-  }
+  //    // Testing on testing set
+  //    {
+  //      auto predictions = kann::predict(*layer, *executor, mnist_testing_images);
+  //      size_t correct_count = ranges::count_if(ranges::views::zip(mnist_testing_labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
+  //      fmt::print("  Testing set accurracy:{}/10000\n", correct_count);
+  //    }
+  //  }
+  //  fmt::print("<= Epoch {} end\n", i);
+  //}
 }
