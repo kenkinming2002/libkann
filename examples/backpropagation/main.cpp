@@ -17,6 +17,7 @@
 #include <libkann/datasets/write.hpp>
 
 #include <libkann/Batch.hpp>
+#include <libkann/ProgressBar.hpp>
 
 #include <fmt/core.h>
 
@@ -96,9 +97,15 @@ int main(int argc, char** argv)
     const std::vector<kann::Tensor>& labels = mnist_testing_labels;
 
     const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
-    const std::vector<kann::Tensor>& prediction_batches = image_batches
-      | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer->forward(image_batch); })
-      | ranges::to_vector;
+
+    std::vector<kann::Tensor> prediction_batches;
+
+    kann::ProgressBar progress_bar("testing", 10000);
+    for(const kann::Tensor& image_batch : image_batches)
+    {
+      prediction_batches.push_back(layer->forward(image_batch));
+      progress_bar.update("", batch_size);
+    }
 
     const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
     size_t correct_count = ranges::count_if(ranges::views::zip(labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
@@ -128,6 +135,8 @@ int main(int argc, char** argv)
           }
         }
 
+        kann::ProgressBar progress_bar("training", 60000);
+
         const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
         const std::vector<kann::Tensor>& label_batches = kann::batch(labels, batch_size);
         for(const auto& [image_batch, label_batch] : ranges::views::zip(image_batches, label_batches))
@@ -139,6 +148,8 @@ int main(int argc, char** argv)
           layer->backward(gradient_batch);
           layer->storage->foreach_parameters([&optimizer](kann::Variable& variable) { optimizer->optimize(variable); });
           optimizer->step();
+
+          progress_bar.update("", batch_size);
         }
       }
 
@@ -148,9 +159,15 @@ int main(int argc, char** argv)
         const std::vector<kann::Tensor>& labels = mnist_training_labels;
 
         const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
-        const std::vector<kann::Tensor>& prediction_batches = image_batches
-          | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer->forward(image_batch); })
-          | ranges::to_vector;
+
+        std::vector<kann::Tensor> prediction_batches;
+
+        kann::ProgressBar progress_bar("testing", 60000);
+        for(const kann::Tensor& image_batch : image_batches)
+        {
+          prediction_batches.push_back(layer->forward(image_batch));
+          progress_bar.update("", batch_size);
+        }
 
         const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
         size_t correct_count = ranges::count_if(ranges::views::zip(labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
@@ -163,9 +180,15 @@ int main(int argc, char** argv)
         const std::vector<kann::Tensor>& labels = mnist_testing_labels;
 
         const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
-        const std::vector<kann::Tensor>& prediction_batches = image_batches
-          | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer->forward(image_batch); })
-          | ranges::to_vector;
+
+        std::vector<kann::Tensor> prediction_batches;
+
+        kann::ProgressBar progress_bar("testing", 10000);
+        for(const kann::Tensor& image_batch : image_batches)
+        {
+          prediction_batches.push_back(layer->forward(image_batch));
+          progress_bar.update("", batch_size);
+        }
 
         const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
         size_t correct_count = ranges::count_if(ranges::views::zip(labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
