@@ -26,19 +26,39 @@ namespace kann
   {
     assert(this->expected_outputs);
     saved_tensors = { inputs };
-    return math::cwise(inputs, *this->expected_outputs, [this](float input, float expected_output) {
+    const size_t batch_size = inputs.shape().dimension(0);
+
+    Tensor tmp = math::cwise(inputs, *this->expected_outputs, [this](float input, float expected_output) {
       const float diff = input - expected_output;
       return pow_abs(diff, m_p);
     });
+
+    MutableTensor result = MutableTensor::create(Shape(batch_size));
+    result.fill(0.0);
+
+    for(size_t i=0; i<batch_size; ++i)
+      for(size_t j=0; j<tmp[i].size(); ++j)
+        result.get(i) += tmp[i].get(j);
+
+    return result.as_const();
   }
 
   Tensor LpLossFunction::backward(Tensor output_gradients)
   {
     assert(this->expected_outputs);
     const Tensor& inputs = saved_tensors[0];
-    return math::cwise(inputs, *this->expected_outputs, output_gradients, [this](float input, float expected_output, float output_gradient) {
+    const size_t batch_size = inputs.shape().dimension(0);
+
+    Tensor tmp = math::cwise(inputs, *this->expected_outputs, [this](float input, float expected_output) {
       const float diff = input - expected_output;
-      return (m_p-1) * pow_abs(diff, m_p-1) * sgn(diff) * output_gradient;
+      return (m_p-1) * pow_abs(diff, m_p-1) * sgn(diff);
     });
+
+    MutableTensor result = MutableTensor::create(tmp.shape());
+    for(size_t i=0; i<batch_size; ++i)
+      for(size_t j=0; j<tmp[i].size(); ++j)
+        result[i].get(j) = tmp[i].get(j) * output_gradients.get(i);
+
+    return result.as_const();
   }
 }
