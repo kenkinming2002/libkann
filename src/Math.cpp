@@ -71,6 +71,45 @@ namespace kann::math
     return result.as_const();
   }
 
+  template<typename Impl>
+  void broadcast_impl(MutableTensorRef target, TensorRef value, const Impl& impl)
+  {
+    if(target.rank() == value.rank())
+    {
+      if(target.rank() == 0)
+      {
+        impl(target.get(0), value.get(0));
+        return;
+      }
+
+      if(target.dimension(0) == value.dimension(0))
+      {
+        for(size_t i=0; i<target.dimension(0); ++i)
+          broadcast_impl(target[i], value[i], impl);
+      }
+      else if(value.dimension(0) == 1)
+      {
+        for(size_t i=0; i<target.dimension(0); ++i)
+          broadcast_impl(target[i], value[0], impl);
+      }
+      else
+        assert(false && "Unreachable");
+    }
+    else if(target.rank() > value.rank())
+    {
+      for(size_t i=0; i<target.dimension(0); ++i)
+        broadcast_impl(target[i], value, impl);
+    }
+    else
+      assert(false && "Unreachable");
+  }
+
+  void broadcast_store(MutableTensorRef target, TensorRef value) { return broadcast_impl(target, value, [](float& target, const float& value) { target = value; }); }
+  void broadcast_add(MutableTensorRef target, TensorRef value) { return broadcast_impl(target, value, [](float& target, const float& value) { target += value; }); }
+  void broadcast_sub(MutableTensorRef target, TensorRef value) { return broadcast_impl(target, value, [](float& target, const float& value) { target -= value; }); }
+  void broadcast_mul(MutableTensorRef target, TensorRef value) { return broadcast_impl(target, value, [](float& target, const float& value) { target *= value; }); }
+  void broadcast_div(MutableTensorRef target, TensorRef value) { return broadcast_impl(target, value, [](float& target, const float& value) { target /= value; }); }
+
   void product(TensorRef a, bool transpose_a, TensorRef b, bool transpose_b, MutableTensorRef c)
   {
     // Step 1: Compute all the shapes
