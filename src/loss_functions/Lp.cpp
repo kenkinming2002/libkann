@@ -9,7 +9,9 @@ namespace kann
 
   static inline float pow_abs(float value, unsigned n)
   {
-    float result = std::abs(value);
+    value = std::abs(value);
+
+    float result = value;
     for(unsigned i=1; i<n; ++i)
       result *= value;
     return result;
