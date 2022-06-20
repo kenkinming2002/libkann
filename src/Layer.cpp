@@ -4,11 +4,11 @@ namespace kann
 {
   Tensor Layer::forward(Tensor input)
   {
-    assert(false && "Unimplemented");
+    return this->def->forward(*this, std::move(input));
   }
 
-  Tensor Layer::backward(Tensor output)
+  Tensor Layer::backward(Tensor output_gradient)
   {
-    assert(false && "Unimplemented");
+    return this->def->backward(*this, std::move(output_gradient));
   }
 }

@@ -5,6 +5,7 @@ libkann_sources = [
   'Utils.cpp',
 
   # Layers
+  'Layer.cpp',
   'LayerStorage.cpp',
   'LayerDef.cpp',
   #'layer_defs/Activation.cpp',
