@@ -52,10 +52,7 @@ int main(int argc, char** argv)
 
   const std::shared_ptr<const kann::LayerDef> def   = kann::LayerDef::load(file_name);
   const std::shared_ptr<kann::LayerStorage> storage = def->create(prng);
-
-  kann::Layer layer;
-  layer.def     = def;
-  layer.storage = storage;
+  const std::shared_ptr<kann::Layer> layer          = kann::Layer::create_from(def, storage);
 
   std::shared_ptr<kann::Optimizer> optimizer = [&optimizer_name, &optimizer_parameters]() -> std::shared_ptr<kann::Optimizer>
   {
@@ -100,7 +97,7 @@ int main(int argc, char** argv)
 
     const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
     const std::vector<kann::Tensor>& prediction_batches = image_batches
-      | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer.forward(image_batch); })
+      | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer->forward(image_batch); })
       | ranges::to_vector;
 
     const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
@@ -135,12 +132,12 @@ int main(int argc, char** argv)
         const std::vector<kann::Tensor>& label_batches = kann::batch(labels, batch_size);
         for(const auto& [image_batch, label_batch] : ranges::views::zip(image_batches, label_batches))
         {
-          kann::Tensor prediction_batch = layer.forward(image_batch);
+          kann::Tensor prediction_batch = layer->forward(image_batch);
           kann::Tensor gradient_batch = kann::math::cwise(label_batch, prediction_batch, [](double label_value, double prediction_value) {
             return prediction_value - label_value;
           });
-          layer.backward(gradient_batch);
-          layer.storage->foreach_parameters([&optimizer](kann::Variable& variable) { optimizer->optimize(variable); });
+          layer->backward(gradient_batch);
+          layer->storage->foreach_parameters([&optimizer](kann::Variable& variable) { optimizer->optimize(variable); });
           optimizer->step();
         }
       }
@@ -152,7 +149,7 @@ int main(int argc, char** argv)
 
         const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
         const std::vector<kann::Tensor>& prediction_batches = image_batches
-          | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer.forward(image_batch); })
+          | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer->forward(image_batch); })
           | ranges::to_vector;
 
         const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
@@ -167,7 +164,7 @@ int main(int argc, char** argv)
 
         const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
         const std::vector<kann::Tensor>& prediction_batches = image_batches
-          | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer.forward(image_batch); })
+          | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer->forward(image_batch); })
           | ranges::to_vector;
 
         const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
