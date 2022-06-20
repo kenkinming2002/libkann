@@ -146,10 +146,12 @@ int main(int argc, char** argv)
             return prediction_value - label_value;
           });
           layer->backward(gradient_batch);
+
           layer->storage->foreach_parameters([&optimizer](kann::Variable& variable) { optimizer->optimize(variable); });
           optimizer->step();
 
-          progress_bar.update("", batch_size);
+          const float loss = kann::math::norm(gradient_batch.as_ref());
+          progress_bar.update(fmt::format("loss={}", loss), batch_size);
         }
       }
 
