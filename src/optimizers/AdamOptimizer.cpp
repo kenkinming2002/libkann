@@ -32,7 +32,7 @@ namespace kann
     Tensor v_new = math::cwise(v, *variable.gradient, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient; });
 
     Tensor m_hat = math::scale(m_new, 1.0 / (1.0 - std::pow(m_beta1, (float)m_timestep)));
-    Tensor v_hat = math::scale(m_new, 1.0 / (1.0 - std::pow(m_beta2, (float)m_timestep)));
+    Tensor v_hat = math::scale(v_new, 1.0 / (1.0 - std::pow(m_beta2, (float)m_timestep)));
 
     Tensor correction = math::scale(m_hat, m_alpha / ( math::norm(v_hat.as_ref()) + m_epsilon ));
     variable.value = math::sub(variable.value, correction);
