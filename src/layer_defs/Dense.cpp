@@ -47,11 +47,13 @@ namespace kann
     const Variable& weight = layer.storage->parameters[0];
     const Variable& bias   = layer.storage->parameters[1];
     layer.saved_tensors = { inputs };
-    const size_t batch_size = inputs.shape().dimension(0);
 
-    Tensor product   = math::product(inputs, weight.value, 1, m_output_shape.rank(), m_input_shape.rank(), false, false);
+    const size_t batch_size = inputs.shape().dimension(0);
+    MutableTensor product = MutableTensor::create(Shape::concat(Shape(batch_size), m_output_shape));
+    math::product(inputs.as_ref(), false, weight.value.as_ref(), false, product.as_ref());
+
     Tensor broadcast = math::broadcast(bias.value, Shape(batch_size));
-    return math::add(std::move(product), std::move(broadcast));
+    return math::add(std::move(product).as_const(), std::move(broadcast));
   }
 
   Tensor DenseLayerDef::backward(Layer& layer, Tensor output_gradients) const
@@ -61,8 +63,15 @@ namespace kann
     const Tensor& inputs = layer.saved_tensors[0];
     const size_t batch_size = inputs.shape().dimension(0);
 
-    weight.gradient = math::product(inputs, output_gradients, m_input_shape.rank(), m_output_shape.rank(), 1, true, false);
+    MutableTensor weight_gradient = MutableTensor::create(Shape::concat(m_input_shape, m_output_shape));
+    math::product(inputs.as_ref(), true, output_gradients.as_ref(), false, weight_gradient.as_ref());
+    weight.gradient = weight_gradient.as_const();
+
+    MutableTensor inputs_gradient = MutableTensor::create(Shape::concat(Shape(batch_size), m_input_shape));
+    math::product(output_gradients.as_ref(), false, weight.value.as_ref(), true, inputs_gradient.as_ref());
+
+    weight.gradient = weight_gradient.as_const();
     bias.gradient   = math::reduce(output_gradients, Shape(batch_size));
-    return math::product(output_gradients, weight.value, 1, m_input_shape.rank(), m_output_shape.rank(), false, true);
+    return inputs_gradient.as_const();
   }
 }
