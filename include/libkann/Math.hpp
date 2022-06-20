@@ -14,12 +14,12 @@ namespace kann::math
   KANN_EXPORT Tensor broadcast(Tensor value, Shape shape);
   KANN_EXPORT Tensor reduce(Tensor value, Shape shape);
 
-  KANN_EXPORT void broadcast_store(MutableTensorRef target, TensorRef value);
+  KANN_EXPORT void broadcast_store(TensorRef value, MutableTensorRef target);
 
-  KANN_EXPORT void broadcast_add(MutableTensorRef target, TensorRef value);
-  KANN_EXPORT void broadcast_sub(MutableTensorRef target, TensorRef value);
-  KANN_EXPORT void broadcast_mul(MutableTensorRef target, TensorRef value);
-  KANN_EXPORT void broadcast_div(MutableTensorRef target, TensorRef value);
+  KANN_EXPORT void broadcast_add(TensorRef value, MutableTensorRef target);
+  KANN_EXPORT void broadcast_sub(TensorRef value, MutableTensorRef target);
+  KANN_EXPORT void broadcast_mul(TensorRef value, MutableTensorRef target);
+  KANN_EXPORT void broadcast_div(TensorRef value, MutableTensorRef target);
 
   KANN_EXPORT void product(TensorRef a, bool tranpose_a, TensorRef b, bool transpose_b, MutableTensorRef c);
 
