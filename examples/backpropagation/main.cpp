@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 
         const std::vector<kann::Tensor>& predictions = kann::unbatch(prediction_batches, batch_size);
         size_t correct_count = ranges::count_if(ranges::views::zip(labels, predictions), [](const auto& p){ return correct(p.first, p.second); });
-        fmt::print("Training dataset accuracy:{}/10000\n", correct_count);
+        fmt::print("Training dataset accuracy:{}/60000\n", correct_count);
       }
 
       // Testing testing
