@@ -13,7 +13,7 @@ namespace kann
     std::shared_ptr<LayerStorage> storage;
 
   public:
-    Tensor forward(Tensor input) override;
-    Tensor backward(Tensor output) override;
+    Tensor forward(Tensor inputs) override;
+    Tensor backward(Tensor outputs) override;
   };
 }

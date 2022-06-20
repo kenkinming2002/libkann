@@ -53,7 +53,7 @@ namespace kann
     KANN_EXPORT virtual Shape output_shape() const = 0;
 
   public:
-    KANN_EXPORT virtual Tensor forward(Layer& layer, Tensor input) const = 0;
-    KANN_EXPORT virtual Tensor backward(Layer& layer, Tensor output_gradient) const = 0;
+    KANN_EXPORT virtual Tensor forward(Layer& layer, Tensor inputs) const = 0;
+    KANN_EXPORT virtual Tensor backward(Layer& layer, Tensor output_gradients) const = 0;
   };
 }

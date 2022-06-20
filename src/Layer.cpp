@@ -2,13 +2,13 @@
 
 namespace kann
 {
-  Tensor Layer::forward(Tensor input)
+  Tensor Layer::forward(Tensor inputs)
   {
-    return this->def->forward(*this, std::move(input));
+    return this->def->forward(*this, std::move(inputs));
   }
 
-  Tensor Layer::backward(Tensor output_gradient)
+  Tensor Layer::backward(Tensor output_gradients)
   {
-    return this->def->backward(*this, std::move(output_gradient));
+    return this->def->backward(*this, std::move(output_gradients));
   }
 }
