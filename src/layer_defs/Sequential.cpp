@@ -69,7 +69,7 @@ namespace kann
       Layer layer;
       layer.def     = sub_def;
       layer.storage = sub_storage;
-      input_gradients = layer.forward(std::move(input_gradients));
+      input_gradients = layer.backward(std::move(input_gradients));
     }
     return input_gradients;
   }
