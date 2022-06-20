@@ -103,6 +103,72 @@ namespace kann::math
     return result.as_const();
   }
 
+  void product(TensorRef a, bool transpose_a, TensorRef b, bool transpose_b, MutableTensorRef c)
+  {
+    // Step 1: Compute all the shapes
+    Shape M, N, K;
+    {
+      /* a.rank() = M.rank() + K.rank()
+       * b.rank() = K.rank() + N.rank()
+       * c.rank() = M.rank() + N.rank() */
+      size_t rank_M = (a.rank() + c.rank() - b.rank()) / 2;
+      size_t rank_N = (b.rank() + c.rank() - a.rank()) / 2;
+      size_t rank_K = (a.rank() + b.rank() - c.rank()) / 2;
+
+      auto decompose = [](Shape shape, size_t rank1, size_t rank2, bool transpose)
+      {
+        Shape shape1, shape2;
+        if(transpose)
+          std::tie(shape2, shape1) = shape.split(rank2, rank1);
+        else
+          std::tie(shape1, shape2) = shape.split(rank1, rank2);
+        return std::make_pair(shape1, shape2);
+      };
+
+      const auto& [_M1, _K1] = decompose(a.shape(), rank_M, rank_K, transpose_a);
+      const auto& [_K2, _N1] = decompose(b.shape(), rank_K, rank_N, transpose_b);
+      const auto& [_M2, _N2] = decompose(c.shape(), rank_M, rank_N, false);
+
+      assert(_M1 == _M2 && _N1 == _N2 && _K1 == _K2);
+      std::tie(M, N, K) = std::make_tuple(_M1, _N1, _K1);
+    }
+
+    // Step 2: Reshape
+    {
+      auto reshape = [](auto&& value, Shape shape1, Shape shape2, bool transpose)
+      {
+        if(transpose)
+          return std::forward<decltype(value)>(value).reshape(Shape(shape2.size(), shape1.size()));
+        else
+          return std::forward<decltype(value)>(value).reshape(Shape(shape1.size(), shape2.size()));
+      };
+      a = reshape(a, M, K, transpose_a);
+      b = reshape(b, K, N, transpose_b);
+      c = reshape(c, M, N, false);
+    }
+
+    // Step 3: Compute
+    {
+      auto _a = to_eigen_matrix(a);
+      auto _b = to_eigen_matrix(b);
+      auto _c = to_eigen_matrix(c);
+      if(transpose_a)
+      {
+        if(transpose_b)
+          _c.noalias() = _a.transpose() * _b.transpose();
+        else
+          _c.noalias() = _a.transpose() * _b;
+      }
+      else
+      {
+        if(transpose_b)
+          _c.noalias() = _a * _b.transpose();
+        else
+          _c.noalias() = _a * _b;
+      }
+    }
+  }
+
   // Get the shapes from ranks
   static inline Tensor generic_tensor_product(TensorRef a, TensorRef b, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_a, bool transpose_b, auto shape_impl, auto impl)
   {
