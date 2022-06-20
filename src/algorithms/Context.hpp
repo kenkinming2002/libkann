@@ -42,7 +42,7 @@ namespace kann
     std::vector<size_t> optimizer_input_state_indices;
     std::vector<size_t> optimizer_output_state_indices;
 
-    void forward_pass(Layer& layer, size_t batch_size);
+    void forward_pass(LayerStorage& layer, size_t batch_size);
 
     // TODO: Embed output size into graph vertex
     // TODO: Take in a loss function

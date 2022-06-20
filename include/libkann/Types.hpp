@@ -7,7 +7,7 @@ namespace kann
   class Operation;
 
   struct LayerDef;
-  struct Layer;
+  struct LayerStorage;
 
   class Optimizer;
 
@@ -17,7 +17,7 @@ namespace kann
   typedef std::shared_ptr<const Operation> operation_t;
 
   typedef std::shared_ptr<const LayerDef> layer_def_t;
-  typedef std::shared_ptr<Layer> layer_t;
+  typedef std::shared_ptr<LayerStorage> layer_t;
 
   typedef std::shared_ptr<const Optimizer> optimizer_t;
 

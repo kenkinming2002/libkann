@@ -17,7 +17,7 @@ libkann_sources = [
   'executors/DefaultExecutor.cpp',
 
   # Layers
-  'Layer.cpp',
+  'LayerStorage.cpp',
   'LayerDef.cpp',
   'layer_defs/Activation.cpp',
   'layer_defs/Convolutional.cpp',

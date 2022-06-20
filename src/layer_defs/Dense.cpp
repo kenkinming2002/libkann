@@ -1,7 +1,7 @@
 #include <libkann/layer_defs/Dense.hpp>
 
 #include <libkann/Tensor.hpp>
-#include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 #include <libkann/Graph.hpp>
 
 #include <libkann/operations/TensorProduct.hpp>
@@ -36,15 +36,15 @@ namespace kann
     return m_output_shape;
   }
 
-  std::shared_ptr<Layer> DenseLayerDef::create(std::default_random_engine& prng) const
+  std::shared_ptr<LayerStorage> DenseLayerDef::create(std::default_random_engine& prng) const
   {
-    auto layer = std::make_shared<Layer>();
-    layer->def = shared_from_this();
-    layer->parameters = {
+    auto layer_storage = std::make_shared<LayerStorage>();
+    layer_storage->def = shared_from_this();
+    layer_storage->parameters = {
       MutableTensor::normal(Shape::concat(m_input_shape, m_output_shape), prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const(),
       MutableTensor::normal(m_output_shape,                               prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const()
     };
-    return layer;
+    return layer_storage;
   }
 
   size_t DenseLayerDef::batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const

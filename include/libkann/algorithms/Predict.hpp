@@ -9,5 +9,5 @@
 
 namespace kann
 {
-  KANN_EXPORT std::vector<Tensor> predict(Layer& layer, Executor& executor, const std::vector<Tensor>& inputs);
+  KANN_EXPORT std::vector<Tensor> predict(LayerStorage& layer, Executor& executor, const std::vector<Tensor>& inputs);
 }

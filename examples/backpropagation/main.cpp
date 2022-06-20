@@ -3,7 +3,7 @@
 
 #include <libkann/Tensor.hpp>
 #include <libkann/Utils.hpp>
-#include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 #include <libkann/LayerDef.hpp>
 #include <libkann/Graph.hpp>
 

@@ -25,7 +25,7 @@ namespace kann
     KANN_EXPORT Shape output_shape() const override;
 
   public:
-    KANN_EXPORT std::shared_ptr<Layer> create(std::default_random_engine& prng) const override;
+    KANN_EXPORT std::shared_ptr<LayerStorage> create(std::default_random_engine& prng) const override;
     KANN_EXPORT size_t batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const override;
 
   private:

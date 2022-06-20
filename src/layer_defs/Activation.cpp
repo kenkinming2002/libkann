@@ -1,7 +1,7 @@
 #include <libkann/layer_defs/Activation.hpp>
 
 #include <libkann/Graph.hpp>
-#include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 
 #include <libkann/Operation.hpp>
 #include <libkann/operations/CWise.hpp>
@@ -62,11 +62,11 @@ namespace kann
     return m_shape;
   }
 
-  std::shared_ptr<Layer> ActivationLayerDef::create(std::default_random_engine& prng) const
+  std::shared_ptr<LayerStorage> ActivationLayerDef::create(std::default_random_engine& prng) const
   {
-    auto layer = std::make_shared<Layer>();
-    layer->def = shared_from_this();
-    return layer;
+    auto layer_storage = std::make_shared<LayerStorage>();
+    layer_storage->def = shared_from_this();
+    return layer_storage;
   }
 
   class ActivationGradientOperation : public Operation

@@ -1,7 +1,7 @@
 #include "Context.hpp"
 
 #include <libkann/Tensor.hpp>
-#include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 #include <libkann/LayerDef.hpp>
 #include <libkann/Optimizer.hpp>
 
@@ -10,7 +10,7 @@
 
 namespace kann
 {
-  void Context::forward_pass(Layer& layer, size_t batch_size)
+  void Context::forward_pass(LayerStorage& layer, size_t batch_size)
   {
     kann::LayerDef::Info info;
     inputs_index = graph.add_vertex();

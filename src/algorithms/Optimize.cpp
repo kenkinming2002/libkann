@@ -4,7 +4,7 @@
 #include "Batch.hpp"
 
 #include <libkann/Types.hpp>
-#include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 #include <libkann/LayerDef.hpp>
 #include <libkann/Executor.hpp>
 
@@ -14,7 +14,7 @@
 
 namespace kann
 {
-  void optimize(Layer& layer, Tag tag, const Optimizer& optimizer, Executor& executor, size_t batch_size, const std::vector<Tensor>& inputs, const std::vector<Tensor>& expected_outputs)
+  void optimize(LayerStorage& layer, Tag tag, const Optimizer& optimizer, Executor& executor, size_t batch_size, const std::vector<Tensor>& inputs, const std::vector<Tensor>& expected_outputs)
   {
     Context context;
     context.forward_pass(layer, batch_size);

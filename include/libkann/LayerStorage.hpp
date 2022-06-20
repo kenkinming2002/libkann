@@ -9,7 +9,7 @@
 
 namespace kann
 {
-  struct Layer
+  struct LayerStorage
   {
   public:
     layer_def_t def;
@@ -18,7 +18,7 @@ namespace kann
     std::vector<Tensor> states;
 
   public:
-    std::vector<std::shared_ptr<Layer>> sub_layers;
+    std::vector<std::shared_ptr<LayerStorage>> sub_layer_storages;
 
   public:
     KANN_EXPORT void set_parameters_all(std::vector<Tensor> values);

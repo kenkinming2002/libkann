@@ -1,7 +1,7 @@
 #include <libkann/layer_defs/Convolutional.hpp>
 
 #include <libkann/Tensor.hpp>
-#include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 #include <libkann/Graph.hpp>
 
 #include <libkann/operations/CrossCorrelation.hpp>
@@ -33,16 +33,16 @@ namespace kann
     return layer_def;
   }
 
-  std::shared_ptr<Layer> ConvolutionalLayerDef::create(std::default_random_engine& prng) const
+  std::shared_ptr<LayerStorage> ConvolutionalLayerDef::create(std::default_random_engine& prng) const
   {
-    auto layer = std::make_shared<Layer>();
-    layer->def = shared_from_this();
-    layer->parameters = { MutableTensor::normal(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()},
+    auto layer_storage = std::make_shared<LayerStorage>();
+    layer_storage->def = shared_from_this();
+    layer_storage->parameters = { MutableTensor::normal(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()},
       prng,
       0.0,
       1.0 / (m_kernel_size.width() * m_kernel_size.height())
     ).as_const() };
-    return layer;
+    return layer_storage;
   }
 
   Shape ConvolutionalLayerDef::input_shape() const

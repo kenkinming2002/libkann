@@ -5,12 +5,12 @@
 
 #include <libkann/algorithms/ProgressBar.hpp>
 
-#include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 #include <libkann/Executor.hpp>
 
 namespace kann
 {
-  std::vector<Tensor> predict(Layer& layer, Executor& executor, const std::vector<Tensor>& inputs)
+  std::vector<Tensor> predict(LayerStorage& layer, Executor& executor, const std::vector<Tensor>& inputs)
   {
     Context context;
     context.forward_pass(layer, 1);

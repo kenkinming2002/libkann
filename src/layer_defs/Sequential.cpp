@@ -1,6 +1,6 @@
 #include <libkann/layer_defs/Sequential.hpp>
 
-#include <libkann/Layer.hpp>
+#include <libkann/LayerStorage.hpp>
 
 #include <range/v3/all.hpp>
 
@@ -39,14 +39,14 @@ namespace kann
   }
 
 
-  std::shared_ptr<Layer> SequentialLayerDef::create(std::default_random_engine& prng) const
+  std::shared_ptr<LayerStorage> SequentialLayerDef::create(std::default_random_engine& prng) const
   {
-    auto layer = std::make_shared<Layer>();
-    layer->def = shared_from_this();
-    layer->sub_layers = sub_layer_defs
+    auto layer_storage = std::make_shared<LayerStorage>();
+    layer_storage->def = shared_from_this();
+    layer_storage->sub_layer_storages = sub_layer_defs
       | ranges::views::transform([&prng](const auto& sub_layer_def) { return sub_layer_def->create(prng); })
       | ranges::to_vector;
-    return layer;
+    return layer_storage;
   }
 
   size_t SequentialLayerDef::batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const
