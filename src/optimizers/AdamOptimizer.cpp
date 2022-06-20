@@ -1,172 +1,42 @@
 #include <libkann/optimizers/AdamOptimizer.hpp>
 
-#include <libkann/Graph.hpp>
-
-#include <libkann/operations/Impl.hpp>
-#include <libkann/operations/CWise.hpp>
-#include <libkann/operations/Scale.hpp>
-#include <libkann/operations/Subtract.hpp>
-
 #include <libkann/Math.hpp>
-
-#include <tuple>
 
 namespace kann
 {
   AdamOptimizer::AdamOptimizer(float alpha, float beta1, float beta2, float epsilon)
     : m_alpha(alpha), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon) {}
 
-  class SecondMomentOperation : public Operation
+  void AdamOptimizer::step()
   {
-  public:
-    constexpr SecondMomentOperation(Shape shape) : m_shape(shape) {}
+    ++m_timestep;
+  }
 
-  public:
-    std::vector<Tensor> process(std::vector<Tensor> inputs) const override
+  void AdamOptimizer::optimize(Variable& variable) const
+  {
+    const Shape& shape = variable.value.shape();
+    if(variable.optimizer_states.empty())
     {
-      return operation_process_cwise_impl<1, 1>(std::move(inputs), m_shape, [](float input) {
-        return std::make_tuple(input * input);
-      });
+      variable.optimizer_states = {
+        MutableTensor::constant(shape, 0.0).as_const(),
+        MutableTensor::constant(shape, 0.0).as_const(),
+      };
     }
 
-  private:
-    Shape m_shape;
-  };
+    // First and second moment respectively
+    const Tensor& m = variable.optimizer_states[0];
+    const Tensor& v = variable.optimizer_states[1];
 
-  // Exponential Moving Average
-  class EMAOperation : public Operation
-  {
-  public:
-    constexpr EMAOperation(Shape shape, float beta) : m_shape(shape), m_beta(beta) {}
+    assert(variable.gradient);
+    Tensor m_new = math::cwise(m, *variable.gradient, [this](double m, double gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient * gradient; });
+    Tensor v_new = math::cwise(v, *variable.gradient, [this](double v, double gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient; });
 
-  public:
-    std::vector<Tensor> process(std::vector<Tensor> inputs) const override
-    {
-      return operation_process_cwise_impl<2, 1>(std::move(inputs), m_shape, [this](float avg, float input) {
-        return std::make_tuple(m_beta * avg + (1-m_beta) * input);
-      });
-    }
+    Tensor m_hat = math::scale(m_new, 1.0 / (1.0 - std::pow(m_beta1, (double)m_timestep)));
+    Tensor v_hat = math::scale(m_new, 1.0 / (1.0 - std::pow(m_beta2, (double)m_timestep)));
 
-  private:
-    Shape m_shape;
-    float m_beta;
-  };
-
-  class IncrementOperation : public Operation
-  {
-  public:
-    constexpr IncrementOperation() {}
-
-  public:
-    std::vector<Tensor> process(std::vector<Tensor> inputs) const override
-    {
-      return operation_process_cwise_impl<1, 1>(std::move(inputs), Shape{}, [](float input) {
-        return std::make_tuple(input + 1.0);
-      });
-    }
-  };
-
-  class BiasCorrectionOperation : public Operation
-  {
-  public:
-    constexpr BiasCorrectionOperation(float beta) : m_beta(beta) {}
-
-  public:
-    std::vector<Tensor> process(std::vector<Tensor> inputs) const override
-    {
-      return operation_process_impl<2, 1>(std::move(inputs), [this](const Tensor& t, const Tensor& v)
-      {
-        assert(t.shape().is_scalar());
-        MutableTensor result = MutableTensor::create(v.shape());
-
-        const float factor = 1.0 / (1.0 - std::pow(m_beta, t.get(0)));
-        for(size_t i=0; i<result.size(); ++i)
-          result.get(i) = v.get(i) * factor;
-
-        return std::make_tuple(std::move(result).as_const());
-      });
-    }
-
-  private:
-    float m_beta;
-  };
-
-  class AdamOperation : public Operation
-  {
-  public:
-    constexpr AdamOperation(float alpha, float epsilon)
-      : m_alpha(alpha), m_epsilon(epsilon) {}
-
-  public:
-    std::vector<Tensor> process(std::vector<Tensor> inputs) const override
-    {
-      return operation_process_impl<2, 1>(std::move(inputs), [this](const Tensor& m_hat, const Tensor& v_hat)
-      {
-        MutableTensor result = MutableTensor::create(m_hat.shape());
-        const float factor = m_alpha / (math::norm(v_hat.as_ref()) + m_epsilon);
-        for(size_t i=0; i<result.size(); ++i)
-          result.get(i) = m_hat.get(i) * factor;
-
-        return std::make_tuple(std::move(result).as_const());
-      });
-    }
-
-  private:
-    float m_alpha;
-    float m_epsilon;
-  };
-
-  size_t AdamOptimizer::process(Graph& graph, Info& info, Shape shape, size_t index, size_t gradient_index) const
-  {
-    size_t new_index = graph.add_vertex();
-
-    size_t gradient2_index = graph.add_vertex();
-
-    size_t m_index = graph.add_vertex();
-    size_t v_index = graph.add_vertex();
-
-    size_t m_hat_index = graph.add_vertex();
-    size_t v_hat_index = graph.add_vertex();
-
-    size_t m_new_index = graph.add_vertex();
-    size_t v_new_index = graph.add_vertex();
-
-    size_t ts_index     = graph.add_vertex();
-    size_t ts_new_index = graph.add_vertex();
-
-    size_t correction_index = graph.add_vertex();
-
-    // Compute second moment
-    operation_t second_moment_op = std::make_shared<SecondMomentOperation>(shape);
-    graph.add_edge(std::move(second_moment_op), {gradient_index}, {gradient2_index});
-
-    // EMA
-    operation_t ema1_op = std::make_shared<EMAOperation>(shape, m_beta1);
-    operation_t ema2_op = std::make_shared<EMAOperation>(shape, m_beta2);
-    graph.add_edge(std::move(ema1_op), {m_index, gradient_index},  {m_new_index});
-    graph.add_edge(std::move(ema2_op), {v_index, gradient2_index}, {v_new_index});
-
-    // Timestep
-    operation_t increment_op = std::make_shared<IncrementOperation>();
-    graph.add_edge(std::move(increment_op), {ts_index}, {ts_new_index});
-
-    // Bias correction
-    operation_t bias_correction1_op = std::make_shared<BiasCorrectionOperation>(m_beta1);
-    operation_t bias_correction2_op = std::make_shared<BiasCorrectionOperation>(m_beta2);
-    graph.add_edge(std::move(bias_correction1_op), {ts_new_index, m_new_index}, {m_hat_index});
-    graph.add_edge(std::move(bias_correction2_op), {ts_new_index, v_new_index}, {v_hat_index});
-
-    operation_t adam_op = std::make_shared<AdamOperation>(m_alpha, m_epsilon);
-    graph.add_edge(std::move(adam_op), {m_hat_index, v_hat_index}, {correction_index});
-
-    operation_t subtract_op = std::make_shared<SubtractOperation>(shape);
-    graph.add_edge(std::move(subtract_op), {index, correction_index}, {new_index});
-
-    info.add_state(MutableTensor::constant(shape, 0.0).as_const(),   m_index,  m_new_index);
-    info.add_state(MutableTensor::constant(shape, 0.0).as_const(),   v_index,  v_new_index);
-    info.add_state(MutableTensor::constant(Shape{}, 0.0).as_const(), ts_index, ts_new_index);
-
-    return new_index;
+    Tensor correction = math::scale(m_hat, m_alpha / ( math::norm(v_hat.as_ref()) + m_epsilon ));
+    variable.value = math::sub(variable.value, correction);
+    variable.optimizer_states = { std::move(m_new), std::move(v_new) };
   }
 }
 
