@@ -72,4 +72,8 @@ namespace kann::math
 
     return std::move(result).as_const();
   }
+
+  KANN_EXPORT Tensor add(Tensor a, Tensor b);
+  KANN_EXPORT Tensor sub(Tensor a, Tensor b);
+  KANN_EXPORT Tensor scale(Tensor a, float factor);
 }
