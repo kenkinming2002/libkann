@@ -1,28 +1,28 @@
 libkann_sources = [
-  'Initialize.cpp',
+  #'Initialize.cpp',
 
   'Math.cpp',
   'Utils.cpp',
 
   # Operations
-  'operations/Add.cpp',
-  'operations/Broadcast.cpp',
-  'operations/CrossCorrelation.cpp',
-  'operations/Scale.cpp',
-  'operations/Subtract.cpp',
-  'operations/TensorProduct.cpp',
+  #'operations/Add.cpp',
+  #'operations/Broadcast.cpp',
+  #'operations/CrossCorrelation.cpp',
+  #'operations/Scale.cpp',
+  #'operations/Subtract.cpp',
+  #'operations/TensorProduct.cpp',
 
   # Executors
-  'Graph.cpp',
-  'executors/DefaultExecutor.cpp',
+  #'Graph.cpp',
+  #'executors/DefaultExecutor.cpp',
 
   # Layers
   'LayerStorage.cpp',
   'LayerDef.cpp',
-  'layer_defs/Activation.cpp',
-  'layer_defs/Convolutional.cpp',
-  'layer_defs/Dense.cpp',
-  'layer_defs/Sequential.cpp',
+  #'layer_defs/Activation.cpp',
+  #'layer_defs/Convolutional.cpp',
+  #'layer_defs/Dense.cpp',
+  #'layer_defs/Sequential.cpp',
 
   # Datasets
   'datasets/MNIST.cpp',
@@ -30,16 +30,16 @@ libkann_sources = [
   'datasets/write.cpp',
 
   # Optimizers
-  'Optimizer.cpp',
-  'optimizers/SimpleOptimizer.cpp',
-  'optimizers/AdamOptimizer.cpp',
+  #'Optimizer.cpp',
+  #'optimizers/SimpleOptimizer.cpp',
+  #'optimizers/AdamOptimizer.cpp',
 
   # Actual Machine Learning Training Algorithm
   'algorithms/ProgressBar.cpp',
-  'algorithms/Context.cpp',
-  'algorithms/Batch.cpp',
-  'algorithms/Predict.cpp',
-  'algorithms/Optimize.cpp',
+  #'algorithms/Context.cpp',
+  #'algorithms/Batch.cpp',
+  #'algorithms/Predict.cpp',
+  #'algorithms/Optimize.cpp',
 ]
 
 fmt_dep = dependency('fmt')
