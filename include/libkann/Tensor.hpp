@@ -66,6 +66,9 @@ namespace kann
 
   public:
     auto data() const { return m_storage.data() + m_offset; }
+
+    auto dimension(size_t i) const { return m_shape.dimension(i); }
+    auto rank() const { return m_shape.rank(); }
     auto size() const { return m_shape.size(); }
 
   public:
