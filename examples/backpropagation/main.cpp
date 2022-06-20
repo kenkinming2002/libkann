@@ -12,6 +12,8 @@
 #include <libkann/optimizers/SimpleOptimizer.hpp>
 #include <libkann/optimizers/AdamOptimizer.hpp>
 
+#include <libkann/loss_functions/Lp.hpp>
+
 #include <libkann/datasets/MNIST.hpp>
 #include <libkann/datasets/Random.hpp>
 #include <libkann/datasets/write.hpp>
@@ -81,6 +83,8 @@ int main(int argc, char** argv)
       throw std::runtime_error(fmt::format("Unknown optimizer name:{}", optimizer_name));
   }();
 
+  kann::LpLossFunction loss_function(2);
+
   const size_t batch_size = std::stoull(batch_size_str);
   const size_t epoch      = std::stoull(epoch_str);
 
@@ -142,16 +146,17 @@ int main(int argc, char** argv)
         for(const auto& [image_batch, label_batch] : ranges::views::zip(image_batches, label_batches))
         {
           kann::Tensor prediction_batch = layer->forward(image_batch);
-          kann::Tensor gradient_batch = kann::math::cwise(label_batch, prediction_batch, [](float label_value, float prediction_value) {
-            return prediction_value - label_value;
-          });
+
+          loss_function.expected_outputs = label_batch;
+          kann::Tensor loss_batch = loss_function.forward(prediction_batch);
+          kann::Tensor gradient_batch = loss_function.backward(kann::MutableTensor::constant(kann::Shape(batch_size), 1.0).as_const());
           layer->backward(gradient_batch);
+
+          for(size_t i=0; i<batch_size; ++i)
+            progress_bar.update(fmt::format("loss={}", loss_batch.get(i)));
 
           layer->storage->foreach_parameters([&optimizer](kann::Variable& variable) { optimizer->optimize(variable); });
           optimizer->step();
-
-          const float loss = kann::math::norm(gradient_batch.as_ref());
-          progress_bar.update(fmt::format("loss={}", loss), batch_size);
         }
       }
 

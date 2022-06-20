@@ -23,6 +23,9 @@ libkann_sources = [
   'optimizers/SimpleOptimizer.cpp',
   'optimizers/AdamOptimizer.cpp',
 
+  # Loss functions
+  'loss_functions/Lp.cpp',
+
   'Batch.cpp',
   'ProgressBar.cpp',
 
