@@ -92,7 +92,7 @@ int main(int argc, char** argv)
     const std::vector<kann::Tensor>& images = mnist_testing_images;
     const std::vector<kann::Tensor>& labels = mnist_testing_labels;
 
-    const std::vector<kann::Tensor>& image_batches = kann::batch(mnist_testing_images, batch_size);
+    const std::vector<kann::Tensor>& image_batches = kann::batch(images, batch_size);
     const std::vector<kann::Tensor>& prediction_batches = image_batches
       | ranges::views::transform([&layer](const kann::Tensor& image_batch) { return layer.forward(image_batch); })
       | ranges::to_vector;
