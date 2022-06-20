@@ -14,14 +14,6 @@ namespace kann::math
   KANN_EXPORT Tensor broadcast(Tensor value, Shape shape);
   KANN_EXPORT Tensor reduce(Tensor value, Shape shape);
 
-  /* X = x_1 * ... * x_m
-   * Y = y_1 * ... * y_k
-   * Z = z_1 * ... * z_n
-   *
-   * op(a): X * Y
-   * op(b): Y * Z
-   * output: X * Z */
-  KANN_EXPORT Tensor product(Tensor a, Tensor b, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_a, bool transpose_b);
   KANN_EXPORT void product(TensorRef a, bool tranpose_a, TensorRef b, bool transpose_b, MutableTensorRef c);
 
   /* X = x_1 * ... * x_m
