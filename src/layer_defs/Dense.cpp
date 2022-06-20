@@ -1,12 +1,8 @@
 #include <libkann/layer_defs/Dense.hpp>
 
 #include <libkann/Tensor.hpp>
-#include <libkann/LayerStorage.hpp>
-#include <libkann/Graph.hpp>
-
-#include <libkann/operations/TensorProduct.hpp>
-#include <libkann/operations/Broadcast.hpp>
-#include <libkann/operations/Add.hpp>
+#include <libkann/Math.hpp>
+#include <libkann/Layer.hpp>
 
 namespace kann
 {
@@ -26,6 +22,16 @@ namespace kann
     return layer_def;
   }
 
+  std::shared_ptr<LayerStorage> DenseLayerDef::create(std::default_random_engine& prng) const
+  {
+    auto layer_storage = std::make_shared<LayerStorage>();
+    layer_storage->parameters = {
+      Variable{.value = MutableTensor::normal(Shape::concat(m_input_shape, m_output_shape), prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const()},
+      Variable{.value = MutableTensor::normal(m_output_shape,                               prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const()}
+    };
+    return layer_storage;
+  }
+
   Shape DenseLayerDef::input_shape() const
   {
     return m_input_shape;
@@ -36,37 +42,27 @@ namespace kann
     return m_output_shape;
   }
 
-  std::shared_ptr<LayerStorage> DenseLayerDef::create(std::default_random_engine& prng) const
+  Tensor DenseLayerDef::forward(Layer& layer, Tensor inputs) const
   {
-    auto layer_storage = std::make_shared<LayerStorage>();
-    layer_storage->def = shared_from_this();
-    layer_storage->parameters = {
-      MutableTensor::normal(Shape::concat(m_input_shape, m_output_shape), prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const(),
-      MutableTensor::normal(m_output_shape,                               prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const()
-    };
-    return layer_storage;
+    const Variable& weight = layer.storage->parameters[0];
+    const Variable& bias   = layer.storage->parameters[1];
+    layer.saved_tensors = { inputs };
+    const size_t batch_size = inputs.shape().dimension(0);
+
+    Tensor product   = math::product(inputs, weight.value, 1, m_output_shape.rank(), m_input_shape.rank(), false, false);
+    Tensor broadcast = math::broadcast(bias.value, Shape(batch_size));
+    return math::add(std::move(product), std::move(broadcast));
   }
 
-  size_t DenseLayerDef::batch_process(Graph& graph, Info& info, size_t batch_size, size_t input_index) const
+  Tensor DenseLayerDef::backward(Layer& layer, Tensor output_gradients) const
   {
-    size_t output_index = graph.add_vertex();
-    size_t weight_index = graph.add_vertex();
-    size_t bias_index   = graph.add_vertex();
+    Variable& weight = layer.storage->parameters[0];
+    Variable& bias   = layer.storage->parameters[1];
+    const Tensor& inputs = layer.saved_tensors[0];
+    const size_t batch_size = inputs.shape().dimension(0);
 
-    size_t product_index = graph.add_vertex();
-    size_t broadcast_index = graph.add_vertex();
-
-    operation_t tensor_product_op = std::make_shared<TensorProductOperation>(1, m_output_shape.rank(), m_input_shape.rank());
-    operation_t broadcast_op      = std::make_shared<BroadcastOperation>(Shape(batch_size));
-    operation_t add_op            = std::make_shared<AddOperation>(Shape::concat(Shape(batch_size), m_output_shape));
-
-    graph.add_edge(std::move(tensor_product_op), {input_index, weight_index},      {product_index});
-    graph.add_edge(std::move(broadcast_op),      {bias_index},                     {broadcast_index});
-    graph.add_edge(std::move(add_op),            {product_index, broadcast_index}, {output_index});
-
-    info.add_parameter(Shape::concat(m_input_shape, m_output_shape),  tag, weight_index);
-    info.add_parameter(m_output_shape,                                tag, bias_index);
-
-    return output_index;
+    weight.gradient = math::product(inputs, output_gradients, m_input_shape.rank(), m_output_shape.rank(), 1, true, false);
+    bias.gradient   = math::reduce(output_gradients, Shape(batch_size));
+    return math::product(output_gradients, weight.value, 1, m_input_shape.rank(), m_output_shape.rank(), false, true);
   }
 }
