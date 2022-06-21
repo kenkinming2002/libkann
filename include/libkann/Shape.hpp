@@ -81,7 +81,7 @@ namespace kann
         result2.m_dimensions.push_back(dimension(i));
 
       for(size_t i=rank1+rank2; i<rank1+rank2+rank3; ++i)
-        result2.m_dimensions.push_back(dimension(i));
+        result3.m_dimensions.push_back(dimension(i));
 
       return std::make_tuple(result1, result2, result3);
     }
