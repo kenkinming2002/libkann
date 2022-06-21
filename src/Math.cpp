@@ -55,6 +55,20 @@ namespace kann::math
     }
   }
 
+  static inline void operation_impl(Operation operation, const float& from, float& to, float value)
+  {
+    switch(operation)
+    {
+    case Operation::STORE: to = from;         break;
+    case Operation::ADD:   to = from + value; break;
+    case Operation::SUB:   to = from - value; break;
+    case Operation::MUL:   to = from * value; break;
+    case Operation::DIV:   to = from / value; break;
+    default:
+      assert(false && "Unreachable");
+    }
+  }
+
   void broadcast(TensorRef from, MutableTensorRef to, Operation operation, Direction direction)
   {
     // Step 1: Compute shape
@@ -103,15 +117,6 @@ namespace kann::math
         }
   }
 
-  void transform(TensorRef from, MutableTensorRef to, Operation operation)
-  {
-    assert(from.shape() == to.shape());
-    from = from.reshape(Shape(from.size()));
-    to   = to.reshape(Shape(to.size()));
-    for(size_t i=0; i<from.size(); ++i)
-      operation_impl(operation, from[i].get(0), to[i].get(0));
-  }
-
   void broadcast(float from, MutableTensorRef to, Operation operation)
   {
     broadcast(TensorRef::view(&from, Shape()), to, operation, Direction::LEFT);
@@ -121,6 +126,16 @@ namespace kann::math
   {
     reduce(from, MutableTensorRef::view(&to, Shape()), operation, Direction::LEFT);
   }
+
+  void transform(TensorRef from, MutableTensorRef to, Operation operation, double value)
+  {
+    assert(from.shape() == to.shape());
+    from = from.reshape(Shape(from.size()));
+    to   = to.reshape(Shape(to.size()));
+    for(size_t i=0; i<from.size(); ++i)
+      operation_impl(operation, from[i].get(0), to[i].get(0), value);
+  }
+
 
   void product(TensorRef a, bool transpose_a, TensorRef b, bool transpose_b, MutableTensorRef c)
   {
