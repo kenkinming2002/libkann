@@ -41,35 +41,22 @@ namespace kann::math
     return std::sqrt(sum);
   }
 
-  static inline void operation_impl(Operation operation, const float& from, float& to)
-  {
-    switch(operation)
-    {
-    case Operation::STORE: to  = from; break;
-    case Operation::ADD:   to += from; break;
-    case Operation::SUB:   to -= from; break;
-    case Operation::MUL:   to *= from; break;
-    case Operation::DIV:   to /= from; break;
-    default:
-      assert(false && "Unreachable");
-    }
-  }
-
   static inline void operation_impl(Operation operation, const float& from, float& to, float value)
   {
     switch(operation)
     {
-    case Operation::STORE: to = from;         break;
-    case Operation::ADD:   to = from + value; break;
-    case Operation::SUB:   to = from - value; break;
-    case Operation::MUL:   to = from * value; break;
-    case Operation::DIV:   to = from / value; break;
+    case Operation::STORE:
+      to = from;
+      break;
+    case Operation::FMA:
+      to = to + value * from;
+      break;
     default:
       assert(false && "Unreachable");
     }
   }
 
-  void broadcast(TensorRef from, MutableTensorRef to, Operation operation, Direction direction)
+  void broadcast(TensorRef from, MutableTensorRef to, Operation operation, Direction direction, double value)
   {
     // Step 1: Compute shape
     Shape left, right;
@@ -88,12 +75,12 @@ namespace kann::math
       for(size_t j=0; j<to.dimension(1); ++j)
         switch(direction)
         {
-        case Direction::LEFT:  operation_impl(operation, from[j].get(0), to[i][j].get(0)); break;
-        case Direction::RIGHT: operation_impl(operation, from[i].get(0), to[i][j].get(0)); break;
+        case Direction::LEFT:  operation_impl(operation, from[j].get(0), to[i][j].get(0), value); break;
+        case Direction::RIGHT: operation_impl(operation, from[i].get(0), to[i][j].get(0), value); break;
         }
   }
 
-  void reduce(TensorRef from, MutableTensorRef to, Operation operation, Direction direction)
+  void reduce(TensorRef from, MutableTensorRef to, Operation operation, Direction direction, double value)
   {
     // Step 1: Compute shape
     Shape left, right;
@@ -112,19 +99,9 @@ namespace kann::math
       for(size_t j=0; j<from.dimension(1); ++j)
         switch(direction)
         {
-        case Direction::LEFT:  operation_impl(operation, from[i][j].get(0), to[j].get(0)); break;
-        case Direction::RIGHT: operation_impl(operation, from[i][j].get(0), to[i].get(0)); break;
+        case Direction::LEFT:  operation_impl(operation, from[i][j].get(0), to[j].get(0), value); break;
+        case Direction::RIGHT: operation_impl(operation, from[i][j].get(0), to[i].get(0), value); break;
         }
-  }
-
-  void broadcast(float from, MutableTensorRef to, Operation operation)
-  {
-    broadcast(TensorRef::view(&from, Shape()), to, operation, Direction::LEFT);
-  }
-
-  void reduce(TensorRef from, float& to, Operation operation)
-  {
-    reduce(from, MutableTensorRef::view(&to, Shape()), operation, Direction::LEFT);
   }
 
   void transform(TensorRef from, MutableTensorRef to, Operation operation, double value)
