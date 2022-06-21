@@ -27,21 +27,30 @@ namespace kann
     }
 
     // First and second moment respectively
-    const MutableTensor& m = variable.optimizer_states[0];
-    const MutableTensor& v = variable.optimizer_states[1];
+    MutableTensor& m = variable.optimizer_states[0];
+    MutableTensor& v = variable.optimizer_states[1];
 
     assert(variable.gradient);
-    Tensor m_new = math::cwise(m.as_const(), *variable.gradient, [this](float m, float gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient * gradient; });
-    Tensor v_new = math::cwise(v.as_const(), *variable.gradient, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient; });
 
-    Tensor m_hat = math::scale(m_new, 1.0 / (1.0 - std::pow(m_beta1, (float)m_timestep)));
-    Tensor v_hat = math::scale(v_new, 1.0 / (1.0 - std::pow(m_beta2, (float)m_timestep)));
+    math::transform2(m.as_ref().as_const(), variable.gradient->as_ref(), m.as_ref(), math::BinaryOperation::create([this](const float& m, const float& gradient, float& m_new) {
+      m_new = m_beta1 * m + (1.0-m_beta1) * gradient * gradient;
+    }));
 
-    const float factor = -m_alpha / ( math::norm(v_hat.as_ref()) + m_epsilon );
-    math::transform(m_hat.as_ref(), variable.value.as_ref(), math::FMA(factor));
+    math::transform2(v.as_ref().as_const(), variable.gradient->as_ref(), v.as_ref(), math::BinaryOperation::create([this](const float& v, const float& gradient, float& v_new) {
+      v_new = m_beta2 * v + (1.0-m_beta2) * gradient;
+    }));
 
-    math::transform(m_new.as_ref(), m.as_ref(), math::STORE);
-    math::transform(v_new.as_ref(), v.as_ref(), math::STORE);
+    MutableTensor m_hat = MutableTensor::create(m.shape());
+    MutableTensor v_hat = MutableTensor::create(v.shape());
+
+    const double factor1 = 1.0 / (1.0 - std::pow(m_beta1, m_timestep));
+    const double factor2 = 1.0 / (1.0 - std::pow(m_beta2, m_timestep));
+
+    math::transform(m.as_ref().as_const(), m_hat.as_ref(), math::Operation::create([&factor1](const float& m, float& m_hat) { m_hat = factor1 * m; }));
+    math::transform(v.as_ref().as_const(), v_hat.as_ref(), math::Operation::create([&factor2](const float& v, float& v_hat) { v_hat = factor2 * v; }));
+
+    const float factor = -m_alpha / ( math::norm(v_hat.as_ref().as_const()) + m_epsilon );
+    math::transform(m_hat.as_ref().as_const(), variable.value.as_ref(), math::FMA(factor));
   }
 }
 

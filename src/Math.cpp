@@ -302,25 +302,4 @@ namespace kann::math
         std::bind(&get_output_shape, _1, _2, padding_size),
         std::bind(&convolve2d_impl, _1, _2, _3, padding_size));
   }
-
-  Tensor add(Tensor a, Tensor b)
-  {
-    return cwise(std::move(a), std::move(b), [](float a, float b){
-      return a+b;
-    });
-  }
-
-  Tensor sub(Tensor a, Tensor b)
-  {
-    return cwise(std::move(a), std::move(b), [](float a, float b){
-      return a-b;
-    });
-  }
-
-  Tensor scale(Tensor a, float factor)
-  {
-    return cwise(std::move(a), [&](float a){
-      return a * factor;
-    });
-  }
 }

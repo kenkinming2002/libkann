@@ -26,17 +26,18 @@ namespace kann
   {
     assert(this->expected_outputs);
     saved_tensors = { inputs };
-    const size_t batch_size = inputs.shape().dimension(0);
 
-    Tensor tmp = math::cwise(inputs, *this->expected_outputs, [this](float input, float expected_output) {
+    MutableTensor tmps = MutableTensor::create(inputs.shape());
+    math::transform2(inputs.as_ref(), this->expected_outputs->as_ref(), tmps.as_ref(), math::BinaryOperation::create([this](const float& input, const float& expected_output, float& tmp)
+    {
       const float diff = input - expected_output;
-      return pow_abs(diff, m_p);
-    });
+      tmp = pow_abs(diff, m_p);
+    }));
 
-    MutableTensor result = MutableTensor::create(Shape(batch_size));
-    result.fill(0.0);
-    math::reduce(tmp.as_ref(), result.as_ref(), math::Direction::RIGHT, math::ADD);
-    return result.as_const();
+    MutableTensor outputs = MutableTensor::create(inputs.shape().front(1));
+    outputs.fill(0.0);
+    math::reduce(tmps.as_const().as_ref(), outputs.as_ref(), math::Direction::RIGHT, math::ADD);
+    return outputs.as_const();
   }
 
   Tensor LpLossFunction::backward(Tensor output_gradients)
@@ -44,14 +45,13 @@ namespace kann
     assert(this->expected_outputs);
     const Tensor& inputs = saved_tensors[0];
 
-    Tensor tmp = math::cwise(inputs, *this->expected_outputs, [this](float input, float expected_output) {
+    MutableTensor input_gradients = MutableTensor::create(inputs.shape());
+    math::transform2(inputs.as_ref(), this->expected_outputs->as_ref(), input_gradients.as_ref(), math::BinaryOperation::create([this](const float& input, const float& expected_output, float& input_gradient)
+    {
       const float diff = input - expected_output;
-      return (m_p-1) * pow_abs(diff, m_p-1) * sgn(diff);
-    });
-
-    MutableTensor result = MutableTensor::create(tmp.shape());
-    math::transform(tmp.as_ref(), result.as_ref(), math::STORE);
-    math::broadcast(output_gradients.as_ref(), result.as_ref(), math::Direction::RIGHT, math::MUL);
-    return result.as_const();
+      input_gradient = (m_p-1) * pow_abs(diff, m_p-1) * sgn(diff);
+    }));
+    math::broadcast(output_gradients.as_ref(), input_gradients.as_ref(), math::Direction::RIGHT, math::MUL);
+    return input_gradients.as_const();
   }
 }
