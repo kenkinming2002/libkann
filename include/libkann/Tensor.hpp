@@ -56,7 +56,7 @@ namespace kann
   public:
     // Explicit namespace qualification to subvert injected class name to use
     // class template argument deduction
-    auto as_const() { return kann::TensorBase(m_storage.as_const(), m_offset, m_shape); }
+    auto as_const() const { return kann::TensorBase(m_storage.as_const(), m_offset, m_shape); }
     auto as_ref() const { return kann::TensorBase(m_storage.as_ref(), m_offset, m_shape); }
 
   // Indexing and reshaping operation
