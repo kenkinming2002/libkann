@@ -94,7 +94,7 @@ namespace kann::math
 
   static inline void transform_impl(MutableTensorRef to, const auto& operation, auto... froms)
   {
-    (assert(froms.shape() == to.shape()), ...);
+    assert(((froms.shape() == to.shape()) && ...));
 
     ((froms = froms.reshape(Shape(froms.size()))), ...);
     to = to.reshape(Shape(to.size()));
