@@ -103,6 +103,15 @@ namespace kann::math
         }
   }
 
+  void transform(TensorRef from, MutableTensorRef to, Operation operation)
+  {
+    assert(from.shape() == to.shape());
+    from = from.reshape(Shape(from.size()));
+    to   = to.reshape(Shape(to.size()));
+    for(size_t i=0; i<from.size(); ++i)
+      operation_impl(operation, from[i].get(0), to[i].get(0));
+  }
+
   void broadcast(float from, MutableTensorRef to, Operation operation)
   {
     broadcast(TensorRef::view(&from, Shape()), to, operation, Direction::LEFT);
