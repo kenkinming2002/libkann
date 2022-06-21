@@ -72,7 +72,7 @@ namespace kann
 
   private:
     size_t m_size = 0;
-    std::array<T, Capacity> m_data;
+    std::array<T, Capacity> m_data = {};
   };
 
   template<typename T, size_t Capacity>
