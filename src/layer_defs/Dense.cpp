@@ -51,7 +51,7 @@ namespace kann
     const size_t batch_size = inputs.shape().dimension(0);
     MutableTensor outputs = MutableTensor::create(Shape::concat(Shape(batch_size), m_output_shape));
     math::product(inputs.as_ref(), false, weight.value.as_const().as_ref(), false, outputs.as_ref());
-    math::broadcast(bias.value.as_const().as_ref(), outputs.as_ref(), math::Operation::FMA, math::Direction::LEFT, 1.0f);
+    math::broadcast(bias.value.as_const().as_ref(), outputs.as_ref(), math::Direction::LEFT, math::ADD);
     return outputs.as_const();
   }
 
@@ -70,7 +70,7 @@ namespace kann
     math::product(output_gradients.as_ref(), false, weight.value.as_const().as_ref(), true,  inputs_gradient.as_ref());
 
     bias_gradient.fill(0.0);
-    math::reduce(output_gradients.as_ref(), bias_gradient.as_ref(), math::Operation::FMA, math::Direction::LEFT, 1.0f);
+    math::reduce(output_gradients.as_ref(), bias_gradient.as_ref(), math::Direction::LEFT, math::ADD);
 
     weight.gradient = std::move(weight_gradient).as_const();
     bias.gradient   = std::move(bias_gradient).as_const();

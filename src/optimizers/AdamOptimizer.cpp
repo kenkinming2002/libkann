@@ -34,7 +34,8 @@ namespace kann
     Tensor m_hat = math::scale(m_new, 1.0 / (1.0 - std::pow(m_beta1, (float)m_timestep)));
     Tensor v_hat = math::scale(v_new, 1.0 / (1.0 - std::pow(m_beta2, (float)m_timestep)));
 
-    math::transform(m_hat.as_ref(), variable.value.as_ref(), math::Operation::FMA, -m_alpha / ( math::norm(v_hat.as_ref()) + m_epsilon ));
+    const float factor = -m_alpha / ( math::norm(v_hat.as_ref()) + m_epsilon );
+    math::transform(m_hat.as_ref(), variable.value.as_ref(), math::FMA(factor));
     variable.optimizer_states = { std::move(m_new), std::move(v_new) };
   }
 }

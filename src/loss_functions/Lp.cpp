@@ -35,7 +35,7 @@ namespace kann
 
     MutableTensor result = MutableTensor::create(Shape(batch_size));
     result.fill(0.0);
-    math::reduce(tmp.as_ref(), result.as_ref(), math::Operation::FMA, math::Direction::RIGHT, 1.0f);
+    math::reduce(tmp.as_ref(), result.as_ref(), math::Direction::RIGHT, math::ADD);
     return result.as_const();
   }
 
@@ -50,8 +50,8 @@ namespace kann
     });
 
     MutableTensor result = MutableTensor::create(tmp.shape());
-    math::transform(tmp.as_ref(), result.as_ref(), math::Operation::STORE, 0.0f);
-    math::broadcast(output_gradients.as_ref(), result.as_ref(), math::Operation::MUL, math::Direction::RIGHT, 0.0f);
+    math::transform(tmp.as_ref(), result.as_ref(), math::STORE);
+    math::broadcast(output_gradients.as_ref(), result.as_ref(), math::Direction::RIGHT, math::MUL);
     return result.as_const();
   }
 }

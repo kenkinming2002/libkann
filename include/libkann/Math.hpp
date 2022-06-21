@@ -10,20 +10,39 @@ namespace kann::math
   KANN_EXPORT float norm(TensorRef value);
 
   enum class Direction { LEFT, RIGHT };
-  enum class Operation { STORE, FMA, ADD, SUB, MUL, DIV };
-
-  KANN_EXPORT void broadcast(TensorRef from, MutableTensorRef to, Operation operation, Direction direction, double value);
-  KANN_EXPORT void reduce(TensorRef from, MutableTensorRef to, Operation operation, Direction direction, double value);
-
-  KANN_EXPORT void transform(TensorRef from, MutableTensorRef to, Operation operation, double value);
-
-  template<typename Func>
-  void transform(TensorRef a, MutableTensorRef to, Func func)
+  struct Operation
   {
-    assert(a.shape() == to.shape());
-    for(size_t i=0; i<to.size(); ++i)
-      to.get(i) = func(a.get(i));
-  }
+  public:
+    virtual void process(const float& from, float& to) const = 0;
+    virtual ~Operation() = default;
+
+  public:
+    template<typename Impl>
+    static constexpr auto create(Impl impl)
+    {
+      struct OperationImpl final : public Operation
+      {
+      public:
+        constexpr OperationImpl(Impl impl) : impl(impl) {}
+
+      public:
+        Impl impl;
+        void process(const float& from, float& to) const override { impl(from, to); }
+      };
+      return OperationImpl(impl);
+    }
+  };
+
+  inline auto STORE = Operation::create([](const float& from, float& to) { to  = from; });
+  inline auto ADD   = Operation::create([](const float& from, float& to) { to += from; });
+  inline auto SUB   = Operation::create([](const float& from, float& to) { to -= from; });
+  inline auto MUL   = Operation::create([](const float& from, float& to) { to *= from; });
+  inline auto DIV   = Operation::create([](const float& from, float& to) { to /= from; });
+  inline auto FMA(float value) { return Operation::create([=](const float& from, float& to) { to = to + value * from; }); }
+
+  KANN_EXPORT void broadcast(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation);
+  KANN_EXPORT void reduce(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation);
+  KANN_EXPORT void transform(TensorRef from, MutableTensorRef to, const Operation& operation);
 
   template<typename Func>
   void transform(TensorRef a, TensorRef b, MutableTensorRef to, Func func)

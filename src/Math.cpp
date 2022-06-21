@@ -41,34 +41,7 @@ namespace kann::math
     return std::sqrt(sum);
   }
 
-  static inline void operation_impl(Operation operation, const float& from, float& to, float value)
-  {
-    switch(operation)
-    {
-    case Operation::STORE:
-      to = from;
-      break;
-    case Operation::FMA:
-      to = to + value * from;
-      break;
-    case Operation::ADD:
-      to += from;
-      break;
-    case Operation::SUB:
-      to -= from;
-      break;
-    case Operation::MUL:
-      to *= from;
-      break;
-    case Operation::DIV:
-      to /= from;
-      break;
-    default:
-      assert(false && "Unreachable");
-    }
-  }
-
-  void broadcast(TensorRef from, MutableTensorRef to, Operation operation, Direction direction, double value)
+  void broadcast(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation)
   {
     // Step 1: Compute shape
     Shape left, right;
@@ -87,12 +60,12 @@ namespace kann::math
       for(size_t j=0; j<to.dimension(1); ++j)
         switch(direction)
         {
-        case Direction::LEFT:  operation_impl(operation, from[j].get(0), to[i][j].get(0), value); break;
-        case Direction::RIGHT: operation_impl(operation, from[i].get(0), to[i][j].get(0), value); break;
+        case Direction::LEFT:  operation.process(from[j].get(0), to[i][j].get(0)); break;
+        case Direction::RIGHT: operation.process(from[i].get(0), to[i][j].get(0)); break;
         }
   }
 
-  void reduce(TensorRef from, MutableTensorRef to, Operation operation, Direction direction, double value)
+  void reduce(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation)
   {
     // Step 1: Compute shape
     Shape left, right;
@@ -111,18 +84,18 @@ namespace kann::math
       for(size_t j=0; j<from.dimension(1); ++j)
         switch(direction)
         {
-        case Direction::LEFT:  operation_impl(operation, from[i][j].get(0), to[j].get(0), value); break;
-        case Direction::RIGHT: operation_impl(operation, from[i][j].get(0), to[i].get(0), value); break;
+        case Direction::LEFT:  operation.process(from[i][j].get(0), to[j].get(0)); break;
+        case Direction::RIGHT: operation.process(from[i][j].get(0), to[i].get(0)); break;
         }
   }
 
-  void transform(TensorRef from, MutableTensorRef to, Operation operation, double value)
+  void transform(TensorRef from, MutableTensorRef to, const Operation& operation)
   {
     assert(from.shape() == to.shape());
     from = from.reshape(Shape(from.size()));
     to   = to.reshape(Shape(to.size()));
     for(size_t i=0; i<from.size(); ++i)
-      operation_impl(operation, from[i].get(0), to[i].get(0), value);
+      operation.process(from[i].get(0), to[i].get(0));
   }
 
 
