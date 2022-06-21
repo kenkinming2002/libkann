@@ -41,63 +41,76 @@ namespace kann::math
     return std::sqrt(sum);
   }
 
-  void broadcast(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation)
+  /*****************************************************
+   * Broadcast/Reduce/Transform Implementation Section *
+   *****************************************************/
+
+  auto split_by(Shape a, Shape b, Direction direction)
   {
-    // Step 1: Compute shape
-    Shape left, right;
     switch(direction)
     {
-    case Direction::LEFT:  std::tie(left, right) = to.shape().split(to.rank() - from.rank(), from.rank()); assert(from.shape() == right); break;
-    case Direction::RIGHT: std::tie(left, right) = to.shape().split(from.rank(), to.rank() - from.rank()); assert(from.shape() == left); break;
+    case Direction::LEFT: // Pad to the left
+      assert(a.back(b.rank()) == b);
+      return std::make_tuple(a.drop_back(b.rank()), b);
+    case Direction::RIGHT: // Pad to the right
+      assert(a.front(b.rank()) == b);
+      return std::make_tuple(b, a.drop_front(b.rank()));
     }
+  };
 
-    // Step 2: Reshape
-    from = from.reshape(Shape(from.size()));
+  auto& first(auto& arg, auto&... args) { return arg; }
+
+  static inline void broadcast_impl(MutableTensorRef to, Direction direction, const auto& operation, auto... froms)
+  {
+    const auto& [left, right] = split_by(to.shape(), first(froms...).shape(), direction);
+
+    (void(froms = froms.reshape(Shape(froms.size()))), ...);
     to = to.reshape(Shape(left.size(), right.size()));
 
-    // Step 3: Compute, hopefully the compiler is able to vectorize through this
-    for(size_t i=0; i<to.dimension(0); ++i)
-      for(size_t j=0; j<to.dimension(1); ++j)
+    for(size_t i=0; i<left.size(); ++i)
+      for(size_t j=0; j<right.size(); ++j)
         switch(direction)
         {
-        case Direction::LEFT:  operation.process(from[j].get(0), to[i][j].get(0)); break;
-        case Direction::RIGHT: operation.process(from[i].get(0), to[i][j].get(0)); break;
+        case Direction::LEFT:  operation.process(froms[j].get(0)..., to[i][j].get(0)); break;
+        case Direction::RIGHT: operation.process(froms[i].get(0)..., to[i][j].get(0)); break;
         }
   }
 
-  void reduce(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation)
+  static inline void reduce_impl(MutableTensorRef to, Direction direction, const auto& operation, auto... froms)
   {
-    // Step 1: Compute shape
-    Shape left, right;
-    switch(direction)
-    {
-    case Direction::LEFT:  std::tie(left, right) = from.shape().split(from.rank() - to.rank(), to.rank()); assert(to.shape() == right); break;
-    case Direction::RIGHT: std::tie(left, right) = from.shape().split(to.rank(), from.rank() - to.rank()); assert(to.shape() == left); break;
-    }
+    const auto& [left, right] = split_by(first(froms...).shape(), to.shape(), direction);
 
-    // Step 2: Reshape
-    from = from.reshape(Shape(left.size(), right.size()));
+    (void(froms = froms.reshape(Shape(left.size(), right.size()))), ...);
     to = to.reshape(Shape(to.size()));
 
-    // Step 3: Compute, hopefully the compiler is able to vectorize through this
-    for(size_t i=0; i<from.dimension(0); ++i)
-      for(size_t j=0; j<from.dimension(1); ++j)
+    for(size_t i=0; i<left.size(); ++i)
+      for(size_t j=0; j<right.size(); ++j)
         switch(direction)
         {
-        case Direction::LEFT:  operation.process(from[i][j].get(0), to[j].get(0)); break;
-        case Direction::RIGHT: operation.process(from[i][j].get(0), to[i].get(0)); break;
+        case Direction::LEFT:  operation.process(froms[i][j].get(0)..., to[j].get(0)); break;
+        case Direction::RIGHT: operation.process(froms[i][j].get(0)..., to[i].get(0)); break;
         }
   }
 
-  void transform(TensorRef from, MutableTensorRef to, const Operation& operation)
+  static inline void transform_impl(MutableTensorRef to, const auto& operation, auto... froms)
   {
-    assert(from.shape() == to.shape());
-    from = from.reshape(Shape(from.size()));
-    to   = to.reshape(Shape(to.size()));
-    for(size_t i=0; i<from.size(); ++i)
-      operation.process(from[i].get(0), to[i].get(0));
+    (assert(froms.shape() == to.shape()), ...);
+
+    ((froms = froms.reshape(Shape(froms.size()))), ...);
+    to = to.reshape(Shape(to.size()));
+
+    for(size_t i=0; i<to.size(); ++i)
+      operation.process(froms[i].get(0)..., to[i].get(0));
   }
 
+  void broadcast(TensorRef from,                    MutableTensorRef to, Direction direction, const Operation& operation)       { return broadcast_impl(to, direction, operation, std::move(from)); }
+  void broadcast2(TensorRef from1, TensorRef from2, MutableTensorRef to, Direction direction, const BinaryOperation& operation) { return broadcast_impl(to, direction, operation, std::move(from1), std::move(from2)); }
+
+  void reduce(TensorRef from,                    MutableTensorRef to, Direction direction, const Operation& operation)       { return reduce_impl(to, direction, operation, std::move(from)); }
+  void reduce2(TensorRef from1, TensorRef from2, MutableTensorRef to, Direction direction, const BinaryOperation& operation) { return reduce_impl(to, direction, operation, std::move(from1), std::move(from2)); }
+
+  void transform(TensorRef from,                    MutableTensorRef to, const Operation& operation)       { return transform_impl(to, operation, std::move(from)); }
+  void transform2(TensorRef from1, TensorRef from2, MutableTensorRef to, const BinaryOperation& operation) { return transform_impl(to, operation, std::move(from1), std::move(from2)); }
 
   void product(TensorRef a, bool transpose_a, TensorRef b, bool transpose_b, MutableTensorRef c)
   {

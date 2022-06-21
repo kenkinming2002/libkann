@@ -10,6 +10,7 @@ namespace kann::math
   KANN_EXPORT float norm(TensorRef value);
 
   enum class Direction { LEFT, RIGHT };
+
   struct Operation
   {
   public:
@@ -43,6 +44,33 @@ namespace kann::math
   KANN_EXPORT void broadcast(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation);
   KANN_EXPORT void reduce(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation);
   KANN_EXPORT void transform(TensorRef from, MutableTensorRef to, const Operation& operation);
+
+  struct BinaryOperation
+  {
+  public:
+    virtual void process(const float& from1, const float& from2, float& to) const = 0;
+    virtual ~BinaryOperation() = default;
+
+  public:
+    template<typename Impl>
+    static constexpr auto create(Impl impl)
+    {
+      struct OperationImpl final : public BinaryOperation
+      {
+      public:
+        constexpr OperationImpl(Impl impl) : impl(impl) {}
+
+      public:
+        Impl impl;
+        void process(const float& from1, const float& from2, float& to) const override { impl(from1, from2, to); }
+      };
+      return OperationImpl(impl);
+    }
+  };
+
+  KANN_EXPORT void broadcast2(TensorRef from1, TensorRef from2, MutableTensorRef to, Direction direction, const BinaryOperation& operation);
+  KANN_EXPORT void reduce2(TensorRef from1, TensorRef from2,  MutableTensorRef to, Direction direction, const BinaryOperation& operation);
+  KANN_EXPORT void transform2(TensorRef from1, TensorRef from2, MutableTensorRef to, const BinaryOperation& operation);
 
   template<typename Func>
   void transform(TensorRef a, TensorRef b, MutableTensorRef to, Func func)
