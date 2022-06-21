@@ -41,21 +41,6 @@ namespace kann::math
     return std::sqrt(sum);
   }
 
-  Tensor broadcast(Tensor value, Shape shape)
-  {
-    const Shape& shape_left  = shape;
-    const Shape& shape_right = value.shape();
-    const Shape& shape_total = Shape::concat(shape_left, shape_right);
-
-    MutableTensor result = MutableTensor::create(shape_total);
-    {
-      auto _value  = to_eigen_vector(value.as_ref().reshape(Shape(shape_right.size())));
-      auto _result = to_eigen_matrix(result.as_ref().reshape(Shape(shape_left.size(), shape_right.size())));
-      _result.rowwise() = _value;
-    }
-    return result.as_const();
-  }
-
   static inline void operation_impl(Operation operation, const float& value, float& target)
   {
     switch(operation)
