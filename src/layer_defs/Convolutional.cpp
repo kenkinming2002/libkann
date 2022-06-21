@@ -37,7 +37,7 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
     layer_storage->parameters = {
-      Variable{.value = MutableTensor::normal(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()}, prng, 0.0, 1.0 / (m_kernel_size.width() * m_kernel_size.height())).as_const()}
+      Variable{.value = MutableTensor::normal(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()}, prng, 0.0, 1.0 / (m_kernel_size.width() * m_kernel_size.height()))}
     };
     return layer_storage;
   }
@@ -58,7 +58,7 @@ namespace kann
     layer.saved_tensors = { inputs };
 
     const Vec2 padding_size = ((m_output_size - m_input_size) + (m_kernel_size - Vec2(1,1))) / 2;
-    return math::cross_correlate2d(inputs, kernels.value, 1, 1, 1, false, false, padding_size);
+    return math::cross_correlate2d(inputs, kernels.value.as_const(), 1, 1, 1, false, false, padding_size);
   }
 
   Tensor ConvolutionalLayerDef::backward(Layer& layer, Tensor output_gradients) const
@@ -68,6 +68,6 @@ namespace kann
 
     const Vec2 padding_size = ((m_output_size - m_input_size) + (m_kernel_size - Vec2(1,1))) / 2;
     kernels.gradient = math::cross_correlate2d(inputs, output_gradients, 1, 1, 1, true, false, padding_size);
-    return math::convolve2d(output_gradients, kernels.value, 1, 1, 1, false, true, (m_kernel_size - Vec2(1,1)) - padding_size);
+    return math::convolve2d(output_gradients, kernels.value.as_const(), 1, 1, 1, false, true, (m_kernel_size - Vec2(1,1)) - padding_size);
   }
 }

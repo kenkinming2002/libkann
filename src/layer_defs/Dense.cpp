@@ -26,8 +26,8 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
     layer_storage->parameters = {
-      Variable{.value = MutableTensor::normal(Shape::concat(m_input_shape, m_output_shape), prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const()},
-      Variable{.value = MutableTensor::normal(m_output_shape,                               prng, 0.0, 1.0 / std::sqrt(m_input_shape.size())).as_const()}
+      Variable{.value = MutableTensor::normal(Shape::concat(m_input_shape, m_output_shape), prng, 0.0, 1.0 / std::sqrt(m_input_shape.size()))},
+      Variable{.value = MutableTensor::normal(m_output_shape,                               prng, 0.0, 1.0 / std::sqrt(m_input_shape.size()))}
     };
     return layer_storage;
   }
@@ -50,8 +50,8 @@ namespace kann
 
     const size_t batch_size = inputs.shape().dimension(0);
     MutableTensor outputs = MutableTensor::create(Shape::concat(Shape(batch_size), m_output_shape));
-    math::product(inputs.as_ref(), false, weight.value.as_ref(), false, outputs.as_ref());
-    math::broadcast(bias.value.as_ref(), outputs.as_ref(), math::Operation::FMA, math::Direction::LEFT, 1.0f);
+    math::product(inputs.as_ref(), false, weight.value.as_const().as_ref(), false, outputs.as_ref());
+    math::broadcast(bias.value.as_const().as_ref(), outputs.as_ref(), math::Operation::FMA, math::Direction::LEFT, 1.0f);
     return outputs.as_const();
   }
 
@@ -66,8 +66,8 @@ namespace kann
     MutableTensor bias_gradient   = MutableTensor::create(m_output_shape);
     MutableTensor inputs_gradient = MutableTensor::create(Shape::concat(Shape(batch_size), m_input_shape));
 
-    math::product(inputs.as_ref(),           true,  output_gradients.as_ref(), false, weight_gradient.as_ref());
-    math::product(output_gradients.as_ref(), false, weight.value.as_ref(),     true,  inputs_gradient.as_ref());
+    math::product(inputs.as_ref(),           true,  output_gradients.as_ref(),        false, weight_gradient.as_ref());
+    math::product(output_gradients.as_ref(), false, weight.value.as_const().as_ref(), true,  inputs_gradient.as_ref());
 
     bias_gradient.fill(0.0);
     math::reduce(output_gradients.as_ref(), bias_gradient.as_ref(), math::Operation::FMA, math::Direction::LEFT, 1.0f);
