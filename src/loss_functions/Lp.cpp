@@ -35,11 +35,7 @@ namespace kann
 
     MutableTensor result = MutableTensor::create(Shape(batch_size));
     result.fill(0.0);
-
-    for(size_t i=0; i<batch_size; ++i)
-      for(size_t j=0; j<tmp[i].size(); ++j)
-        result.get(i) += tmp[i].get(j);
-
+    math::reduce(tmp.as_ref(), result.as_ref(), math::Operation::FMA, math::Direction::RIGHT, 1.0f);
     return result.as_const();
   }
 
@@ -47,7 +43,6 @@ namespace kann
   {
     assert(this->expected_outputs);
     const Tensor& inputs = saved_tensors[0];
-    const size_t batch_size = inputs.shape().dimension(0);
 
     Tensor tmp = math::cwise(inputs, *this->expected_outputs, [this](float input, float expected_output) {
       const float diff = input - expected_output;
@@ -55,10 +50,8 @@ namespace kann
     });
 
     MutableTensor result = MutableTensor::create(tmp.shape());
-    for(size_t i=0; i<batch_size; ++i)
-      for(size_t j=0; j<tmp[i].size(); ++j)
-        result[i].get(j) = tmp[i].get(j) * output_gradients.get(i);
-
+    math::transform(tmp.as_ref(), result.as_ref(), math::Operation::STORE, 0.0f);
+    math::broadcast(output_gradients.as_ref(), result.as_ref(), math::Operation::MUL, math::Direction::RIGHT, 0.0f);
     return result.as_const();
   }
 }
