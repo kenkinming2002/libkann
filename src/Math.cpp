@@ -109,6 +109,30 @@ namespace kann::math
         }
   }
 
+  void reduce(TensorRef value, MutableTensorRef target, Operation operation, Direction direction)
+  {
+    // Step 1: Compute shape
+    Shape left, right;
+    switch(direction)
+    {
+    case Direction::LEFT:  std::tie(left, right) = value.shape().split(value.rank() - target.rank(), target.rank()); assert(target.shape() == right); break;
+    case Direction::RIGHT: std::tie(left, right) = value.shape().split(target.rank(), value.rank() - target.rank()); assert(target.shape() == left); break;
+    }
+
+    // Step 2: Reshape
+    value = value.reshape(Shape(left.size(), right.size()));
+    target = target.reshape(Shape(target.size()));
+
+    // Step 3: Compute, hopefully the compiler is able to vectorize through this
+    for(size_t i=0; i<value.dimension(0); ++i)
+      for(size_t j=0; j<value.dimension(1); ++j)
+        switch(direction)
+        {
+        case Direction::LEFT:  operation_impl(operation, value[i][j].get(0), target[j].get(0)); break;
+        case Direction::RIGHT: operation_impl(operation, value[i][j].get(0), target[i].get(0)); break;
+        }
+  }
+
   void product(TensorRef a, bool transpose_a, TensorRef b, bool transpose_b, MutableTensorRef c)
   {
     // Step 1: Compute all the shapes
