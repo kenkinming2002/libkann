@@ -56,21 +56,6 @@ namespace kann::math
     return result.as_const();
   }
 
-  Tensor reduce(Tensor value, Shape shape)
-  {
-    const Shape& shape_total = value.shape();
-    const Shape& shape_left  = shape;
-    const Shape& shape_right = shape_total.drop_front(shape.rank());
-
-    MutableTensor result = MutableTensor::create(shape_right);
-    {
-      auto _value  = to_eigen_matrix(value.as_ref().reshape(Shape(shape_left.size(), shape_right.size())));
-      auto _result = to_eigen_vector(result.as_ref().reshape(Shape(shape_right.size())));
-      _result = _value.colwise().sum();
-    }
-    return result.as_const();
-  }
-
   static inline void operation_impl(Operation operation, const float& value, float& target)
   {
     switch(operation)

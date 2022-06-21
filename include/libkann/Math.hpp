@@ -9,8 +9,6 @@ namespace kann::math
 {
   KANN_EXPORT float norm(TensorRef value);
 
-  KANN_EXPORT Tensor reduce(Tensor value, Shape shape);
-
   enum class Direction { LEFT, RIGHT };
   enum class Operation { STORE, ADD, SUB, MUL, DIV };
   KANN_EXPORT void broadcast(TensorRef value, MutableTensorRef target, Operation operation, Direction direction);
