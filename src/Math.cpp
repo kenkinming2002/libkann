@@ -41,65 +41,65 @@ namespace kann::math
     return std::sqrt(sum);
   }
 
-  static inline void operation_impl(Operation operation, const float& value, float& target)
+  static inline void operation_impl(Operation operation, const float& from, float& to)
   {
     switch(operation)
     {
-    case Operation::STORE: target  = value; break;
-    case Operation::ADD:   target += value; break;
-    case Operation::SUB:   target -= value; break;
-    case Operation::MUL:   target *= value; break;
-    case Operation::DIV:   target /= value; break;
+    case Operation::STORE: to  = from; break;
+    case Operation::ADD:   to += from; break;
+    case Operation::SUB:   to -= from; break;
+    case Operation::MUL:   to *= from; break;
+    case Operation::DIV:   to /= from; break;
     default:
       assert(false && "Unreachable");
     }
   }
 
-  void broadcast(TensorRef value, MutableTensorRef target, Operation operation, Direction direction)
+  void broadcast(TensorRef from, MutableTensorRef to, Operation operation, Direction direction)
   {
     // Step 1: Compute shape
     Shape left, right;
     switch(direction)
     {
-    case Direction::LEFT:  std::tie(left, right) = target.shape().split(target.rank() - value.rank(), value.rank()); assert(value.shape() == right); break;
-    case Direction::RIGHT: std::tie(left, right) = target.shape().split(value.rank(), target.rank() - value.rank()); assert(value.shape() == left); break;
+    case Direction::LEFT:  std::tie(left, right) = to.shape().split(to.rank() - from.rank(), from.rank()); assert(from.shape() == right); break;
+    case Direction::RIGHT: std::tie(left, right) = to.shape().split(from.rank(), to.rank() - from.rank()); assert(from.shape() == left); break;
     }
 
     // Step 2: Reshape
-    value = value.reshape(Shape(value.size()));
-    target = target.reshape(Shape(left.size(), right.size()));
+    from = from.reshape(Shape(from.size()));
+    to = to.reshape(Shape(left.size(), right.size()));
 
     // Step 3: Compute, hopefully the compiler is able to vectorize through this
-    for(size_t i=0; i<target.dimension(0); ++i)
-      for(size_t j=0; j<target.dimension(1); ++j)
+    for(size_t i=0; i<to.dimension(0); ++i)
+      for(size_t j=0; j<to.dimension(1); ++j)
         switch(direction)
         {
-        case Direction::LEFT:  operation_impl(operation, value[j].get(0), target[i][j].get(0)); break;
-        case Direction::RIGHT: operation_impl(operation, value[i].get(0), target[i][j].get(0)); break;
+        case Direction::LEFT:  operation_impl(operation, from[j].get(0), to[i][j].get(0)); break;
+        case Direction::RIGHT: operation_impl(operation, from[i].get(0), to[i][j].get(0)); break;
         }
   }
 
-  void reduce(TensorRef value, MutableTensorRef target, Operation operation, Direction direction)
+  void reduce(TensorRef from, MutableTensorRef to, Operation operation, Direction direction)
   {
     // Step 1: Compute shape
     Shape left, right;
     switch(direction)
     {
-    case Direction::LEFT:  std::tie(left, right) = value.shape().split(value.rank() - target.rank(), target.rank()); assert(target.shape() == right); break;
-    case Direction::RIGHT: std::tie(left, right) = value.shape().split(target.rank(), value.rank() - target.rank()); assert(target.shape() == left); break;
+    case Direction::LEFT:  std::tie(left, right) = from.shape().split(from.rank() - to.rank(), to.rank()); assert(to.shape() == right); break;
+    case Direction::RIGHT: std::tie(left, right) = from.shape().split(to.rank(), from.rank() - to.rank()); assert(to.shape() == left); break;
     }
 
     // Step 2: Reshape
-    value = value.reshape(Shape(left.size(), right.size()));
-    target = target.reshape(Shape(target.size()));
+    from = from.reshape(Shape(left.size(), right.size()));
+    to = to.reshape(Shape(to.size()));
 
     // Step 3: Compute, hopefully the compiler is able to vectorize through this
-    for(size_t i=0; i<value.dimension(0); ++i)
-      for(size_t j=0; j<value.dimension(1); ++j)
+    for(size_t i=0; i<from.dimension(0); ++i)
+      for(size_t j=0; j<from.dimension(1); ++j)
         switch(direction)
         {
-        case Direction::LEFT:  operation_impl(operation, value[i][j].get(0), target[j].get(0)); break;
-        case Direction::RIGHT: operation_impl(operation, value[i][j].get(0), target[i].get(0)); break;
+        case Direction::LEFT:  operation_impl(operation, from[i][j].get(0), to[j].get(0)); break;
+        case Direction::RIGHT: operation_impl(operation, from[i][j].get(0), to[i].get(0)); break;
         }
   }
 

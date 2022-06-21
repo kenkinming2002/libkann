@@ -11,8 +11,9 @@ namespace kann::math
 
   enum class Direction { LEFT, RIGHT };
   enum class Operation { STORE, ADD, SUB, MUL, DIV };
-  KANN_EXPORT void broadcast(TensorRef value, MutableTensorRef target, Operation operation, Direction direction);
-  KANN_EXPORT void reduce(TensorRef value, MutableTensorRef target, Operation operation, Direction direction);
+
+  KANN_EXPORT void broadcast(TensorRef from, MutableTensorRef to, Operation operation, Direction direction);
+  KANN_EXPORT void reduce(TensorRef from, MutableTensorRef to, Operation operation, Direction direction);
 
   KANN_EXPORT void product(TensorRef a, bool tranpose_a, TensorRef b, bool transpose_b, MutableTensorRef c);
 
