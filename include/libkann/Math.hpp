@@ -10,7 +10,7 @@ namespace kann::math
   KANN_EXPORT float norm(TensorRef value);
 
   enum class Direction { LEFT, RIGHT };
-  enum class Operation { STORE, FMA };
+  enum class Operation { STORE, FMA, ADD, SUB, MUL, DIV };
 
   KANN_EXPORT void broadcast(TensorRef from, MutableTensorRef to, Operation operation, Direction direction, double value);
   KANN_EXPORT void reduce(TensorRef from, MutableTensorRef to, Operation operation, Direction direction, double value);

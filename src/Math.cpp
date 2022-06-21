@@ -51,6 +51,18 @@ namespace kann::math
     case Operation::FMA:
       to = to + value * from;
       break;
+    case Operation::ADD:
+      to += from;
+      break;
+    case Operation::SUB:
+      to -= from;
+      break;
+    case Operation::MUL:
+      to *= from;
+      break;
+    case Operation::DIV:
+      to /= from;
+      break;
     default:
       assert(false && "Unreachable");
     }
