@@ -14,12 +14,9 @@ namespace kann::math
   KANN_EXPORT Tensor broadcast(Tensor value, Shape shape);
   KANN_EXPORT Tensor reduce(Tensor value, Shape shape);
 
-  KANN_EXPORT void broadcast_store(TensorRef value, MutableTensorRef target);
-
-  KANN_EXPORT void broadcast_add(TensorRef value, MutableTensorRef target);
-  KANN_EXPORT void broadcast_sub(TensorRef value, MutableTensorRef target);
-  KANN_EXPORT void broadcast_mul(TensorRef value, MutableTensorRef target);
-  KANN_EXPORT void broadcast_div(TensorRef value, MutableTensorRef target);
+  enum class Direction { LEFT, RIGHT };
+  enum class Operation { STORE, ADD, SUB, MUL, DIV };
+  KANN_EXPORT void broadcast(TensorRef value, MutableTensorRef target, Operation operation, Direction direction);
 
   KANN_EXPORT void product(TensorRef a, bool tranpose_a, TensorRef b, bool transpose_b, MutableTensorRef c);
 

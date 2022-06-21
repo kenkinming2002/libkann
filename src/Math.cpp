@@ -71,44 +71,43 @@ namespace kann::math
     return result.as_const();
   }
 
-  template<typename Impl>
-  void broadcast_impl(TensorRef value, MutableTensorRef target, const Impl& impl)
+  static inline void operation_impl(Operation operation, const float& value, float& target)
   {
-    if(value.rank() == target.rank())
+    switch(operation)
     {
-      if(value.rank() == 0 || target.rank() == 0)
-      {
-        impl(value.get(0), target.get(0));
-        return;
-      }
-
-      if(value.dimension(0) == target.dimension(0))
-      {
-        for(size_t i=0; i<target.dimension(0); ++i)
-          broadcast_impl(value[i], target[i], impl);
-      }
-      else if(value.dimension(0) == 1)
-      {
-        for(size_t i=0; i<target.dimension(0); ++i)
-          broadcast_impl(value[0], target[i], impl);
-      }
-      else
-        assert(false && "Unreachable");
-    }
-    else if(value.rank() < target.rank())
-    {
-      for(size_t i=0; i<target.dimension(0); ++i)
-        broadcast_impl(value, target[i], impl);
-    }
-    else
+    case Operation::STORE: target  = value; break;
+    case Operation::ADD:   target += value; break;
+    case Operation::SUB:   target -= value; break;
+    case Operation::MUL:   target *= value; break;
+    case Operation::DIV:   target /= value; break;
+    default:
       assert(false && "Unreachable");
+    }
   }
 
-  void broadcast_store(TensorRef value, MutableTensorRef target) { return broadcast_impl(value, target, [](const float& value, float& target) { target =  value; }); }
-  void broadcast_add(TensorRef value, MutableTensorRef target)   { return broadcast_impl(value, target, [](const float& value, float& target) { target += value; }); }
-  void broadcast_sub(TensorRef value, MutableTensorRef target)   { return broadcast_impl(value, target, [](const float& value, float& target) { target -= value; }); }
-  void broadcast_mul(TensorRef value, MutableTensorRef target)   { return broadcast_impl(value, target, [](const float& value, float& target) { target *= value; }); }
-  void broadcast_div(TensorRef value, MutableTensorRef target)   { return broadcast_impl(value, target, [](const float& value, float& target) { target /= value; }); }
+  void broadcast(TensorRef value, MutableTensorRef target, Operation operation, Direction direction)
+  {
+    // Step 1: Compute shape
+    Shape left, right;
+    switch(direction)
+    {
+    case Direction::LEFT:  std::tie(left, right) = target.shape().split(target.rank() - value.rank(), value.rank()); assert(value.shape() == right); break;
+    case Direction::RIGHT: std::tie(left, right) = target.shape().split(value.rank(), target.rank() - value.rank()); assert(value.shape() == left); break;
+    }
+
+    // Step 2: Reshape
+    value = value.reshape(Shape(value.size()));
+    target = target.reshape(Shape(left.size(), right.size()));
+
+    // Step 3: Compute, hopefully the compiler is able to vectorize through this
+    for(size_t i=0; i<target.dimension(0); ++i)
+      for(size_t j=0; j<target.dimension(1); ++j)
+        switch(direction)
+        {
+        case Direction::LEFT:  operation_impl(operation, value[j].get(0), target[i][j].get(0)); break;
+        case Direction::RIGHT: operation_impl(operation, value[i].get(0), target[i][j].get(0)); break;
+        }
+  }
 
   void product(TensorRef a, bool transpose_a, TensorRef b, bool transpose_b, MutableTensorRef c)
   {

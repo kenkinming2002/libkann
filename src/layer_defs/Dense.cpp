@@ -51,7 +51,7 @@ namespace kann
     const size_t batch_size = inputs.shape().dimension(0);
     MutableTensor outputs = MutableTensor::create(Shape::concat(Shape(batch_size), m_output_shape));
     math::product(inputs.as_ref(), false, weight.value.as_ref(), false, outputs.as_ref());
-    math::broadcast_add(bias.value.as_ref(), outputs.as_ref());
+    math::broadcast(bias.value.as_ref(), outputs.as_ref(), math::Operation::ADD, math::Direction::LEFT);
     return outputs.as_const();
   }
 
