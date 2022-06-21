@@ -72,25 +72,6 @@ namespace kann::math
   KANN_EXPORT void reduce2(TensorRef from1, TensorRef from2,  MutableTensorRef to, Direction direction, const BinaryOperation& operation);
   KANN_EXPORT void transform2(TensorRef from1, TensorRef from2, MutableTensorRef to, const BinaryOperation& operation);
 
-  template<typename Func>
-  void transform(TensorRef a, TensorRef b, MutableTensorRef to, Func func)
-  {
-    assert(a.shape() == to.shape());
-    assert(b.shape() == to.shape());
-    for(size_t i=0; i<to.size(); ++i)
-      to.get(i) = func(a.get(i), b.get(i));
-  }
-
-  template<typename Func>
-  void transform(TensorRef a, TensorRef b, TensorRef c, MutableTensorRef to, Func func)
-  {
-    assert(a.shape() == to.shape());
-    assert(b.shape() == to.shape());
-    assert(c.shape() == to.shape());
-    for(size_t i=0; i<to.size(); ++i)
-      to.get(i) = func(a.get(i), b.get(i), c.get(i));
-  }
-
   KANN_EXPORT void product(TensorRef a, bool tranpose_a, TensorRef b, bool transpose_b, MutableTensorRef c);
 
   /* X = x_1 * ... * x_m
