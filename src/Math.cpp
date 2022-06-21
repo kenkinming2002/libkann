@@ -103,6 +103,16 @@ namespace kann::math
         }
   }
 
+  void broadcast(float from, MutableTensorRef to, Operation operation)
+  {
+    broadcast(TensorRef::view(&from, Shape()), to, operation, Direction::LEFT);
+  }
+
+  void reduce(TensorRef from, float& to, Operation operation)
+  {
+    reduce(from, MutableTensorRef::view(&to, Shape()), operation, Direction::LEFT);
+  }
+
   void product(TensorRef a, bool transpose_a, TensorRef b, bool transpose_b, MutableTensorRef c)
   {
     // Step 1: Compute all the shapes

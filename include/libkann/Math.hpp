@@ -15,6 +15,9 @@ namespace kann::math
   KANN_EXPORT void broadcast(TensorRef from, MutableTensorRef to, Operation operation, Direction direction);
   KANN_EXPORT void reduce(TensorRef from, MutableTensorRef to, Operation operation, Direction direction);
 
+  KANN_EXPORT void broadcast(float from, MutableTensorRef to, Operation operation);
+  KANN_EXPORT void reduce(TensorRef from, float& to, Operation operation);
+
   KANN_EXPORT void product(TensorRef a, bool tranpose_a, TensorRef b, bool transpose_b, MutableTensorRef c);
 
   /* X = x_1 * ... * x_m
