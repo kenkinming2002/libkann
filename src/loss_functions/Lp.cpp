@@ -27,16 +27,13 @@ namespace kann
     assert(this->expected_outputs);
     saved_tensors = { inputs };
 
-    MutableTensor tmps = MutableTensor::create(inputs.shape());
-    math::transform<2>(tmps.as_ref(), {inputs.as_ref(), this->expected_outputs->as_ref()}, [this](float /*tmp*/, float input, float expected_output)
-    {
-      const float diff = input - expected_output;
-      return pow_abs(diff, m_p);
-    });
-
     MutableTensor outputs = MutableTensor::create(inputs.shape().front(1));
     outputs.fill(0.0);
-    math::reduce<1>(outputs.as_ref(), {tmps.as_ref().as_const()}, math::Direction::RIGHT, math::ADD);
+    math::reduce<2>(outputs.as_ref(), {inputs.as_ref(), this->expected_outputs->as_ref()}, math::Direction::RIGHT, [this](float output, float input, float expected_output)
+    {
+      const float diff = input - expected_output;
+      return output + pow_abs(diff, m_p);
+    });
     return outputs.as_const();
   }
 
