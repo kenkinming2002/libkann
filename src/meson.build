@@ -26,6 +26,7 @@ libkann_sources = [
 
   # Loss functions
   'loss_functions/Lp.cpp',
+  'loss_functions/CrossEntropy.cpp',
 
   'Batch.cpp',
   'ProgressBar.cpp',

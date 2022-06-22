@@ -13,6 +13,7 @@
 #include <libkann/optimizers/AdamOptimizer.hpp>
 
 #include <libkann/loss_functions/Lp.hpp>
+#include <libkann/loss_functions/CrossEntropy.hpp>
 
 #include <libkann/datasets/MNIST.hpp>
 #include <libkann/datasets/Random.hpp>
@@ -83,7 +84,7 @@ int main(int argc, char** argv)
       throw std::runtime_error(fmt::format("Unknown optimizer name:{}", optimizer_name));
   }();
 
-  kann::LpLossFunction loss_function(2);
+  kann::CrossEntropyLossFunction loss_function;
 
   const size_t batch_size = std::stoull(batch_size_str);
   const size_t epoch      = std::stoull(epoch_str);
