@@ -11,66 +11,15 @@ namespace kann::math
 
   enum class Direction { LEFT, RIGHT };
 
-  struct Operation
-  {
-  public:
-    virtual void process(const float& from, float& to) const = 0;
-    virtual ~Operation() = default;
+  template<size_t N> void broadcast(MutableTensorRef dst, std::array<TensorRef, N> srcs, Direction direction, const auto& impl);
+  template<size_t N> void reduce(MutableTensorRef dst, std::array<TensorRef, N> srcs, Direction direction, const auto& impl);
+  template<size_t N> void transform(MutableTensorRef dst, std::array<TensorRef, N> srcs, const auto& impl);
 
-  public:
-    template<typename Impl>
-    static constexpr auto create(Impl impl)
-    {
-      struct OperationImpl final : public Operation
-      {
-      public:
-        constexpr OperationImpl(Impl impl) : impl(impl) {}
+  static constexpr auto FMA(float value)  { return [=](float output, float input) { return output + value * input;  }; }
+  static constexpr auto SCALE(float value)  { return [=](float output, float input) { return value * input;  }; }
 
-      public:
-        Impl impl;
-        void process(const float& from, float& to) const override { impl(from, to); }
-      };
-      return OperationImpl(impl);
-    }
-  };
-
-  inline auto STORE = Operation::create([](const float& from, float& to) { to  = from; });
-  inline auto ADD   = Operation::create([](const float& from, float& to) { to += from; });
-  inline auto SUB   = Operation::create([](const float& from, float& to) { to -= from; });
-  inline auto MUL   = Operation::create([](const float& from, float& to) { to *= from; });
-  inline auto DIV   = Operation::create([](const float& from, float& to) { to /= from; });
-  inline auto FMA(float value) { return Operation::create([=](const float& from, float& to) { to = to + value * from; }); }
-
-  KANN_EXPORT void broadcast(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation);
-  KANN_EXPORT void reduce(TensorRef from, MutableTensorRef to, Direction direction, const Operation& operation);
-  KANN_EXPORT void transform(TensorRef from, MutableTensorRef to, const Operation& operation);
-
-  struct BinaryOperation
-  {
-  public:
-    virtual void process(const float& from1, const float& from2, float& to) const = 0;
-    virtual ~BinaryOperation() = default;
-
-  public:
-    template<typename Impl>
-    static constexpr auto create(Impl impl)
-    {
-      struct OperationImpl final : public BinaryOperation
-      {
-      public:
-        constexpr OperationImpl(Impl impl) : impl(impl) {}
-
-      public:
-        Impl impl;
-        void process(const float& from1, const float& from2, float& to) const override { impl(from1, from2, to); }
-      };
-      return OperationImpl(impl);
-    }
-  };
-
-  KANN_EXPORT void broadcast2(TensorRef from1, TensorRef from2, MutableTensorRef to, Direction direction, const BinaryOperation& operation);
-  KANN_EXPORT void reduce2(TensorRef from1, TensorRef from2,  MutableTensorRef to, Direction direction, const BinaryOperation& operation);
-  KANN_EXPORT void transform2(TensorRef from1, TensorRef from2, MutableTensorRef to, const BinaryOperation& operation);
+  static constexpr auto ADD  = [](float output, auto... inputs) { return output + (inputs + ...);  };
+  static constexpr auto MUL  = [](float output, auto... inputs) { return output * (inputs * ...);  };
 
   KANN_EXPORT void product(TensorRef a, bool tranpose_a, TensorRef b, bool transpose_b, MutableTensorRef c);
 
@@ -87,4 +36,111 @@ namespace kann::math
    *         multiplication replaced with 2d convolution/cross correlation. */
   KANN_EXPORT Tensor cross_correlate2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
   KANN_EXPORT Tensor convolve2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
+
+  /******************
+   * Implementation *
+   ******************/
+  namespace details
+  {
+    inline constexpr auto split_by(Shape a, Shape b, Direction direction)
+    {
+      switch(direction)
+      {
+      case Direction::LEFT: // Pad to the left
+        assert(a.back(b.rank()) == b);
+        return std::make_pair(a.drop_back(b.rank()), b);
+      case Direction::RIGHT: // Pad to the right
+        assert(a.front(b.rank()) == b);
+        return std::make_pair(b, a.drop_front(b.rank()));
+      default:
+        assert(false && "Unreachable");
+      }
+    };
+
+    template<typename From, size_t N>
+    inline constexpr auto array_transform(std::array<From, N>& values, const auto& f)
+    {
+      return [&]<size_t... Is>(std::index_sequence<Is...>) {
+        return std::array{f(values[Is])...};
+      }(std::make_index_sequence<N>());
+    }
+  }
+
+  template<size_t N>
+  void broadcast(MutableTensorRef dst, std::array<TensorRef, N> srcs, Direction direction, const auto& impl)
+  {
+    // Step 1: Compute shape
+    assert(!srcs.empty());
+    const auto& [left, right] = details::split_by(dst.shape(), srcs.front().shape(), direction);
+
+    // Step 2: Reshape
+    dst = dst.reshape(Shape(left.size(), right.size()));
+    for(TensorRef& src : srcs)
+      src = src.reshape(Shape(src.size()));
+
+
+    // Step 3: Compute
+    for(size_t i=0; i<left.size(); ++i)
+      for(size_t j=0; j<right.size(); ++j)
+      {
+        float* output = &dst[i][j].get(0);
+
+        std::array<float, N> inputs;
+        switch(direction)
+        {
+        case Direction::LEFT:  inputs = details::array_transform(srcs, [&](auto& src) { return src[j].get(0); }); break;
+        case Direction::RIGHT: inputs = details::array_transform(srcs, [&](auto& src) { return src[i].get(0); }); break;
+        }
+
+        std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
+      }
+  }
+
+  template<size_t N>
+  void reduce(MutableTensorRef dst, std::array<TensorRef, N> srcs, Direction direction, const auto& impl)
+  {
+    // Step 1: Compute shape
+    assert(!srcs.empty());
+    const auto& [left, right] = details::split_by(srcs.front().shape(), dst.shape(), direction);
+
+    // Step 2: Reshape
+    dst = dst.reshape(Shape(dst.size()));
+    for(TensorRef& src : srcs)
+      src = src.reshape(Shape(left.size(), right.size()));
+
+
+    // Step 3: Compute
+    for(size_t i=0; i<left.size(); ++i)
+      for(size_t j=0; j<right.size(); ++j)
+      {
+        float* output;
+        switch(direction)
+        {
+        case Direction::LEFT:   output = &dst[j].get(0); break;
+        case Direction::RIGHT:  output = &dst[i].get(0); break;
+        }
+
+        std::array<float, N> inputs = details::array_transform(srcs, [&](TensorRef& src) { return src[i][j].get(0); });
+
+        std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
+      }
+  }
+
+  template<size_t N>
+  void transform(MutableTensorRef dst, std::array<TensorRef, N> srcs, const auto& impl)
+  {
+    for(const TensorRef& src : srcs)
+      assert(dst.shape() == src.shape());
+
+    dst = dst.reshape(Shape(dst.size()));
+    for(TensorRef& src : srcs)
+      src = src.reshape(Shape(src.size()));
+
+    for(size_t i=0; i<dst.size(); ++i)
+    {
+      float* output = &dst.get(i);
+      std::array<float, N> inputs = details::array_transform(srcs, [&](TensorRef& src) { return src.get(i); });
+      std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
+    }
+  }
 }

@@ -70,23 +70,20 @@ namespace kann
     layer.saved_tensors = { inputs };
 
     MutableTensor outputs = MutableTensor::create(inputs.shape());
-    math::transform(inputs.as_ref(), outputs.as_ref(), math::Operation::create([this](const float& input, float& output)
+    math::transform<1>(outputs.as_ref(), {inputs.as_ref()}, [this](float /*output*/, float input)
     {
       switch(m_type)
       {
       case ActivationLayerDef::Type::IDENTITY:
-        output = input;
-        break;
+        return input;
       case ActivationLayerDef::Type::SIGMOID:
-        output = 1.0f /  (1.0f + std::exp(-input));
-        break;
+        return 1.0f /  (1.0f + std::exp(-input));
       case ActivationLayerDef::Type::TANH:
-        output = std::tanh(input);
-        break;
+        return std::tanh(input);
       default:
         assert(false && "Unreachable");
       }
-    }));
+    });
     return outputs.as_const();
   }
 
@@ -95,26 +92,23 @@ namespace kann
     const Tensor& inputs = layer.saved_tensors[0];
 
     MutableTensor input_gradients = MutableTensor::create(inputs.shape());
-    math::transform2(inputs.as_ref(), output_gradients.as_ref(), input_gradients.as_ref(), math::BinaryOperation::create([this](const float& input, const float& output_gradient, float& input_gradient)
+    math::transform<2>(input_gradients.as_ref(), {inputs.as_ref(), output_gradients.as_ref()}, [this](float /*input_gradient*/, float input, float output_gradient)
     {
       float tmp;
       switch(m_type)
       {
       case ActivationLayerDef::Type::IDENTITY:
-        input_gradient = output_gradient;
-        break;
+        return output_gradient;
       case ActivationLayerDef::Type::SIGMOID:
         tmp = std::exp(-input);
-        input_gradient = output_gradient * tmp / ((1+tmp) * (1+tmp));
-        break;
+        return output_gradient * tmp / ((1+tmp) * (1+tmp));
       case ActivationLayerDef::Type::TANH:
         tmp = std::cosh(input);
-        input_gradient = output_gradient / (tmp * tmp);
-        break;
+        return output_gradient / (tmp * tmp);
       default:
         assert(false && "Unreachable");
       }
-    }));
+    });
     return input_gradients.as_const();
   }
 }

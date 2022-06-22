@@ -32,25 +32,17 @@ namespace kann
 
     assert(variable.gradient);
 
-    math::transform2(m.as_ref().as_const(), variable.gradient->as_ref(), m.as_ref(), math::BinaryOperation::create([this](const float& m, const float& gradient, float& m_new) {
-      m_new = m_beta1 * m + (1.0-m_beta1) * gradient * gradient;
-    }));
-
-    math::transform2(v.as_ref().as_const(), variable.gradient->as_ref(), v.as_ref(), math::BinaryOperation::create([this](const float& v, const float& gradient, float& v_new) {
-      v_new = m_beta2 * v + (1.0-m_beta2) * gradient;
-    }));
+    math::transform<1>(m.as_ref(), {variable.gradient->as_ref()}, [this](float m, float gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient * gradient; });
+    math::transform<1>(v.as_ref(), {variable.gradient->as_ref()}, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient; });
 
     MutableTensor m_hat = MutableTensor::create(m.shape());
     MutableTensor v_hat = MutableTensor::create(v.shape());
 
-    const double factor1 = 1.0 / (1.0 - std::pow(m_beta1, m_timestep));
-    const double factor2 = 1.0 / (1.0 - std::pow(m_beta2, m_timestep));
-
-    math::transform(m.as_ref().as_const(), m_hat.as_ref(), math::Operation::create([&factor1](const float& m, float& m_hat) { m_hat = factor1 * m; }));
-    math::transform(v.as_ref().as_const(), v_hat.as_ref(), math::Operation::create([&factor2](const float& v, float& v_hat) { v_hat = factor2 * v; }));
+    math::transform<1>(m_hat.as_ref(), {m.as_ref().as_const()}, math::SCALE(1.0 / (1.0 - std::pow(m_beta1, m_timestep))));
+    math::transform<1>(v_hat.as_ref(), {v.as_ref().as_const()}, math::SCALE(1.0 / (1.0 - std::pow(m_beta2, m_timestep))));
 
     const float factor = -m_alpha / ( math::norm(v_hat.as_ref().as_const()) + m_epsilon );
-    math::transform(m_hat.as_ref().as_const(), variable.value.as_ref(), math::FMA(factor));
+    math::transform<1>(variable.value.as_ref(), {m_hat.as_ref().as_const()}, math::FMA(factor));
   }
 }
 
