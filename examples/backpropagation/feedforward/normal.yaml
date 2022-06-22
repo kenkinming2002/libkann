@@ -31,3 +31,6 @@ layers:
   - type: "activation"
     shape: [10]
     function: "sigmoid"
+
+  - type: "softmax"
+    shape: [10]

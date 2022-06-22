@@ -12,6 +12,7 @@ libkann_sources = [
   'layer_defs/Convolutional.cpp',
   'layer_defs/Dense.cpp',
   'layer_defs/Sequential.cpp',
+  'layer_defs/SoftMax.cpp',
 
   # Datasets
   'datasets/MNIST.cpp',

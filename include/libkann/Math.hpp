@@ -21,6 +21,9 @@ namespace kann::math
   static constexpr auto ADD  = [](float output, auto... inputs) { return output + (inputs + ...);  };
   static constexpr auto MUL  = [](float output, auto... inputs) { return output * (inputs * ...);  };
 
+  static constexpr auto SUB  = [](float output, float input) { return output - input;  };
+  static constexpr auto DIV  = [](float output, float input) { return output / input;  };
+
   KANN_EXPORT void product(MutableTensorRef dst, TensorRef a, bool transpose_a, TensorRef b, bool transpose_b);
 
   enum class Image2DOperation { CROSS_CORRELATION, CONVOLUTION };

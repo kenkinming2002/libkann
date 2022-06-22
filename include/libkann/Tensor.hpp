@@ -74,6 +74,11 @@ namespace kann
       return TensorBase(m_storage, m_offset, new_shape);
     }
 
+    TensorBase flatten() const
+    {
+      return reshape(Shape(size()));
+    }
+
   public:
     auto data() const { return m_storage.data() + m_offset; }
 

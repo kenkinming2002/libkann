@@ -6,6 +6,7 @@
 #include <libkann/layer_defs/Convolutional.hpp>
 #include <libkann/layer_defs/Sequential.hpp>
 #include <libkann/layer_defs/Dense.hpp>
+#include <libkann/layer_defs/SoftMax.hpp>
 
 #include <fenv.h>
 
@@ -19,5 +20,6 @@ namespace kann
     LayerDef::register_save_load<ConvolutionalLayerDef>("convolution");
     LayerDef::register_save_load<SequentialLayerDef>("sequential");
     LayerDef::register_save_load<DenseLayerDef>("dense");
+    LayerDef::register_save_load<SoftMaxLayerDef>("softmax");
   }
 }
