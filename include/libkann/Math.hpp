@@ -9,17 +9,22 @@ namespace kann::math
 {
   KANN_EXPORT float norm(TensorRef value);
 
-  KANN_EXPORT Tensor broadcast(Tensor value, Shape shape);
-  KANN_EXPORT Tensor reduce(Tensor value, Shape shape);
+  enum class Direction { LEFT, RIGHT };
 
-  /* X = x_1 * ... * x_m
-   * Y = y_1 * ... * y_k
-   * Z = z_1 * ... * z_n
-   *
-   * op(a): X * Y
-   * op(b): Y * Z
-   * output: X * Z */
-  KANN_EXPORT Tensor product(Tensor a, Tensor b, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_a, bool transpose_b);
+  template<size_t N> void broadcast(MutableTensorRef dst, std::array<TensorRef, N> srcs, Direction direction, const auto& impl);
+  template<size_t N> void reduce(MutableTensorRef dst, std::array<TensorRef, N> srcs, Direction direction, const auto& impl);
+  template<size_t N> void transform(MutableTensorRef dst, std::array<TensorRef, N> srcs, const auto& impl);
+
+  static constexpr auto FMA(float value)  { return [=](float output, float input) { return output + value * input;  }; }
+  static constexpr auto SCALE(float value)  { return [=](float output, float input) { return value * input;  }; }
+
+  static constexpr auto ADD  = [](float output, auto... inputs) { return output + (inputs + ...);  };
+  static constexpr auto MUL  = [](float output, auto... inputs) { return output * (inputs * ...);  };
+
+  KANN_EXPORT void product(MutableTensorRef dst, TensorRef a, bool transpose_a, TensorRef b, bool transpose_b);
+
+  enum class Image2DOperation { CROSS_CORRELATION, CONVOLUTION };
+  KANN_EXPORT void image2d_operation(MutableTensorRef outputs, TensorRef inputs, bool transpose_inputs, TensorRef kernels, bool transpose_kernels, Image2DOperation operation);
 
   /* X = x_1 * ... * x_m
    * Y = y_1 * ... * y_k
@@ -35,45 +40,110 @@ namespace kann::math
   KANN_EXPORT Tensor cross_correlate2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
   KANN_EXPORT Tensor convolve2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
 
-  template<typename Impl>
-  Tensor cwise(Tensor a, Impl impl)
+  /******************
+   * Implementation *
+   ******************/
+  namespace details
   {
-    const Shape& shape = a.shape();
-    const size_t size = a.size();
-    MutableTensor result = MutableTensor::create(shape);
-    for(size_t i=0; i<size; ++i)
-      result.get(i) = impl(a.get(i));
+    inline constexpr auto split_by(Shape a, Shape b, Direction direction)
+    {
+      switch(direction)
+      {
+      case Direction::LEFT: // Pad to the left
+        assert(a.back(b.rank()) == b);
+        return std::make_pair(a.drop_back(b.rank()), b);
+      case Direction::RIGHT: // Pad to the right
+        assert(a.front(b.rank()) == b);
+        return std::make_pair(b, a.drop_front(b.rank()));
+      default:
+        assert(false && "Unreachable");
+      }
+    };
 
-    return std::move(result).as_const();
+    template<typename From, size_t N>
+    inline constexpr auto array_transform(std::array<From, N>& values, const auto& f)
+    {
+      return [&]<size_t... Is>(std::index_sequence<Is...>) {
+        return std::array{f(values[Is])...};
+      }(std::make_index_sequence<N>());
+    }
   }
 
-  template<typename Impl>
-  Tensor cwise(Tensor a, Tensor b, Impl impl)
+  template<size_t N>
+  void broadcast(MutableTensorRef dst, std::array<TensorRef, N> srcs, Direction direction, const auto& impl)
   {
-    assert(a.shape() == b.shape());
-    const Shape& shape = a.shape();
-    const size_t size = a.size();
-    MutableTensor result = MutableTensor::create(shape);
-    for(size_t i=0; i<size; ++i)
-      result.get(i) = impl(a.get(i), b.get(i));
+    // Step 1: Compute shape
+    assert(!srcs.empty());
+    const auto& [left, right] = details::split_by(dst.shape(), srcs.front().shape(), direction);
 
-    return std::move(result).as_const();
+    // Step 2: Reshape
+    dst = dst.reshape(Shape(left.size(), right.size()));
+    for(TensorRef& src : srcs)
+      src = src.reshape(Shape(src.size()));
+
+
+    // Step 3: Compute
+    for(size_t i=0; i<left.size(); ++i)
+      for(size_t j=0; j<right.size(); ++j)
+      {
+        float* output = &dst[i][j].get(0);
+
+        std::array<float, N> inputs;
+        switch(direction)
+        {
+        case Direction::LEFT:  inputs = details::array_transform(srcs, [&](auto& src) { return src[j].get(0); }); break;
+        case Direction::RIGHT: inputs = details::array_transform(srcs, [&](auto& src) { return src[i].get(0); }); break;
+        }
+
+        std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
+      }
   }
 
-  template<typename Impl>
-  Tensor cwise(Tensor a, Tensor b, Tensor c, Impl impl)
+  template<size_t N>
+  void reduce(MutableTensorRef dst, std::array<TensorRef, N> srcs, Direction direction, const auto& impl)
   {
-    assert(a.shape() == b.shape() && b.shape() == c.shape());
-    const Shape& shape = a.shape();
-    const size_t size = a.size();
-    MutableTensor result = MutableTensor::create(shape);
-    for(size_t i=0; i<size; ++i)
-      result.get(i) = impl(a.get(i), b.get(i), c.get(i));
+    // Step 1: Compute shape
+    assert(!srcs.empty());
+    const auto& [left, right] = details::split_by(srcs.front().shape(), dst.shape(), direction);
 
-    return std::move(result).as_const();
+    // Step 2: Reshape
+    dst = dst.reshape(Shape(dst.size()));
+    for(TensorRef& src : srcs)
+      src = src.reshape(Shape(left.size(), right.size()));
+
+
+    // Step 3: Compute
+    for(size_t i=0; i<left.size(); ++i)
+      for(size_t j=0; j<right.size(); ++j)
+      {
+        float* output;
+        switch(direction)
+        {
+        case Direction::LEFT:   output = &dst[j].get(0); break;
+        case Direction::RIGHT:  output = &dst[i].get(0); break;
+        }
+
+        std::array<float, N> inputs = details::array_transform(srcs, [&](TensorRef& src) { return src[i][j].get(0); });
+
+        std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
+      }
   }
 
-  KANN_EXPORT Tensor add(Tensor a, Tensor b);
-  KANN_EXPORT Tensor sub(Tensor a, Tensor b);
-  KANN_EXPORT Tensor scale(Tensor a, float factor);
+  template<size_t N>
+  void transform(MutableTensorRef dst, std::array<TensorRef, N> srcs, const auto& impl)
+  {
+    for(const TensorRef& src : srcs)
+      assert(dst.shape() == src.shape());
+
+    dst = dst.reshape(Shape(dst.size()));
+    for(TensorRef& src : srcs)
+      src = src.reshape(Shape(src.size()));
+
+    for(size_t i=0; i<dst.size(); ++i)
+    {
+      float* output = &dst.get(i);
+      std::array<float, N> inputs = details::array_transform(srcs, [&](TensorRef& src) { return src.get(i); });
+      std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
+    }
+  }
 }

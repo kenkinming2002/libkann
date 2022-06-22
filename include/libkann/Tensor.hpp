@@ -43,10 +43,20 @@ namespace kann
       return TensorBase(StorageType::create(size), 0, std::move(shape));
     }
 
+    static TensorBase view(float* values, Shape shape)
+    {
+      return TensorBase(StorageType::view(values, shape.size()), 0, shape);
+    }
+
+    static TensorBase view(const float* values, Shape shape)
+    {
+      return TensorBase(StorageType::view(values, shape.size()), 0, shape);
+    }
+
   public:
     // Explicit namespace qualification to subvert injected class name to use
     // class template argument deduction
-    auto as_const() { return kann::TensorBase(m_storage.as_const(), m_offset, m_shape); }
+    auto as_const() const { return kann::TensorBase(m_storage.as_const(), m_offset, m_shape); }
     auto as_ref() const { return kann::TensorBase(m_storage.as_ref(), m_offset, m_shape); }
 
   // Indexing and reshaping operation
@@ -66,6 +76,9 @@ namespace kann
 
   public:
     auto data() const { return m_storage.data() + m_offset; }
+
+    auto dimension(size_t i) const { return m_shape.dimension(i); }
+    auto rank() const { return m_shape.rank(); }
     auto size() const { return m_shape.size(); }
 
   public:
@@ -129,6 +142,9 @@ namespace kann
     RefStorage as_const() const { return *this; }
     RefStorage as_ref() const { return *this; }
 
+  public:
+    static RefStorage view(const float* data, size_t size) { return RefStorage(data, size); }
+
   private:
     const float* m_data;
     size_t m_size;
@@ -146,6 +162,9 @@ namespace kann
   public:
     RefStorage as_const() const { return RefStorage(m_data, m_size); }
     MutableRefStorage as_ref() const { return *this; }
+
+  public:
+    static MutableRefStorage view(float* data, size_t size) { return MutableRefStorage(data, size); }
 
   private:
     float* m_data;

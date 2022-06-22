@@ -26,39 +26,29 @@ namespace kann
   {
     assert(this->expected_outputs);
     saved_tensors = { inputs };
-    const size_t batch_size = inputs.shape().dimension(0);
 
-    Tensor tmp = math::cwise(inputs, *this->expected_outputs, [this](float input, float expected_output) {
+    MutableTensor outputs = MutableTensor::create(inputs.shape().front(1));
+    outputs.fill(0.0);
+    math::reduce<2>(outputs.as_ref(), {inputs.as_ref(), this->expected_outputs->as_ref()}, math::Direction::RIGHT, [this](float output, float input, float expected_output)
+    {
       const float diff = input - expected_output;
-      return pow_abs(diff, m_p);
+      return output + pow_abs(diff, m_p);
     });
-
-    MutableTensor result = MutableTensor::create(Shape(batch_size));
-    result.fill(0.0);
-
-    for(size_t i=0; i<batch_size; ++i)
-      for(size_t j=0; j<tmp[i].size(); ++j)
-        result.get(i) += tmp[i].get(j);
-
-    return result.as_const();
+    return outputs.as_const();
   }
 
   Tensor LpLossFunction::backward(Tensor output_gradients)
   {
     assert(this->expected_outputs);
     const Tensor& inputs = saved_tensors[0];
-    const size_t batch_size = inputs.shape().dimension(0);
 
-    Tensor tmp = math::cwise(inputs, *this->expected_outputs, [this](float input, float expected_output) {
+    MutableTensor input_gradients = MutableTensor::create(inputs.shape());
+    math::transform<2>(input_gradients.as_ref(), {inputs.as_ref(), this->expected_outputs->as_ref()},[this](float /*input_gradient*/, float input, const float expected_output)
+    {
       const float diff = input - expected_output;
       return (m_p-1) * pow_abs(diff, m_p-1) * sgn(diff);
     });
-
-    MutableTensor result = MutableTensor::create(tmp.shape());
-    for(size_t i=0; i<batch_size; ++i)
-      for(size_t j=0; j<tmp[i].size(); ++j)
-        result[i].get(j) = tmp[i].get(j) * output_gradients.get(i);
-
-    return result.as_const();
+    math::broadcast<1>(input_gradients.as_ref(), {output_gradients.as_ref()}, math::Direction::RIGHT, math::MUL);
+    return input_gradients.as_const();
   }
 }

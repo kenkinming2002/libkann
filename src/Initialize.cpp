@@ -13,7 +13,7 @@ namespace kann
 {
   void initialize()
   {
-    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+    feenableexcept(FE_INVALID);
 
     LayerDef::register_save_load<ActivationLayerDef>("activation");
     LayerDef::register_save_load<ConvolutionalLayerDef>("convolution");

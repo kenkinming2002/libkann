@@ -12,11 +12,11 @@ namespace kann
     constexpr Vec2(size_t a, size_t b) : a(a), b(b) {}
 
   public:
-    constexpr size_t width()  const { return a; }
-    constexpr size_t height() const { return b; }
+    constexpr size_t height() const { return a; }
+    constexpr size_t width()  const { return b; }
 
-    constexpr size_t x() const { return a; }
-    constexpr size_t y() const { return b; }
+    constexpr size_t y() const { return a; }
+    constexpr size_t x() const { return b; }
 
   public:
     constexpr friend bool operator==(Vec2 lhs, Vec2 rhs) = default;

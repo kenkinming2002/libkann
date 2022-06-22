@@ -68,7 +68,9 @@ namespace kann
   Tensor ActivationLayerDef::forward(Layer& layer, Tensor inputs) const
   {
     layer.saved_tensors = { inputs };
-    return math::cwise(std::move(inputs), [this](float input)
+
+    MutableTensor outputs = MutableTensor::create(inputs.shape());
+    math::transform<1>(outputs.as_ref(), {inputs.as_ref()}, [this](float /*output*/, float input)
     {
       switch(m_type)
       {
@@ -82,12 +84,15 @@ namespace kann
         assert(false && "Unreachable");
       }
     });
+    return outputs.as_const();
   }
 
   Tensor ActivationLayerDef::backward(Layer& layer, Tensor output_gradients) const
   {
     const Tensor& inputs = layer.saved_tensors[0];
-    return math::cwise(inputs, output_gradients, [this](float input, float output_gradient)
+
+    MutableTensor input_gradients = MutableTensor::create(inputs.shape());
+    math::transform<2>(input_gradients.as_ref(), {inputs.as_ref(), output_gradients.as_ref()}, [this](float /*input_gradient*/, float input, float output_gradient)
     {
       float tmp;
       switch(m_type)
@@ -104,5 +109,6 @@ namespace kann
         assert(false && "Unreachable");
       }
     });
+    return input_gradients.as_const();
   }
 }

@@ -6,7 +6,7 @@
 
 namespace kann
 {
-  class SimpleOptimizer : public Optimizer
+  class KANN_EXPORT SimpleOptimizer : public Optimizer
   {
   public:
     KANN_EXPORT SimpleOptimizer() = default;
