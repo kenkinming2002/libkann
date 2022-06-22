@@ -41,7 +41,7 @@ namespace kann::math
     return std::sqrt(sum);
   }
 
-  void product(TensorRef a, bool transpose_a, TensorRef b, bool transpose_b, MutableTensorRef c)
+  void product(MutableTensorRef dst, TensorRef a, bool transpose_a, TensorRef b, bool transpose_b)
   {
     // Step 1: Compute all the shapes
     Shape M, N, K;
@@ -49,9 +49,9 @@ namespace kann::math
       /* a.rank() = M.rank() + K.rank()
        * b.rank() = K.rank() + N.rank()
        * c.rank() = M.rank() + N.rank() */
-      size_t rank_M = (a.rank() + c.rank() - b.rank()) / 2;
-      size_t rank_N = (b.rank() + c.rank() - a.rank()) / 2;
-      size_t rank_K = (a.rank() + b.rank() - c.rank()) / 2;
+      size_t rank_M = (a.rank() + dst.rank() - b.rank()) / 2;
+      size_t rank_N = (b.rank() + dst.rank() - a.rank()) / 2;
+      size_t rank_K = (a.rank() + b.rank() - dst.rank()) / 2;
 
       auto decompose = [](Shape shape, size_t rank1, size_t rank2, bool transpose)
       {
@@ -65,7 +65,7 @@ namespace kann::math
 
       const auto& [_M1, _K1] = decompose(a.shape(), rank_M, rank_K, transpose_a);
       const auto& [_K2, _N1] = decompose(b.shape(), rank_K, rank_N, transpose_b);
-      const auto& [_M2, _N2] = decompose(c.shape(), rank_M, rank_N, false);
+      const auto& [_M2, _N2] = decompose(dst.shape(), rank_M, rank_N, false);
 
       assert(_M1 == _M2 && _N1 == _N2 && _K1 == _K2);
       std::tie(M, N, K) = std::make_tuple(_M1, _N1, _K1);
@@ -80,29 +80,29 @@ namespace kann::math
         else
           return std::forward<decltype(value)>(value).reshape(Shape(shape1.size(), shape2.size()));
       };
-      a = reshape(a, M, K, transpose_a);
-      b = reshape(b, K, N, transpose_b);
-      c = reshape(c, M, N, false);
+      a   = reshape(a, M, K, transpose_a);
+      b   = reshape(b, K, N, transpose_b);
+      dst = reshape(dst, M, N, false);
     }
 
     // Step 3: Compute
     {
-      auto _a = to_eigen_matrix(a);
-      auto _b = to_eigen_matrix(b);
-      auto _c = to_eigen_matrix(c);
+      auto _a   = to_eigen_matrix(a);
+      auto _b   = to_eigen_matrix(b);
+      auto _dst = to_eigen_matrix(dst);
       if(transpose_a)
       {
         if(transpose_b)
-          _c.noalias() = _a.transpose() * _b.transpose();
+          _dst.noalias() = _a.transpose() * _b.transpose();
         else
-          _c.noalias() = _a.transpose() * _b;
+          _dst.noalias() = _a.transpose() * _b;
       }
       else
       {
         if(transpose_b)
-          _c.noalias() = _a * _b.transpose();
+          _dst.noalias() = _a * _b.transpose();
         else
-          _c.noalias() = _a * _b;
+          _dst.noalias() = _a * _b;
       }
     }
   }

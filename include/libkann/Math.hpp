@@ -21,7 +21,7 @@ namespace kann::math
   static constexpr auto ADD  = [](float output, auto... inputs) { return output + (inputs + ...);  };
   static constexpr auto MUL  = [](float output, auto... inputs) { return output * (inputs * ...);  };
 
-  KANN_EXPORT void product(TensorRef a, bool tranpose_a, TensorRef b, bool transpose_b, MutableTensorRef c);
+  KANN_EXPORT void product(MutableTensorRef dst, TensorRef a, bool transpose_a, TensorRef b, bool transpose_b);
 
   /* X = x_1 * ... * x_m
    * Y = y_1 * ... * y_k
