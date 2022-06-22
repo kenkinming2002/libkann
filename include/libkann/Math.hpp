@@ -23,6 +23,9 @@ namespace kann::math
 
   KANN_EXPORT void product(MutableTensorRef dst, TensorRef a, bool transpose_a, TensorRef b, bool transpose_b);
 
+  enum class Image2DOperation { CROSS_CORRELATION, CONVOLUTION };
+  KANN_EXPORT void image2d_operation(MutableTensorRef outputs, TensorRef inputs, bool transpose_inputs, TensorRef kernels, bool transpose_kernels, Image2DOperation operation);
+
   /* X = x_1 * ... * x_m
    * Y = y_1 * ... * y_k
    * Z = z_1 * ... * z_n

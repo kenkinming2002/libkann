@@ -54,11 +54,14 @@ namespace kann
 
   Tensor ConvolutionalLayerDef::forward(Layer& layer, Tensor inputs) const
   {
+    const size_t batch_size = inputs.dimension(0);
+
     const Variable& kernels = layer.storage->parameters[0];
     layer.saved_tensors = { inputs };
 
-    const Vec2 padding_size = ((m_output_size - m_input_size) + (m_kernel_size - Vec2(1,1))) / 2;
-    return math::cross_correlate2d(inputs, kernels.value.as_const(), 1, 1, 1, false, false, padding_size);
+    MutableTensor outputs = MutableTensor::create(Shape::concat(Shape(batch_size), this->output_shape()));
+    math::image2d_operation(outputs.as_ref(), inputs.as_ref(), false, kernels.value.as_ref().as_const(), false, math::Image2DOperation::CROSS_CORRELATION);
+    return outputs.as_const();
   }
 
   Tensor ConvolutionalLayerDef::backward(Layer& layer, Tensor output_gradients) const
@@ -66,8 +69,12 @@ namespace kann
     Variable& kernels = layer.storage->parameters[0];
     const Tensor& inputs = layer.saved_tensors[0];
 
-    const Vec2 padding_size = ((m_output_size - m_input_size) + (m_kernel_size - Vec2(1,1))) / 2;
-    kernels.gradient = math::cross_correlate2d(inputs, output_gradients, 1, 1, 1, true, false, padding_size);
-    return math::convolve2d(output_gradients, kernels.value.as_const(), 1, 1, 1, false, true, (m_kernel_size - Vec2(1,1)) - padding_size);
+    MutableTensor input_gradients  = MutableTensor::create(inputs.shape());
+    MutableTensor kernel_gradients = MutableTensor::create(kernels.value.shape());
+    math::image2d_operation(input_gradients.as_ref(),  output_gradients.as_ref(), false, kernels.value.as_ref().as_const(), true,  math::Image2DOperation::CONVOLUTION);
+    math::image2d_operation(kernel_gradients.as_ref(), inputs.as_ref(),           true,  output_gradients.as_ref(),         false, math::Image2DOperation::CROSS_CORRELATION);
+
+    kernels.gradient = std::move(kernel_gradients).as_const();
+    return std::move(input_gradients).as_const();
   }
 }

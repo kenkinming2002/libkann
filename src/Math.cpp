@@ -107,76 +107,6 @@ namespace kann::math
     }
   }
 
-  // Get the shapes from ranks
-  static inline Tensor generic_tensor_product(TensorRef a, TensorRef b, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_a, bool transpose_b, auto shape_impl, auto impl)
-  {
-    // Step 1: Compute all the shapes
-    Shape M, N, K, P, Q, R;
-    {
-      auto decompose = [](Shape shape, size_t rank1, size_t rank2, bool transpose) {
-        Shape shape1, shape2;
-        if(transpose)
-          std::tie(shape2, shape1) = shape.front(rank1+rank2).split(rank2, rank1);
-        else
-          std::tie(shape1, shape2) = shape.front(rank1+rank2).split(rank1, rank2);
-
-        Shape shape3 = shape.drop_front(rank1+rank2);
-        return std::make_tuple(shape1, shape2, shape3);
-      };
-      Shape _K1, _K2;
-      std::tie(M, _K1, P) = decompose(a.shape(), rank_m, rank_k, transpose_a);
-      std::tie(_K2, N, Q) = decompose(b.shape(), rank_k, rank_n, transpose_b);
-
-      assert(_K1 == _K2);
-      K = _K1;
-
-      R = shape_impl(P, Q);
-    }
-
-    // Step 3: Create the result tensor and obtain a mutable reference to it
-    MutableTensor result = MutableTensor::create(Shape::concat(M, N, R));
-    result.fill(0.0);
-
-    MutableTensorRef c = result.as_ref();
-
-    // Step 3: Reshape to flatten the first two dimension
-    {
-      auto reshape = [](auto&& value, Shape shape1, Shape shape2, Shape shape3, bool transpose) {
-        if(transpose)
-          return std::forward<decltype(value)>(value).reshape(Shape::concat(Shape(shape2.size(), shape1.size()), shape3));
-        else
-          return std::forward<decltype(value)>(value).reshape(Shape::concat(Shape(shape1.size(), shape2.size()), shape3));
-      };
-      a = reshape(a, M, K, P, transpose_a);
-      b = reshape(b, K, N, Q, transpose_b);
-      c = reshape(c, M, N, R, false);
-    }
-
-    // Step 4: Call the supplied impl function
-    {
-      for(size_t i = 0; i<M.size(); ++i)
-        for(size_t j = 0; j<N.size(); ++j)
-          for(size_t k = 0; k<K.size(); ++k)
-          {
-            TensorRef a_elem = transpose_a ? a[k][i] : a[i][k];
-            TensorRef b_elem = transpose_b ? b[j][k] : b[k][j];
-            MutableTensorRef c_elem = c[i][j];
-            impl(a_elem, b_elem, c_elem);
-          }
-    }
-    return result.as_const();
-  }
-
-  static inline Shape get_output_shape(Shape input_shape, Shape kernel_shape, Vec2 padding_size)
-  {
-    assert(input_shape.rank() == 2);
-    assert(kernel_shape.rank() == 2);
-    Vec2 input_size  = Vec2(input_shape.dimension(0), input_shape.dimension(1));
-    Vec2 kernel_size = Vec2(kernel_shape.dimension(0), kernel_shape.dimension(1));
-    Vec2 output_size = (input_size + 2 * padding_size) - (kernel_size - Vec2(1,1));
-    return Shape(output_size.height(), output_size.width());
-  }
-
   static inline auto pad(Eigen::Ref<const EigenMatrix> matrix, Vec2 padding_size)
   {
     return EigenMatrix::NullaryExpr(matrix.rows() + 2 * padding_size.height(), matrix.cols() + 2 * padding_size.width(), [=](Eigen::Index row, Eigen::Index col)
@@ -189,46 +119,89 @@ namespace kann::math
     });
   }
 
-  static inline void cross_correlate2d_impl(TensorRef input, TensorRef kernel, MutableTensorRef output, Vec2 padding_size)
+  void image2d_operation(MutableTensorRef outputs, TensorRef inputs, bool transpose_inputs, TensorRef kernels, bool transpose_kernels, Image2DOperation operation)
   {
-    auto _input = to_eigen_matrix(input);
-    auto _kernel = to_eigen_matrix(kernel);
-    auto _output = to_eigen_matrix(output);
-    _output.noalias() += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
-      return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel).sum();
-    });
-  }
+    // Step 1: Compute all the shapes, this is the same as in product() except we have to subtract the last two dimension
+    Shape M, N, K, P, Q, R;
+    {
+      /* a.rank() = M.rank() + K.rank()
+       * b.rank() = K.rank() + N.rank()
+       * c.rank() = M.rank() + N.rank() */
+      size_t rank_M = (inputs.rank()  + outputs.rank() - kernels.rank()) / 2 - 1;
+      size_t rank_N = (kernels.rank() + outputs.rank() - inputs.rank() ) / 2 - 1;
+      size_t rank_K = (inputs.rank()  + kernels.rank() - outputs.rank()) / 2 - 1;
 
-  static inline void convolve2d_impl(TensorRef input, TensorRef kernel, MutableTensorRef output, Vec2 padding_size)
-  {
-    auto _input = to_eigen_matrix(input);
-    auto _kernel = to_eigen_matrix(kernel);
-    auto _output = to_eigen_matrix(output);
-    _output.noalias() += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
-      return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel.reverse()).sum();
-    });
-  }
+      auto decompose = [](Shape shape, size_t rank1, size_t rank2, bool transpose)
+      {
+        Shape shape1, shape2;
+        if(transpose)
+          std::tie(shape2, shape1) = shape.drop_back(2).split(rank2, rank1);
+        else
+          std::tie(shape1, shape2) = shape.drop_back(2).split(rank1, rank2);
+        return std::make_tuple(shape1, shape2, shape.back(2));
+      };
 
-  Tensor cross_correlate2d(Tensor inputs, Tensor kernels,
-      size_t rank_m, size_t rank_n, size_t rank_k,
-      bool transpose_input, bool transpose_kernel,
-      Vec2 padding_size)
-  {
-    using namespace std::placeholders;
-    return generic_tensor_product(inputs.as_ref(), kernels.as_ref(),
-        rank_m, rank_n, rank_k,
-        transpose_input, transpose_kernel,
-        std::bind(&get_output_shape, _1, _2, padding_size),
-        std::bind(&cross_correlate2d_impl, _1, _2, _3, padding_size));
-  }
+      Shape _M1, _M2;
+      Shape _N1, _N2;
+      Shape _K1, _K2;
 
-  Tensor convolve2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size)
-  {
-    using namespace std::placeholders;
-    return generic_tensor_product(inputs.as_ref(), kernels.as_ref(),
-        rank_m, rank_n, rank_k,
-        transpose_input, transpose_kernel,
-        std::bind(&get_output_shape, _1, _2, padding_size),
-        std::bind(&convolve2d_impl, _1, _2, _3, padding_size));
+      std::tie(_M1, _K1, P) = decompose(inputs.shape(),  rank_M, rank_K, transpose_inputs);
+      std::tie(_K2, _N1, Q) = decompose(kernels.shape(), rank_K, rank_N, transpose_kernels);
+      std::tie(_M2, _N2, R) = decompose(outputs.shape(), rank_M, rank_N, false);
+      assert(_M1 == _M2 && _N1 == _N2 && _K1 == _K2);
+      std::tie(M, N, K) = std::make_tuple(_M1, _N1, _K1);
+    }
+
+    // Step 2: Reshape
+    {
+      auto reshape = [](auto&& value, Shape shape1, Shape shape2, Shape shape3, bool transpose)
+      {
+        if(transpose)
+          return std::forward<decltype(value)>(value).reshape(Shape::concat(Shape(shape2.size(), shape1.size()), shape3));
+        else
+          return std::forward<decltype(value)>(value).reshape(Shape::concat(Shape(shape1.size(), shape2.size()), shape3));
+      };
+      inputs  = reshape(inputs,  M, K, P, transpose_inputs);
+      kernels = reshape(kernels, K, N, Q, transpose_kernels);
+      outputs = reshape(outputs, M, N, R, false);
+
+    }
+
+    // Step 3: Compute
+    {
+      outputs.fill(0.0);
+      for(size_t i = 0; i<M.size(); ++i)
+        for(size_t j = 0; j<N.size(); ++j)
+          for(size_t k = 0; k<K.size(); ++k)
+          {
+            TensorRef input  = transpose_inputs  ? inputs[k][i]  : inputs[i][k];
+            TensorRef kernel = transpose_kernels ? kernels[j][k] : kernels[k][j];
+            MutableTensorRef output = outputs[i][j];
+
+            const Vec2 input_size  = Vec2(input.dimension(0), input.dimension(1));
+            const Vec2 kernel_size = Vec2(kernel.dimension(0), kernel.dimension(1));
+            const Vec2 output_size = Vec2(output.dimension(0), output.dimension(1));
+            const Vec2 padding_size = ((output_size - input_size) + (kernel_size - Vec2(1,1))) / 2;
+
+            auto _input = to_eigen_matrix(input);
+            auto _kernel = to_eigen_matrix(kernel);
+            auto _output = to_eigen_matrix(output);
+            auto _padded_input = pad(_input, padding_size);
+
+            switch(operation)
+            {
+            case Image2DOperation::CONVOLUTION:
+              _output.noalias() += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
+                return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel.reverse()).sum();
+              });
+              break;
+            case Image2DOperation::CROSS_CORRELATION:
+              _output.noalias() += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
+                return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel).sum();
+              });
+              break;
+            }
+          }
+    }
   }
 }
