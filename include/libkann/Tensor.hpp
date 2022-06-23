@@ -2,6 +2,9 @@
 
 #include <libkann/Shape.hpp>
 
+#include <range/v3/all.hpp>
+
+#include <random>
 #include <memory>
 
 namespace kann
@@ -33,6 +36,19 @@ namespace kann
   public:
     constexpr T* data() const { return m_data.data(); }
     constexpr size_t size()   const { return m_data.size(); }
+
+  public:
+    constexpr void fill(T value)
+    {
+      ranges::fill(m_data, value);
+    }
+
+    template<typename PRNG>
+    constexpr void fill_normal(PRNG& prng, T mean, T stddev)
+    {
+      std::normal_distribution<T> dist(mean, stddev);
+      ranges::generate(m_data, [&]() { return dist(prng); });
+    }
 
   public:
     constexpr TensorRef<T> operator[](size_t i) const
