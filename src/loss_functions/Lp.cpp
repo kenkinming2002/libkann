@@ -22,33 +22,34 @@ namespace kann
     return value >= 0.0f ? 1.0f : -1.0f;
   }
 
-  Tensor LpLossFunction::forward(Tensor inputs)
+  Tensor<float> LpLossFunction::forward(Tensor<float> inputs)
   {
     assert(this->expected_outputs);
-    saved_tensors = { inputs };
 
-    MutableTensor outputs = MutableTensor::create(inputs.shape().front(1));
-    outputs.fill(0.0);
-    math::reduce<2>(outputs.as_ref(), {inputs.as_ref(), this->expected_outputs->as_ref()}, math::Direction::RIGHT, [this](float output, float input, float expected_output)
+    Tensor<float> outputs = Tensor<float>::create(inputs.as_ref().shape().front(1));
+    outputs.as_ref().fill(0.0);
+    math::reduce<2>(outputs.as_ref(), {inputs.as_const_ref(), this->expected_outputs->as_const_ref()}, math::Direction::RIGHT, [this](float output, float input, float expected_output)
     {
       const float diff = input - expected_output;
       return output + pow_abs(diff, m_p);
     });
-    return outputs.as_const();
+
+    saved_tensors = { std::move(inputs) };
+    return outputs;
   }
 
-  Tensor LpLossFunction::backward(Tensor output_gradients)
+  Tensor<float> LpLossFunction::backward(Tensor<float> output_gradients)
   {
     assert(this->expected_outputs);
-    const Tensor& inputs = saved_tensors[0];
+    Tensor<float> inputs = std::move(saved_tensors[0]);
 
-    MutableTensor input_gradients = MutableTensor::create(inputs.shape());
-    math::transform<2>(input_gradients.as_ref(), {inputs.as_ref(), this->expected_outputs->as_ref()},[this](float /*input_gradient*/, float input, const float expected_output)
+    Tensor<float> input_gradients = Tensor<float>::create(inputs.as_ref().shape());
+    math::transform<2>(input_gradients.as_ref(), {inputs.as_const_ref(), this->expected_outputs->as_const_ref()},[this](float /*input_gradient*/, float input, const float expected_output)
     {
       const float diff = input - expected_output;
       return (m_p-1) * pow_abs(diff, m_p-1) * sgn(diff);
     });
-    math::broadcast<1>(input_gradients.as_ref(), {output_gradients.as_ref()}, math::Direction::RIGHT, math::MUL);
-    return input_gradients.as_const();
+    math::broadcast<1>(input_gradients.as_ref(), {output_gradients.as_const_ref()}, math::Direction::RIGHT, math::MUL);
+    return input_gradients;
   }
 }
