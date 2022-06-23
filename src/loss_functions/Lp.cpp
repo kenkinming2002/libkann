@@ -34,7 +34,8 @@ namespace kann
       return output + pow_abs(diff, m_p);
     });
 
-    saved_tensors = { std::move(inputs) };
+    saved_tensors.clear();
+    saved_tensors.push_back(std::move(inputs));
     return outputs;
   }
 

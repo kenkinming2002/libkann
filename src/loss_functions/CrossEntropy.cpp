@@ -17,7 +17,8 @@ namespace kann
       return output - std::log(input) * expected_output;
     });
 
-    saved_tensors = { std::move(inputs) };
+    saved_tensors.clear();
+    saved_tensors.push_back(std::move(inputs));
     return outputs;
   }
 
