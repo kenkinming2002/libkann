@@ -21,7 +21,7 @@ namespace kann
     }
 
   public:
-    constexpr size_t dimensions(size_t i) const { return m_shape.dimension(i); }
+    constexpr size_t dimension(size_t i) const { return m_shape.dimension(i); }
     constexpr size_t rank() const { return m_shape.rank(); }
     constexpr const Shape& shape() const { return m_shape; }
 
