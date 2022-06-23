@@ -94,6 +94,13 @@ namespace kann
     }
 
   public:
+    Tensor clone() const
+    {
+      Tensor result = create(m_shape);
+      ranges::copy_n(m_data.get(), m_shape.size(), result.m_data.get());
+    }
+
+  public:
     auto as_ref()             -> TensorRef<T>       { return TensorRef<T>(m_shape,       std::span(m_data.get(), m_shape.size())); }
     auto as_ref()       const -> TensorRef<const T> { return TensorRef<const T>(m_shape, std::span(m_data.get(), m_shape.size())); }
     auto as_const_ref() const -> TensorRef<const T> { return TensorRef<const T>(m_shape, std::span(m_data.get(), m_shape.size())); }
