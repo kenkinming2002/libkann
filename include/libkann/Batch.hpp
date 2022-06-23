@@ -7,6 +7,6 @@
 
 namespace kann
 {
-  KANN_EXPORT std::vector<Tensor> batch(const std::vector<Tensor>& values, size_t batch_size);
-  KANN_EXPORT std::vector<Tensor> unbatch(const std::vector<Tensor>& values, size_t batch_size);
+  KANN_EXPORT std::vector<Tensor<float>> batch(const std::vector<Tensor<float>>& values, size_t batch_size);
+  KANN_EXPORT std::vector<Tensor<float>> unbatch(const std::vector<Tensor<float>>& values, size_t batch_size);
 }
