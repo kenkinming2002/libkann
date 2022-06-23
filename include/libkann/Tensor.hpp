@@ -98,6 +98,7 @@ namespace kann
     {
       Tensor result = create(m_shape);
       ranges::copy_n(m_data.get(), m_shape.size(), result.m_data.get());
+      return result;
     }
 
   public:
