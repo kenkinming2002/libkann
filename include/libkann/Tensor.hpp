@@ -28,6 +28,9 @@ namespace kann
     bool is_matrix() const { return m_shape.is_matrix(); }
 
   public:
+    T& as_scalar() const { assert(is_scalar()); return *data(); }
+
+  public:
     constexpr T* data() const { return m_data.data(); }
     constexpr size_t size()   const { return m_data.size(); }
 
