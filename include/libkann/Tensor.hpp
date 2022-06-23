@@ -28,7 +28,7 @@ namespace kann
     bool is_matrix() const { return m_shape.is_matrix(); }
 
   public:
-    constexpr const T* data() const { return m_data.data(); }
+    constexpr T* data() const { return m_data.data(); }
     constexpr size_t size()   const { return m_data.size(); }
 
   public:
