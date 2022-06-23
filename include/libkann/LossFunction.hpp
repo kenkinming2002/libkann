@@ -10,6 +10,6 @@ namespace kann
   struct KANN_EXPORT LossFunction : public Function
   {
   public:
-    std::optional<Tensor> expected_outputs;
+    std::optional<Tensor<float>> expected_outputs;
   };
 }
