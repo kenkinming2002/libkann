@@ -94,8 +94,9 @@ namespace kann
     }
 
   public:
-    auto as_ref()       -> TensorRef<T>       { return TensorRef<T>(m_shape, m_data.get()); }
-    auto as_ref() const -> TensorRef<const T> { return TensorRef<const T>(m_shape, m_data.get()); }
+    auto as_ref()             -> TensorRef<T>       { return TensorRef<T>(m_shape, m_data.get()); }
+    auto as_ref()       const -> TensorRef<const T> { return TensorRef<const T>(m_shape, m_data.get()); }
+    auto as_const_ref() const -> TensorRef<const T> { return TensorRef<const T>(m_shape, m_data.get()); }
 
   private:
     Shape m_shape;
