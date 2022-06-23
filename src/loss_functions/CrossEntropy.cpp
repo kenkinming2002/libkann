@@ -18,6 +18,7 @@ namespace kann
     });
 
     saved_tensors.clear();
+    saved_tensors.reserve(1);
     saved_tensors.push_back(std::move(inputs));
     return outputs;
   }

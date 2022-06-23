@@ -83,7 +83,10 @@ namespace kann
       }
     });
 
-    layer.saved_tensors = { std::move(inputs) };
+    layer.saved_tensors.clear();
+    layer.saved_tensors.reserve(1);
+    layer.saved_tensors.push_back(std::move(inputs));
+
     return outputs;
   }
 

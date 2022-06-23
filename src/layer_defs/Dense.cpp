@@ -30,10 +30,11 @@ namespace kann
     Tensor<float> bias   = Tensor<float>::create(m_output_shape);
     weight.as_ref().fill_normal(prng, 0.0, 1.0 / std::sqrt(m_input_shape.size()));
     bias.as_ref().fill_normal(prng, 0.0, 1.0 / std::sqrt(m_input_shape.size()));
-    layer_storage->parameters = {
-      Variable{.value = std::move(weight)},
-      Variable{.value = std::move(bias)}
-    };
+
+    layer_storage->parameters.reserve(2);
+    layer_storage->parameters.push_back(Variable{.value = std::move(weight)});
+    layer_storage->parameters.push_back(Variable{.value = std::move(bias)});
+
     return layer_storage;
   }
 
@@ -57,7 +58,10 @@ namespace kann
     math::product(outputs.as_ref(), inputs.as_const_ref(), false, weight.value.as_const_ref(), false);
     math::broadcast<1>(outputs.as_ref(), {bias.value.as_const_ref()}, math::Direction::LEFT, math::ADD);
 
-    layer.saved_tensors = { std::move(inputs) };
+    layer.saved_tensors.clear();
+    layer.saved_tensors.reserve(1);
+    layer.saved_tensors.push_back(std::move(inputs));
+
     return outputs;
   }
 

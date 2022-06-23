@@ -27,6 +27,7 @@ namespace kann
       // Hack to work around the fact that initializer list return by const and
       // thus does not work for move only types
       variable.optimizer_states.clear();
+      variable.optimizer_states.reserve(2);
       variable.optimizer_states.push_back(std::move(m));
       variable.optimizer_states.push_back(std::move(v));
     }
