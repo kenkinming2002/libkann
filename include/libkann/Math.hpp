@@ -24,24 +24,10 @@ namespace kann::math
   static constexpr auto SUB  = [](float output, float input) { return output - input;  };
   static constexpr auto DIV  = [](float output, float input) { return output / input;  };
 
-  KANN_EXPORT void product(MutableTensorRef dst, TensorRef a, bool transpose_a, TensorRef b, bool transpose_b);
+  KANN_EXPORT void product(TensorRef<float> dst, TensorRef<const float> a, bool transpose_a, TensorRef<const float> b, bool transpose_b);
 
   enum class Image2DOperation { CROSS_CORRELATION, CONVOLUTION };
-  KANN_EXPORT void image2d_operation(MutableTensorRef outputs, TensorRef inputs, bool transpose_inputs, TensorRef kernels, bool transpose_kernels, Image2DOperation operation);
-
-  /* X = x_1 * ... * x_m
-   * Y = y_1 * ... * y_k
-   * Z = z_1 * ... * z_n
-   *
-   * op(input):  X * Y * i_1 * i_2
-   * op(kernel): Y * Z * k_1 * k_2
-   * output:     X * Z * j_1 * j_2
-   *
-   * Effect: the same as product with X, Y, Z regarded as tensor of tensor of
-   *         rank i_1 * i_2, k_1 * k_2 and j_1 * j_2 respectively, and
-   *         multiplication replaced with 2d convolution/cross correlation. */
-  KANN_EXPORT Tensor cross_correlate2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
-  KANN_EXPORT Tensor convolve2d(Tensor inputs, Tensor kernels, size_t rank_m, size_t rank_n, size_t rank_k, bool transpose_input, bool transpose_kernel, Vec2 padding_size);
+  KANN_EXPORT void image2d_operation(TensorRef<float> outputs, TensorRef<const float> inputs, bool transpose_inputs, TensorRef<const float> kernels, bool transpose_kernels, Image2DOperation operation);
 
   /******************
    * Implementation *
