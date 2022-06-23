@@ -8,15 +8,15 @@
 
 namespace kann
 {
-  std::vector<Tensor> create_random_data(Shape shape, size_t count)
+  std::vector<Tensor<float>> create_random_data(Shape shape, size_t count)
   {
     return ranges::views::generate_n([&]() {
-      MutableTensor result = MutableTensor::create(shape);
-      ranges::generate_n(result.data(), result.size(), []() {
+      Tensor<float> result = Tensor<float>::create(shape);
+      ranges::generate_n(result.as_ref().data(), result.as_ref().size(), []() {
         float tmp = (float)rand() / RAND_MAX;
         return 2.0 * tmp - 1.0;
       });
-      return std::move(result).as_const();
+      return result;
     }, count) | ranges::to_vector;
   }
 }

@@ -25,10 +25,16 @@ namespace kann
   std::shared_ptr<LayerStorage> DenseLayerDef::create(std::default_random_engine& prng) const
   {
     auto layer_storage = std::make_shared<LayerStorage>();
-    layer_storage->parameters = {
-      Variable{.value = MutableTensor::normal(Shape::concat(m_input_shape, m_output_shape), prng, 0.0, 1.0 / std::sqrt(m_input_shape.size()))},
-      Variable{.value = MutableTensor::normal(m_output_shape,                               prng, 0.0, 1.0 / std::sqrt(m_input_shape.size()))}
-    };
+
+    Tensor<float> weight = Tensor<float>::create(Shape::concat(m_input_shape, m_output_shape));
+    Tensor<float> bias   = Tensor<float>::create(m_output_shape);
+    weight.as_ref().fill_normal(prng, 0.0, 1.0 / std::sqrt(m_input_shape.size()));
+    bias.as_ref().fill_normal(prng, 0.0, 1.0 / std::sqrt(m_input_shape.size()));
+
+    layer_storage->parameters.reserve(2);
+    layer_storage->parameters.push_back(Variable{.value = std::move(weight)});
+    layer_storage->parameters.push_back(Variable{.value = std::move(bias)});
+
     return layer_storage;
   }
 
@@ -42,38 +48,42 @@ namespace kann
     return m_output_shape;
   }
 
-  Tensor DenseLayerDef::forward(Layer& layer, Tensor inputs) const
+  Tensor<float> DenseLayerDef::forward(Layer& layer, Tensor<float> inputs) const
   {
     const Variable& weight = layer.storage->parameters[0];
     const Variable& bias   = layer.storage->parameters[1];
-    layer.saved_tensors = { inputs };
 
-    const size_t batch_size = inputs.shape().dimension(0);
-    MutableTensor outputs = MutableTensor::create(Shape::concat(Shape(batch_size), m_output_shape));
-    math::product(outputs.as_ref(), inputs.as_ref(), false, weight.value.as_const().as_ref(), false);
-    math::broadcast<1>(outputs.as_ref(), {bias.value.as_const().as_ref()}, math::Direction::LEFT, math::ADD);
-    return outputs.as_const();
+    const size_t batch_size = inputs.as_ref().shape().dimension(0);
+    Tensor<float> outputs = Tensor<float>::create(Shape::concat(Shape(batch_size), m_output_shape));
+    math::product(outputs.as_ref(), inputs.as_const_ref(), false, weight.value.as_const_ref(), false);
+    math::broadcast<1>(outputs.as_ref(), {bias.value.as_const_ref()}, math::Direction::LEFT, math::ADD);
+
+    layer.saved_tensors.clear();
+    layer.saved_tensors.reserve(1);
+    layer.saved_tensors.push_back(std::move(inputs));
+
+    return outputs;
   }
 
-  Tensor DenseLayerDef::backward(Layer& layer, Tensor output_gradients) const
+  Tensor<float> DenseLayerDef::backward(Layer& layer, Tensor<float> output_gradients) const
   {
     Variable& weight = layer.storage->parameters[0];
     Variable& bias   = layer.storage->parameters[1];
-    const Tensor& inputs = layer.saved_tensors[0];
+    const Tensor<float>& inputs = layer.saved_tensors[0];
 
-    const size_t batch_size = output_gradients.shape().dimension(0);
-    MutableTensor weight_gradient = MutableTensor::create(Shape::concat(m_input_shape, m_output_shape));
-    MutableTensor bias_gradient   = MutableTensor::create(m_output_shape);
-    MutableTensor inputs_gradient = MutableTensor::create(Shape::concat(Shape(batch_size), m_input_shape));
+    const size_t batch_size = output_gradients.as_ref().shape().dimension(0);
+    Tensor<float> weight_gradient = Tensor<float>::create(Shape::concat(m_input_shape, m_output_shape));
+    Tensor<float> bias_gradient   = Tensor<float>::create(m_output_shape);
+    Tensor<float> inputs_gradient = Tensor<float>::create(Shape::concat(Shape(batch_size), m_input_shape));
 
-    math::product(weight_gradient.as_ref(), inputs.as_ref(),           true,  output_gradients.as_ref(),        false);
-    math::product(inputs_gradient.as_ref(), output_gradients.as_ref(), false, weight.value.as_const().as_ref(), true);
+    math::product(weight_gradient.as_ref(), inputs.as_const_ref(),           true,  output_gradients.as_const_ref(), false);
+    math::product(inputs_gradient.as_ref(), output_gradients.as_const_ref(), false, weight.value.as_const_ref(),     true);
 
-    bias_gradient.fill(0.0);
-    math::reduce<1>(bias_gradient.as_ref(), {output_gradients.as_ref()}, math::Direction::LEFT, math::ADD);
+    bias_gradient.as_ref().fill(0.0);
+    math::reduce<1>(bias_gradient.as_ref(), {output_gradients.as_const_ref()}, math::Direction::LEFT, math::ADD);
 
-    weight.gradient = std::move(weight_gradient).as_const();
-    bias.gradient   = std::move(bias_gradient).as_const();
-    return std::move(inputs_gradient).as_const();
+    weight.gradient = std::move(weight_gradient);
+    bias.gradient   = std::move(bias_gradient);
+    return inputs_gradient;
   }
 }

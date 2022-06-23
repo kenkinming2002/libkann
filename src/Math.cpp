@@ -10,21 +10,21 @@ namespace kann::math
   using EigenVector = Eigen::RowVectorXf;
   using EigenMatrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
-  template<typename Storage>
-  static inline auto to_eigen_array(const TensorBase<Storage>& tensor)
+  template<typename T>
+  static inline auto to_eigen_array(const TensorRef<T>& tensor)
   {
     return EigenArray::Map(tensor.data(), tensor.size());
   }
 
-  template<typename Storage>
-  static inline auto to_eigen_vector(const TensorBase<Storage>& tensor)
+  template<typename T>
+  static inline auto to_eigen_vector(const TensorRef<T>& tensor)
   {
     assert(tensor.is_vector());
     return EigenVector::Map(tensor.data(), tensor.shape().size());
   }
 
-  template<typename Storage>
-  static inline auto to_eigen_matrix(const TensorBase<Storage>& tensor)
+  template<typename T>
+  static inline auto to_eigen_matrix(const TensorRef<T>& tensor)
   {
     assert(tensor.is_matrix());
     return EigenMatrix::Map(tensor.data(),
@@ -33,15 +33,18 @@ namespace kann::math
     );
   }
 
-  float norm(TensorRef value)
+  float norm(TensorRef<const float> value)
   {
+    value = value.flatten();
+
     float sum = 0.0;
     for(size_t i=0; i<value.size(); ++i)
-      sum += value.get(i) * value.get(i);
+      sum += value[i].as_scalar() * value[i].as_scalar();
+
     return std::sqrt(sum);
   }
 
-  void product(MutableTensorRef dst, TensorRef a, bool transpose_a, TensorRef b, bool transpose_b)
+  void product(TensorRef<float> dst, TensorRef<const float> a, bool transpose_a, TensorRef<const float> b, bool transpose_b)
   {
     // Step 1: Compute all the shapes
     Shape M, N, K;
@@ -119,7 +122,7 @@ namespace kann::math
     });
   }
 
-  void image2d_operation(MutableTensorRef outputs, TensorRef inputs, bool transpose_inputs, TensorRef kernels, bool transpose_kernels, Image2DOperation operation)
+  void image2d_operation(TensorRef<float> outputs, TensorRef<const float> inputs, bool transpose_inputs, TensorRef<const float> kernels, bool transpose_kernels, Image2DOperation operation)
   {
     // Step 1: Compute all the shapes, this is the same as in product() except we have to subtract the last two dimension
     Shape M, N, K, P, Q, R;
@@ -174,9 +177,9 @@ namespace kann::math
         for(size_t j = 0; j<N.size(); ++j)
           for(size_t k = 0; k<K.size(); ++k)
           {
-            TensorRef input  = transpose_inputs  ? inputs[k][i]  : inputs[i][k];
-            TensorRef kernel = transpose_kernels ? kernels[j][k] : kernels[k][j];
-            MutableTensorRef output = outputs[i][j];
+            TensorRef<const float> input  = transpose_inputs  ? inputs[k][i]  : inputs[i][k];
+            TensorRef<const float> kernel = transpose_kernels ? kernels[j][k] : kernels[k][j];
+            TensorRef output = outputs[i][j];
 
             const Vec2 input_size  = Vec2(input.dimension(0), input.dimension(1));
             const Vec2 kernel_size = Vec2(kernel.dimension(0), kernel.dimension(1));

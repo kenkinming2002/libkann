@@ -2,92 +2,28 @@
 
 #include <libkann/Shape.hpp>
 
+#include <range/v3/all.hpp>
+
+#include <random>
 #include <memory>
 
 namespace kann
 {
-  /* A storage could be
-   *
-   * 1: MutableRefStorage
-   * 2: RefStorage
-   * 1: SharedStorage
-   * 4: ExclusiveStorage
-   *
-   * where the convesion diagram is
-   *    Storage     ->    RefStorage
-   *        ^                  ^
-   *        |                  |
-   * MutableStorage -> MutableRefStorage
-   *
-   * To facilitate conversion, there are possibly 2 method on each storage:
-   * 1: as_const()
-   * 2: as_ref()
-   *
-   * A storage of given size could also be
-   * created for MutableStorage via member method create(size_t). While it may
-   * be tempting to create the same method for Storage, creating storage and
-   * then not being able to modify it is rather pointness, which is why it is
-   * not provided. */
-
-  template<typename StorageType>
-  struct TensorBase
+  // Reference to a tensor
+  template<typename T>
+  struct TensorRef
   {
   public:
-    TensorBase(StorageType storage, size_t offset, Shape shape)
-      : m_storage(std::move(storage)), m_offset(std::move(offset)), m_shape(std::move(shape)) {}
-
-  public:
-    static TensorBase create(Shape shape)
+    constexpr TensorRef(Shape shape, std::span<T> data)
+      : m_shape(std::move(shape)), m_data(data)
     {
-      size_t size = shape.size();
-      return TensorBase(StorageType::create(size), 0, std::move(shape));
-    }
-
-    static TensorBase view(float* values, Shape shape)
-    {
-      return TensorBase(StorageType::view(values, shape.size()), 0, shape);
-    }
-
-    static TensorBase view(const float* values, Shape shape)
-    {
-      return TensorBase(StorageType::view(values, shape.size()), 0, shape);
+      assert(m_shape.size() == m_data.size());
     }
 
   public:
-    // Explicit namespace qualification to subvert injected class name to use
-    // class template argument deduction
-    auto as_const() const { return kann::TensorBase(m_storage.as_const(), m_offset, m_shape); }
-    auto as_ref() const { return kann::TensorBase(m_storage.as_ref(), m_offset, m_shape); }
-
-  // Indexing and reshaping operation
-  public:
-    TensorBase operator[](size_t i) const
-    {
-      Shape new_shape = m_shape.split(1, m_shape.rank() - 1).second;
-      size_t stride = new_shape.size();
-      return TensorBase(m_storage, m_offset + i * stride, std::move(new_shape));
-    }
-
-    TensorBase reshape(Shape new_shape) const
-    {
-      assert(m_shape.size() == new_shape.size());
-      return TensorBase(m_storage, m_offset, new_shape);
-    }
-
-    TensorBase flatten() const
-    {
-      return reshape(Shape(size()));
-    }
-
-  public:
-    auto data() const { return m_storage.data() + m_offset; }
-
-    auto dimension(size_t i) const { return m_shape.dimension(i); }
-    auto rank() const { return m_shape.rank(); }
-    auto size() const { return m_shape.size(); }
-
-  public:
-    auto& get(size_t i) const { assert(i<size()); return data()[i]; }
+    constexpr size_t dimension(size_t i) const { return m_shape.dimension(i); }
+    constexpr size_t rank() const { return m_shape.rank(); }
+    constexpr const Shape& shape() const { return m_shape; }
 
   public:
     bool is_scalar() const { return m_shape.is_scalar(); }
@@ -95,132 +31,83 @@ namespace kann
     bool is_matrix() const { return m_shape.is_matrix(); }
 
   public:
-    const Shape& shape() const { return m_shape; }
+    T& as_scalar() const { assert(is_scalar()); return *data(); }
 
   public:
-    void fill(float value)
+    constexpr T* data() const { return m_data.data(); }
+    constexpr size_t size()   const { return m_data.size(); }
+
+  public:
+    constexpr void fill(T value)
     {
-      ranges::fill_n(data(), size(), value);
+      ranges::fill(m_data, value);
     }
 
     template<typename PRNG>
-    void fill_normal(PRNG& prng, float mean, float stddev)
+    constexpr void fill_normal(PRNG& prng, T mean, T stddev)
     {
-      std::normal_distribution<float> dist(mean, stddev);
-      ranges::generate_n(data(), size(), [&]() { return dist(prng); });
+      std::normal_distribution<T> dist(mean, stddev);
+      ranges::generate(m_data, [&]() { return dist(prng); });
     }
 
   public:
-    static TensorBase constant(Shape shape, float value)
+    constexpr TensorRef<T> operator[](size_t i) const
     {
-      TensorBase result = TensorBase::create(std::move(shape));
-      result.fill(value);
-      return result;
+      const auto& [left, right] = m_shape.split(1, m_shape.rank() - 1);
+
+      const size_t dimension = left.size();
+      const size_t stride = right.size();
+
+      assert(i < dimension);
+      return TensorRef(right, m_data.subspan(i * stride, stride));
     }
 
-    template<typename PRNG>
-    static TensorBase normal(Shape shape, PRNG& prng, float mean, float stddev)
+    constexpr TensorRef<T> reshape(Shape new_shape) const
     {
-      TensorBase result = TensorBase::create(std::move(shape));
-      result.fill_normal(prng, mean, stddev);
-      return result;
+      assert(m_shape.size() == new_shape.size());
+      return TensorRef(std::move(new_shape), m_data);
+    }
+
+    constexpr TensorRef<T> flatten() const
+    {
+      return reshape(Shape(size()));
     }
 
   private:
-    StorageType m_storage;
-
-  private:
-    size_t m_offset;
     Shape m_shape;
+    std::span<T> m_data;
   };
 
-  struct RefStorage
+  // Real tensor
+  template<typename T>
+  struct Tensor
   {
   public:
-    RefStorage(const float* data, size_t size) : m_data(data), m_size(size) {}
+    constexpr Tensor(Shape shape, std::unique_ptr<T[]> data)
+      : m_shape(std::move(shape)), m_data(std::move(data)) {}
 
   public:
-    const float* data() const { return m_data; }
-    size_t size() const { return m_size; }
-
-  public:
-    RefStorage as_const() const { return *this; }
-    RefStorage as_ref() const { return *this; }
-
-  public:
-    static RefStorage view(const float* data, size_t size) { return RefStorage(data, size); }
-
-  private:
-    const float* m_data;
-    size_t m_size;
-  };
-
-  struct MutableRefStorage
-  {
-  public:
-    MutableRefStorage(float* data, size_t size) : m_data(data), m_size(size) {}
-
-  public:
-    float* data() const { return m_data; }
-    size_t size() const { return m_size; }
-
-  public:
-    RefStorage as_const() const { return RefStorage(m_data, m_size); }
-    MutableRefStorage as_ref() const { return *this; }
-
-  public:
-    static MutableRefStorage view(float* data, size_t size) { return MutableRefStorage(data, size); }
-
-  private:
-    float* m_data;
-    size_t m_size;
-  };
-
-  struct Storage
-  {
-  public:
-    Storage(std::shared_ptr<const float[]> data, size_t size) : m_data(std::move(data)), m_size(size) {}
-
-  public:
-    const float* data() const { return m_data.get(); }
-    size_t size() const { return m_size; }
-
-  public:
-    Storage as_const() const { return *this; }
-    RefStorage as_ref() const { return RefStorage(data(), size()); }
-
-  private:
-    std::shared_ptr<const float[]> m_data;
-    size_t m_size;
-  };
-
-  struct MutableStorage
-  {
-  public:
-    MutableStorage(std::shared_ptr<float[]> data, size_t size) : m_data(std::move(data)), m_size(size) {}
-
-  public:
-    float* data() const { return m_data.get(); }
-    size_t size() const { return m_size; }
-
-  public:
-    Storage as_const() const { return Storage(m_data, m_size); }
-    MutableRefStorage as_ref() const { return MutableRefStorage(data(), size()); }
-
-  public:
-    static MutableStorage create(size_t size)
+    static Tensor<T> create(Shape shape)
     {
-      // make_shared_for_overwrite is available only for gcc 12
-      return MutableStorage(std::make_unique_for_overwrite<float[]>(size), size);
+      std::unique_ptr<T[]> data = std::make_unique_for_overwrite<T[]>(shape.size());
+      return Tensor(std::move(shape), std::move(data));
     }
 
-  private:
-    std::shared_ptr<float[]> m_data;
-    size_t m_size;
-  };
+  public:
+    Tensor clone() const
+    {
+      Tensor result = create(m_shape);
+      ranges::copy_n(m_data.get(), m_shape.size(), result.m_data.get());
+      return result;
+    }
 
-  using MutableTensorRef = TensorBase<MutableRefStorage>;
-  using TensorRef        = TensorBase<RefStorage>;
-  using MutableTensor    = TensorBase<MutableStorage>;
-  using Tensor           = TensorBase<Storage>;
+  public:
+    auto as_ref()             -> TensorRef<T>       { return TensorRef<T>(m_shape,       std::span(m_data.get(), m_shape.size())); }
+    auto as_ref()       const -> TensorRef<const T> { return TensorRef<const T>(m_shape, std::span(m_data.get(), m_shape.size())); }
+    auto as_const_ref() const -> TensorRef<const T> { return TensorRef<const T>(m_shape, std::span(m_data.get(), m_shape.size())); }
+
+  private:
+    Shape m_shape;
+    std::unique_ptr<T[]> m_data;
+  };
 }

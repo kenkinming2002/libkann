@@ -37,50 +37,53 @@ namespace kann
     return m_shape;
   }
 
-  Tensor SoftMaxLayerDef::forward(Layer& layer, Tensor inputs) const
+  Tensor<float> SoftMaxLayerDef::forward(Layer& layer, Tensor<float> inputs) const
   {
-    const size_t batch_size = inputs.dimension(0);
+    const size_t batch_size = inputs.as_ref().dimension(0);
     const Shape shape       = Shape::concat(Shape(batch_size), m_shape);
 
     // Exponential map
-    MutableTensor outputs = MutableTensor::create(shape);
-    math::transform<1>(outputs.as_ref(), {inputs.as_ref()}, [](double /*output*/, double input) { return std::exp(input); });
+    Tensor<float> outputs = Tensor<float>::create(shape);
+    math::transform<1>(outputs.as_ref(), {inputs.as_const_ref()}, [](double /*output*/, double input) { return std::exp(input); });
 
     // Batch normalization
-    MutableTensor factors = MutableTensor::create(Shape(batch_size));
-    factors.fill(0.0);
-    math::reduce<1>(factors.as_ref(),    {outputs.as_ref().as_const()}, math::Direction::RIGHT, math::ADD);
-    math::broadcast<1>(outputs.as_ref(), {factors.as_ref().as_const()}, math::Direction::RIGHT, math::DIV);
+    Tensor<float> factors = Tensor<float>::create(Shape(batch_size));
+    factors.as_ref().fill(0.0);
+    math::reduce<1>(factors.as_ref(),    {outputs.as_const_ref()}, math::Direction::RIGHT, math::ADD);
+    math::broadcast<1>(outputs.as_ref(), {factors.as_const_ref()}, math::Direction::RIGHT, math::DIV);
 
     // It is actually better to save outouts
-    layer.saved_tensors = { outputs.as_const() };
-    return outputs.as_const();
+    layer.saved_tensors.clear();
+    layer.saved_tensors.reserve(1);
+    layer.saved_tensors.push_back(outputs.clone());
+
+    return outputs;
   }
 
-  Tensor SoftMaxLayerDef::backward(Layer& layer, Tensor output_gradients) const
+  Tensor<float> SoftMaxLayerDef::backward(Layer& layer, Tensor<float> output_gradients) const
   {
-    const size_t batch_size = output_gradients.dimension(0);
-    const size_t size       = output_gradients.shape().drop_front(1).size();
+    const size_t batch_size = output_gradients.as_ref().dimension(0);
+    const size_t size       = output_gradients.as_ref().shape().drop_front(1).size();
     const Shape shape       = Shape::concat(Shape(batch_size), m_shape);
 
-    Tensor outputs                = std::move(layer.saved_tensors[0]);
-    MutableTensor input_gradients = MutableTensor::create(shape);
-    input_gradients.fill(0.0f);
+    Tensor<float> outputs        = std::move(layer.saved_tensors[0]);
+    Tensor<float> input_gradients = Tensor<float>::create(shape);
+    input_gradients.as_ref().fill(0.0f);
 
     for(size_t k=0; k<batch_size; ++k)
     {
-      TensorRef        output          = outputs.as_ref()[k].flatten();
-      TensorRef        output_gradient = output_gradients.as_ref()[k].flatten();
-      MutableTensorRef input_gradient  = input_gradients.as_ref()[k].flatten();
+      TensorRef<const float> output          = outputs.as_const_ref()[k].flatten();
+      TensorRef<const float> output_gradient = output_gradients.as_const_ref()[k].flatten();
+      TensorRef<float>       input_gradient  = input_gradients.as_ref()[k].flatten();
       for(size_t i=0; i<size; ++i)
         for(size_t j=0; j<size; ++j)
           if(i == j)
-            input_gradient.get(i) += output_gradient.get(j) * output.get(j) * (1 - output.get(i));
+            input_gradient[i].as_scalar() += output_gradient[j].as_scalar() * output[j].as_scalar() * (1 - output[i].as_scalar());
           else
-            input_gradient.get(i) -= output_gradient.get(j) * output.get(j) * output.get(i);
+            input_gradient[i].as_scalar() -= output_gradient[j].as_scalar() * output[j].as_scalar() * output[i].as_scalar();
     }
 
-    return input_gradients.as_const();
+    return input_gradients;
   }
 }
 

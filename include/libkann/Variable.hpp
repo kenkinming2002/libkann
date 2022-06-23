@@ -8,8 +8,8 @@ namespace kann
 {
   struct Variable
   {
-    MutableTensor value;
-    std::optional<Tensor> gradient;
-    std::vector<MutableTensor> optimizer_states;
+    Tensor<float> value;
+    std::optional<Tensor<float>> gradient;
+    std::vector<Tensor<float>> optimizer_states;
   };
 }

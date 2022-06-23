@@ -36,9 +36,13 @@ namespace kann
   std::shared_ptr<LayerStorage> ConvolutionalLayerDef::create(std::default_random_engine& prng) const
   {
     auto layer_storage = std::make_shared<LayerStorage>();
-    layer_storage->parameters = {
-      Variable{.value = MutableTensor::normal(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()}, prng, 0.0, 1.0 / (m_kernel_size.width() * m_kernel_size.height()))}
-    };
+
+    Tensor<float> kernels = Tensor<float>::create(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()});
+    kernels.as_ref().fill_normal(prng, 0.0, 1.0 / (m_kernel_size.width() * m_kernel_size.height()));
+
+    layer_storage->parameters.reserve(1);
+    layer_storage->parameters.push_back(Variable{.value = std::move(kernels)});
+
     return layer_storage;
   }
 
@@ -52,29 +56,31 @@ namespace kann
     return Shape{m_output_channel_count, m_output_size.height(), m_output_size.width()};
   }
 
-  Tensor ConvolutionalLayerDef::forward(Layer& layer, Tensor inputs) const
+  Tensor<float> ConvolutionalLayerDef::forward(Layer& layer, Tensor<float> inputs) const
   {
-    const size_t batch_size = inputs.dimension(0);
-
+    const size_t batch_size = inputs.as_ref().dimension(0);
     const Variable& kernels = layer.storage->parameters[0];
-    layer.saved_tensors = { inputs };
 
-    MutableTensor outputs = MutableTensor::create(Shape::concat(Shape(batch_size), this->output_shape()));
-    math::image2d_operation(outputs.as_ref(), inputs.as_ref(), false, kernels.value.as_ref().as_const(), false, math::Image2DOperation::CROSS_CORRELATION);
-    return outputs.as_const();
+    Tensor<float> outputs = Tensor<float>::create(Shape::concat(Shape(batch_size), this->output_shape()));
+    math::image2d_operation(outputs.as_ref(), inputs.as_const_ref(), false, kernels.value.as_const_ref(), false, math::Image2DOperation::CROSS_CORRELATION);
+
+    layer.saved_tensors.clear();
+    layer.saved_tensors.reserve(1);
+    layer.saved_tensors.push_back(std::move(inputs));
+    return outputs;
   }
 
-  Tensor ConvolutionalLayerDef::backward(Layer& layer, Tensor output_gradients) const
+  Tensor<float> ConvolutionalLayerDef::backward(Layer& layer, Tensor<float> output_gradients) const
   {
     Variable& kernels = layer.storage->parameters[0];
-    const Tensor& inputs = layer.saved_tensors[0];
+    const Tensor<float>& inputs = layer.saved_tensors[0];
 
-    MutableTensor input_gradients  = MutableTensor::create(inputs.shape());
-    MutableTensor kernel_gradients = MutableTensor::create(kernels.value.shape());
-    math::image2d_operation(input_gradients.as_ref(),  output_gradients.as_ref(), false, kernels.value.as_ref().as_const(), true,  math::Image2DOperation::CONVOLUTION);
-    math::image2d_operation(kernel_gradients.as_ref(), inputs.as_ref(),           true,  output_gradients.as_ref(),         false, math::Image2DOperation::CROSS_CORRELATION);
+    Tensor<float> input_gradients  = Tensor<float>::create(inputs.as_ref().shape());
+    Tensor<float> kernel_gradients = Tensor<float>::create(kernels.value.as_ref().shape());
+    math::image2d_operation(input_gradients.as_ref(),  output_gradients.as_const_ref(), false, kernels.value.as_const_ref(),    true,  math::Image2DOperation::CONVOLUTION);
+    math::image2d_operation(kernel_gradients.as_ref(), inputs.as_const_ref(),           true,  output_gradients.as_const_ref(), false, math::Image2DOperation::CROSS_CORRELATION);
 
-    kernels.gradient = std::move(kernel_gradients).as_const();
-    return std::move(input_gradients).as_const();
+    kernels.gradient = std::move(kernel_gradients);
+    return input_gradients;
   }
 }
