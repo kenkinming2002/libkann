@@ -112,7 +112,7 @@ namespace kann::math
         case Direction::RIGHT:  output = &dst[i].as_scalar(); break;
         }
 
-        std::array<float, N> inputs = details::array_transform(srcs, [&](auto& src) { return src[i][j].as_scalar(0); });
+        std::array<float, N> inputs = details::array_transform(srcs, [&](auto& src) { return src[i][j].as_scalar(); });
 
         std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
       }
