@@ -33,11 +33,14 @@ namespace kann::math
     );
   }
 
-  float norm(TensorRef value)
+  float norm(TensorRef<const float> value)
   {
+    value = value.flatten();
+
     float sum = 0.0;
     for(size_t i=0; i<value.size(); ++i)
-      sum += value.get(i) * value.get(i);
+      sum += value[i].as_scalar() * value[i].as_scalar();
+
     return std::sqrt(sum);
   }
 

@@ -7,7 +7,7 @@
 
 namespace kann::math
 {
-  KANN_EXPORT float norm(TensorRef value);
+  KANN_EXPORT float norm(TensorRef<const float> value);
 
   enum class Direction { LEFT, RIGHT };
 
