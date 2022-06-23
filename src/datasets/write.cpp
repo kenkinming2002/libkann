@@ -4,16 +4,18 @@
 
 namespace kann
 {
-  sf::Image toImage(TensorRef data)
+  sf::Image toImage(TensorRef<float> data)
   {
     size_t height = data.shape().dimension(0);
     size_t width  = data.shape().dimension(1);
 
     std::vector<sf::Uint8> pixels;
     pixels.reserve(width * height * 4);
+
+    data = data.flatten();
     for(size_t i=0; i<width*height; ++i)
     {
-      const auto pixel = static_cast<sf::Uint8>(data.get(i) * 256.0);
+      const auto pixel = static_cast<sf::Uint8>(data[i].as_scalar() * 256.0);
       for(size_t j=0; j<3; ++j)
         pixels.push_back(pixel);
 
