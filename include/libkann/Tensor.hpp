@@ -44,6 +44,13 @@ namespace kann
     }
 
     template<typename PRNG>
+    constexpr void fill_uniform(PRNG& prng, T a, T b)
+    {
+      std::uniform_real_distribution<T> dist(a, b);
+      ranges::generate(m_data, [&]() { return dist(prng); });
+    }
+
+    template<typename PRNG>
     constexpr void fill_normal(PRNG& prng, T mean, T stddev)
     {
       std::normal_distribution<T> dist(mean, stddev);
@@ -91,6 +98,13 @@ namespace kann
     {
       std::unique_ptr<T[]> data = std::make_unique_for_overwrite<T[]>(shape.size());
       return Tensor(std::move(shape), std::move(data));
+    }
+
+  public:
+    Tensor reshape(Shape shape) &&
+    {
+      assert(shape.size() == m_shape.size());
+      return Tensor(shape, std::move(m_data));
     }
 
   public:
