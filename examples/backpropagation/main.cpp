@@ -106,22 +106,26 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function,
 int main(int argc, char** argv)
 {
   // 1: Commandline arguments parsing
-  if(argc != 6)
+  if(argc != 8)
   {
-    fmt::print("Usage: {} [FILE_NAME] [OPTIMIZER_NAME] [OPTIMIZER_PARAMETERS] [BATCH_SIZE] [EPOCH]", argv[0]);
+    fmt::print("Usage: {} [FILE_NAME] [OPTIMIZER_NAME] [OPTIMIZER_PARAMETERS] [LOSS_FUNCTION] [LOSS_FUNCTION_PARAMETERS] [BATCH_SIZE] [EPOCH]", argv[0]);
     return EXIT_FAILURE;
   }
-  std::string file_name            = argv[1];
-  std::string optimizer_name       = argv[2];
-  std::string optimizer_parameters = argv[3];
-  std::string batch_size_str       = argv[4];
-  std::string epoch_str            = argv[5];
+  std::string file_name                = argv[1];
+  std::string optimizer_name           = argv[2];
+  std::string optimizer_parameters     = argv[3];
+  std::string loss_function_name       = argv[4];
+  std::string loss_function_parameters = argv[5];
+  std::string batch_size_str           = argv[6];
+  std::string epoch_str                = argv[7];
 
-  fmt::print("DEBUG: file_name            = {}\n", file_name);
-  fmt::print("DEBUG: optimizer_name       = {}\n", optimizer_name);
-  fmt::print("DEBUG: optimizer_parameters = {}\n", optimizer_parameters);
-  fmt::print("DEBUG: batch_size           = {}\n", batch_size_str);
-  fmt::print("DEBUG: epoch                = {}\n", epoch_str);
+  fmt::print("DEBUG: file_name                = {}\n", file_name);
+  fmt::print("DEBUG: optimizer_name           = {}\n", optimizer_name);
+  fmt::print("DEBUG: optimizer_parameters     = {}\n", optimizer_parameters);
+  fmt::print("DEBUG: loss_function_name       = {}\n", loss_function_name);
+  fmt::print("DEBUG: loss_function_parameters = {}\n", loss_function_parameters);
+  fmt::print("DEBUG: batch_size               = {}\n", batch_size_str);
+  fmt::print("DEBUG: epoch                    = {}\n", epoch_str);
 
   // 2: Preparation
   kann::initialize();
@@ -158,7 +162,23 @@ int main(int argc, char** argv)
       throw std::runtime_error(fmt::format("Unknown optimizer name:{}", optimizer_name));
   }();
 
-  kann::CrossEntropyLossFunction loss_function;
+  std::shared_ptr<kann::LossFunction> loss_function = [&loss_function_name, &loss_function_parameters]() -> std::shared_ptr<kann::LossFunction>
+  {
+    if(loss_function_name == "lp")
+    {
+      const unsigned p = std::stoi(loss_function_parameters);
+      return std::make_shared<kann::LpLossFunction>(p);
+    }
+    else if(loss_function_name == "cross_entropy")
+    {
+      if(loss_function_parameters != "none")
+        throw std::runtime_error(fmt::format("Cross entropy loss function:Invalid parameters:{}:Expected 'none'", loss_function_parameters));
+
+      return std::make_shared<kann::CrossEntropyLossFunction>();
+    }
+    else
+      throw std::runtime_error(fmt::format("Unknown loss function name:{}", loss_function_name));
+  }();
 
   const size_t batch_size = std::stoull(batch_size_str);
   const size_t epoch      = std::stoull(epoch_str);
@@ -172,13 +192,12 @@ int main(int argc, char** argv)
 
   // Initial testing
   testing("Initial testing", *layer, mnist_testing_images, mnist_testing_labels, batch_size, 10000);
-
   for(size_t i=0; i<epoch; ++i)
   {
     fmt::print("=> Epoch {} begin\n", i);
     {
       // Testing training
-      training(*layer, loss_function, mnist_training_images, mnist_training_labels, *optimizer, batch_size, 60000, prng);
+      training(*layer, *loss_function, mnist_training_images, mnist_training_labels, *optimizer, batch_size, 60000, prng);
       testing("Training dataset", *layer, mnist_training_images, mnist_training_labels, batch_size, 60000);
       testing("Testing dataset", *layer, mnist_testing_images,  mnist_testing_labels,  batch_size, 10000);
     }
