@@ -38,8 +38,8 @@ namespace kann
 
     assert(variable.gradient);
 
-    math::transform<1>(m.as_ref(), {variable.gradient->as_const_ref()}, [this](float m, float gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient * gradient; });
-    math::transform<1>(v.as_ref(), {variable.gradient->as_const_ref()}, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient; });
+    math::transform<1>(m.as_ref(), {variable.gradient->as_const_ref()}, [this](float m, float gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient; });
+    math::transform<1>(v.as_ref(), {variable.gradient->as_const_ref()}, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient * gradient; });
 
     Tensor<float> m_hat = Tensor<float>::create(m.as_ref().shape());
     Tensor<float> v_hat = Tensor<float>::create(v.as_ref().shape());
