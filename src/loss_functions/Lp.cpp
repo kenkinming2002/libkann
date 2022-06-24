@@ -49,7 +49,7 @@ namespace kann
     math::transform<2>(input_gradients.as_ref(), {inputs.as_const_ref(), this->expected_outputs->as_const_ref()},[this](float /*input_gradient*/, float input, const float expected_output)
     {
       const float diff = input - expected_output;
-      return (m_p-1) * pow_abs(diff, m_p-1) * sgn(diff);
+      return m_p * pow_abs(diff, m_p-1) * sgn(diff);
     });
     math::broadcast<1>(input_gradients.as_ref(), {output_gradients.as_const_ref()}, math::Direction::RIGHT, math::MUL);
     return input_gradients;
