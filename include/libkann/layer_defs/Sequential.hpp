@@ -6,7 +6,7 @@
 
 namespace kann
 {
-  class KANN_EXPORT SequentialLayerDef : public LayerDef
+  struct KANN_EXPORT SequentialLayerDef : public LayerDef
   {
   public:
     KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer_def);
@@ -16,8 +16,8 @@ namespace kann
     KANN_EXPORT std::shared_ptr<LayerStorage> create(std::default_random_engine& prng) const override;
 
   public:
-    KANN_EXPORT Shape input_shape() const override;
-    KANN_EXPORT Shape output_shape() const override;
+    KANN_EXPORT Shape get_input_shape() const override;
+    KANN_EXPORT Shape get_output_shape() const override;
 
   public:
     KANN_EXPORT Tensor<float> forward(Layer& layer, Tensor<float> inputs) const override;

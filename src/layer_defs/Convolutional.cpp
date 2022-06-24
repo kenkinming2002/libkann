@@ -11,25 +11,25 @@ namespace kann
   YAML::Node ConvolutionalLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
-    node["input_channel_count"]  = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->m_input_channel_count;
-    node["output_channel_count"] = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->m_output_channel_count;
-    node["input_width"]          = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->m_input_size.width();
-    node["input_height"]         = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->m_input_size.height();
-    node["output_width"]         = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->m_output_size.width();
-    node["output_height"]        = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->m_output_size.height();
-    node["kernel_width"]         = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->m_kernel_size.width();
-    node["kernel_height"]        = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->m_kernel_size.height();
+    node["input_channel_count"]  = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->input_channel_count;
+    node["output_channel_count"] = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->output_channel_count;
+    node["input_width"]          = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->input_size.width();
+    node["input_height"]         = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->input_size.height();
+    node["output_width"]         = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->output_size.width();
+    node["output_height"]        = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->output_size.height();
+    node["kernel_width"]         = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->kernel_size.width();
+    node["kernel_height"]        = std::static_pointer_cast<const ConvolutionalLayerDef>(layer_def)->kernel_size.height();
     return node;
   }
 
   std::shared_ptr<const LayerDef> ConvolutionalLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<ConvolutionalLayerDef>();
-    layer_def->m_input_channel_count  = node["input_channel_count"].as<size_t>();
-    layer_def->m_output_channel_count = node["output_channel_count"].as<size_t>();
-    layer_def->m_input_size           = Vec2(node["input_width"].as<size_t>(),  node["input_height"].as<size_t>());
-    layer_def->m_output_size          = Vec2(node["output_width"].as<size_t>(), node["output_height"].as<size_t>());
-    layer_def->m_kernel_size          = Vec2(node["kernel_width"].as<size_t>(), node["kernel_height"].as<size_t>());
+    layer_def->input_channel_count  = node["input_channel_count"].as<size_t>();
+    layer_def->output_channel_count = node["output_channel_count"].as<size_t>();
+    layer_def->input_size           = Vec2(node["input_width"].as<size_t>(),  node["input_height"].as<size_t>());
+    layer_def->output_size          = Vec2(node["output_width"].as<size_t>(), node["output_height"].as<size_t>());
+    layer_def->kernel_size          = Vec2(node["kernel_width"].as<size_t>(), node["kernel_height"].as<size_t>());
     return layer_def;
   }
 
@@ -37,8 +37,8 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
 
-    Tensor<float> kernels = Tensor<float>::create(Shape{m_input_channel_count, m_output_channel_count, m_kernel_size.height(), m_kernel_size.width()});
-    kernels.as_ref().fill_normal(prng, 0.0, 1.0 / (m_kernel_size.width() * m_kernel_size.height()));
+    Tensor<float> kernels = Tensor<float>::create(Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
+    kernels.as_ref().fill_normal(prng, 0.0, 1.0 / (kernel_size.width() * kernel_size.height()));
 
     layer_storage->parameters.reserve(1);
     layer_storage->parameters.push_back(Variable{.value = std::move(kernels)});
@@ -46,14 +46,14 @@ namespace kann
     return layer_storage;
   }
 
-  Shape ConvolutionalLayerDef::input_shape() const
+  Shape ConvolutionalLayerDef::get_input_shape() const
   {
-    return Shape{m_input_channel_count, m_input_size.height(), m_input_size.width()};
+    return Shape{input_channel_count, input_size.height(), input_size.width()};
   }
 
-  Shape ConvolutionalLayerDef::output_shape() const
+  Shape ConvolutionalLayerDef::get_output_shape() const
   {
-    return Shape{m_output_channel_count, m_output_size.height(), m_output_size.width()};
+    return Shape{output_channel_count, output_size.height(), output_size.width()};
   }
 
   Tensor<float> ConvolutionalLayerDef::forward(Layer& layer, Tensor<float> inputs) const
@@ -61,7 +61,7 @@ namespace kann
     const size_t batch_size = inputs.as_ref().dimension(0);
     const Variable& kernels = layer.storage->parameters[0];
 
-    Tensor<float> outputs = Tensor<float>::create(Shape::concat(Shape(batch_size), this->output_shape()));
+    Tensor<float> outputs = Tensor<float>::create(Shape::concat(Shape(batch_size), this->get_output_shape()));
     math::image2d_operation(outputs.as_ref(), inputs.as_const_ref(), false, kernels.value.as_const_ref(), false, math::Image2DOperation::CROSS_CORRELATION);
 
     layer.saved_tensors.clear();
