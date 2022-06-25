@@ -90,11 +90,11 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const k
       const size_t parameters_count = parameters.size();
       for(size_t k=0; k<parameters_count; ++k)
       {
-        const kann::Shape parameter_shape = parameters[k]->value.as_const_ref().shape();
+        const kann::Shape parameter_shape = parameters[k]->shape;
         const size_t parameter_size = parameter_shape.size();
 
         kann::TensorRef<float>       _parameter_derivative = derivative.parameters[k].as_ref().reshape(kann::Shape(output_size, parameter_size));
-        kann::TensorRef<const float> _parameter_gradient   = parameters[k]->gradient->as_const_ref().reshape(kann::Shape(parameter_size));
+        kann::TensorRef<const float> _parameter_gradient   = parameters[k]->gradient.as_const_ref().reshape(kann::Shape(parameter_size));
         for(size_t i=0; i<parameter_size; ++i)
           _parameter_derivative[j][i].as_scalar() = _parameter_gradient[i].as_scalar();
       }
@@ -147,7 +147,7 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const ka
     const size_t parameters_count = parameters.size();
     for(size_t k=0; k<parameters_count; ++k)
     {
-      const kann::Shape parameter_shape = parameters[k]->value.as_const_ref().shape();
+      const kann::Shape parameter_shape = parameters[k]->shape;
       const size_t parameter_size = parameter_shape.size();
 
       // This time we perturb the parameter instead of input

@@ -8,8 +8,25 @@ namespace kann
 {
   struct Variable
   {
+  public:
+    Shape shape;
+
+  public:
     Tensor<float> value;
-    std::optional<Tensor<float>> gradient;
+    Tensor<float> gradient;
+
+  public:
     std::vector<Tensor<float>> optimizer_states;
+
+  public:
+    static Variable create(Shape shape)
+    {
+      return Variable{
+        .shape = shape,
+        .value    = Tensor<float>::create(shape),
+        .gradient = Tensor<float>::create(shape),
+        .optimizer_states = {}
+      };
+    }
   };
 }

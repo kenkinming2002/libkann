@@ -37,11 +37,11 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
 
-    Tensor<float> kernels = Tensor<float>::create(Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
-    kernels.as_ref().fill_normal(prng, 0.0, 1.0 / (kernel_size.width() * kernel_size.height()));
+    Variable kernels = Variable::create(Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
+    kernels.value.as_ref().fill_normal(prng, 0.0, 1.0 / (kernel_size.width() * kernel_size.height()));
 
     layer_storage->parameters.reserve(1);
-    layer_storage->parameters.push_back(Variable{.value = std::move(kernels)});
+    layer_storage->parameters.push_back(std::move(kernels));
 
     return layer_storage;
   }

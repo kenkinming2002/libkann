@@ -26,14 +26,15 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
 
-    Tensor<float> weight = Tensor<float>::create(Shape::concat(input_shape, output_shape));
-    Tensor<float> bias   = Tensor<float>::create(output_shape);
-    weight.as_ref().fill_normal(prng, 0.0, 1.0 / std::sqrt(input_shape.size()));
-    bias.as_ref().fill_normal(prng, 0.0, 1.0 / std::sqrt(input_shape.size()));
+    Variable weight = Variable::create(Shape::concat(input_shape, output_shape));
+    Variable bias   = Variable::create(output_shape);
+
+    weight.value.as_ref().fill_normal(prng, 0.0, 1.0 / std::sqrt(input_shape.size()));
+    bias.value.as_ref().fill_normal(prng, 0.0, 1.0 / std::sqrt(input_shape.size()));
 
     layer_storage->parameters.reserve(2);
-    layer_storage->parameters.push_back(Variable{.value = std::move(weight)});
-    layer_storage->parameters.push_back(Variable{.value = std::move(bias)});
+    layer_storage->parameters.push_back(std::move(weight));
+    layer_storage->parameters.push_back(std::move(bias));
 
     return layer_storage;
   }
