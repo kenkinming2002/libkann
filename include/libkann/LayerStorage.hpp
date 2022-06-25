@@ -17,27 +17,6 @@ namespace kann
     std::vector<std::shared_ptr<LayerStorage>> sub_layer_storages;
 
   public:
-    template<typename Callback>
-    void foreach_parameters(Callback cb) requires(std::is_invocable_v<Callback, Variable&>)
-    {
-      for(Variable& parameter : parameters)
-        cb(parameter);
-
-      for(std::shared_ptr<LayerStorage>& sub_layer_storage : sub_layer_storages)
-        sub_layer_storage->foreach_parameters(cb);
-    }
-
-    template<typename Callback>
-    void foreach_states(Callback cb) requires(std::is_invocable_v<Callback, Variable&>)
-    {
-      for(Variable& state : states)
-        cb(state);
-
-      for(std::shared_ptr<LayerStorage>& sub_layer_storage : sub_layer_storages)
-        sub_layer_storage->foreach_states(cb);
-    }
-
-  public:
     KANN_EXPORT std::vector<const Variable*> get_parameters() const;
     KANN_EXPORT std::vector<const Variable*> get_states() const;
 

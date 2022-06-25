@@ -98,7 +98,9 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function,
     for(size_t i=0; i<batch_size; ++i)
       progress_bar.update(fmt::format("  loss={}", loss_batch.as_const_ref()[i].as_scalar()));
 
-    layer.storage->foreach_parameters([&optimizer](kann::Variable& variable) { optimizer.optimize(variable); });
+    for(kann::Variable* parameter : layer.storage->get_parameters())
+      optimizer.optimize(*parameter);
+
     optimizer.step();
   }
 }
