@@ -36,5 +36,12 @@ namespace kann
       for(std::shared_ptr<LayerStorage>& sub_layer_storage : sub_layer_storages)
         sub_layer_storage->foreach_states(cb);
     }
+
+  public:
+    KANN_EXPORT std::vector<const Variable*> get_parameters() const;
+    KANN_EXPORT std::vector<const Variable*> get_states() const;
+
+    KANN_EXPORT std::vector<Variable*> get_parameters();
+    KANN_EXPORT std::vector<Variable*> get_states();
   };
 }
