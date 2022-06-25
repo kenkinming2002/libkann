@@ -14,10 +14,6 @@
 #include <libkann/layer_defs/Dense.hpp>
 #include <libkann/layer_defs/SoftMax.hpp>
 
-#include <fmt/core.h>
-
-#include <type_traits>
-
 static kann::Tensor<float> with_unit_batching(kann::Tensor<float> value)
 {
   kann::Shape shape = value.as_ref().shape();
