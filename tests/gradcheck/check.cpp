@@ -32,6 +32,13 @@ static kann::Tensor<float> without_unit_batching(kann::Tensor<float> value)
 struct LayerDerivative
 {
   kann::Tensor<float> input;
+
+  static LayerDerivative create_uninitialized_for(const kann::Layer& layer)
+  {
+    const kann::Shape input_shape  = layer.def->get_input_shape();
+    const kann::Shape output_shape = layer.def->get_output_shape();
+    return LayerDerivative{ .input = kann::Tensor<float>::create(kann::Shape::concat(output_shape, input_shape)) };
+  }
 };
 
 static kann::Tensor<float> create_basis(kann::Shape shape, size_t i)
@@ -51,7 +58,7 @@ static inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, 
   const size_t input_size  = input_shape.size();
   const size_t output_size = output_shape.size();
 
-  LayerDerivative derivative{ .input = kann::Tensor<float>::create(kann::Shape::concat(output_shape, input_shape)) };
+  LayerDerivative derivative = LayerDerivative::create_uninitialized_for(layer);
   for(size_t j=0; j<output_size; ++j)
   {
     kann::Tensor<float> input  = with_unit_batching(random_input.clone());
@@ -84,7 +91,7 @@ static inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, c
   const size_t input_size  = input_shape.size();
   const size_t output_size = output_shape.size();
 
-  LayerDerivative derivative{ .input = kann::Tensor<float>::create(kann::Shape::concat(output_shape, input_shape)) };
+  LayerDerivative derivative = LayerDerivative::create_uninitialized_for(layer);
   for(size_t i=0; i<input_size; ++i)
   {
     kann::Tensor<float> input1  = with_unit_batching(random_input.clone());
