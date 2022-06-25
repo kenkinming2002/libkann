@@ -18,97 +18,129 @@
 
 #include <type_traits>
 
-static kann::Tensor<float> create_basis(size_t i, size_t size)
+static kann::Tensor<float> with_unit_batching(kann::Tensor<float> value)
 {
-  kann::Tensor<float> result = kann::Tensor<float>::create(kann::Shape(size));
-  kann::TensorRef<float> _result = result.as_ref();
+  kann::Shape shape = value.as_ref().shape();
+  return std::move(value).reshape(kann::Shape::concat(kann::Shape(1), shape));
+}
+
+static kann::Tensor<float> without_unit_batching(kann::Tensor<float> value)
+{
+  kann::Shape shape = value.as_ref().shape();
+
+  // No need to check explicitly as the assertion in reshape would catch any size mismatch
+  // if the first dimension either does not exist or is not 1
+  return std::move(value).reshape(shape.drop_front(1));
+}
+
+struct LayerDerivative
+{
+  kann::Tensor<float> input;
+};
+
+static kann::Tensor<float> create_basis(kann::Shape shape, size_t i)
+{
+  kann::Tensor<float> result = kann::Tensor<float>::create(shape);
+  kann::TensorRef<float> _result = result.as_ref().flatten();
   _result.fill(0.0f);
   _result[i].as_scalar() = 1.0f;
   return result;
 }
 
-static kann::Tensor<float> perturb(const kann::Tensor<float>& value, size_t i, float diff)
+static inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const kann::Tensor<float>& random_input)
 {
-  kann::Tensor<float> result = value.clone();
-  result.as_ref().flatten()[i].as_scalar() += diff;
-  return result;
-}
-
-static void test_layer_def(std::shared_ptr<const kann::LayerDef> layer_def)
-{
-  // 1: Setup
-  static std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
-
-  std::shared_ptr<kann::LayerStorage> layer_storage = layer_def->create(prng);
-  std::shared_ptr<kann::Layer>        layer         = kann::Layer::create_from(layer_def, layer_storage);
-
-  const kann::Shape input_shape  = layer_def->get_input_shape();
-  const kann::Shape output_shape = layer_def->get_output_shape();
+  const kann::Shape input_shape  = layer.def->get_input_shape();
+  const kann::Shape output_shape = layer.def->get_output_shape();
 
   const size_t input_size  = input_shape.size();
   const size_t output_size = output_shape.size();
 
-  // 2: Create random input
-  kann::Tensor<float> random_input = kann::Tensor<float>::create(kann::Shape::concat(kann::Shape(1), input_shape));
+  LayerDerivative derivative{ .input = kann::Tensor<float>::create(kann::Shape::concat(output_shape, input_shape)) };
+  for(size_t j=0; j<output_size; ++j)
+  {
+    kann::Tensor<float> input  = with_unit_batching(random_input.clone());
+    kann::Tensor<float> output = without_unit_batching(layer.forward(input.clone()));
+    (void)output;
+
+    kann::Tensor<float> output_gradient = with_unit_batching(create_basis(output_shape, j));
+    kann::Tensor<float> input_gradient  = without_unit_batching(layer.backward(output_gradient.clone()));
+
+    kann::TensorRef<float>       _input_derivative = derivative.input.as_ref().reshape(kann::Shape(output_size, input_size));
+    kann::TensorRef<const float> _input_gradient   = input_gradient.as_const_ref().reshape(kann::Shape(input_size));
+    for(size_t i=0; i<input_size; ++i)
+      _input_derivative[j][i].as_scalar() = _input_gradient[i].as_scalar();
+  }
+
+  return derivative;
+}
+
+static kann::Tensor<float> perturb(kann::Tensor<float> value, size_t i, float diff)
+{
+  value.as_ref().flatten()[i].as_scalar() += diff;
+  return value;
+}
+
+static inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const kann::Tensor<float>& random_input, float dx)
+{
+  const kann::Shape input_shape  = layer.def->get_input_shape();
+  const kann::Shape output_shape = layer.def->get_output_shape();
+
+  const size_t input_size  = input_shape.size();
+  const size_t output_size = output_shape.size();
+
+  LayerDerivative derivative{ .input = kann::Tensor<float>::create(kann::Shape::concat(output_shape, input_shape)) };
+  for(size_t i=0; i<input_size; ++i)
+  {
+    kann::Tensor<float> input1  = with_unit_batching(random_input.clone());
+    kann::Tensor<float> output1 = without_unit_batching(layer.forward(input1.clone()));
+
+    kann::Tensor<float> input2  = with_unit_batching(perturb(random_input.clone(), i, dx));
+    kann::Tensor<float> output2 = without_unit_batching(layer.forward(input2.clone()));
+
+    kann::Tensor<float> output_gradient = output2.clone();
+    kann::math::transform<1>(output_gradient.as_ref(), { output1.as_const_ref() },         kann::math::SUB);
+    kann::math::transform<1>(output_gradient.as_ref(), { output_gradient.as_const_ref() }, kann::math::SCALE(1.0f/dx));
+
+    kann::TensorRef<float>       _input_derivative  = derivative.input.as_ref().reshape(kann::Shape(output_size, input_size));
+    kann::TensorRef<const float> _output_gradient   = output_gradient.as_const_ref().reshape(kann::Shape(output_size));
+    for(size_t j=0; j<output_size; ++j)
+      _input_derivative[j][i].as_scalar() = _output_gradient[j].as_scalar();
+  }
+  return derivative;
+}
+
+static inline std::shared_ptr<kann::Layer> create_layer(std::shared_ptr<const kann::LayerDef> layer_def, auto& prng)
+{
+  std::shared_ptr<kann::LayerStorage> layer_storage = layer_def->create(prng);
+  return kann::Layer::create_from(layer_def, layer_storage);
+}
+
+static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
+{
+  static constexpr float DX = 0.01f;
+
+  kann::Tensor<float> random_input = kann::Tensor<float>::create(layer->def->get_input_shape());
   random_input.as_ref().fill_uniform(prng, -1.0f, 1.0f);
 
-  // 3: Compute derivatives analytically
-  //    To so, we set output_gradient as unit basis tensor
-  kann::Tensor<float> analytical_derivative = kann::Tensor<float>::create(kann::Shape::concat(output_shape, input_shape));
-  {
-    for(size_t j=0; j<output_size; ++j)
-    {
-      kann::Tensor<float> input  = random_input.clone();
-      kann::Tensor<float> output = layer->forward(input.clone());
+  LayerDerivative analytical = compute_analytical_derivative(*layer, random_input);
+  LayerDerivative numerical  = compute_numerical_derivative(*layer, random_input, DX);
 
-      // Gradient
-      kann::Tensor<float> output_gradient = create_basis(j, output_size);
-      output_gradient = std::move(output_gradient).reshape(kann::Shape::concat(kann::Shape(1), output_shape));
-
-      kann::Tensor<float> input_gradient = layer->backward(output_gradient.clone());
-      input_gradient = std::move(input_gradient).reshape(kann::Shape(input_size));
-
-      kann::TensorRef<float>       _analytical_derivative = analytical_derivative.as_ref().reshape(kann::Shape(output_size, input_size));
-      kann::TensorRef<const float> _input_gradient        = input_gradient.as_const_ref().reshape(kann::Shape(input_size));
-      for(size_t i=0; i<input_size; ++i)
-        _analytical_derivative[j][i].as_scalar() = _input_gradient[i].as_scalar();
-    }
-  }
-
-  // 4: Compute gradients numerically
-  //    To do so, we set perturb input by basis vector of small length
-  kann::Tensor<float> numerical_derivative = kann::Tensor<float>::create(kann::Shape::concat(output_shape, input_shape));
-  {
-    for(size_t i=0; i<input_size; ++i)
-    {
-      // We cannot use too small of a DX, as that would introduce inaccurracy
-      static constexpr float DX = 0.01f;
-      kann::Tensor<float> input1  = random_input.clone();
-      kann::Tensor<float> output1 = layer->forward(input1.clone());
-
-      kann::Tensor<float> input2  = perturb(random_input, i, DX);
-      kann::Tensor<float> output2 = layer->forward(input2.clone());
-
-      kann::Tensor<float> output_gradient = output2.clone();
-      kann::math::transform<1>(output_gradient.as_ref(), { output1.as_const_ref() },         kann::math::SUB);
-      kann::math::transform<1>(output_gradient.as_ref(), { output_gradient.as_const_ref() }, kann::math::SCALE(1.0f/DX));
-
-      kann::TensorRef<float>       _numerical_derivative  = numerical_derivative.as_ref().reshape(kann::Shape(output_size, input_size));
-      kann::TensorRef<const float> _output_gradient       = output_gradient.as_const_ref().reshape(kann::Shape(output_size));
-      for(size_t j=0; j<output_size; ++j)
-        _numerical_derivative[j][i].as_scalar() = _output_gradient[j].as_scalar();
-    }
-  }
-
-  // 5: Compare them
-  kann::TensorRef<const float> _analytical_derivative = analytical_derivative.as_const_ref().flatten();
-  kann::TensorRef<const float> _numerical_derivative  = numerical_derivative.as_const_ref().flatten();
-  for(size_t i=0; i<input_size * output_size; ++i)
+  kann::TensorRef<const float> _analytical_derivative = analytical.input.as_const_ref().flatten();
+  kann::TensorRef<const float> _numerical_derivative  = numerical.input.as_const_ref().flatten();
+  for(size_t i=0; i<_analytical_derivative.size(); ++i)
   {
     const float analytical = _analytical_derivative[i].as_scalar();
     const float numerical  = _numerical_derivative[i].as_scalar();
     REQUIRE(std::abs(analytical - numerical) <= 0.01f);
   }
+}
+
+static void test_layer_def(std::shared_ptr<const kann::LayerDef> layer_def)
+{
+  static std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
+
+  std::shared_ptr<kann::Layer> layer = create_layer(std::move(layer_def), prng);
+  test_layer(std::move(layer), prng);
 }
 
 TEST_CASE("Gradcheck", "[gradcheck]")
