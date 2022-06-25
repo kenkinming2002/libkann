@@ -30,20 +30,7 @@ libkann_sources = [
 
   'Batch.cpp',
   'ProgressBar.cpp',
-
-  # Actual Machine Learning Training Algorithm
-  #'algorithms/Context.cpp',
-  #'algorithms/Predict.cpp',
-  #'algorithms/Optimize.cpp',
 ]
-
-fmt_dep = dependency('fmt')
-range_v3_dep = dependency('range-v3')
-eigen_dep = dependency('eigen3')
-yaml_cpp_dep = dependency('yaml-cpp')
-
-# TODO: Make this optional
-sfml_dep = dependency('sfml-graphics')
 
 libkann_lib = library('kann', libkann_sources,
   include_directories : ['../include'],

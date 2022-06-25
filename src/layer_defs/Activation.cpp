@@ -37,27 +37,27 @@ namespace kann
   YAML::Node ActivationLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
-    node["shape"]    = Shape::to_vector(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_shape);
-    node["function"] = to_string(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->m_type);
+    node["shape"]    = Shape::to_vector(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->shape);
+    node["function"] = to_string(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->type);
     return node;
   }
 
   std::shared_ptr<const LayerDef> ActivationLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<ActivationLayerDef>();
-    layer_def->m_shape = Shape::from_vector(node["shape"].as<std::vector<size_t>>());
-    layer_def->m_type  = from_string(node["function"].as<std::string>());
+    layer_def->shape = Shape::from_vector(node["shape"].as<std::vector<size_t>>());
+    layer_def->type  = from_string(node["function"].as<std::string>());
     return layer_def;
   }
 
-  Shape ActivationLayerDef::input_shape() const
+  Shape ActivationLayerDef::get_input_shape() const
   {
-    return m_shape;
+    return shape;
   }
 
-  Shape ActivationLayerDef::output_shape() const
+  Shape ActivationLayerDef::get_output_shape() const
   {
-    return m_shape;
+    return shape;
   }
 
   std::shared_ptr<LayerStorage> ActivationLayerDef::create(std::default_random_engine& prng) const
@@ -70,7 +70,7 @@ namespace kann
     Tensor<float> outputs = Tensor<float>::create(inputs.as_ref().shape());
     math::transform<1>(outputs.as_ref(), {inputs.as_const_ref()}, [this](float /*output*/, float input)
     {
-      switch(m_type)
+      switch(type)
       {
       case ActivationLayerDef::Type::IDENTITY:
         return input;
@@ -98,7 +98,7 @@ namespace kann
     math::transform<2>(input_gradients.as_ref(), {inputs.as_const_ref(), output_gradients.as_const_ref()}, [this](float /*input_gradient*/, float input, float output_gradient)
     {
       float tmp;
-      switch(m_type)
+      switch(type)
       {
       case ActivationLayerDef::Type::IDENTITY:
         return output_gradient;

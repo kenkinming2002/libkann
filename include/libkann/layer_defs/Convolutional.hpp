@@ -8,8 +8,12 @@
 
 namespace kann
 {
-  class KANN_EXPORT ConvolutionalLayerDef : public LayerDef
+  struct KANN_EXPORT ConvolutionalLayerDef : public LayerDef
   {
+  public:
+    size_t input_channel_count, output_channel_count;
+    Vec2 input_size, output_size, kernel_size;
+
   public:
     KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer_def);
     KANN_EXPORT static std::shared_ptr<const LayerDef> load(YAML::Node node);
@@ -18,15 +22,11 @@ namespace kann
     KANN_EXPORT std::shared_ptr<LayerStorage> create(std::default_random_engine& prng) const override;
 
   public:
-    KANN_EXPORT Shape input_shape() const override;
-    KANN_EXPORT Shape output_shape() const override;
+    KANN_EXPORT Shape get_input_shape() const override;
+    KANN_EXPORT Shape get_output_shape() const override;
 
   public:
     KANN_EXPORT Tensor<float> forward(Layer& layer, Tensor<float> inputs) const override;
     KANN_EXPORT Tensor<float> backward(Layer& layer, Tensor<float> output_gradients) const override;
-
-  private:
-    size_t m_input_channel_count, m_output_channel_count;
-    Vec2 m_input_size, m_output_size, m_kernel_size;
   };
 }

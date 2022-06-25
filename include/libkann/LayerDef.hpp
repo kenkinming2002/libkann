@@ -48,8 +48,8 @@ namespace kann
     KANN_EXPORT virtual std::shared_ptr<LayerStorage> create(std::default_random_engine& prng) const = 0;
 
   public:
-    KANN_EXPORT virtual Shape input_shape() const = 0;
-    KANN_EXPORT virtual Shape output_shape() const = 0;
+    KANN_EXPORT virtual Shape get_input_shape() const = 0;
+    KANN_EXPORT virtual Shape get_output_shape() const = 0;
 
   public:
     KANN_EXPORT virtual Tensor<float> forward(Layer& layer, Tensor<float> inputs) const = 0;

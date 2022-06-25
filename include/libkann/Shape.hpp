@@ -12,7 +12,7 @@ namespace kann
   struct Shape
   {
   public:
-    static constexpr size_t MAX_DIMENSION = 6;
+    static constexpr size_t MAX_DIMENSION = 8;
 
   public:
     static Shape from_vector(std::vector<size_t> dimensions)

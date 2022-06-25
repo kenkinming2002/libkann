@@ -38,14 +38,14 @@ namespace kann
     return layer_storage;
   }
 
-  Shape SequentialLayerDef::input_shape() const
+  Shape SequentialLayerDef::get_input_shape() const
   {
-    return sub_layer_defs.front()->input_shape();
+    return sub_layer_defs.front()->get_input_shape();
   }
 
-  Shape SequentialLayerDef::output_shape() const
+  Shape SequentialLayerDef::get_output_shape() const
   {
-    return sub_layer_defs.back()->output_shape();
+    return sub_layer_defs.back()->get_output_shape();
   }
 
   Tensor<float> SequentialLayerDef::forward(Layer& layer, Tensor<float> inputs) const

@@ -11,14 +11,14 @@ namespace kann
   YAML::Node SoftMaxLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
-    node["shape"] = Shape::to_vector(std::static_pointer_cast<const SoftMaxLayerDef>(layer_def)->m_shape);
+    node["shape"] = Shape::to_vector(std::static_pointer_cast<const SoftMaxLayerDef>(layer_def)->shape);
     return node;
   }
 
   std::shared_ptr<const LayerDef> SoftMaxLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<SoftMaxLayerDef>();
-    layer_def->m_shape = Shape::from_vector(node["shape"].as<std::vector<size_t>>());
+    layer_def->shape = Shape::from_vector(node["shape"].as<std::vector<size_t>>());
     return layer_def;
   }
 
@@ -27,23 +27,23 @@ namespace kann
     return std::make_shared<LayerStorage>();
   }
 
-  Shape SoftMaxLayerDef::input_shape() const
+  Shape SoftMaxLayerDef::get_input_shape() const
   {
-    return m_shape;
+    return shape;
   }
 
-  Shape SoftMaxLayerDef::output_shape() const
+  Shape SoftMaxLayerDef::get_output_shape() const
   {
-    return m_shape;
+    return shape;
   }
 
   Tensor<float> SoftMaxLayerDef::forward(Layer& layer, Tensor<float> inputs) const
   {
-    const size_t batch_size = inputs.as_ref().dimension(0);
-    const Shape shape       = Shape::concat(Shape(batch_size), m_shape);
+    const size_t batch_size  = inputs.as_ref().dimension(0);
+    const Shape outputs_shape = Shape::concat(Shape(batch_size), shape);
 
     // Exponential map
-    Tensor<float> outputs = Tensor<float>::create(shape);
+    Tensor<float> outputs = Tensor<float>::create(outputs_shape);
     math::transform<1>(outputs.as_ref(), {inputs.as_const_ref()}, [](double /*output*/, double input) { return std::exp(input); });
 
     // Batch normalization
@@ -62,12 +62,12 @@ namespace kann
 
   Tensor<float> SoftMaxLayerDef::backward(Layer& layer, Tensor<float> output_gradients) const
   {
-    const size_t batch_size = output_gradients.as_ref().dimension(0);
-    const size_t size       = output_gradients.as_ref().shape().drop_front(1).size();
-    const Shape shape       = Shape::concat(Shape(batch_size), m_shape);
+    const size_t batch_size   = output_gradients.as_ref().dimension(0);
+    const size_t size         = output_gradients.as_ref().shape().drop_front(1).size();
+    const Shape outputs_shape = Shape::concat(Shape(batch_size), shape);
 
     Tensor<float> outputs        = std::move(layer.saved_tensors[0]);
-    Tensor<float> input_gradients = Tensor<float>::create(shape);
+    Tensor<float> input_gradients = Tensor<float>::create(outputs_shape);
     input_gradients.as_ref().fill(0.0f);
 
     for(size_t k=0; k<batch_size; ++k)
