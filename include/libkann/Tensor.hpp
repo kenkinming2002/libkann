@@ -6,6 +6,7 @@
 
 #include <random>
 #include <memory>
+#include <tuple>
 
 namespace kann
 {
@@ -119,6 +120,10 @@ namespace kann
     auto as_ref()             -> TensorRef<T>       { return TensorRef<T>(m_shape,       std::span(m_data.get(), m_shape.size())); }
     auto as_ref()       const -> TensorRef<const T> { return TensorRef<const T>(m_shape, std::span(m_data.get(), m_shape.size())); }
     auto as_const_ref() const -> TensorRef<const T> { return TensorRef<const T>(m_shape, std::span(m_data.get(), m_shape.size())); }
+
+  public:
+    double& operator()(auto... indices)             { return m_data[m_shape.get_index(std::array<size_t, sizeof...(indices)>{indices...})]; }
+    const double& operator()(auto... indices) const { return m_data[m_shape.get_index(std::array<size_t, sizeof...(indices)>{indices...})]; }
 
   private:
     Shape m_shape;

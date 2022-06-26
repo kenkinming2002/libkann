@@ -121,6 +121,30 @@ namespace kann
     constexpr Shape drop_back(size_t count) const { assert(rank()>=count); return this->split(rank() - count, count).first; }
 
   public:
+    template<size_t N>
+    size_t get_index(std::array<size_t, N> indices) const
+    {
+      assert(rank() == N);
+      std::array<size_t, N> dimensions = [this]<std::size_t... Is>(std::index_sequence<Is>...) { return std::array{m_dimensions[Is]...}; }(std::make_index_sequence<N>());
+      std::array<size_t, N> strides;
+      for(size_t i=0; i<N; ++i)
+      {
+        strides[i] = 1;
+        for(size_t j=i+1; j<N; ++j)
+          strides[i] *= dimensions[j];
+      }
+
+      size_t index = 0;
+      for(size_t i=0; i<N; ++i)
+      {
+        assert(indices[i] < dimensions[i]);
+        index += indices[i] * strides[i];
+      }
+
+      return index;
+    }
+
+  public:
     friend bool operator==(const Shape& lhs, const Shape& rhs) = default;
     friend bool operator!=(const Shape& lhs, const Shape& rhs) = default;
 
