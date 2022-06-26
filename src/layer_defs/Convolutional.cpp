@@ -58,29 +58,30 @@ namespace kann
 
   Tensor<float> ConvolutionalLayerDef::forward(Layer& layer, Tensor<float> inputs) const
   {
-    const size_t batch_size = inputs.as_ref().dimension(0);
-    const Variable& kernels = layer.storage->parameters[0];
+    return this->forward_helper(layer, std::move(inputs), [](Layer& layer, size_t batch_size, Tensor<float> inputs, Tensor<float> outputs)
+    {
+      const Variable& kernels = layer.storage->parameters[0];
 
-    Tensor<float> outputs = Tensor<float>::create(Shape::concat(Shape(batch_size), this->get_output_shape()));
-    math::image2d_operation(outputs.as_ref(), inputs.as_const_ref(), false, kernels.value.as_const_ref(), false, math::Image2DOperation::CROSS_CORRELATION);
+      math::image2d_operation(outputs.as_ref(), inputs.as_const_ref(), false, kernels.value.as_const_ref(), false, math::Image2DOperation::CROSS_CORRELATION);
 
-    layer.saved_tensors.clear();
-    layer.saved_tensors.reserve(1);
-    layer.saved_tensors.push_back(std::move(inputs));
-    return outputs;
+      layer.saved_tensors.clear();
+      layer.saved_tensors.reserve(1);
+      layer.saved_tensors.push_back(std::move(inputs));
+      return outputs;
+    });
   }
 
   Tensor<float> ConvolutionalLayerDef::backward(Layer& layer, Tensor<float> output_gradients) const
   {
-    Variable& kernels = layer.storage->parameters[0];
-    const Tensor<float>& inputs = layer.saved_tensors[0];
+    return this->backward_helper(layer, std::move(output_gradients), [](Layer& layer, size_t batch_size, Tensor<float> output_gradients, Tensor<float> input_gradients)
+    {
+      const Tensor<float>& inputs = layer.saved_tensors[0];
+      Variable& kernels = layer.storage->parameters[0];
 
-    Tensor<float> input_gradients  = Tensor<float>::create(inputs.as_ref().shape());
-    Tensor<float> kernel_gradients = Tensor<float>::create(kernels.value.as_ref().shape());
-    math::image2d_operation(input_gradients.as_ref(),  output_gradients.as_const_ref(), false, kernels.value.as_const_ref(),    true,  math::Image2DOperation::CONVOLUTION);
-    math::image2d_operation(kernel_gradients.as_ref(), inputs.as_const_ref(),           true,  output_gradients.as_const_ref(), false, math::Image2DOperation::CROSS_CORRELATION);
+      math::image2d_operation(input_gradients.as_ref(),  output_gradients.as_const_ref(), false, kernels.value.as_const_ref(),    true,  math::Image2DOperation::CONVOLUTION);
+      math::image2d_operation(kernels.gradient.as_ref(), inputs.as_const_ref(),           true,  output_gradients.as_const_ref(), false, math::Image2DOperation::CROSS_CORRELATION);
 
-    kernels.gradient = std::move(kernel_gradients);
-    return input_gradients;
+      return input_gradients;
+    });
   }
 }
