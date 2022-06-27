@@ -3,7 +3,7 @@
 
 #include <libkann/Initialize.hpp>
 #include <libkann/Random.hpp>
-#include <libkann/Math.hpp>
+#include <libtensor/Math.hpp>
 
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>

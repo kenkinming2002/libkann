@@ -1,6 +1,6 @@
 #pragma once
 
-#include <libkann/Tensor.hpp>
+#include <libtensor/Tensor.hpp>
 
 #include <optional>
 

@@ -1,6 +1,6 @@
 #include <libkann/loss_functions/Lp.hpp>
 
-#include <libkann/Math.hpp>
+#include <libtensor/Math.hpp>
 
 namespace kann
 {

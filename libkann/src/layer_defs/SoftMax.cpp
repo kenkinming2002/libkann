@@ -1,7 +1,7 @@
 #include <libkann/layer_defs/SoftMax.hpp>
 
-#include <libkann/Tensor.hpp>
-#include <libkann/Math.hpp>
+#include <libtensor/Tensor.hpp>
+#include <libtensor/Math.hpp>
 #include <libkann/Layer.hpp>
 
 #include <fmt/core.h>

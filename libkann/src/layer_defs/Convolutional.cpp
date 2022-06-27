@@ -1,10 +1,10 @@
 #include <libkann/layer_defs/Convolutional.hpp>
 
-#include <libkann/Tensor.hpp>
+#include <libtensor/Tensor.hpp>
 #include <libkann/Layer.hpp>
 #include <libkann/LayerStorage.hpp>
 
-#include <libkann/Math.hpp>
+#include <libtensor/Math.hpp>
 
 namespace kann
 {

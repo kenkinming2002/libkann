@@ -1,6 +1,6 @@
 #pragma once
 
-#include <libkann/StaticVector.hpp>
+#include <libtensor/StaticVector.hpp>
 
 #include <vector>
 

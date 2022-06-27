@@ -1,6 +1,6 @@
 #include <libkann/datasets/MNIST.hpp>
 
-#include <libkann/Tensor.hpp>
+#include <libtensor/Tensor.hpp>
 
 // TODO: Where do we find this header on windows?
 #include <arpa/inet.h>

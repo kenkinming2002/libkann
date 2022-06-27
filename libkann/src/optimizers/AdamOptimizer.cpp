@@ -1,6 +1,6 @@
 #include <libkann/optimizers/AdamOptimizer.hpp>
 
-#include <libkann/Math.hpp>
+#include <libtensor/Math.hpp>
 
 #include <fmt/core.h>
 

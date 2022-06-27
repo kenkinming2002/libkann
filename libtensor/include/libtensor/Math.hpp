@@ -1,13 +1,12 @@
 #pragma once
 
-#include <libkann/Export.hpp>
+#include <libtensor/Export.hpp>
 
-#include <libkann/Tensor.hpp>
-#include <libkann/Vec.hpp>
+#include <libtensor/Tensor.hpp>
 
 namespace kann::math
 {
-  KANN_EXPORT float norm(const Tensor<float>& value);
+  LIBTENSOR_EXPORT float norm(const Tensor<float>& value);
 
   enum class Direction { LEFT, RIGHT };
 
@@ -24,12 +23,12 @@ namespace kann::math
   static constexpr auto SUB  = [](float output, float input) { return output - input;  };
   static constexpr auto DIV  = [](float output, float input) { return output / input;  };
 
-  KANN_EXPORT void product(Tensor<float> dst,
+  LIBTENSOR_EXPORT void product(Tensor<float> dst,
       Tensor<const float> a, bool transpose_a,
       Tensor<const float> b, bool transpose_b);
 
   enum class Image2DOperation { CROSS_CORRELATION, CONVOLUTION };
-  KANN_EXPORT void image2d_operation(Tensor<float> outputs,
+  LIBTENSOR_EXPORT void image2d_operation(Tensor<float> outputs,
       Tensor<const float> inputs, bool transpose_inputs,
       Tensor<const float> kernels, bool transpose_kernels,
       Image2DOperation operation);

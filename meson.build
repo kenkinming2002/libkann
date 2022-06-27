@@ -10,4 +10,5 @@ sfml_dep = dependency('sfml-graphics')
 
 catch2_dep = dependency('catch2')
 
+subdir('libtensor')
 subdir('libkann')

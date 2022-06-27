@@ -1,7 +1,7 @@
 #include <libkann/layer_defs/Dense.hpp>
 
-#include <libkann/Tensor.hpp>
-#include <libkann/Math.hpp>
+#include <libtensor/Tensor.hpp>
+#include <libtensor/Math.hpp>
 #include <libkann/Layer.hpp>
 
 namespace kann

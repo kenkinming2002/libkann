@@ -1,6 +1,6 @@
 #pragma once
 
-#include <libkann/Shape.hpp>
+#include <libtensor/Shape.hpp>
 
 #include <range/v3/all.hpp>
 

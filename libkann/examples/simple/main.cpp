@@ -1,9 +1,9 @@
 #include <libkann/Initialize.hpp>
 #include <libkann/Random.hpp>
 
-#include <libkann/Tensor.hpp>
-#include <libkann/Math.hpp>
-#include <libkann/Utils.hpp>
+#include <libtensor/Tensor.hpp>
+#include <libtensor/Math.hpp>
+#include <libtensor/Utils.hpp>
 
 #include <libkann/Layer.hpp>
 #include <libkann/LayerStorage.hpp>

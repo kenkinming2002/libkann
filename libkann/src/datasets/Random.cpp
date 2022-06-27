@@ -1,6 +1,6 @@
 #include <libkann/datasets/Random.hpp>
 
-#include <libkann/Tensor.hpp>
+#include <libtensor/Tensor.hpp>
 
 #include <range/v3/all.hpp>
 

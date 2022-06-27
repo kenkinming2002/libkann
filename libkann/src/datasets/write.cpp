@@ -1,6 +1,6 @@
 #include <libkann/datasets/write.hpp>
 
-#include <libkann/Tensor.hpp>
+#include <libtensor/Tensor.hpp>
 
 namespace kann
 {

@@ -2,8 +2,8 @@
 
 #include <libkann/Export.hpp>
 #include <libkann/Tag.hpp>
-#include <libkann/Shape.hpp>
-#include <libkann/Tensor.hpp>
+#include <libtensor/Shape.hpp>
+#include <libtensor/Tensor.hpp>
 #include <libkann/LayerStorage.hpp>
 
 #include <yaml-cpp/yaml.h>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <libkann/Export.hpp>
-#include <libkann/Tensor.hpp>
+#include <libtensor/Tensor.hpp>
 
 #include <SFML/Graphics/Image.hpp>
 

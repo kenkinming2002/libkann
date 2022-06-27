@@ -1,6 +1,6 @@
 #include <libkann/optimizers/SimpleOptimizer.hpp>
 
-#include <libkann/Math.hpp>
+#include <libtensor/Math.hpp>
 
 namespace kann
 {
