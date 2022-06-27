@@ -71,6 +71,9 @@ namespace kann::math
 
   inline Tensor<const float> pad(Tensor<const float> inputs, Vec2 padding_size)
   {
+    if(padding_size.height() == 0 && padding_size.width() == 0)
+      return inputs; // Fast path
+
     const auto [M, N] = std::make_pair(inputs.dimension(0), inputs.dimension(1));
     const Vec2 input_size = Vec2(inputs.dimension(2), inputs.dimension(3));
     const Vec2 output_size = input_size + 2 * padding_size;
