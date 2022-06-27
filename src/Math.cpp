@@ -69,6 +69,44 @@ namespace kann::math
     }
   }
 
+  inline Tensor<const float> pad(Tensor<const float> inputs, Vec2 padding_size)
+  {
+    const auto [M, N] = std::make_pair(inputs.dimension(0), inputs.dimension(1));
+    const Vec2 input_size = Vec2(inputs.dimension(2), inputs.dimension(3));
+    const Vec2 output_size = input_size + 2 * padding_size;
+
+    Tensor<float> outputs = Tensor<float>::create(Shape{M, N, output_size.height(), output_size.width()});
+    for(size_t j=0; j<M; ++j)
+      for(size_t i=0; i<N; ++i)
+      {
+        // Zero-fill
+        for(size_t y=0; y<padding_size.height(); ++y)
+          for(size_t x=0; x<output_size.width(); ++x)
+            outputs(j, i, y, x) = 0.0f;
+
+        for(size_t y=padding_size.height(); y<padding_size.height()+input_size.height(); ++y)
+        {
+          // Zero fill
+          for(size_t x=0; x<padding_size.width(); ++x)
+            outputs(j, i, y, x) = 0.0f;
+
+          for(size_t x=padding_size.width(); x<padding_size.width()+input_size.width(); ++x)
+            outputs(j, i, y, x) = inputs(j, i, y - padding_size.height(), x - padding_size.width());
+
+          // Zero fill
+          for(size_t x=padding_size.width() + input_size.width(); x<output_size.width(); ++x)
+            outputs(j, i, y, x) = 0.0f;
+        }
+
+        // Zero-fill
+        for(size_t y=padding_size.height()+input_size.height(); y<output_size.height(); ++y)
+          for(size_t x=0; x<output_size.width(); ++x)
+            outputs(j, i, y, x) = 0.0f;
+      }
+
+    return outputs;
+  }
+
   void image2d_operation(Tensor<float> outputs,
       Tensor<const float> inputs, bool transpose_inputs,
       Tensor<const float> kernels, bool transpose_kernels,
@@ -88,6 +126,7 @@ namespace kann::math
     const auto [M, N, K] = std::make_tuple(M1, N1, K1);
     const auto [output_size, input_size, kernel_size] = std::make_tuple(Vec2(P1, P2), Vec2(Q1, Q2), Vec2(R1, R2));
     const Vec2 padding_size = ((output_size - input_size) + (kernel_size - Vec2(1,1))) / 2;
+    inputs = pad(std::move(inputs), padding_size);
 
     // It would a mystery if the following code works the first time.
     // Nevertheless, we plan to replace it with algorithm using FFT anyway hopefully soonish
@@ -105,14 +144,8 @@ namespace kann::math
                 {
                   const auto [iy, ix] = std::make_pair(oy + ky, ox + kx); // This disregard padding
 
-                  if(iy < padding_size.height() || iy >= input_size.height() + padding_size.height())
-                    continue;
-
-                  if(ix < padding_size.width()  || ix >= input_size.width()  + padding_size.width())
-                    continue;
-
-                  float input  = transpose_inputs  ? inputs(k, j, iy - padding_size.height(), ix - padding_size.width())
-                                                   : inputs(j, k, iy - padding_size.height(), ix - padding_size.width());
+                  float input  = transpose_inputs  ? inputs(k, j, iy /*- padding_size.height()*/, ix /*- padding_size.width()*/)
+                                                   : inputs(j, k, iy /*- padding_size.height()*/, ix /*- padding_size.width()*/);
                                                                                                    //
                   float kernel = (operation == Image2DOperation::CROSS_CORRELATION) ? (transpose_kernels ? kernels(i, k, ky,                            kx                          ) : kernels(k, i, ky,                            kx                          ))
                                : (operation == Image2DOperation::CONVOLUTION)       ? (transpose_kernels ? kernels(i, k, kernel_size.height() - ky - 1, kernel_size.width() - kx - 1) : kernels(k, i, kernel_size.height() - ky - 1, kernel_size.width() - kx - 1))
