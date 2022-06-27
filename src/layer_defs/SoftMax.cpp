@@ -37,9 +37,9 @@ namespace kann
     return shape;
   }
 
-  Tensor<float> SoftMaxLayerDef::forward(Layer& layer, Tensor<float> inputs) const
+  Tensor<const float> SoftMaxLayerDef::forward(Layer& layer, Tensor<const float> inputs) const
   {
-    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, Tensor<float> inputs, Tensor<float> outputs)
+    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, Tensor<const float> inputs, Tensor<float> outputs)
     {
       const size_t size = this->shape.size();
 
@@ -62,13 +62,13 @@ namespace kann
     });
   }
 
-  Tensor<float> SoftMaxLayerDef::backward(Layer& layer, Tensor<float> output_gradients) const
+  Tensor<const float> SoftMaxLayerDef::backward(Layer& layer, Tensor<const float> output_gradients) const
   {
-    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, Tensor<float> output_gradients, Tensor<float> input_gradients)
+    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, Tensor<const float> output_gradients, Tensor<float> input_gradients)
     {
       const size_t size = this->shape.size();
 
-      Tensor<float> outputs        = std::move(layer.saved_tensors[0]);
+      Tensor<const float> outputs = std::move(layer.saved_tensors[0]);
 
       auto _outputs          = outputs         .reshape(Shape{batch_size, size});
       auto _input_gradients  = input_gradients .reshape(Shape{batch_size, size});

@@ -49,9 +49,9 @@ namespace kann
     return output_shape;
   }
 
-  Tensor<float> DenseLayerDef::forward(Layer& layer, Tensor<float> inputs) const
+  Tensor<const float> DenseLayerDef::forward(Layer& layer, Tensor<const float> inputs) const
   {
-    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, Tensor<float> inputs, Tensor<float> outputs)
+    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, Tensor<const float> inputs, Tensor<float> outputs)
     {
       const size_t input_size  = this->get_input_shape().size();
       const size_t output_size = this->get_output_shape().size();
@@ -76,14 +76,14 @@ namespace kann
     });
   }
 
-  Tensor<float> DenseLayerDef::backward(Layer& layer, Tensor<float> output_gradients) const
+  Tensor<const float> DenseLayerDef::backward(Layer& layer, Tensor<const float> output_gradients) const
   {
-    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, Tensor<float> output_gradients, Tensor<float> input_gradients)
+    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, Tensor<const float> output_gradients, Tensor<float> input_gradients)
     {
       const size_t input_size  = this->get_input_shape().size();
       const size_t output_size = this->get_output_shape().size();
 
-      Tensor<float> inputs = std::move(layer.saved_tensors[0]);
+      Tensor<const float> inputs = std::move(layer.saved_tensors[0]);
       Variable& weight = layer.storage->parameters[0];
       Variable& bias   = layer.storage->parameters[1];
 

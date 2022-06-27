@@ -5,9 +5,9 @@
 
 namespace kann
 {
-  std::vector<Tensor<float>> batch(std::vector<Tensor<float>> values, size_t batch_size)
+  std::vector<Tensor<const float>> batch(std::vector<Tensor<const float>> values, size_t batch_size)
   {
-    std::vector<Tensor<float>> results;
+    std::vector<Tensor<const float>> results;
 
     const Shape value_shape  = values.front().shape();
     const Shape result_shape = Shape::concat(Shape(batch_size), value_shape);
@@ -25,9 +25,9 @@ namespace kann
     return results;
   }
 
-  std::vector<Tensor<float>> unbatch(std::vector<Tensor<float>> values, size_t batch_size)
+  std::vector<Tensor<const float>> unbatch(std::vector<Tensor<const float>> values, size_t batch_size)
   {
-    std::vector<Tensor<float>> results;
+    std::vector<Tensor<const float>> results;
 
     const Shape value_shape  = values.front().shape();
     const Shape result_shape = value_shape.drop_front(1);

@@ -4,7 +4,7 @@
 
 namespace kann
 {
-  Tensor<float> CrossEntropyLossFunction::forward(Tensor<float> inputs)
+  Tensor<const float> CrossEntropyLossFunction::forward(Tensor<const float> inputs)
   {
     const size_t batch_size = inputs.shape().dimension(0);
     const Shape  shape      = inputs.shape().drop_front(1);
@@ -31,9 +31,9 @@ namespace kann
     return outputs;
   }
 
-  Tensor<float> CrossEntropyLossFunction::backward(Tensor<float> output_gradients)
+  Tensor<const float> CrossEntropyLossFunction::backward(Tensor<const float> output_gradients)
   {
-    Tensor<float> inputs = std::move(saved_tensors[0]);
+    Tensor<const float> inputs = std::move(saved_tensors[0]);
 
     const size_t batch_size = inputs.shape().dimension(0);
     const Shape  shape      = inputs.shape().drop_front(1);

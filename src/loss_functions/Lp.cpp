@@ -22,7 +22,7 @@ namespace kann
     return value >= 0.0f ? 1.0f : -1.0f;
   }
 
-  Tensor<float> LpLossFunction::forward(Tensor<float> inputs)
+  Tensor<const float> LpLossFunction::forward(Tensor<const float> inputs)
   {
     const size_t batch_size = inputs.shape().dimension(0);
     const Shape  shape      = inputs.shape().drop_front(1);
@@ -48,9 +48,9 @@ namespace kann
     return outputs;
   }
 
-  Tensor<float> LpLossFunction::backward(Tensor<float> output_gradients)
+  Tensor<const float> LpLossFunction::backward(Tensor<const float> output_gradients)
   {
-    Tensor<float> inputs = std::move(saved_tensors[0]);
+    Tensor<const float> inputs = std::move(saved_tensors[0]);
 
     const size_t batch_size = inputs.shape().dimension(0);
     const Shape  shape      = inputs.shape().drop_front(1);

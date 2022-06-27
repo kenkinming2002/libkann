@@ -56,9 +56,9 @@ namespace kann
     return Shape{output_channel_count, output_size.height(), output_size.width()};
   }
 
-  Tensor<float> ConvolutionalLayerDef::forward(Layer& layer, Tensor<float> inputs) const
+  Tensor<const float> ConvolutionalLayerDef::forward(Layer& layer, Tensor<const float> inputs) const
   {
-    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, Tensor<float> inputs, Tensor<float> outputs)
+    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, Tensor<const float> inputs, Tensor<float> outputs)
     {
       const Variable& kernels = layer.storage->parameters[0];
 
@@ -77,11 +77,11 @@ namespace kann
     });
   }
 
-  Tensor<float> ConvolutionalLayerDef::backward(Layer& layer, Tensor<float> output_gradients) const
+  Tensor<const float> ConvolutionalLayerDef::backward(Layer& layer, Tensor<const float> output_gradients) const
   {
-    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, Tensor<float> output_gradients, Tensor<float> input_gradients)
+    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, Tensor<const float> output_gradients, Tensor<float> input_gradients)
     {
-      Tensor<float> inputs = std::move(layer.saved_tensors[0]);
+      Tensor<const float> inputs = std::move(layer.saved_tensors[0]);
       Variable& kernels = layer.storage->parameters[0];
 
       auto _inputs           = inputs          .reshape(Shape{batch_size, input_channel_count,  input_size.height(),  input_size.width()});

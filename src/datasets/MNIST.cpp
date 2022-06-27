@@ -59,7 +59,7 @@ namespace kann
     }
   };
 
-  std::vector<Tensor<float>> load_mnist_dataset_images(const char* file_name)
+  std::vector<Tensor<const float>> load_mnist_dataset_images(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -74,7 +74,7 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<Tensor<float>> images;
+    std::vector<Tensor<const float>> images;
     images.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)
@@ -92,7 +92,7 @@ namespace kann
     return images;
   }
 
-  std::vector<Tensor<float>> load_mnist_dataset_labels(const char* file_name)
+  std::vector<Tensor<const float>> load_mnist_dataset_labels(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -103,7 +103,7 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<Tensor<float>> labels;
+    std::vector<Tensor<const float>> labels;
     labels.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)

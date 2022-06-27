@@ -30,9 +30,9 @@ namespace kann
       return Tensor(std::move(shape), std::move(data));
     }
 
-    Tensor clone() const
+    Tensor<std::remove_const_t<T>> clone() const
     {
-      Tensor result = create(m_shape);
+      Tensor<std::remove_const_t<T>> result = Tensor<std::remove_const_t<T>>::create(m_shape);
       std::copy_n(data(), size(), result.data());
       return result;
     }

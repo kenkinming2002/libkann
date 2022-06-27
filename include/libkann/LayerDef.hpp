@@ -52,11 +52,11 @@ namespace kann
     KANN_EXPORT virtual Shape get_output_shape() const = 0;
 
   public:
-    KANN_EXPORT virtual Tensor<float> forward(Layer& layer, Tensor<float> inputs) const = 0;
-    KANN_EXPORT virtual Tensor<float> backward(Layer& layer, Tensor<float> output_gradients) const = 0;
+    KANN_EXPORT virtual Tensor<const float> forward(Layer& layer, Tensor<const float> inputs) const = 0;
+    KANN_EXPORT virtual Tensor<const float> backward(Layer& layer, Tensor<const float> output_gradients) const = 0;
 
   protected:
-    Tensor<float> forward_helper(Layer& layer, Tensor<float> inputs, const auto& impl) const
+    Tensor<const float> forward_helper(Layer& layer, Tensor<const float> inputs, const auto& impl) const
     {
       const size_t batch_size = inputs.shape().dimension(0);
       const Shape inputs_shape  = Shape::concat(Shape(batch_size), this->get_input_shape());
@@ -67,7 +67,7 @@ namespace kann
       return impl(layer, batch_size, std::move(inputs), std::move(outputs));
     }
 
-    Tensor<float> backward_helper(Layer& layer, Tensor<float> output_gradients, const auto& impl) const
+    Tensor<const float> backward_helper(Layer& layer, Tensor<const float> output_gradients, const auto& impl) const
     {
       const size_t batch_size = output_gradients.shape().dimension(0);
       const Shape inputs_shape  = Shape::concat(Shape(batch_size), this->get_input_shape());

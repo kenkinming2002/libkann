@@ -65,7 +65,7 @@ namespace kann
     return std::make_shared<LayerStorage>();
   }
 
-  Tensor<float> ActivationLayerDef::forward(Layer& layer, Tensor<float> inputs) const
+  Tensor<const float> ActivationLayerDef::forward(Layer& layer, Tensor<const float> inputs) const
   {
     Tensor<float> outputs = Tensor<float>::create(inputs.shape());
     math::transform<1>(outputs.flatten(), {inputs.flatten()}, [this](float /*output*/, float input)
@@ -90,9 +90,9 @@ namespace kann
     return outputs;
   }
 
-  Tensor<float> ActivationLayerDef::backward(Layer& layer, Tensor<float> output_gradients) const
+  Tensor<const float> ActivationLayerDef::backward(Layer& layer, Tensor<const float> output_gradients) const
   {
-    Tensor<float> inputs = std::move(layer.saved_tensors[0]);
+    Tensor<const float> inputs = std::move(layer.saved_tensors[0]);
 
     Tensor<float> input_gradients = Tensor<float>::create(inputs.shape());
     math::transform<2>(input_gradients.flatten(), {inputs.flatten(), output_gradients.flatten()}, [this](float /*input_gradient*/, float input, float output_gradient)

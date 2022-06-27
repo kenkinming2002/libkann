@@ -14,13 +14,13 @@
 #include <libkann/layer_defs/Dense.hpp>
 #include <libkann/layer_defs/SoftMax.hpp>
 
-kann::Tensor<float> with_unit_batching(kann::Tensor<float> value)
+kann::Tensor<const float> with_unit_batching(kann::Tensor<const float> value)
 {
   kann::Shape shape = value.shape();
   return std::move(value).reshape(kann::Shape::concat(kann::Shape(1), shape));
 }
 
-kann::Tensor<float> without_unit_batching(kann::Tensor<float> value)
+kann::Tensor<const float> without_unit_batching(kann::Tensor<const float> value)
 {
   kann::Shape shape = value.shape();
 
@@ -69,17 +69,17 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const k
   LayerDerivative derivative = LayerDerivative::create_uninitialized_for(layer);
   for(size_t j=0; j<output_size; ++j)
   {
-    kann::Tensor<float> input  = with_unit_batching(random_input.clone());
-    kann::Tensor<float> output = without_unit_batching(layer.forward(input.clone()));
+    kann::Tensor<const float> input  = with_unit_batching(random_input.clone());
+    kann::Tensor<const float> output = without_unit_batching(layer.forward(input.clone()));
     (void)output;
 
-    kann::Tensor<float> output_gradient = with_unit_batching(create_basis(output_shape, j));
-    kann::Tensor<float> input_gradient  = without_unit_batching(layer.backward(output_gradient.clone()));
+    kann::Tensor<const float> output_gradient = with_unit_batching(create_basis(output_shape, j));
+    kann::Tensor<const float> input_gradient  = without_unit_batching(layer.backward(output_gradient.clone()));
 
     // Derivative for input
     {
-      kann::Tensor<float> _input_derivative = derivative.input.reshape(kann::Shape(output_size, input_size));
-      kann::Tensor<float> _input_gradient   = input_gradient.reshape(kann::Shape(input_size));
+      kann::Tensor<float>       _input_derivative = derivative.input.reshape(kann::Shape(output_size, input_size));
+      kann::Tensor<const float> _input_gradient   = input_gradient.reshape(kann::Shape(input_size));
       for(size_t i=0; i<input_size; ++i)
         _input_derivative(j,i) = _input_gradient(i);
     }
@@ -124,11 +124,11 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const ka
   {
     for(size_t i=0; i<input_size; ++i)
     {
-      kann::Tensor<float> input1  = with_unit_batching(random_input.clone());
-      kann::Tensor<float> output1 = without_unit_batching(layer.forward(input1.clone()));
+      kann::Tensor<const float> input1  = with_unit_batching(random_input.clone());
+      kann::Tensor<const float> output1 = without_unit_batching(layer.forward(input1.clone()));
 
-      kann::Tensor<float> input2  = with_unit_batching(perturb(random_input.clone(), i, dx));
-      kann::Tensor<float> output2 = without_unit_batching(layer.forward(input2.clone()));
+      kann::Tensor<const float> input2  = with_unit_batching(perturb(random_input.clone(), i, dx));
+      kann::Tensor<const float> output2 = without_unit_batching(layer.forward(input2.clone()));
 
       kann::Tensor<float> output_gradient = output2.clone();
       kann::math::transform<1>(output_gradient.flatten(), { output1.flatten() },         kann::math::SUB);
@@ -153,15 +153,15 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const ka
       // This time we perturb the parameter instead of input
       for(size_t i=0; i<parameter_size; ++i)
       {
-        kann::Tensor<float> input1  = with_unit_batching(random_input.clone());
-        kann::Tensor<float> output1 = without_unit_batching(layer.forward(input1.clone()));
+        kann::Tensor<const float> input1  = with_unit_batching(random_input.clone());
+        kann::Tensor<const float> output1 = without_unit_batching(layer.forward(input1.clone()));
 
         // Save and perturb
         kann::Tensor<float> saved_parameter = std::move(parameters[k]->value);
         parameters[k]->value = perturb(saved_parameter.clone(), i, dx);
 
-        kann::Tensor<float> input2  = with_unit_batching(random_input.clone());
-        kann::Tensor<float> output2 = without_unit_batching(layer.forward(input2.clone()));
+        kann::Tensor<const float> input2  = with_unit_batching(random_input.clone());
+        kann::Tensor<const float> output2 = without_unit_batching(layer.forward(input2.clone()));
 
         // Restore
         parameters[k]->value = std::move(saved_parameter);

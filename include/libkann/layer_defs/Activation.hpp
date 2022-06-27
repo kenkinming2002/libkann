@@ -32,7 +32,7 @@ namespace kann
     KANN_EXPORT Shape get_output_shape() const override;
 
   public:
-    KANN_EXPORT Tensor<float> forward(Layer& layer, Tensor<float> inputs) const override;
-    KANN_EXPORT Tensor<float> backward(Layer& layer, Tensor<float> output_gradients) const override;
+    KANN_EXPORT Tensor<const float> forward(Layer& layer, Tensor<const float> inputs) const override;
+    KANN_EXPORT Tensor<const float> backward(Layer& layer, Tensor<const float> output_gradients) const override;
   };
 }
