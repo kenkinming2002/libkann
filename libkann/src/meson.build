@@ -30,6 +30,7 @@ libkann_sources = [
 
 libkann_lib = library('kann', libkann_sources,
   include_directories : ['../include'],
+  cpp_pch             : ['pch/pch.hpp'],
   dependencies        : [libtensor_dep, fmt_dep, range_v3_dep, yaml_cpp_dep],
   gnu_symbol_visibility : 'hidden'
 )
