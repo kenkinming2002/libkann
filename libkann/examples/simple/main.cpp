@@ -183,11 +183,11 @@ int main(int argc, char** argv)
   const size_t epoch      = std::stoull(epoch_str);
 
   // 3: Running
-  std::vector<kann::Tensor<const float>> mnist_testing_images = kann::load_mnist_dataset_images("datasets/mnist/t10k-images-idx3-ubyte");
-  std::vector<kann::Tensor<const float>> mnist_testing_labels = kann::load_mnist_dataset_labels("datasets/mnist/t10k-labels-idx1-ubyte");
+  std::vector<kann::Tensor<const float>> mnist_testing_images = kann::load_mnist_dataset_images("libkann/datasets/mnist/t10k-images-idx3-ubyte");
+  std::vector<kann::Tensor<const float>> mnist_testing_labels = kann::load_mnist_dataset_labels("libkann/datasets/mnist/t10k-labels-idx1-ubyte");
 
-  std::vector<kann::Tensor<const float>> mnist_training_images = kann::load_mnist_dataset_images("datasets/mnist/train-images-idx3-ubyte");
-  std::vector<kann::Tensor<const float>> mnist_training_labels = kann::load_mnist_dataset_labels("datasets/mnist/train-labels-idx1-ubyte");
+  std::vector<kann::Tensor<const float>> mnist_training_images = kann::load_mnist_dataset_images("libkann/datasets/mnist/train-images-idx3-ubyte");
+  std::vector<kann::Tensor<const float>> mnist_training_labels = kann::load_mnist_dataset_labels("libkann/datasets/mnist/train-labels-idx1-ubyte");
 
   // Initial testing
   testing("Initial testing", *layer, mnist_testing_images, mnist_testing_labels, batch_size, 10000);
