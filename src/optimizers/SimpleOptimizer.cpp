@@ -9,6 +9,6 @@ namespace kann
 
   void SimpleOptimizer::optimize(Variable& variable) const
   {
-    math::transform<1>(variable.value.as_ref(), {variable.gradient.as_const_ref()}, math::FMA(-m_learningRate));
+    math::transform<1>(variable.value.flatten(), {variable.gradient.flatten()}, math::FMA(-m_learningRate));
   }
 }

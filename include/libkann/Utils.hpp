@@ -6,5 +6,5 @@
 
 namespace kann::utils
 {
-  KANN_EXPORT size_t max_coeff(TensorRef<const float> value);
+  KANN_EXPORT size_t max_coeff(Tensor<const float> value);
 }

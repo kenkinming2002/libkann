@@ -7,13 +7,13 @@
 
 namespace kann::math
 {
-  KANN_EXPORT float norm(TensorRef<const float> value);
+  KANN_EXPORT float norm(const Tensor<float>& value);
 
   enum class Direction { LEFT, RIGHT };
 
-  template<size_t N> void broadcast(TensorRef<float> dst, std::array<TensorRef<const float>, N> srcs, Direction direction, const auto& impl);
-  template<size_t N> void reduce   (TensorRef<float> dst, std::array<TensorRef<const float>, N> srcs, Direction direction, const auto& impl);
-  template<size_t N> void transform(TensorRef<float> dst, std::array<TensorRef<const float>, N> srcs, const auto& impl);
+  template<size_t K> void broadcast(Tensor<float> dst, std::array<Tensor<const float>, K> srcs, Direction direction, const auto& impl);
+  template<size_t K> void reduce   (Tensor<float> dst, std::array<Tensor<const float>, K> srcs, Direction direction, const auto& impl);
+  template<size_t K> void transform(Tensor<float> dst, std::array<Tensor<const float>, K> srcs, const auto& impl);
 
   static constexpr auto FMA(float value)  { return [=](float output, float input) { return output + value * input;  }; }
   static constexpr auto SCALE(float value)  { return [=](float output, float input) { return value * input;  }; }
@@ -24,115 +24,114 @@ namespace kann::math
   static constexpr auto SUB  = [](float output, float input) { return output - input;  };
   static constexpr auto DIV  = [](float output, float input) { return output / input;  };
 
-  KANN_EXPORT void product(TensorRef<float> dst, TensorRef<const float> a, bool transpose_a, TensorRef<const float> b, bool transpose_b);
+  KANN_EXPORT void product(Tensor<float> dst,
+      Tensor<const float> a, bool transpose_a,
+      Tensor<const float> b, bool transpose_b);
 
   enum class Image2DOperation { CROSS_CORRELATION, CONVOLUTION };
-  KANN_EXPORT void image2d_operation(TensorRef<float> outputs, TensorRef<const float> inputs, bool transpose_inputs, TensorRef<const float> kernels, bool transpose_kernels, Image2DOperation operation);
+  KANN_EXPORT void image2d_operation(Tensor<float> outputs,
+      Tensor<const float> inputs, bool transpose_inputs,
+      Tensor<const float> kernels, bool transpose_kernels,
+      Image2DOperation operation);
 
   /******************
    * Implementation *
    ******************/
-  namespace details
+  template<size_t K>
+  void broadcast(Tensor<float> dst, std::array<Tensor<const float>, K> srcs, Direction direction, const auto& impl) requires(K != 0)
   {
-    inline constexpr auto split_by(Shape a, Shape b, Direction direction)
-    {
-      switch(direction)
-      {
-      case Direction::LEFT: // Pad to the left
-        assert(a.back(b.rank()) == b);
-        return std::make_pair(a.drop_back(b.rank()), b);
-      case Direction::RIGHT: // Pad to the right
-        assert(a.front(b.rank()) == b);
-        return std::make_pair(b, a.drop_front(b.rank()));
-      default:
-        assert(false && "Unreachable");
-      }
-    };
+    assert(dst.rank() == 2);
+    assert(ranges::all_of(srcs, [](const auto& src) { return src.rank() == 1; }));
 
-    template<typename From, size_t N>
-    inline constexpr auto array_transform(std::array<From, N>& values, const auto& f)
+    const auto& [M, N] = std::make_pair(dst.dimension(0), dst.dimension(1));
+    if(direction == Direction::LEFT)
     {
-      return [&]<size_t... Is>(std::index_sequence<Is...>) {
-        return std::array{f(values[Is])...};
-      }(std::make_index_sequence<N>());
+      assert(ranges::all_of(srcs, [N=N](const auto& src) { return src.dimension(0) == N; }));
+      for(size_t i=0; i<M; ++i)
+        for(size_t j=0; j<N; ++j)
+        {
+          std::array<float, K> inputs;
+          for(size_t k=0; k<K; ++k)
+            inputs[k] = srcs[k](j);
+
+          float& output = dst(i,j);
+          std::apply([&](auto... inputs) { output = impl(output, inputs...); }, inputs);
+        }
     }
-  }
-
-  template<size_t N>
-  void broadcast(TensorRef<float> dst, std::array<TensorRef<const float>, N> srcs, Direction direction, const auto& impl)
-  {
-    // Step 1: Compute shape
-    assert(!srcs.empty());
-    const auto& [left, right] = details::split_by(dst.shape(), srcs.front().shape(), direction);
-
-    // Step 2: Reshape
-    dst = dst.reshape(Shape(left.size(), right.size()));
-    for(TensorRef<const float>& src : srcs)
-      src = src.reshape(Shape(src.size()));
-
-
-    // Step 3: Compute
-    for(size_t i=0; i<left.size(); ++i)
-      for(size_t j=0; j<right.size(); ++j)
-      {
-        float* output = &dst[i][j].as_scalar();
-
-        std::array<float, N> inputs;
-        switch(direction)
-        {
-        case Direction::LEFT:  inputs = details::array_transform(srcs, [&](auto& src) { return src[j].as_scalar(); }); break;
-        case Direction::RIGHT: inputs = details::array_transform(srcs, [&](auto& src) { return src[i].as_scalar(); }); break;
-        }
-
-        std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
-      }
-  }
-
-  template<size_t N>
-  void reduce(TensorRef<float> dst, std::array<TensorRef<const float>, N> srcs, Direction direction, const auto& impl)
-  {
-    // Step 1: Compute shape
-    assert(!srcs.empty());
-    const auto& [left, right] = details::split_by(srcs.front().shape(), dst.shape(), direction);
-
-    // Step 2: Reshape
-    dst = dst.flatten();
-    for(TensorRef<const float>& src : srcs)
-      src = src.reshape(Shape(left.size(), right.size()));
-
-
-    // Step 3: Compute
-    for(size_t i=0; i<left.size(); ++i)
-      for(size_t j=0; j<right.size(); ++j)
-      {
-        float* output;
-        switch(direction)
-        {
-        case Direction::LEFT:   output = &dst[j].as_scalar(); break;
-        case Direction::RIGHT:  output = &dst[i].as_scalar(); break;
-        }
-
-        std::array<float, N> inputs = details::array_transform(srcs, [&](auto& src) { return src[i][j].as_scalar(); });
-
-        std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
-      }
-  }
-
-  template<size_t N>
-  void transform(TensorRef<float> dst, std::array<TensorRef<const float>, N> srcs, const auto& impl)
-  {
-    for(TensorRef<const float>& src : srcs)
-      assert(dst.shape() == src.shape());
-
-    dst = dst.flatten();
-    for(TensorRef<const float>& src : srcs)
-      src = src.reshape(Shape(src.size()));
-
-    for(size_t i=0; i<dst.size(); ++i)
+    else if(direction == Direction::RIGHT)
     {
-      float* output = &dst[i].as_scalar();
-      std::array<float, N> inputs = details::array_transform(srcs, [&](auto& src) { return src[i].as_scalar(); });
-      std::apply([&](auto... inputs) { *output = impl(*output, inputs...); }, inputs);
+      assert(ranges::all_of(srcs, [M=M](const auto& src) { return src.dimension(0) == M; }));
+      for(size_t i=0; i<M; ++i)
+        for(size_t j=0; j<N; ++j)
+        {
+          std::array<float, K> inputs;
+          for(size_t k=0; k<K; ++k)
+            inputs[k] = srcs[k](i);
+
+          float& output = dst(i,j);
+          std::apply([&](auto... inputs) { output = impl(output, inputs...); }, inputs);
+        }
+    }
+    else
+      assert(false && "Unreachable");
+  }
+
+  template<size_t K>
+  void reduce(Tensor<float> dst, std::array<Tensor<const float>, K> srcs, Direction direction, const auto& impl) requires(K != 0)
+  {
+    assert(dst.rank() == 1);
+    assert(ranges::all_of(srcs, [](const auto& src) { return src.rank() == 2; }));
+
+    const auto& [M, N] = std::make_pair(srcs.front().dimension(0), srcs.front().dimension(1));
+    assert(ranges::all_of(srcs, [M=M, N=N](const auto& src) { return src.dimension(0) == M && src.dimension(1) == N; }));
+    if(direction == Direction::LEFT)
+    {
+      assert(dst.dimension(0) == N);
+      for(size_t i=0; i<M; ++i)
+        for(size_t j=0; j<N; ++j)
+        {
+          std::array<float, K> inputs;
+          for(size_t k=0; k<K; ++k)
+            inputs[k] = srcs[k](i, j);
+
+          float& output = dst(j);
+          std::apply([&](auto... inputs) { output = impl(output, inputs...); }, inputs);
+        }
+    }
+    else if(direction == Direction::RIGHT)
+    {
+      assert(dst.dimension(0) == M);
+      for(size_t i=0; i<M; ++i)
+        for(size_t j=0; j<N; ++j)
+        {
+          std::array<float, K> inputs;
+          for(size_t k=0; k<K; ++k)
+            inputs[k] = srcs[k](i, j);
+
+          float& output = dst(i);
+          std::apply([&](auto... inputs) { output = impl(output, inputs...); }, inputs);
+        }
+    }
+    else
+      assert(false && "Unreachable");
+  }
+
+  template<size_t K>
+  void transform(Tensor<float> dst, std::array<Tensor<const float>, K> srcs, const auto& impl)
+  {
+    assert(dst.rank() == 1);
+    assert(ranges::all_of(srcs, [](const auto& src) { return src.rank() == 1; }));
+
+    const size_t N = dst.size();
+    assert(ranges::all_of(srcs, [&](const auto& src) { return src.dimension(0) == N; }));
+    for(size_t i=0; i<N; ++i)
+    {
+      std::array<float, K> inputs;
+      for(size_t k=0; k<K; ++k)
+        inputs[k] = srcs[k](i);
+
+      float& output = dst(i);
+      std::apply([&](auto... inputs) { output = impl(output, inputs...); }, inputs);
     }
   }
 }

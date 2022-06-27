@@ -3,6 +3,7 @@
 #include <Eigen/Eigen>
 
 #include <range/v3/all.hpp>
+#include <fmt/core.h>
 
 namespace kann::math
 {
@@ -10,201 +11,118 @@ namespace kann::math
   using EigenVector = Eigen::RowVectorXf;
   using EigenMatrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
-  template<typename T>
-  static inline auto to_eigen_array(const TensorRef<T>& tensor)
+  static inline auto to_eigen_array(auto& tensor)
   {
     return EigenArray::Map(tensor.data(), tensor.size());
   }
 
-  template<typename T>
-  static inline auto to_eigen_vector(const TensorRef<T>& tensor)
+  static inline auto to_eigen_vector(auto& tensor)
   {
-    assert(tensor.is_vector());
+    assert(tensor.rank() == 1);
     return EigenVector::Map(tensor.data(), tensor.shape().size());
   }
 
-  template<typename T>
-  static inline auto to_eigen_matrix(const TensorRef<T>& tensor)
+  static inline auto to_eigen_matrix(auto& tensor)
   {
-    assert(tensor.is_matrix());
+    assert(tensor.rank() == 2);
     return EigenMatrix::Map(tensor.data(),
       tensor.shape().dimension(0),
       tensor.shape().dimension(1)
     );
   }
 
-  float norm(TensorRef<const float> value)
+  float norm(const Tensor<float>& value)
   {
-    value = value.flatten();
+    Tensor<float> flattened = value.flatten();
 
     float sum = 0.0;
     for(size_t i=0; i<value.size(); ++i)
-      sum += value[i].as_scalar() * value[i].as_scalar();
+      sum += value(i) * value(i);
 
     return std::sqrt(sum);
   }
 
-  void product(TensorRef<float> dst, TensorRef<const float> a, bool transpose_a, TensorRef<const float> b, bool transpose_b)
+  void product(Tensor<float> dst,
+      Tensor<const float> a, bool transpose_a,
+      Tensor<const float> b, bool transpose_b)
   {
-    // Step 1: Compute all the shapes
-    Shape M, N, K;
+    assert(a.rank() == 2);
+    assert(b.rank() == 2);
+    assert(dst.rank() == 2);
+
+    auto _a   = EigenMatrix::Map(a.data(),   a.shape().dimension(0),   a.shape().dimension(1));
+    auto _b   = EigenMatrix::Map(b.data(),   b.shape().dimension(0),   b.shape().dimension(1));
+    auto _dst = EigenMatrix::Map(dst.data(), dst.shape().dimension(0), dst.shape().dimension(1));
+    if(transpose_a)
     {
-      /* a.rank() = M.rank() + K.rank()
-       * b.rank() = K.rank() + N.rank()
-       * c.rank() = M.rank() + N.rank() */
-      size_t rank_M = (a.rank() + dst.rank() - b.rank()) / 2;
-      size_t rank_N = (b.rank() + dst.rank() - a.rank()) / 2;
-      size_t rank_K = (a.rank() + b.rank() - dst.rank()) / 2;
-
-      auto decompose = [](Shape shape, size_t rank1, size_t rank2, bool transpose)
-      {
-        Shape shape1, shape2;
-        if(transpose)
-          std::tie(shape2, shape1) = shape.split(rank2, rank1);
-        else
-          std::tie(shape1, shape2) = shape.split(rank1, rank2);
-        return std::make_pair(shape1, shape2);
-      };
-
-      const auto& [_M1, _K1] = decompose(a.shape(), rank_M, rank_K, transpose_a);
-      const auto& [_K2, _N1] = decompose(b.shape(), rank_K, rank_N, transpose_b);
-      const auto& [_M2, _N2] = decompose(dst.shape(), rank_M, rank_N, false);
-
-      assert(_M1 == _M2 && _N1 == _N2 && _K1 == _K2);
-      std::tie(M, N, K) = std::make_tuple(_M1, _N1, _K1);
-    }
-
-    // Step 2: Reshape
-    {
-      auto reshape = [](auto&& value, Shape shape1, Shape shape2, bool transpose)
-      {
-        if(transpose)
-          return std::forward<decltype(value)>(value).reshape(Shape(shape2.size(), shape1.size()));
-        else
-          return std::forward<decltype(value)>(value).reshape(Shape(shape1.size(), shape2.size()));
-      };
-      a   = reshape(a, M, K, transpose_a);
-      b   = reshape(b, K, N, transpose_b);
-      dst = reshape(dst, M, N, false);
-    }
-
-    // Step 3: Compute
-    {
-      auto _a   = to_eigen_matrix(a);
-      auto _b   = to_eigen_matrix(b);
-      auto _dst = to_eigen_matrix(dst);
-      if(transpose_a)
-      {
-        if(transpose_b)
-          _dst.noalias() = _a.transpose() * _b.transpose();
-        else
-          _dst.noalias() = _a.transpose() * _b;
-      }
+      if(transpose_b)
+        _dst.noalias() = _a.transpose() * _b.transpose();
       else
-      {
-        if(transpose_b)
-          _dst.noalias() = _a * _b.transpose();
-        else
-          _dst.noalias() = _a * _b;
-      }
+        _dst.noalias() = _a.transpose() * _b;
+    }
+    else
+    {
+      if(transpose_b)
+        _dst.noalias() = _a * _b.transpose();
+      else
+        _dst.noalias() = _a * _b;
     }
   }
 
-  static inline auto pad(Eigen::Ref<const EigenMatrix> matrix, Vec2 padding_size)
+  void image2d_operation(Tensor<float> outputs,
+      Tensor<const float> inputs, bool transpose_inputs,
+      Tensor<const float> kernels, bool transpose_kernels,
+      Image2DOperation operation)
   {
-    return EigenMatrix::NullaryExpr(matrix.rows() + 2 * padding_size.height(), matrix.cols() + 2 * padding_size.width(), [=](Eigen::Index row, Eigen::Index col)
-    {
-      if(static_cast<Eigen::Index>(padding_size.height()) <= row && row < matrix.rows() + static_cast<Eigen::Index>(padding_size.height())  &&
-         static_cast<Eigen::Index>(padding_size.width())  <= col && col < matrix.cols() + static_cast<Eigen::Index>(padding_size.width()))
-        return matrix(row - padding_size.height(), col - padding_size.width());
+    auto [M1, N1, P1, P2] = std::make_tuple(outputs.dimension(0), outputs.dimension(1), outputs.dimension(2), outputs.dimension(3));
+    auto [M2, K1, Q1, Q2] = std::make_tuple(inputs .dimension(0), inputs .dimension(1), inputs .dimension(2), inputs .dimension(3));
+    auto [K2, N2, R1, R2] = std::make_tuple(kernels.dimension(0), kernels.dimension(1), kernels.dimension(2), kernels.dimension(3));
 
-      return 0.0f;
-    });
-  }
+    if(transpose_inputs)  std::swap(M2, K1);
+    if(transpose_kernels) std::swap(K2, N2);
 
-  void image2d_operation(TensorRef<float> outputs, TensorRef<const float> inputs, bool transpose_inputs, TensorRef<const float> kernels, bool transpose_kernels, Image2DOperation operation)
-  {
-    // Step 1: Compute all the shapes, this is the same as in product() except we have to subtract the last two dimension
-    Shape M, N, K, P, Q, R;
-    {
-      /* a.rank() = M.rank() + K.rank()
-       * b.rank() = K.rank() + N.rank()
-       * c.rank() = M.rank() + N.rank() */
-      size_t rank_M = (inputs.rank()  + outputs.rank() - kernels.rank()) / 2 - 1;
-      size_t rank_N = (kernels.rank() + outputs.rank() - inputs.rank() ) / 2 - 1;
-      size_t rank_K = (inputs.rank()  + kernels.rank() - outputs.rank()) / 2 - 1;
+    assert(M1 == M2);
+    assert(N1 == N2);
+    assert(K1 == K2);
 
-      auto decompose = [](Shape shape, size_t rank1, size_t rank2, bool transpose)
-      {
-        Shape shape1, shape2;
-        if(transpose)
-          std::tie(shape2, shape1) = shape.drop_back(2).split(rank2, rank1);
-        else
-          std::tie(shape1, shape2) = shape.drop_back(2).split(rank1, rank2);
-        return std::make_tuple(shape1, shape2, shape.back(2));
-      };
+    const auto [M, N, K] = std::make_tuple(M1, N1, K1);
+    const auto [output_size, input_size, kernel_size] = std::make_tuple(Vec2(P1, P2), Vec2(Q1, Q2), Vec2(R1, R2));
+    const Vec2 padding_size = ((output_size - input_size) + (kernel_size - Vec2(1,1))) / 2;
 
-      Shape _M1, _M2;
-      Shape _N1, _N2;
-      Shape _K1, _K2;
-
-      std::tie(_M1, _K1, P) = decompose(inputs.shape(),  rank_M, rank_K, transpose_inputs);
-      std::tie(_K2, _N1, Q) = decompose(kernels.shape(), rank_K, rank_N, transpose_kernels);
-      std::tie(_M2, _N2, R) = decompose(outputs.shape(), rank_M, rank_N, false);
-      assert(_M1 == _M2 && _N1 == _N2 && _K1 == _K2);
-      std::tie(M, N, K) = std::make_tuple(_M1, _N1, _K1);
-    }
-
-    // Step 2: Reshape
-    {
-      auto reshape = [](auto&& value, Shape shape1, Shape shape2, Shape shape3, bool transpose)
-      {
-        if(transpose)
-          return std::forward<decltype(value)>(value).reshape(Shape::concat(Shape(shape2.size(), shape1.size()), shape3));
-        else
-          return std::forward<decltype(value)>(value).reshape(Shape::concat(Shape(shape1.size(), shape2.size()), shape3));
-      };
-      inputs  = reshape(inputs,  M, K, P, transpose_inputs);
-      kernels = reshape(kernels, K, N, Q, transpose_kernels);
-      outputs = reshape(outputs, M, N, R, false);
-
-    }
-
-    // Step 3: Compute
-    {
-      outputs.fill(0.0);
-      for(size_t i = 0; i<M.size(); ++i)
-        for(size_t j = 0; j<N.size(); ++j)
-          for(size_t k = 0; k<K.size(); ++k)
-          {
-            TensorRef<const float> input  = transpose_inputs  ? inputs[k][i]  : inputs[i][k];
-            TensorRef<const float> kernel = transpose_kernels ? kernels[j][k] : kernels[k][j];
-            TensorRef output = outputs[i][j];
-
-            const Vec2 input_size  = Vec2(input.dimension(0), input.dimension(1));
-            const Vec2 kernel_size = Vec2(kernel.dimension(0), kernel.dimension(1));
-            const Vec2 output_size = Vec2(output.dimension(0), output.dimension(1));
-            const Vec2 padding_size = ((output_size - input_size) + (kernel_size - Vec2(1,1))) / 2;
-
-            auto _input = to_eigen_matrix(input);
-            auto _kernel = to_eigen_matrix(kernel);
-            auto _output = to_eigen_matrix(output);
-            auto _padded_input = pad(_input, padding_size);
-
-            switch(operation)
+    // It would a mystery if the following code works the first time.
+    // Nevertheless, we plan to replace it with algorithm using FFT anyway hopefully soonish
+    outputs.fill(0.0);
+    for(size_t j=0; j<M; ++j)
+      for(size_t i=0; i<N; ++i)
+        for(size_t k=0; k<K; ++k)
+          for(size_t oy=0; oy<output_size.height(); ++oy)
+            for(size_t ox=0; ox<output_size.width(); ++ox)
             {
-            case Image2DOperation::CONVOLUTION:
-              _output.noalias() += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
-                return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel.reverse()).sum();
-              });
-              break;
-            case Image2DOperation::CROSS_CORRELATION:
-              _output.noalias() += EigenMatrix::NullaryExpr(_output.rows(), _output.cols(), [&](Eigen::Index row, Eigen::Index col) {
-                return pad(_input, padding_size).block(row, col, _kernel.rows(), _kernel.cols()).cwiseProduct(_kernel).sum();
-              });
-              break;
+              // We are inside five nested for loop and we can finally start doing the cross_correlation/convolution
+              float sum = 0.0f;
+              for(size_t ky = 0; ky<kernel_size.height(); ++ky)
+                for(size_t kx = 0; kx<kernel_size.width(); ++kx)
+                {
+                  const auto [iy, ix] = std::make_pair(oy + ky, ox + kx); // This disregard padding
+
+                  if(iy < padding_size.height() || iy >= input_size.height() + padding_size.height())
+                    continue;
+
+                  if(ix < padding_size.width()  || ix >= input_size.width()  + padding_size.width())
+                    continue;
+
+                  float input  = transpose_inputs  ? inputs(k, j, iy - padding_size.height(), ix - padding_size.width())
+                                                   : inputs(j, k, iy - padding_size.height(), ix - padding_size.width());
+                                                                                                   //
+                  float kernel = (operation == Image2DOperation::CROSS_CORRELATION) ? (transpose_kernels ? kernels(i, k, ky,                            kx                          ) : kernels(k, i, ky,                            kx                          ))
+                               : (operation == Image2DOperation::CONVOLUTION)       ? (transpose_kernels ? kernels(i, k, kernel_size.height() - ky - 1, kernel_size.width() - kx - 1) : kernels(k, i, kernel_size.height() - ky - 1, kernel_size.width() - kx - 1))
+                               : (assert(false && "Unimplemented"), 0.0f);
+
+                  sum += input * kernel;
+                }
+
+              outputs(j, i, oy, ox) += sum;
             }
-          }
-    }
+
   }
 }

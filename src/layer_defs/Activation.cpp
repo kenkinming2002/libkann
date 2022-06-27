@@ -67,8 +67,8 @@ namespace kann
 
   Tensor<float> ActivationLayerDef::forward(Layer& layer, Tensor<float> inputs) const
   {
-    Tensor<float> outputs = Tensor<float>::create(inputs.as_ref().shape());
-    math::transform<1>(outputs.as_ref(), {inputs.as_const_ref()}, [this](float /*output*/, float input)
+    Tensor<float> outputs = Tensor<float>::create(inputs.shape());
+    math::transform<1>(outputs.flatten(), {inputs.flatten()}, [this](float /*output*/, float input)
     {
       switch(type)
       {
@@ -94,8 +94,8 @@ namespace kann
   {
     Tensor<float> inputs = std::move(layer.saved_tensors[0]);
 
-    Tensor<float> input_gradients = Tensor<float>::create(inputs.as_ref().shape());
-    math::transform<2>(input_gradients.as_ref(), {inputs.as_const_ref(), output_gradients.as_const_ref()}, [this](float /*input_gradient*/, float input, float output_gradient)
+    Tensor<float> input_gradients = Tensor<float>::create(inputs.shape());
+    math::transform<2>(input_gradients.flatten(), {inputs.flatten(), output_gradients.flatten()}, [this](float /*input_gradient*/, float input, float output_gradient)
     {
       float tmp;
       switch(type)

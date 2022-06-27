@@ -26,12 +26,12 @@
 
 static bool correct(const kann::Tensor<float>& value1, const kann::Tensor<float>& value2)
 {
-  return kann::utils::max_coeff(value1.as_ref()) == kann::utils::max_coeff(value2.as_ref());
+  return kann::utils::max_coeff(value1) == kann::utils::max_coeff(value2);
 }
 
 static void testing(std::string_view label, kann::Layer& layer,
-    const std::vector<kann::Tensor<float>>& images,
-    const std::vector<kann::Tensor<float>>& labels,
+    std::vector<kann::Tensor<float>> images,
+    std::vector<kann::Tensor<float>> labels,
     size_t batch_size, size_t count)
 {
   assert(images.size() == count);
@@ -56,32 +56,29 @@ static void testing(std::string_view label, kann::Layer& layer,
 }
 
 static void training(kann::Layer& layer, kann::LossFunction& loss_function,
-    const std::vector<kann::Tensor<float>>& images,
-    const std::vector<kann::Tensor<float>>& labels,
+    std::vector<kann::Tensor<float>> images,
+    std::vector<kann::Tensor<float>> labels,
     kann::Optimizer& optimizer,
     size_t batch_size, size_t count, auto& prng)
 {
   assert(images.size() == count);
   assert(labels.size() == count);
 
-  std::vector<kann::Tensor<float>> cloned_images = images | ranges::views::transform(&kann::Tensor<float>::clone) | ranges::to_vector;
-  std::vector<kann::Tensor<float>> cloned_labels = labels | ranges::views::transform(&kann::Tensor<float>::clone) | ranges::to_vector;
-
   std::uniform_int_distribution<size_t> dist(0, count-1);
-  for(size_t i=0; i<60000; ++i)
+  for(size_t i=0; i<count; ++i)
   {
     size_t index1 = dist(prng), index2 = dist(prng);
     if(index1 == index2)
       continue;
 
-    std::swap(cloned_images[index1], cloned_images[index2]);
-    std::swap(cloned_labels[index1], cloned_labels[index2]);
+    std::swap(images[index1], images[index2]);
+    std::swap(labels[index1], labels[index2]);
   }
 
   kann::ProgressBar progress_bar("  training", count);
 
-  std::vector<kann::Tensor<float>> image_batches = kann::batch(cloned_images, batch_size);
-  std::vector<kann::Tensor<float>> label_batches = kann::batch(cloned_labels, batch_size);
+  std::vector<kann::Tensor<float>> image_batches = kann::batch(images, batch_size);
+  std::vector<kann::Tensor<float>> label_batches = kann::batch(labels, batch_size);
   for(auto&& [image_batch, label_batch] : ranges::views::zip(image_batches, label_batches))
   {
     kann::Tensor<float> prediction_batch = layer.forward(std::move(image_batch));
@@ -90,13 +87,13 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function,
     kann::Tensor<float> loss_batch = loss_function.forward(std::move(prediction_batch));
 
     kann::Tensor<float> ones_batch = kann::Tensor<float>::create(kann::Shape(batch_size));
-    ones_batch.as_ref().fill(1.0);
+    ones_batch.fill(1.0);
 
     kann::Tensor<float> gradient_batch = loss_function.backward(std::move(ones_batch));
     layer.backward(std::move(gradient_batch));
 
     for(size_t i=0; i<batch_size; ++i)
-      progress_bar.update(fmt::format("  loss={}", loss_batch.as_const_ref()[i].as_scalar()));
+      progress_bar.update(fmt::format("  loss={}", loss_batch(i)));
 
     for(kann::Variable* parameter : layer.storage->get_parameters())
       optimizer.optimize(*parameter);

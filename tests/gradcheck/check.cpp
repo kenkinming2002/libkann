@@ -16,13 +16,13 @@
 
 kann::Tensor<float> with_unit_batching(kann::Tensor<float> value)
 {
-  kann::Shape shape = value.as_ref().shape();
+  kann::Shape shape = value.shape();
   return std::move(value).reshape(kann::Shape::concat(kann::Shape(1), shape));
 }
 
 kann::Tensor<float> without_unit_batching(kann::Tensor<float> value)
 {
-  kann::Shape shape = value.as_ref().shape();
+  kann::Shape shape = value.shape();
 
   // No need to check explicitly as the assertion in reshape would catch any size mismatch
   // if the first dimension either does not exist or is not 1
@@ -42,7 +42,7 @@ struct LayerDerivative
     LayerDerivative derivative{ .input = kann::Tensor<float>::create(kann::Shape::concat(output_shape, input_shape)) };
     for(const kann::Variable* parameter : layer.storage->get_parameters())
     {
-      const kann::Shape parameter_shape = parameter->value.as_const_ref().shape();
+      const kann::Shape parameter_shape = parameter->value.shape();
       derivative.parameters.push_back(kann::Tensor<float>::create(kann::Shape::concat(output_shape, parameter_shape)));
     }
     return derivative;
@@ -52,9 +52,9 @@ struct LayerDerivative
 kann::Tensor<float> create_basis(kann::Shape shape, size_t i)
 {
   kann::Tensor<float> result = kann::Tensor<float>::create(shape);
-  kann::TensorRef<float> _result = result.as_ref().flatten();
+  kann::Tensor<float> _result = result.flatten();
   _result.fill(0.0f);
-  _result[i].as_scalar() = 1.0f;
+  _result(i) = 1.0f;
   return result;
 }
 
@@ -78,10 +78,10 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const k
 
     // Derivative for input
     {
-      kann::TensorRef<float>       _input_derivative = derivative.input.as_ref().reshape(kann::Shape(output_size, input_size));
-      kann::TensorRef<const float> _input_gradient   = input_gradient.as_const_ref().reshape(kann::Shape(input_size));
+      kann::Tensor<float> _input_derivative = derivative.input.reshape(kann::Shape(output_size, input_size));
+      kann::Tensor<float> _input_gradient   = input_gradient.reshape(kann::Shape(input_size));
       for(size_t i=0; i<input_size; ++i)
-        _input_derivative[j][i].as_scalar() = _input_gradient[i].as_scalar();
+        _input_derivative(j,i) = _input_gradient(i);
     }
 
     // Derivative for parameters
@@ -93,10 +93,10 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const k
         const kann::Shape parameter_shape = parameters[k]->shape;
         const size_t parameter_size = parameter_shape.size();
 
-        kann::TensorRef<float>       _parameter_derivative = derivative.parameters[k].as_ref().reshape(kann::Shape(output_size, parameter_size));
-        kann::TensorRef<const float> _parameter_gradient   = parameters[k]->gradient.as_const_ref().reshape(kann::Shape(parameter_size));
+        kann::Tensor<float> _parameter_derivative = derivative.parameters[k].reshape(kann::Shape(output_size, parameter_size));
+        kann::Tensor<float> _parameter_gradient   = parameters[k]->gradient .reshape(kann::Shape(parameter_size));
         for(size_t i=0; i<parameter_size; ++i)
-          _parameter_derivative[j][i].as_scalar() = _parameter_gradient[i].as_scalar();
+          _parameter_derivative(j,i) = _parameter_gradient(i);
       }
     }
   }
@@ -106,7 +106,7 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const k
 
 kann::Tensor<float> perturb(kann::Tensor<float> value, size_t i, float diff)
 {
-  value.as_ref().flatten()[i].as_scalar() += diff;
+  value.flatten()(i) += diff;
   return value;
 }
 
@@ -131,13 +131,13 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const ka
       kann::Tensor<float> output2 = without_unit_batching(layer.forward(input2.clone()));
 
       kann::Tensor<float> output_gradient = output2.clone();
-      kann::math::transform<1>(output_gradient.as_ref(), { output1.as_const_ref() },         kann::math::SUB);
-      kann::math::transform<1>(output_gradient.as_ref(), { output_gradient.as_const_ref() }, kann::math::SCALE(1.0f/dx));
+      kann::math::transform<1>(output_gradient.flatten(), { output1.flatten() },         kann::math::SUB);
+      kann::math::transform<1>(output_gradient.flatten(), { output_gradient.flatten() }, kann::math::SCALE(1.0f/dx));
 
-      kann::TensorRef<float>       _input_derivative  = derivative.input.as_ref().reshape(kann::Shape(output_size, input_size));
-      kann::TensorRef<const float> _output_gradient   = output_gradient.as_const_ref().reshape(kann::Shape(output_size));
+      kann::Tensor<float> _input_derivative  = derivative.input.reshape(kann::Shape(output_size, input_size));
+      kann::Tensor<float> _output_gradient   = output_gradient .reshape(kann::Shape(output_size));
       for(size_t j=0; j<output_size; ++j)
-        _input_derivative[j][i].as_scalar() = _output_gradient[j].as_scalar();
+        _input_derivative(j,i) = _output_gradient(j);
     }
   }
 
@@ -167,13 +167,13 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const ka
         parameters[k]->value = std::move(saved_parameter);
 
         kann::Tensor<float> output_gradient = output2.clone();
-        kann::math::transform<1>(output_gradient.as_ref(), { output1.as_const_ref() },         kann::math::SUB);
-        kann::math::transform<1>(output_gradient.as_ref(), { output_gradient.as_const_ref() }, kann::math::SCALE(1.0f/dx));
+        kann::math::transform<1>(output_gradient.flatten(), { output1.flatten() },         kann::math::SUB);
+        kann::math::transform<1>(output_gradient.flatten(), { output_gradient.flatten() }, kann::math::SCALE(1.0f/dx));
 
-        kann::TensorRef<float>       _parameter_derivative = derivative.parameters[k].as_ref().reshape(kann::Shape(output_size, parameter_size));
-        kann::TensorRef<const float> _output_gradient      = output_gradient.as_const_ref().reshape(kann::Shape(output_size));
+        kann::Tensor<float> _parameter_derivative = derivative.parameters[k].reshape(kann::Shape(output_size, parameter_size));
+        kann::Tensor<float> _output_gradient      = output_gradient.reshape(kann::Shape(output_size));
         for(size_t j=0; j<output_size; ++j)
-          _parameter_derivative[j][i].as_scalar() = _output_gradient[j].as_scalar();
+          _parameter_derivative(j,i) = _output_gradient(j);
       }
     }
   }
@@ -192,28 +192,28 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
   static constexpr float DX = 0.01f;
 
   kann::Tensor<float> random_input = kann::Tensor<float>::create(layer->def->get_input_shape());
-  random_input.as_ref().fill_uniform(prng, -1.0f, 1.0f);
+  random_input.fill_uniform(prng, -1.0f, 1.0f);
 
   LayerDerivative analytical = compute_analytical_derivative(*layer, random_input);
   LayerDerivative numerical  = compute_numerical_derivative(*layer, random_input, DX);
 
-  kann::TensorRef<const float> _analytical_derivative = analytical.input.as_const_ref().flatten();
-  kann::TensorRef<const float> _numerical_derivative  = numerical.input.as_const_ref().flatten();
+  kann::Tensor<const float> _analytical_derivative = analytical.input.flatten();
+  kann::Tensor<const float> _numerical_derivative  = numerical.input.flatten();
   for(size_t i=0; i<_analytical_derivative.size(); ++i)
   {
-    const float analytical_value = _analytical_derivative[i].as_scalar();
-    const float numerical_value  = _numerical_derivative[i].as_scalar();
+    const float analytical_value = _analytical_derivative(i);
+    const float numerical_value  = _numerical_derivative(i);
     REQUIRE(std::abs(analytical_value - numerical_value) <= 0.01f);
   }
 
   for(const auto& [analytical_derivative, numerical_derivative] : ranges::views::zip(analytical.parameters, numerical.parameters))
   {
-    kann::TensorRef<const float> _analytical_derivative = analytical_derivative.as_const_ref().flatten();
-    kann::TensorRef<const float> _numerical_derivative  = numerical_derivative.as_const_ref().flatten();
+    kann::Tensor<const float> _analytical_derivative = analytical_derivative.flatten();
+    kann::Tensor<const float> _numerical_derivative  = numerical_derivative.flatten();
     for(size_t i=0; i<_analytical_derivative.size(); ++i)
     {
-      const float analytical_value = _analytical_derivative[i].as_scalar();
-      const float numerical_value  = _numerical_derivative[i].as_scalar();
+      const float analytical_value = _analytical_derivative(i);
+      const float numerical_value  = _numerical_derivative(i);
       REQUIRE(std::abs(analytical_value - numerical_value) <= 0.01f);
     }
   }
@@ -258,9 +258,9 @@ TEST_CASE("Gradcheck", "[gradcheck]")
     auto layer_def = std::make_shared<kann::ConvolutionalLayerDef>();
     layer_def->input_channel_count = 3;
     layer_def->output_channel_count = 4;
-    layer_def->input_size = kann::Vec2(8, 8);
-    layer_def->output_size = kann::Vec2(4, 4);
-    layer_def->kernel_size = kann::Vec2(5, 5);
+    layer_def->input_size = kann::Vec2(5, 8);
+    layer_def->output_size = kann::Vec2(2, 4);
+    layer_def->kernel_size = kann::Vec2(4, 5);
     test_layer_def(layer_def);
   }
 

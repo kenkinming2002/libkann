@@ -12,7 +12,7 @@ namespace kann
   {
     return ranges::views::generate_n([&]() {
       Tensor<float> result = Tensor<float>::create(shape);
-      ranges::generate_n(result.as_ref().data(), result.as_ref().size(), []() {
+      ranges::generate_n(result.data(), result.size(), []() {
         float tmp = (float)rand() / RAND_MAX;
         return 2.0 * tmp - 1.0;
       });

@@ -125,7 +125,7 @@ namespace kann
     size_t get_index(std::array<size_t, N> indices) const
     {
       assert(rank() == N);
-      std::array<size_t, N> dimensions = [this]<std::size_t... Is>(std::index_sequence<Is>...) { return std::array{m_dimensions[Is]...}; }(std::make_index_sequence<N>());
+      std::array<size_t, N> dimensions = [this]<std::size_t... Is>(std::index_sequence<Is...>) { return std::array{m_dimensions[Is]...}; }(std::make_index_sequence<N>());
       std::array<size_t, N> strides;
       for(size_t i=0; i<N; ++i)
       {
