@@ -8,7 +8,7 @@
 
 namespace kann
 {
-  KANN_EXPORT std::vector<Tensor<float>> create_random_data(Shape shape, size_t count);
+  KANN_EXPORT std::vector<tensor::Tensor<float>> create_random_data(tensor::Shape shape, size_t count);
 }
 
 

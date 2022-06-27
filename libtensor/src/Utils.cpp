@@ -2,7 +2,7 @@
 
 #include <Eigen/Eigen>
 
-namespace kann::utils
+namespace tensor::utils
 {
   size_t max_coeff(Tensor<const float> value)
   {

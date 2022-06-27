@@ -4,7 +4,7 @@
 
 #include <libtensor/Tensor.hpp>
 
-namespace kann::math
+namespace tensor::math
 {
   LIBTENSOR_EXPORT float norm(const Tensor<float>& value);
 

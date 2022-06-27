@@ -22,11 +22,11 @@ namespace kann
     KANN_EXPORT std::shared_ptr<LayerStorage> create(std::default_random_engine& prng) const override;
 
   public:
-    KANN_EXPORT Shape get_input_shape() const override;
-    KANN_EXPORT Shape get_output_shape() const override;
+    KANN_EXPORT tensor::Shape get_input_shape() const override;
+    KANN_EXPORT tensor::Shape get_output_shape() const override;
 
   public:
-    KANN_EXPORT Tensor<const float> forward(Layer& layer, Tensor<const float> inputs) const override;
-    KANN_EXPORT Tensor<const float> backward(Layer& layer, Tensor<const float> output_gradients) const override;
+    KANN_EXPORT tensor::Tensor<const float> forward(Layer& layer, tensor::Tensor<const float> inputs) const override;
+    KANN_EXPORT tensor::Tensor<const float> backward(Layer& layer, tensor::Tensor<const float> output_gradients) const override;
   };
 }

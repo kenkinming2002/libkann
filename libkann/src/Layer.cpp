@@ -11,12 +11,12 @@ namespace kann
     return layer;
   }
 
-  Tensor<const float> Layer::forward(Tensor<const float> inputs)
+  tensor::Tensor<const float> Layer::forward(tensor::Tensor<const float> inputs)
   {
     return this->def->forward(*this, std::move(inputs));
   }
 
-  Tensor<const float> Layer::backward(Tensor<const float> output_gradients)
+  tensor::Tensor<const float> Layer::backward(tensor::Tensor<const float> output_gradients)
   {
     return this->def->backward(*this, std::move(output_gradients));
   }

@@ -5,7 +5,7 @@
 #include <range/v3/all.hpp>
 #include <fmt/core.h>
 
-namespace kann::math
+namespace tensor::math
 {
   using EigenArray  = Eigen::ArrayXf;
   using EigenVector = Eigen::RowVectorXf;

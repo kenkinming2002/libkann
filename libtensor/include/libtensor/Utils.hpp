@@ -4,7 +4,7 @@
 
 #include <libtensor/Tensor.hpp>
 
-namespace kann::utils
+namespace tensor::utils
 {
   LIBTENSOR_EXPORT size_t max_coeff(Tensor<const float> value);
 }

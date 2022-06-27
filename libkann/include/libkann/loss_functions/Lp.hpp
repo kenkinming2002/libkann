@@ -11,8 +11,8 @@ namespace kann
     KANN_EXPORT LpLossFunction(unsigned p);
 
   public:
-    KANN_EXPORT Tensor<const float> forward(Tensor<const float> inputs) override;
-    KANN_EXPORT Tensor<const float> backward(Tensor<const float> output_gradients) override;
+    KANN_EXPORT tensor::Tensor<const float> forward(tensor::Tensor<const float> inputs) override;
+    KANN_EXPORT tensor::Tensor<const float> backward(tensor::Tensor<const float> output_gradients) override;
 
   private:
     unsigned m_p;

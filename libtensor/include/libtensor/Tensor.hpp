@@ -8,7 +8,7 @@
 #include <memory>
 #include <tuple>
 
-namespace kann
+namespace tensor
 {
   template<typename T>
   struct Tensor

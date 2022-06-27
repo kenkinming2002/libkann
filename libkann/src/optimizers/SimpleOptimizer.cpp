@@ -9,6 +9,6 @@ namespace kann
 
   void SimpleOptimizer::optimize(Variable& variable) const
   {
-    math::transform<1>(variable.value.flatten(), {variable.gradient.flatten()}, math::FMA(-m_learningRate));
+    tensor::math::transform<1>(variable.value.flatten(), {variable.gradient.flatten()}, tensor::math::FMA(-m_learningRate));
   }
 }

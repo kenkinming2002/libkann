@@ -48,33 +48,33 @@ namespace kann
     KANN_EXPORT virtual std::shared_ptr<LayerStorage> create(std::default_random_engine& prng) const = 0;
 
   public:
-    KANN_EXPORT virtual Shape get_input_shape() const = 0;
-    KANN_EXPORT virtual Shape get_output_shape() const = 0;
+    KANN_EXPORT virtual tensor::Shape get_input_shape() const = 0;
+    KANN_EXPORT virtual tensor::Shape get_output_shape() const = 0;
 
   public:
-    KANN_EXPORT virtual Tensor<const float> forward(Layer& layer, Tensor<const float> inputs) const = 0;
-    KANN_EXPORT virtual Tensor<const float> backward(Layer& layer, Tensor<const float> output_gradients) const = 0;
+    KANN_EXPORT virtual tensor::Tensor<const float> forward(Layer& layer, tensor::Tensor<const float> inputs) const = 0;
+    KANN_EXPORT virtual tensor::Tensor<const float> backward(Layer& layer, tensor::Tensor<const float> output_gradients) const = 0;
 
   protected:
-    Tensor<const float> forward_helper(Layer& layer, Tensor<const float> inputs, const auto& impl) const
+    tensor::Tensor<const float> forward_helper(Layer& layer, tensor::Tensor<const float> inputs, const auto& impl) const
     {
       const size_t batch_size = inputs.shape().dimension(0);
-      const Shape inputs_shape  = Shape::concat(Shape(batch_size), this->get_input_shape());
-      const Shape outputs_shape = Shape::concat(Shape(batch_size), this->get_output_shape());
+      const tensor::Shape inputs_shape  = tensor::Shape::concat(tensor::Shape(batch_size), this->get_input_shape());
+      const tensor::Shape outputs_shape = tensor::Shape::concat(tensor::Shape(batch_size), this->get_output_shape());
 
       assert(inputs.shape() == inputs_shape);
-      Tensor<float> outputs = Tensor<float>::create(outputs_shape);
+      tensor::Tensor<float> outputs = tensor::Tensor<float>::create(outputs_shape);
       return impl(layer, batch_size, std::move(inputs), std::move(outputs));
     }
 
-    Tensor<const float> backward_helper(Layer& layer, Tensor<const float> output_gradients, const auto& impl) const
+    tensor::Tensor<const float> backward_helper(Layer& layer, tensor::Tensor<const float> output_gradients, const auto& impl) const
     {
       const size_t batch_size = output_gradients.shape().dimension(0);
-      const Shape inputs_shape  = Shape::concat(Shape(batch_size), this->get_input_shape());
-      const Shape outputs_shape = Shape::concat(Shape(batch_size), this->get_output_shape());
+      const tensor::Shape inputs_shape  = tensor::Shape::concat(tensor::Shape(batch_size), this->get_input_shape());
+      const tensor::Shape outputs_shape = tensor::Shape::concat(tensor::Shape(batch_size), this->get_output_shape());
 
       assert(output_gradients.shape() == outputs_shape);
-      Tensor<float> input_gradients = Tensor<float>::create(inputs_shape);
+      tensor::Tensor<float> input_gradients = tensor::Tensor<float>::create(inputs_shape);
       return impl(layer, batch_size, std::move(output_gradients), std::move(input_gradients));
     }
   };

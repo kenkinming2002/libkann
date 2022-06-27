@@ -9,22 +9,22 @@ namespace kann
   struct Variable
   {
   public:
-    Shape shape;
+    tensor::Shape shape;
 
   public:
-    Tensor<float> value;
-    Tensor<float> gradient;
+    tensor::Tensor<float> value;
+    tensor::Tensor<float> gradient;
 
   public:
-    std::vector<Tensor<float>> optimizer_states;
+    std::vector<tensor::Tensor<float>> optimizer_states;
 
   public:
-    static Variable create(Shape shape)
+    static Variable create(tensor::Shape shape)
     {
       return Variable{
         .shape = shape,
-        .value    = Tensor<float>::create(shape),
-        .gradient = Tensor<float>::create(shape),
+        .value    = tensor::Tensor<float>::create(shape),
+        .gradient = tensor::Tensor<float>::create(shape),
         .optimizer_states = {}
       };
     }

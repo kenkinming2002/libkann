@@ -38,28 +38,28 @@ namespace kann
     return layer_storage;
   }
 
-  Shape SequentialLayerDef::get_input_shape() const
+  tensor::Shape SequentialLayerDef::get_input_shape() const
   {
     return sub_layer_defs.front()->get_input_shape();
   }
 
-  Shape SequentialLayerDef::get_output_shape() const
+  tensor::Shape SequentialLayerDef::get_output_shape() const
   {
     return sub_layer_defs.back()->get_output_shape();
   }
 
-  Tensor<const float> SequentialLayerDef::forward(Layer& layer, Tensor<const float> inputs) const
+  tensor::Tensor<const float> SequentialLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
   {
-    Tensor<const float> outputs = std::move(inputs);
+    tensor::Tensor<const float> outputs = std::move(inputs);
     for(auto& sub_layer : layer.sub_layers)
       outputs = sub_layer->forward(std::move(outputs));
 
     return outputs;
   }
 
-  Tensor<const float> SequentialLayerDef::backward(Layer& layer, Tensor<const float> output_gradients) const
+  tensor::Tensor<const float> SequentialLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
   {
-    Tensor<const float> input_gradients = std::move(output_gradients);
+    tensor::Tensor<const float> input_gradients = std::move(output_gradients);
     for(auto& sub_layer : layer.sub_layers | ranges::views::reverse)
       input_gradients = sub_layer->backward(std::move(input_gradients));
 

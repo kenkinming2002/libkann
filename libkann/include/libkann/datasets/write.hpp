@@ -7,5 +7,5 @@
 
 namespace kann
 {
-  KANN_EXPORT sf::Image toImage(Tensor<const float> data);
+  KANN_EXPORT sf::Image toImage(tensor::Tensor<const float> data);
 }

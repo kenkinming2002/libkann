@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <stddef.h>
 
-namespace kann
+namespace tensor
 {
   template<typename T, size_t Capacity, typename = void>
   struct StaticVector;

@@ -11,14 +11,14 @@ namespace kann
   YAML::Node SoftMaxLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
-    node["shape"] = Shape::to_vector(std::static_pointer_cast<const SoftMaxLayerDef>(layer_def)->shape);
+    node["shape"] = tensor::Shape::to_vector(std::static_pointer_cast<const SoftMaxLayerDef>(layer_def)->shape);
     return node;
   }
 
   std::shared_ptr<const LayerDef> SoftMaxLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<SoftMaxLayerDef>();
-    layer_def->shape = Shape::from_vector(node["shape"].as<std::vector<size_t>>());
+    layer_def->shape = tensor::Shape::from_vector(node["shape"].as<std::vector<size_t>>());
     return layer_def;
   }
 
@@ -27,32 +27,32 @@ namespace kann
     return std::make_shared<LayerStorage>();
   }
 
-  Shape SoftMaxLayerDef::get_input_shape() const
+  tensor::Shape SoftMaxLayerDef::get_input_shape() const
   {
     return shape;
   }
 
-  Shape SoftMaxLayerDef::get_output_shape() const
+  tensor::Shape SoftMaxLayerDef::get_output_shape() const
   {
     return shape;
   }
 
-  Tensor<const float> SoftMaxLayerDef::forward(Layer& layer, Tensor<const float> inputs) const
+  tensor::Tensor<const float> SoftMaxLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
   {
-    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, Tensor<const float> inputs, Tensor<float> outputs)
+    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, tensor::Tensor<const float> inputs, tensor::Tensor<float> outputs)
     {
       const size_t size = this->shape.size();
 
-      auto _inputs  = inputs .reshape(Shape{batch_size, size});
-      auto _outputs = outputs.reshape(Shape{batch_size, size});
+      auto _inputs  = inputs .reshape(tensor::Shape{batch_size, size});
+      auto _outputs = outputs.reshape(tensor::Shape{batch_size, size});
 
-      math::transform<1>(_outputs.flatten(), { _inputs.flatten() }, [](double /*output*/, double input) { return std::exp(input); });
+      tensor::math::transform<1>(_outputs.flatten(), { _inputs.flatten() }, [](double /*output*/, double input) { return std::exp(input); });
 
       // Batch normalization
-      Tensor<float> factors = Tensor<float>::create(Shape(batch_size));
+      tensor::Tensor<float> factors = tensor::Tensor<float>::create(tensor::Shape(batch_size));
       factors.fill(0.0);
-      math::reduce<1>   (factors,  { _outputs }, math::Direction::RIGHT, math::ADD);
-      math::broadcast<1>(_outputs, { factors },  math::Direction::RIGHT, math::DIV);
+      tensor::math::reduce<1>   (factors,  { _outputs }, tensor::math::Direction::RIGHT, tensor::math::ADD);
+      tensor::math::broadcast<1>(_outputs, { factors },  tensor::math::Direction::RIGHT, tensor::math::DIV);
 
       // It is actually better to save outouts
       layer.saved_tensors.clear();
@@ -62,17 +62,17 @@ namespace kann
     });
   }
 
-  Tensor<const float> SoftMaxLayerDef::backward(Layer& layer, Tensor<const float> output_gradients) const
+  tensor::Tensor<const float> SoftMaxLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
   {
-    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, Tensor<const float> output_gradients, Tensor<float> input_gradients)
+    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, tensor::Tensor<const float> output_gradients, tensor::Tensor<float> input_gradients)
     {
       const size_t size = this->shape.size();
 
-      Tensor<const float> outputs = std::move(layer.saved_tensors[0]);
+      tensor::Tensor<const float> outputs = std::move(layer.saved_tensors[0]);
 
-      auto _outputs          = outputs         .reshape(Shape{batch_size, size});
-      auto _input_gradients  = input_gradients .reshape(Shape{batch_size, size});
-      auto _output_gradients = output_gradients.reshape(Shape{batch_size, size});
+      auto _outputs          = outputs         .reshape(tensor::Shape{batch_size, size});
+      auto _input_gradients  = input_gradients .reshape(tensor::Shape{batch_size, size});
+      auto _output_gradients = output_gradients.reshape(tensor::Shape{batch_size, size});
 
       _input_gradients.fill(0.0f);
       for(size_t k=0; k<batch_size; ++k)

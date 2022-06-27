@@ -59,7 +59,7 @@ namespace kann
     }
   };
 
-  std::vector<Tensor<const float>> load_mnist_dataset_images(const char* file_name)
+  std::vector<tensor::Tensor<const float>> load_mnist_dataset_images(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -74,12 +74,12 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<Tensor<const float>> images;
+    std::vector<tensor::Tensor<const float>> images;
     images.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)
     {
-      Tensor<float> image = Tensor<float>::create(Shape{1, MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH});
+      tensor::Tensor<float> image = tensor::Tensor<float>::create(tensor::Shape{1, MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH});
 
       uint8_t image_data[MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH];
       if(!idx_file.file.read(reinterpret_cast<char*>(image_data), sizeof image_data))
@@ -92,7 +92,7 @@ namespace kann
     return images;
   }
 
-  std::vector<Tensor<const float>> load_mnist_dataset_labels(const char* file_name)
+  std::vector<tensor::Tensor<const float>> load_mnist_dataset_labels(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -103,12 +103,12 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<Tensor<const float>> labels;
+    std::vector<tensor::Tensor<const float>> labels;
     labels.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)
     {
-      Tensor<float> label = Tensor<float>::create(Shape{10});
+      tensor::Tensor<float> label = tensor::Tensor<float>::create(tensor::Shape{10});
 
       uint8_t label_data;
       if(!idx_file.file.read(reinterpret_cast<char*>(&label_data), sizeof label_data))

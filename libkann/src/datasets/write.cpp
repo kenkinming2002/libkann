@@ -4,7 +4,7 @@
 
 namespace kann
 {
-  sf::Image toImage(Tensor<const float> data)
+  sf::Image toImage(tensor::Tensor<const float> data)
   {
     size_t height = data.shape().dimension(0);
     size_t width  = data.shape().dimension(1);

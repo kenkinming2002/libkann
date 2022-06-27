@@ -37,7 +37,7 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
 
-    Variable kernels = Variable::create(Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
+    Variable kernels = Variable::create(tensor::Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
     kernels.value.fill_normal(prng, 0.0, 1.0 / (kernel_size.width() * kernel_size.height()));
 
     layer_storage->parameters.reserve(1);
@@ -46,28 +46,28 @@ namespace kann
     return layer_storage;
   }
 
-  Shape ConvolutionalLayerDef::get_input_shape() const
+  tensor::Shape ConvolutionalLayerDef::get_input_shape() const
   {
-    return Shape{input_channel_count, input_size.height(), input_size.width()};
+    return tensor::Shape{input_channel_count, input_size.height(), input_size.width()};
   }
 
-  Shape ConvolutionalLayerDef::get_output_shape() const
+  tensor::Shape ConvolutionalLayerDef::get_output_shape() const
   {
-    return Shape{output_channel_count, output_size.height(), output_size.width()};
+    return tensor::Shape{output_channel_count, output_size.height(), output_size.width()};
   }
 
-  Tensor<const float> ConvolutionalLayerDef::forward(Layer& layer, Tensor<const float> inputs) const
+  tensor::Tensor<const float> ConvolutionalLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
   {
-    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, Tensor<const float> inputs, Tensor<float> outputs)
+    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, tensor::Tensor<const float> inputs, tensor::Tensor<float> outputs)
     {
       const Variable& kernels = layer.storage->parameters[0];
 
-      auto _inputs  = inputs .reshape(Shape{batch_size, input_channel_count,  input_size.height(),  input_size.width()});
-      auto _outputs = outputs.reshape(Shape{batch_size, output_channel_count, output_size.height(), output_size.width()});
+      auto _inputs  = inputs .reshape(tensor::Shape{batch_size, input_channel_count,  input_size.height(),  input_size.width()});
+      auto _outputs = outputs.reshape(tensor::Shape{batch_size, output_channel_count, output_size.height(), output_size.width()});
 
-      auto _kernels = kernels.value.reshape(Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
+      auto _kernels = kernels.value.reshape(tensor::Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
 
-      math::image2d_operation(_outputs, _inputs, false, _kernels, false, math::Image2DOperation::CROSS_CORRELATION);
+      tensor::math::image2d_operation(_outputs, _inputs, false, _kernels, false, tensor::math::Image2DOperation::CROSS_CORRELATION);
 
       layer.saved_tensors.clear();
       layer.saved_tensors.reserve(1);
@@ -77,22 +77,22 @@ namespace kann
     });
   }
 
-  Tensor<const float> ConvolutionalLayerDef::backward(Layer& layer, Tensor<const float> output_gradients) const
+  tensor::Tensor<const float> ConvolutionalLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
   {
-    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, Tensor<const float> output_gradients, Tensor<float> input_gradients)
+    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, tensor::Tensor<const float> output_gradients, tensor::Tensor<float> input_gradients)
     {
-      Tensor<const float> inputs = std::move(layer.saved_tensors[0]);
+      tensor::Tensor<const float> inputs = std::move(layer.saved_tensors[0]);
       Variable& kernels = layer.storage->parameters[0];
 
-      auto _inputs           = inputs          .reshape(Shape{batch_size, input_channel_count,  input_size.height(),  input_size.width()});
-      auto _input_gradients  = input_gradients .reshape(Shape{batch_size, input_channel_count,  input_size.height(),  input_size.width()});
-      auto _output_gradients = output_gradients.reshape(Shape{batch_size, output_channel_count, output_size.height(), output_size.width()});
+      auto _inputs           = inputs          .reshape(tensor::Shape{batch_size, input_channel_count,  input_size.height(),  input_size.width()});
+      auto _input_gradients  = input_gradients .reshape(tensor::Shape{batch_size, input_channel_count,  input_size.height(),  input_size.width()});
+      auto _output_gradients = output_gradients.reshape(tensor::Shape{batch_size, output_channel_count, output_size.height(), output_size.width()});
 
-      auto _kernels          = kernels.value   .reshape(Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
-      auto _kernel_gradients = kernels.gradient.reshape(Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
+      auto _kernels          = kernels.value   .reshape(tensor::Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
+      auto _kernel_gradients = kernels.gradient.reshape(tensor::Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
 
-      math::image2d_operation(_input_gradients,  _output_gradients, false, _kernels,          true,  math::Image2DOperation::CONVOLUTION);
-      math::image2d_operation(_kernel_gradients, _inputs,           true,  _output_gradients, false, math::Image2DOperation::CROSS_CORRELATION);
+      tensor::math::image2d_operation(_input_gradients,  _output_gradients, false, _kernels,          true,  tensor::math::Image2DOperation::CONVOLUTION);
+      tensor::math::image2d_operation(_kernel_gradients, _inputs,           true,  _output_gradients, false, tensor::math::Image2DOperation::CROSS_CORRELATION);
 
       return input_gradients;
     });

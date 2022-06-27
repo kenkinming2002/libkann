@@ -37,7 +37,7 @@ namespace kann
   YAML::Node ActivationLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
-    node["shape"]    = Shape::to_vector(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->shape);
+    node["shape"]    = tensor::Shape::to_vector(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->shape);
     node["function"] = to_string(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->type);
     return node;
   }
@@ -45,17 +45,17 @@ namespace kann
   std::shared_ptr<const LayerDef> ActivationLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<ActivationLayerDef>();
-    layer_def->shape = Shape::from_vector(node["shape"].as<std::vector<size_t>>());
+    layer_def->shape = tensor::Shape::from_vector(node["shape"].as<std::vector<size_t>>());
     layer_def->type  = from_string(node["function"].as<std::string>());
     return layer_def;
   }
 
-  Shape ActivationLayerDef::get_input_shape() const
+  tensor::Shape ActivationLayerDef::get_input_shape() const
   {
     return shape;
   }
 
-  Shape ActivationLayerDef::get_output_shape() const
+  tensor::Shape ActivationLayerDef::get_output_shape() const
   {
     return shape;
   }
@@ -65,10 +65,10 @@ namespace kann
     return std::make_shared<LayerStorage>();
   }
 
-  Tensor<const float> ActivationLayerDef::forward(Layer& layer, Tensor<const float> inputs) const
+  tensor::Tensor<const float> ActivationLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
   {
-    Tensor<float> outputs = Tensor<float>::create(inputs.shape());
-    math::transform<1>(outputs.flatten(), {inputs.flatten()}, [this](float /*output*/, float input)
+    tensor::Tensor<float> outputs = tensor::Tensor<float>::create(inputs.shape());
+    tensor::math::transform<1>(outputs.flatten(), {inputs.flatten()}, [this](float /*output*/, float input)
     {
       switch(type)
       {
@@ -90,12 +90,12 @@ namespace kann
     return outputs;
   }
 
-  Tensor<const float> ActivationLayerDef::backward(Layer& layer, Tensor<const float> output_gradients) const
+  tensor::Tensor<const float> ActivationLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
   {
-    Tensor<const float> inputs = std::move(layer.saved_tensors[0]);
+    tensor::Tensor<const float> inputs = std::move(layer.saved_tensors[0]);
 
-    Tensor<float> input_gradients = Tensor<float>::create(inputs.shape());
-    math::transform<2>(input_gradients.flatten(), {inputs.flatten(), output_gradients.flatten()}, [this](float /*input_gradient*/, float input, float output_gradient)
+    tensor::Tensor<float> input_gradients = tensor::Tensor<float>::create(inputs.shape());
+    tensor::math::transform<2>(input_gradients.flatten(), {inputs.flatten(), output_gradients.flatten()}, [this](float /*input_gradient*/, float input, float output_gradient)
     {
       float tmp;
       switch(type)

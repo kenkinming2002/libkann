@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <assert.h>
 
-namespace kann
+namespace tensor
 {
   struct Shape
   {

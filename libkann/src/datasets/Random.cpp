@@ -8,10 +8,10 @@
 
 namespace kann
 {
-  std::vector<Tensor<float>> create_random_data(Shape shape, size_t count)
+  std::vector<tensor::Tensor<float>> create_random_data(tensor::Shape shape, size_t count)
   {
     return ranges::views::generate_n([&]() {
-      Tensor<float> result = Tensor<float>::create(shape);
+      tensor::Tensor<float> result = tensor::Tensor<float>::create(shape);
       ranges::generate_n(result.data(), result.size(), []() {
         float tmp = (float)rand() / RAND_MAX;
         return 2.0 * tmp - 1.0;

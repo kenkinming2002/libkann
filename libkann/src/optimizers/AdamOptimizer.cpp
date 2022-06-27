@@ -16,11 +16,11 @@ namespace kann
 
   void AdamOptimizer::optimize(Variable& variable) const
   {
-    const Shape& shape = variable.shape;
+    const tensor::Shape& shape = variable.shape;
     if(variable.optimizer_states.empty())
     {
-      Tensor<float> m = Tensor<float>::create(shape);
-      Tensor<float> v = Tensor<float>::create(shape);
+      tensor::Tensor<float> m = tensor::Tensor<float>::create(shape);
+      tensor::Tensor<float> v = tensor::Tensor<float>::create(shape);
       m.fill(0.0f);
       v.fill(0.0f);
 
@@ -33,20 +33,20 @@ namespace kann
     }
 
     // First and second moment respectively
-    Tensor<float>& m = variable.optimizer_states[0];
-    Tensor<float>& v = variable.optimizer_states[1];
+    tensor::Tensor<float>& m = variable.optimizer_states[0];
+    tensor::Tensor<float>& v = variable.optimizer_states[1];
 
-    math::transform<1>(m.flatten(), {variable.gradient.flatten()}, [this](float m, float gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient; });
-    math::transform<1>(v.flatten(), {variable.gradient.flatten()}, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient * gradient; });
+    tensor::math::transform<1>(m.flatten(), {variable.gradient.flatten()}, [this](float m, float gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient; });
+    tensor::math::transform<1>(v.flatten(), {variable.gradient.flatten()}, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient * gradient; });
 
-    Tensor<float> m_hat = Tensor<float>::create(m.shape());
-    Tensor<float> v_hat = Tensor<float>::create(v.shape());
+    tensor::Tensor<float> m_hat = tensor::Tensor<float>::create(m.shape());
+    tensor::Tensor<float> v_hat = tensor::Tensor<float>::create(v.shape());
 
-    math::transform<1>(m_hat.flatten(), {m.flatten()}, math::SCALE(1.0 / (1.0 - std::pow(m_beta1, m_timestep))));
-    math::transform<1>(v_hat.flatten(), {v.flatten()}, math::SCALE(1.0 / (1.0 - std::pow(m_beta2, m_timestep))));
+    tensor::math::transform<1>(m_hat.flatten(), {m.flatten()}, tensor::math::SCALE(1.0 / (1.0 - std::pow(m_beta1, m_timestep))));
+    tensor::math::transform<1>(v_hat.flatten(), {v.flatten()}, tensor::math::SCALE(1.0 / (1.0 - std::pow(m_beta2, m_timestep))));
 
-    const float factor = -m_alpha / ( math::norm(v_hat.flatten()) + m_epsilon );
-    math::transform<1>(variable.value.flatten(), {m_hat.flatten()}, math::FMA(factor));
+    const float factor = -m_alpha / ( tensor::math::norm(v_hat.flatten()) + m_epsilon );
+    tensor::math::transform<1>(variable.value.flatten(), {m_hat.flatten()}, tensor::math::FMA(factor));
   }
 }
 

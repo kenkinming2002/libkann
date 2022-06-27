@@ -4,21 +4,21 @@
 
 namespace kann
 {
-  Tensor<const float> CrossEntropyLossFunction::forward(Tensor<const float> inputs)
+  tensor::Tensor<const float> CrossEntropyLossFunction::forward(tensor::Tensor<const float> inputs)
   {
     const size_t batch_size = inputs.shape().dimension(0);
-    const Shape  shape      = inputs.shape().drop_front(1);
+    const tensor::Shape  shape      = inputs.shape().drop_front(1);
     const size_t size       = shape.size();
 
-    Tensor<float> outputs = Tensor<float>::create(Shape{batch_size});
+    tensor::Tensor<float> outputs = tensor::Tensor<float>::create(tensor::Shape{batch_size});
 
     assert(this->expected_outputs);
-    auto _inputs            = inputs           .reshape(Shape{batch_size, size});
-    auto _expected_outputs  = expected_outputs->reshape(Shape{batch_size, size});
-    auto _outputs           = outputs          .reshape(Shape{batch_size});
+    auto _inputs            = inputs           .reshape(tensor::Shape{batch_size, size});
+    auto _expected_outputs  = expected_outputs->reshape(tensor::Shape{batch_size, size});
+    auto _outputs           = outputs          .reshape(tensor::Shape{batch_size});
 
     outputs.fill(0.0);
-    math::reduce<2>(_outputs, {_inputs, _expected_outputs}, math::Direction::RIGHT, [](float output, float input, float expected_output)
+    tensor::math::reduce<2>(_outputs, {_inputs, _expected_outputs}, tensor::math::Direction::RIGHT, [](float output, float input, float expected_output)
     {
       // Assume inputs is properly normalized via the use of a normalization layer such as softmax
       // Entropy/Information of input * Probability of getting such input
@@ -31,27 +31,27 @@ namespace kann
     return outputs;
   }
 
-  Tensor<const float> CrossEntropyLossFunction::backward(Tensor<const float> output_gradients)
+  tensor::Tensor<const float> CrossEntropyLossFunction::backward(tensor::Tensor<const float> output_gradients)
   {
-    Tensor<const float> inputs = std::move(saved_tensors[0]);
+    tensor::Tensor<const float> inputs = std::move(saved_tensors[0]);
 
     const size_t batch_size = inputs.shape().dimension(0);
-    const Shape  shape      = inputs.shape().drop_front(1);
+    const tensor::Shape  shape      = inputs.shape().drop_front(1);
     const size_t size       = shape.size();
 
-    Tensor<float> input_gradients = Tensor<float>::create(inputs.shape());
+    tensor::Tensor<float> input_gradients = tensor::Tensor<float>::create(inputs.shape());
 
     assert(this->expected_outputs);
-    auto _inputs            = inputs           .reshape(Shape{batch_size, size});
-    auto _input_gradients   = input_gradients  .reshape(Shape{batch_size, size});
-    auto _expected_outputs  = expected_outputs->reshape(Shape{batch_size, size});
-    auto _output_gradients  = output_gradients .reshape(Shape{batch_size});
+    auto _inputs            = inputs           .reshape(tensor::Shape{batch_size, size});
+    auto _input_gradients   = input_gradients  .reshape(tensor::Shape{batch_size, size});
+    auto _expected_outputs  = expected_outputs->reshape(tensor::Shape{batch_size, size});
+    auto _output_gradients  = output_gradients .reshape(tensor::Shape{batch_size});
 
-    math::transform<2>(_input_gradients.flatten(), {_inputs.flatten(), _expected_outputs.flatten()}, [](float /*input_gradient*/, float input, const float expected_output)
+    tensor::math::transform<2>(_input_gradients.flatten(), {_inputs.flatten(), _expected_outputs.flatten()}, [](float /*input_gradient*/, float input, const float expected_output)
     {
       return - expected_output / input;
     });
-    math::broadcast<1>(_input_gradients, { _output_gradients }, math::Direction::RIGHT, math::MUL);
+    tensor::math::broadcast<1>(_input_gradients, { _output_gradients }, tensor::math::Direction::RIGHT, tensor::math::MUL);
     return input_gradients;
   }
 }
