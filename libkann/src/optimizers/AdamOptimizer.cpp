@@ -1,0 +1,52 @@
+#include <libkann/optimizers/AdamOptimizer.hpp>
+
+#include <libtensor/Math.hpp>
+
+#include <fmt/core.h>
+
+namespace kann
+{
+  AdamOptimizer::AdamOptimizer(float alpha, float beta1, float beta2, float epsilon)
+    : m_alpha(alpha), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon) {}
+
+  void AdamOptimizer::step()
+  {
+    ++m_timestep;
+  }
+
+  void AdamOptimizer::optimize(Variable& variable) const
+  {
+    const tensor::Shape& shape = variable.shape;
+    if(variable.optimizer_states.empty())
+    {
+      tensor::Tensor<float> m = tensor::Tensor<float>::create(shape);
+      tensor::Tensor<float> v = tensor::Tensor<float>::create(shape);
+      m.fill(0.0f);
+      v.fill(0.0f);
+
+      // Hack to work around the fact that initializer list return by const and
+      // thus does not work for move only types
+      variable.optimizer_states.clear();
+      variable.optimizer_states.reserve(2);
+      variable.optimizer_states.push_back(std::move(m));
+      variable.optimizer_states.push_back(std::move(v));
+    }
+
+    // First and second moment respectively
+    tensor::Tensor<float>& m = variable.optimizer_states[0];
+    tensor::Tensor<float>& v = variable.optimizer_states[1];
+
+    tensor::math::transform<1>(m.flatten(), {variable.gradient.flatten()}, [this](float m, float gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient; });
+    tensor::math::transform<1>(v.flatten(), {variable.gradient.flatten()}, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient * gradient; });
+
+    tensor::Tensor<float> m_hat = tensor::Tensor<float>::create(m.shape());
+    tensor::Tensor<float> v_hat = tensor::Tensor<float>::create(v.shape());
+
+    tensor::math::transform<1>(m_hat.flatten(), {m.flatten()}, tensor::math::SCALE(1.0 / (1.0 - std::pow(m_beta1, m_timestep))));
+    tensor::math::transform<1>(v_hat.flatten(), {v.flatten()}, tensor::math::SCALE(1.0 / (1.0 - std::pow(m_beta2, m_timestep))));
+
+    const float factor = -m_alpha / ( tensor::math::norm(v_hat.flatten()) + m_epsilon );
+    tensor::math::transform<1>(variable.value.flatten(), {m_hat.flatten()}, tensor::math::FMA(factor));
+  }
+}
+
