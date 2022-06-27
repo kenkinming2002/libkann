@@ -17,7 +17,6 @@
 
 #include <libkann/datasets/MNIST.hpp>
 #include <libkann/datasets/Random.hpp>
-#include <libkann/datasets/write.hpp>
 
 #include <libkann/Batch.hpp>
 #include <libkann/ProgressBar.hpp>

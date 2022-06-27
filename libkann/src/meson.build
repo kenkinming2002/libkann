@@ -14,7 +14,6 @@ libkann_sources = [
   # Datasets
   'datasets/MNIST.cpp',
   'datasets/Random.cpp',
-  'datasets/write.cpp',
 
   # Optimizers
   #'Optimizer.cpp',
@@ -31,12 +30,12 @@ libkann_sources = [
 
 libkann_lib = library('kann', libkann_sources,
   include_directories : ['../include'],
-  dependencies        : [libtensor_dep, fmt_dep, range_v3_dep, eigen_dep, sfml_dep, yaml_cpp_dep],
+  dependencies        : [libtensor_dep, fmt_dep, range_v3_dep, eigen_dep, yaml_cpp_dep],
   gnu_symbol_visibility : 'hidden'
 )
 
 libkann_dep = declare_dependency(
   include_directories : ['../include'],
-  dependencies : [libtensor_dep, sfml_dep],
+  dependencies : [libtensor_dep],
   link_with : libkann_lib,
 )
