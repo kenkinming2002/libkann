@@ -1,5 +1,4 @@
 #include <libkann/Initialize.hpp>
-#include <libkann/Random.hpp>
 
 #include <libtensor/Tensor.hpp>
 #include <libtensor/Math.hpp>
@@ -20,6 +19,8 @@
 
 #include <libkann/Batch.hpp>
 #include <libkann/ProgressBar.hpp>
+
+#include <random>
 
 #include <fmt/core.h>
 
@@ -128,7 +129,8 @@ int main(int argc, char** argv)
   // 2: Preparation
   kann::initialize();
 
-  std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
+  std::random_device rd;
+  std::default_random_engine prng(rd());
 
   const std::shared_ptr<const kann::LayerDef> def   = kann::LayerDef::load(file_name);
   const std::shared_ptr<kann::LayerStorage> storage = def->create(prng);

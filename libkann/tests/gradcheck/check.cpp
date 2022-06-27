@@ -2,7 +2,6 @@
 #include <catch2/catch_session.hpp>
 
 #include <libkann/Initialize.hpp>
-#include <libkann/Random.hpp>
 #include <libtensor/Math.hpp>
 
 #include <libkann/Layer.hpp>
@@ -221,7 +220,8 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
 
 static void test_layer_def(std::shared_ptr<const kann::LayerDef> layer_def)
 {
-  static std::default_random_engine prng(kann::random<std::default_random_engine::result_type>());
+  static std::random_device rd;
+  static std::default_random_engine prng(rd());
 
   std::shared_ptr<kann::Layer> layer = create_layer(std::move(layer_def), prng);
   test_layer(std::move(layer), prng);
