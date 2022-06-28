@@ -1,3 +1,5 @@
+#include "Export.hpp"
+
 #include <Eigen/Eigen>
 #include <unsupported/Eigen/CXX11/Tensor>
 
@@ -6,7 +8,7 @@ extern "C"
   using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   using Tensor = Eigen::Tensor<float, 2, Eigen::RowMajor>;
 
-  void sgemm(size_t M, size_t N, size_t K,
+  BACKEND_EXPORT void sgemm(size_t M, size_t N, size_t K,
       const float* A, bool trans_a,
       const float* B, bool trans_b,
       float* C)
@@ -30,7 +32,7 @@ extern "C"
     }
   }
 
-  void sgecorr2d(size_t M, size_t N, size_t K,
+  BACKEND_EXPORT void sgecorr2d(size_t M, size_t N, size_t K,
       const float* inputs,  size_t height_input, size_t width_input, bool trans_inputs,
       const float* kernels, size_t height_kernel, size_t width_kernel, bool trans_kernels,
       float* outputs, size_t height_output, size_t width_output)
@@ -61,7 +63,7 @@ extern "C"
         }
   }
 
-  void sgeconv2d(size_t M, size_t N, size_t K,
+  BACKEND_EXPORT void sgeconv2d(size_t M, size_t N, size_t K,
       const float* inputs,  size_t height_input, size_t width_input, bool trans_inputs,
       const float* kernels, size_t height_kernel, size_t width_kernel, bool trans_kernels,
       float* outputs, size_t height_output, size_t width_output)
