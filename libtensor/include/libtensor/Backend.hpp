@@ -28,4 +28,6 @@ namespace tensor
     sgecorr2d_t sgecorr2d;
     sgeconv2d_t sgeconv2d;
   };
+
+  std::vector<Backend> backends();
 }
