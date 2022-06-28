@@ -1,36 +1,13 @@
 #include <libtensor/Math.hpp>
 
-#include <Eigen/Eigen>
+#include <libtensor/Backend.hpp>
 
+#include <spdlog/spdlog.h>
 #include <range/v3/all.hpp>
 #include <fmt/core.h>
 
 namespace tensor::math
 {
-  using EigenArray  = Eigen::ArrayXf;
-  using EigenVector = Eigen::RowVectorXf;
-  using EigenMatrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-
-  static inline auto to_eigen_array(auto& tensor)
-  {
-    return EigenArray::Map(tensor.data(), tensor.size());
-  }
-
-  static inline auto to_eigen_vector(auto& tensor)
-  {
-    assert(tensor.rank() == 1);
-    return EigenVector::Map(tensor.data(), tensor.shape().size());
-  }
-
-  static inline auto to_eigen_matrix(auto& tensor)
-  {
-    assert(tensor.rank() == 2);
-    return EigenMatrix::Map(tensor.data(),
-      tensor.shape().dimension(0),
-      tensor.shape().dimension(1)
-    );
-  }
-
   float norm(const Tensor<float>& value)
   {
     Tensor<float> flattened = value.flatten();
@@ -42,6 +19,22 @@ namespace tensor::math
     return std::sqrt(sum);
   }
 
+  static inline sgemm_t resolve_sgemm()
+  {
+    for(const Backend& backend : backends())
+      if(backend.sgemm)
+        return backend.sgemm;
+
+    spdlog::error("libtensor : No backend provide sgemm function");
+    exit(EXIT_FAILURE);
+  }
+
+  static inline void sgemm(size_t M, size_t N, size_t K, const float* A, bool trans_a, const float* B, bool trans_b, float* C)
+  {
+    static sgemm_t impl = resolve_sgemm();
+    return impl(M, N, K, A, trans_a, B, trans_b, C);
+  }
+
   void product(Tensor<float> dst,
       Tensor<const float> a, bool transpose_a,
       Tensor<const float> b, bool transpose_b)
@@ -50,23 +43,21 @@ namespace tensor::math
     assert(b.rank() == 2);
     assert(dst.rank() == 2);
 
-    auto _a   = EigenMatrix::Map(a.data(),   a.shape().dimension(0),   a.shape().dimension(1));
-    auto _b   = EigenMatrix::Map(b.data(),   b.shape().dimension(0),   b.shape().dimension(1));
-    auto _dst = EigenMatrix::Map(dst.data(), dst.shape().dimension(0), dst.shape().dimension(1));
-    if(transpose_a)
-    {
-      if(transpose_b)
-        _dst.noalias() = _a.transpose() * _b.transpose();
-      else
-        _dst.noalias() = _a.transpose() * _b;
-    }
-    else
-    {
-      if(transpose_b)
-        _dst.noalias() = _a * _b.transpose();
-      else
-        _dst.noalias() = _a * _b;
-    }
+    const size_t M1 = dst.dimension(0);
+    const size_t N1 = dst.dimension(1);
+
+    size_t M2 = a.dimension(0), K1 = a.dimension(1);
+    size_t K2 = b.dimension(0), N2 = b.dimension(1);
+
+    if(transpose_a) std::swap(M2, K1);
+    if(transpose_b) std::swap(K2, N2);
+
+    assert(M1 == M2);
+    assert(N1 == N2);
+    assert(K1 == K2);
+
+    const size_t M = M1, N = N1, K = K1;
+    sgemm(M, N, K, a.data(), transpose_a, b.data(), transpose_b, dst.data());
   }
 
   inline Tensor<const float> pad(Tensor<const float> inputs, size_t padding_height, size_t padding_width)

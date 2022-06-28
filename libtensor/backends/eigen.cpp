@@ -10,7 +10,7 @@ extern "C"
       float* C)
   {
     auto a = trans_a ? Matrix::Map(A, K, M) : Matrix::Map(A, M, K);
-    auto b = trans_b ? Matrix::Map(A, N, K) : Matrix::Map(A, K, N);
+    auto b = trans_b ? Matrix::Map(B, N, K) : Matrix::Map(B, K, N);
     auto c = Matrix::Map(C, M, N);
     if(trans_a)
     {
