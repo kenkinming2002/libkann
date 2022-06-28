@@ -13,15 +13,15 @@ namespace tensor
 
   // Single precision general cross-correlation 2D
   typedef void(*sgecorr2d_t)(size_t M, size_t N, size_t K,
-      const float* A, size_t height_A, size_t width_A, bool trans_a,
-      const float* B, size_t height_B, size_t width_B, bool trans_b,
-      float* C);
+      const float* inputs,  size_t height_input, size_t width_input, bool trans_inputs,
+      const float* kernels, size_t height_kernel, size_t width_kernel, bool trans_kernels,
+      float* outputs, size_t height_output, size_t width_output);
 
   // Single precision general convolution 2D
   typedef void(*sgeconv2d_t)(size_t M, size_t N, size_t K,
-      const float* A, size_t height_A, size_t width_A, bool trans_a,
-      const float* B, size_t height_B, size_t width_B, bool trans_b,
-      float* C);
+      const float* inputs,  size_t height_input, size_t width_input, bool trans_inputs,
+      const float* kernels, size_t height_kernel, size_t width_kernel, bool trans_kernels,
+      float* outputs, size_t height_output, size_t width_output);
 
   struct Backend
   {
