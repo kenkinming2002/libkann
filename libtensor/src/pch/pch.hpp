@@ -1,7 +1,6 @@
 #include <range/v3/all.hpp>
 #include <fmt/core.h>
 #include <yaml-cpp/yaml.h>
-#include <Eigen/Eigen>
 
 #include <vector>
 #include <complex>

@@ -4,6 +4,7 @@
 extern "C"
 {
   using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  using Tensor = Eigen::Tensor<float, 2, Eigen::RowMajor>;
 
   void sgemm(size_t M, size_t N, size_t K,
       const float* A, bool trans_a,
@@ -34,6 +35,7 @@ extern "C"
       const float* kernels, size_t height_kernel, size_t width_kernel, bool trans_kernels,
       float* outputs, size_t height_output, size_t width_output)
   {
+    std::fill_n(outputs, M * N * height_output * width_output, 0.0f);
     for(size_t m=0; m<M; ++m)
       for(size_t n=0; n<N; ++n)
         for(size_t k=0; k<K; ++k)
@@ -42,9 +44,9 @@ extern "C"
           const size_t kernel_index = trans_kernels ? (n * K + k) : (k * N + n);
           const size_t output_index = m * N + n;
 
-          Eigen::TensorMap<const Eigen::Tensor<float, 2>> input (&inputs [input_index  * height_input  * width_input],  height_input,  width_input);
-          Eigen::TensorMap<const Eigen::Tensor<float, 2>> kernel(&kernels[kernel_index * height_kernel * width_kernel], height_kernel, width_kernel);
-          Eigen::TensorMap<      Eigen::Tensor<float, 2>> output(&outputs[output_index * height_output * width_output], height_output, width_output);
+          Eigen::TensorMap<const Tensor> input (&inputs [input_index  * height_input  * width_input],  height_input,  width_input);
+          Eigen::TensorMap<const Tensor> kernel(&kernels[kernel_index * height_kernel * width_kernel], height_kernel, width_kernel);
+          Eigen::TensorMap<      Tensor> output(&outputs[output_index * height_output * width_output], height_output, width_output);
 
           const size_t height_padding = (height_output - height_input + height_kernel - 1) / 2;
           const size_t width_padding  = (width_output  - width_input  + width_kernel  - 1) / 2;
@@ -55,7 +57,7 @@ extern "C"
           auto padded_input = input.pad(paddings);
 
           const Eigen::array<ptrdiff_t, 2> dims({0, 1});
-          output = padded_input.convolve(kernel.reverse(dims), dims);
+          output += padded_input.convolve(kernel, dims);
         }
   }
 
@@ -64,6 +66,7 @@ extern "C"
       const float* kernels, size_t height_kernel, size_t width_kernel, bool trans_kernels,
       float* outputs, size_t height_output, size_t width_output)
   {
+    std::fill_n(outputs, M * N * height_output * width_output, 0.0f);
     for(size_t m=0; m<M; ++m)
       for(size_t n=0; n<N; ++n)
         for(size_t k=0; k<K; ++k)
@@ -72,9 +75,9 @@ extern "C"
           const size_t kernel_index = trans_kernels ? (n * K + k) : (k * N + n);
           const size_t output_index = m * N + n;
 
-          Eigen::TensorMap<const Eigen::Tensor<float, 2>> input (&inputs [input_index  * height_input  * width_input],  height_input,  width_input);
-          Eigen::TensorMap<const Eigen::Tensor<float, 2>> kernel(&kernels[kernel_index * height_kernel * width_kernel], height_kernel, width_kernel);
-          Eigen::TensorMap<      Eigen::Tensor<float, 2>> output(&outputs[output_index * height_output * width_output], height_output, width_output);
+          Eigen::TensorMap<const Tensor> input (&inputs [input_index  * height_input  * width_input],  height_input,  width_input);
+          Eigen::TensorMap<const Tensor> kernel(&kernels[kernel_index * height_kernel * width_kernel], height_kernel, width_kernel);
+          Eigen::TensorMap<      Tensor> output(&outputs[output_index * height_output * width_output], height_output, width_output);
 
           const size_t height_padding = (height_output - height_input + height_kernel - 1) / 2;
           const size_t width_padding  = (width_output  - width_input  + width_kernel  - 1) / 2;
@@ -85,7 +88,8 @@ extern "C"
           auto padded_input = input.pad(paddings);
 
           const Eigen::array<ptrdiff_t, 2> dims({0, 1});
-          output = padded_input.convolve(kernel, dims);
+          const Eigen::array<bool, 2> reverse({true, true});
+          output += padded_input.convolve(kernel.reverse(reverse), dims);
         }
   }
 }
