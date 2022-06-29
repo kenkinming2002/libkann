@@ -97,6 +97,17 @@ static inline void ifft2d(size_t height, size_t width, std::complex<float> value
 /***********
  * Padding *
  ***********/
+static inline void pad2d_reverse(size_t input_height,  size_t input_width,  const float input[],
+                         size_t output_height, size_t output_width, std::complex<float> output[])
+{
+  for(size_t y=0; y<output_height; ++y)
+    for(size_t x=0; x<output_width; ++x)
+      if(y < input_height && x < input_width)
+        output[y * output_width + x] = input[(input_height - y - 1) * input_width + (input_width - x - 1)];
+      else
+        output[y * output_width + x] = 0.0f;
+}
+
 static inline void pad2d(size_t input_height,  size_t input_width,  const float input[],
                          size_t output_height, size_t output_width, std::complex<float> output[])
 {
@@ -131,6 +142,40 @@ static inline size_t next_power_of_2(size_t value)
 /**********
  * Single *
  **********/
+void scorr2d(size_t input_height,  size_t input_width,  const float input[],
+             size_t kernel_height, size_t kernel_width, const float kernel[],
+             size_t output_height, size_t output_width, float output[])
+{
+  // This is also the maximum output_height and output_width
+  const size_t min_height = input_height + kernel_height - 1;
+  const size_t min_width  = input_width  + kernel_width  - 1; //
+
+  // Round up to next power of two
+  const size_t height = next_power_of_2(min_height);
+  const size_t width  = next_power_of_2(min_width);
+
+  auto input_buf  = std::make_unique_for_overwrite<std::complex<float>[]>(height * width);
+  auto kernel_buf = std::make_unique_for_overwrite<std::complex<float>[]>(height * width);
+  auto tmp        = std::make_unique_for_overwrite<std::complex<float>[]>(height * width);
+
+  // Pad and FFT
+  pad2d(input_height, input_width, input, height, width, input_buf.get());
+  fft2d(height, width, input_buf.get(), tmp.get());
+
+  pad2d_reverse(kernel_height, kernel_width, kernel, height, width, kernel_buf.get());
+  fft2d(height, width, kernel_buf.get(), tmp.get());
+
+  // Multiply input_buf and kernel_buf together
+  for(size_t i=0; i<height*width; ++i)
+    input_buf[i] *= kernel_buf[i];
+
+  // IFFT and unpad
+  ifft2d(height, width, input_buf.get(), tmp.get());
+  unpad2d(height, width, input_buf.get(), output_height, output_width, output,
+      (min_height - output_height) / 2,
+      (min_width  - output_width)  / 2);
+}
+
 void sconv2d(size_t input_height,  size_t input_width,  const float input[],
              size_t kernel_height, size_t kernel_width, const float kernel[],
              size_t output_height, size_t output_width, float output[])
@@ -167,6 +212,23 @@ void sconv2d(size_t input_height,  size_t input_width,  const float input[],
 
 extern "C"
 {
+  BACKEND_EXPORT void sgecorr2d(size_t M, size_t N, size_t K,
+      const float* inputs,  size_t input_height,  size_t input_width,  bool trans_inputs,
+      const float* kernels, size_t kernel_height, size_t kernel_width, bool trans_kernels,
+      float* outputs,       size_t output_height, size_t output_width)
+  {
+    std::fill_n(outputs, M * N * output_height * output_width, 0.0f);
+    for(size_t m=0; m<M; ++m)
+      for(size_t n=0; n<N; ++n)
+        for(size_t k=0; k<K; ++k)
+        {
+          const float* input  = &inputs [input_height  * input_width  * ( trans_inputs  ? (k * M + m) : (m * K + k) )];
+          const float* kernel = &kernels[kernel_height * kernel_width * ( trans_kernels ? (n * K + k) : (k * N + n) )];
+          float* output = &outputs[output_height * output_width * (m * N + n)];
+          scorr2d(input_height, input_width, input, kernel_height, kernel_width, kernel, output_height, output_width, output);
+        }
+  }
+
   BACKEND_EXPORT void sgeconv2d(size_t M, size_t N, size_t K,
       const float* inputs,  size_t input_height,  size_t input_width,  bool trans_inputs,
       const float* kernels, size_t kernel_height, size_t kernel_width, bool trans_kernels,
