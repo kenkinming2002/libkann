@@ -1,97 +1,151 @@
 #include "Export.hpp"
 
+#include <vector>
 #include <memory>
 #include <complex>
 
 #include <stddef.h>
 #include <assert.h>
 
-/****************
- * FFT and IFFT *
- ****************/
-static inline void fft(size_t N, const std::complex<float> inputs[],  size_t input_stride,
-                                       std::complex<float> outputs[], size_t output_stride)
+// Inplace non-recusvie implementation of FFT and IFFT
+// Refer to : http://wwwa.pikara.ne.jp/okojisan/otfft-en/cooley-tukey.html for more details
+template<typename T>
+struct slice
 {
-  if(N == 1)
+public:
+  T* data;
+  size_t offset;
+  size_t stride;
+  size_t count;
+
+public:
+  constexpr slice(T* data, size_t count, size_t offset = 0, size_t stride = 1)
+    : data(data), offset(offset), stride(stride), count(count) {}
+
+  constexpr slice(std::vector<T>& data)
+    : slice(data.data(), data.size()) {}
+
+public:
+  const T& operator[](size_t index) const
   {
-    outputs[0] = inputs[0];
-    return;
+    assert(index < count);
+    return data[offset + index * stride];
   }
 
-  // We interleave inputs but split outputs in the middle into the recusive calls
-  fft(N/2, inputs               , input_stride*2, outputs                      , output_stride);
-  fft(N/2, inputs + input_stride, input_stride*2, outputs + N/2 * output_stride, output_stride);
-
-  // Collection step
-  for(size_t i=0; i<N/2; ++i)
+  T& operator[](size_t index)
   {
-    // TODO: Precompute table
-    const std::complex<float> omega_i = std::polar(1.0f, -2.0f * std::numbers::pi_v<float> * ((float)i / N));
-
-    const std::complex<float> y_e = outputs[i           * output_stride];
-    const std::complex<float> y_o = outputs[(i + N / 2) * output_stride];
-    outputs[i           * output_stride] = y_e + omega_i * y_o;
-    outputs[(i + N / 2) * output_stride] = y_e - omega_i * y_o;
+    assert(index < count);
+    return data[offset + index * stride];
   }
+};
+
+static inline size_t log2_exact(size_t value)
+{
+  size_t result = 0;
+  while(value >>= 1)
+    ++result;
+  return result;
 }
 
-static inline void _ifft(size_t N, const std::complex<float> inputs[],  size_t input_stride,
-                                         std::complex<float> outputs[], size_t output_stride)
+static inline size_t bit_reverse(size_t value, size_t bit_count)
 {
-  if(N == 1)
+  size_t result = 0;
+  for(size_t i=0; i<bit_count; ++i)
   {
-    outputs[0] = inputs[0];
-    return;
+    size_t bit = value & 0x1;
+    value >>= 1;
+    result <<= 1;
+    result = result | bit;
   }
-
-  // We interleave inputs but split outputs in the middle into the recusive calls
-  _ifft(N/2, inputs               , input_stride*2, outputs                      , output_stride);
-  _ifft(N/2, inputs + input_stride, input_stride*2, outputs + N/2 * output_stride, output_stride);
-
-  // Collection step
-  for(size_t i=0; i<N/2; ++i)
-  {
-    // TODO: Precompute table
-    const std::complex<float> omega_i = std::polar(1.0f, 2.0f * std::numbers::pi_v<float> * ((float)i / N));
-
-    const std::complex<float> y_e = outputs[i           * output_stride];
-    const std::complex<float> y_o = outputs[(i + N / 2) * output_stride];
-    outputs[i           * output_stride] = y_e + omega_i * y_o;
-    outputs[(i + N / 2) * output_stride] = y_e - omega_i * y_o;
-  }
+  return result;
 }
 
-static inline void ifft(size_t N, const std::complex<float> inputs[],  size_t input_stride,
-                                        std::complex<float> outputs[], size_t output_stride)
+static inline void bit_reverse(slice<std::complex<float>> data)
 {
-  _ifft(N, inputs, input_stride, outputs, output_stride);
+  const size_t N = data.count;
+  const size_t bit_count = log2_exact(N);
   for(size_t i=0; i<N; ++i)
-    outputs[i * output_stride] /= N;
+  {
+    size_t j = bit_reverse(i, bit_count);
+    if(i < j)
+      std::swap(data[i], data[j]);
+  }
+}
+
+static inline void fft(slice<std::complex<float>> data)
+{
+  const size_t N = data.count;
+  const size_t depth = log2_exact(N);
+  for(size_t k=0; k<depth; ++k)
+  {
+    const size_t chunk_count     = 1 << k;
+    const size_t chunk_size      = N >> k;
+    const size_t chunk_half_size = chunk_size >> 1;
+
+    for(size_t i=0; i<chunk_count; ++i)
+      for(size_t j=0; j<chunk_half_size; ++j)
+      {
+        // Operate on i * chunk_size +jk and i * chunk_size + chunk_half_size + j
+        const std::complex<float> a = data[i * chunk_size +                   j];
+        const std::complex<float> b = data[i * chunk_size + chunk_half_size + j];
+        const std::complex<float> omega = std::polar(1.0f, -2.0f * std::numbers::pi_v<float> * (float)j / (float)chunk_size);
+        data[i * chunk_size +                   j] = a + b;
+        data[i * chunk_size + chunk_half_size + j] = (a - b) * omega;
+      }
+  }
+  bit_reverse(data);
+}
+
+
+static inline void ifft(slice<std::complex<float>> data)
+{
+  const size_t N = data.count;
+  const size_t depth = log2_exact(N);
+  for(size_t k=0; k<depth; ++k)
+  {
+    const size_t chunk_count     = 1 << k;
+    const size_t chunk_size      = N >> k;
+    const size_t chunk_half_size = chunk_size >> 1;
+
+    for(size_t i=0; i<chunk_count; ++i)
+      for(size_t j=0; j<chunk_half_size; ++j)
+      {
+        // Operate on i * chunk_size +jk and i * chunk_size + chunk_half_size + j
+        const std::complex<float> a = data[i * chunk_size +                   j];
+        const std::complex<float> b = data[i * chunk_size + chunk_half_size + j];
+        const std::complex<float> omega = std::polar(1.0f, 2.0f * std::numbers::pi_v<float> * (float)j / (float)chunk_size);
+        data[i * chunk_size +                   j] = a + b;
+        data[i * chunk_size + chunk_half_size + j] = (a - b) * omega;
+      }
+  }
+  bit_reverse(data);
+  for(size_t i=0; i<N; ++i)
+    data[i] /= N;
 }
 
 /*******************
  * 2D FFT and IFFT *
  *******************/
-static inline void fft2d(size_t height, size_t width, std::complex<float> values[], std::complex<float> tmp[])
+static inline void fft2d(size_t height, size_t width, std::complex<float> values[])
 {
   // FFT on each row
   for(size_t y=0; y<height; ++y)
-    fft(width, &values[y*width], 1, &tmp[y*width], 1);
+    fft(slice(values, width, y * width, 1));
 
   // FFT on each column
   for(size_t x=0; x<width; ++x)
-    fft(height, &tmp[x], width, &values[x], width);
+    fft(slice(values, height, x, width));
 }
 
-static inline void ifft2d(size_t height, size_t width, std::complex<float> values[], std::complex<float> tmp[])
+static inline void ifft2d(size_t height, size_t width, std::complex<float> values[])
 {
   // IFFT on each row
   for(size_t y=0; y<height; ++y)
-    ifft(width, &values[y*width], 1, &tmp[y*width], 1);
+    ifft(slice(values, width, y * width, 1));
 
   // IFFT on each column
   for(size_t x=0; x<width; ++x)
-    ifft(height, &tmp[x], width, &values[x], width);
+    ifft(slice(values, height, x, width));
 }
 
 /***********
@@ -156,21 +210,20 @@ void scorr2d(size_t input_height,  size_t input_width,  const float input[],
 
   auto input_buf  = std::make_unique_for_overwrite<std::complex<float>[]>(height * width);
   auto kernel_buf = std::make_unique_for_overwrite<std::complex<float>[]>(height * width);
-  auto tmp        = std::make_unique_for_overwrite<std::complex<float>[]>(height * width);
 
   // Pad and FFT
   pad2d(input_height, input_width, input, height, width, input_buf.get());
-  fft2d(height, width, input_buf.get(), tmp.get());
+  fft2d(height, width, input_buf.get());
 
   pad2d_reverse(kernel_height, kernel_width, kernel, height, width, kernel_buf.get());
-  fft2d(height, width, kernel_buf.get(), tmp.get());
+  fft2d(height, width, kernel_buf.get());
 
   // Multiply input_buf and kernel_buf together
   for(size_t i=0; i<height*width; ++i)
     input_buf[i] *= kernel_buf[i];
 
   // IFFT and unpad
-  ifft2d(height, width, input_buf.get(), tmp.get());
+  ifft2d(height, width, input_buf.get());
   unpad2d(height, width, input_buf.get(), output_height, output_width, output,
       (min_height - output_height) / 2,
       (min_width  - output_width)  / 2);
@@ -190,21 +243,20 @@ void sconv2d(size_t input_height,  size_t input_width,  const float input[],
 
   auto input_buf  = std::make_unique_for_overwrite<std::complex<float>[]>(height * width);
   auto kernel_buf = std::make_unique_for_overwrite<std::complex<float>[]>(height * width);
-  auto tmp        = std::make_unique_for_overwrite<std::complex<float>[]>(height * width);
 
   // Pad and FFT
   pad2d(input_height, input_width, input, height, width, input_buf.get());
-  fft2d(height, width, input_buf.get(), tmp.get());
+  fft2d(height, width, input_buf.get());
 
   pad2d(kernel_height, kernel_width, kernel, height, width, kernel_buf.get());
-  fft2d(height, width, kernel_buf.get(), tmp.get());
+  fft2d(height, width, kernel_buf.get());
 
   // Multiply input_buf and kernel_buf together
   for(size_t i=0; i<height*width; ++i)
     input_buf[i] *= kernel_buf[i];
 
   // IFFT and unpad
-  ifft2d(height, width, input_buf.get(), tmp.get());
+  ifft2d(height, width, input_buf.get());
   unpad2d(height, width, input_buf.get(), output_height, output_width, output,
       (min_height - output_height) / 2,
       (min_width  - output_width)  / 2);
