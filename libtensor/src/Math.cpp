@@ -3,8 +3,6 @@
 #include <libtensor/Backend.hpp>
 
 #include <spdlog/spdlog.h>
-#include <range/v3/all.hpp>
-#include <fmt/core.h>
 
 namespace tensor::math
 {
@@ -51,7 +49,7 @@ namespace tensor::math
       float* outputs, size_t height_output, size_t width_output)
   {
     static sgecorr2d_t impl = resolve_sgecorr2d();
-    return impl(M, N, K,
+    impl(M, N, K,
         inputs,  height_input,  width_input,  trans_inputs,
         kernels, height_kernel, width_kernel, trans_kernels,
         outputs, height_output, width_output);
@@ -73,7 +71,7 @@ namespace tensor::math
       float* outputs, size_t height_output, size_t width_output)
   {
     static sgeconv2d_t impl = resolve_sgeconv2d();
-    return impl(M, N, K,
+    impl(M, N, K,
         inputs,  height_input,  width_input,  trans_inputs,
         kernels, height_kernel, width_kernel, trans_kernels,
         outputs, height_output, width_output);
