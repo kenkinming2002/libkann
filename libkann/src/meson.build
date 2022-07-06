@@ -21,6 +21,7 @@ libkann_sources = [
   'optimizers/AdamOptimizer.cpp',
 
   # Loss functions
+  'LossFunction.cpp',
   'loss_functions/Lp.cpp',
   'loss_functions/CrossEntropy.cpp',
 
