@@ -44,39 +44,16 @@ namespace tensor
 }
 
 // Implementation
-#include <type_traits>
-#include <Eigen/Eigen>
+#include <libtensor/details/Eigen.hpp>
 
 namespace tensor
 {
-  template<typename T>
-  static inline auto to_array1d(Tensor<T> value)
-  {
-    using ArrayType = std::conditional_t<std::is_const_v<T>,
-      Eigen::Array<std::remove_const_t<T>, 1, Eigen::Dynamic> const,
-      Eigen::Array<std::remove_const_t<T>, 1, Eigen::Dynamic>>;
-
-    assert(value.rank() == 1);
-    return ArrayType::Map(value.data(), value.dimension(0));
-  }
-
-  template<typename T>
-  static inline auto to_array2d(Tensor<T> value)
-  {
-    using ArrayType = std::conditional_t<std::is_const_v<T>,
-      Eigen::Array<std::remove_const_t<T>, Eigen::Dynamic, Eigen::Dynamic> const,
-      Eigen::Array<std::remove_const_t<T>, Eigen::Dynamic, Eigen::Dynamic>>;
-
-    assert(value.rank() == 2);
-    return ArrayType::Map(value.data(), value.dimension(0), value.dimension(1));
-  }
-
   template<Direction direction, typename T>
   Tensor<T> broadcast_add(Tensor<const T> a, Tensor<const T> b)
   {
     auto c = Tensor<T>::create(a.shape());
-    if constexpr(direction == Direction::LEFT)       to_array2d(c) = to_array2d(a).rowwise() + to_array1d(b);
-    else if constexpr(direction == Direction::RIGHT) to_array2d(c) = to_array2d(a).colwise() + to_array1d(b).transpose();
+    if constexpr(direction == Direction::LEFT)       details::to_array2d(c) = details::to_array2d(a).rowwise() + details::to_array1d(b);
+    else if constexpr(direction == Direction::RIGHT) details::to_array2d(c) = details::to_array2d(a).colwise() + details::to_array1d(b).transpose();
     else static_assert("Invalid direction");
     return c;
   }
@@ -85,8 +62,8 @@ namespace tensor
   Tensor<T> broadcast_sub(Tensor<const T> a, Tensor<const T> b)
   {
     auto c = Tensor<T>::create(a.shape());
-    if constexpr(direction == Direction::LEFT)       to_array2d(c) = to_array2d(a).rowwise() - to_array1d(b);
-    else if constexpr(direction == Direction::RIGHT) to_array2d(c) = to_array2d(a).colwise() - to_array1d(b).transpose();
+    if constexpr(direction == Direction::LEFT)       details::to_array2d(c) = details::to_array2d(a).rowwise() - details::to_array1d(b);
+    else if constexpr(direction == Direction::RIGHT) details::to_array2d(c) = details::to_array2d(a).colwise() - details::to_array1d(b).transpose();
     else static_assert("Invalid direction");
     return c;
   }
@@ -95,8 +72,8 @@ namespace tensor
   Tensor<T> broadcast_mul(Tensor<const T> a, Tensor<const T> b)
   {
     auto c = Tensor<T>::create(a.shape());
-    if constexpr(direction == Direction::LEFT)       to_array2d(c) = to_array2d(a).rowwise() * to_array1d(b);
-    else if constexpr(direction == Direction::RIGHT) to_array2d(c) = to_array2d(a).colwise() * to_array1d(b).transpose();
+    if constexpr(direction == Direction::LEFT)       details::to_array2d(c) = details::to_array2d(a).rowwise() * details::to_array1d(b);
+    else if constexpr(direction == Direction::RIGHT) details::to_array2d(c) = details::to_array2d(a).colwise() * details::to_array1d(b).transpose();
     else static_assert("Invalid direction");
     return c;
   }
@@ -105,8 +82,8 @@ namespace tensor
   Tensor<T> broadcast_div(Tensor<const T> a, Tensor<const T> b)
   {
     auto c = Tensor<T>::create(a.shape());
-    if constexpr(direction == Direction::LEFT)       to_array2d(c) = to_array2d(a).rowwise() / to_array1d(b);
-    else if constexpr(direction == Direction::RIGHT) to_array2d(c) = to_array2d(a).colwise() / to_array1d(b).transpose();
+    if constexpr(direction == Direction::LEFT)       details::to_array2d(c) = details::to_array2d(a).rowwise() / details::to_array1d(b);
+    else if constexpr(direction == Direction::RIGHT) details::to_array2d(c) = details::to_array2d(a).colwise() / details::to_array1d(b).transpose();
     else static_assert("Invalid direction");
     return c;
   }

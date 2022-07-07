@@ -16,6 +16,7 @@ libtensor_lib = library('tensor', libtensor_sources,
 
 libtensor_dep = declare_dependency(
   include_directories : ['../include'],
+  dependencies        : [fmt_dep, spdlog_dep, range_v3_dep, eigen_dep],
   link_with : libtensor_lib,
 )
 
