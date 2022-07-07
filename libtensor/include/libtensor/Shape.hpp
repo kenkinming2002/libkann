@@ -9,6 +9,9 @@
 
 namespace tensor
 {
+  struct FlattenSingle {};
+  static constexpr FlattenSingle flatten_single = {};
+
   struct Shape
   {
   public:
@@ -118,8 +121,8 @@ namespace tensor
     {
       // Hints could a size_t or shape
       auto rank_from_hint = [](auto hint) -> size_t {
-        if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, size_t>)     return hint;
-        else if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, Shape>) return hint.rank();
+        if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, FlattenSingle>) return 1;
+        else if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, Shape>)    return hint.rank();
         else []<bool flag=false>() { static_assert(flag, "Unsupported hint type"); }();
       };
 
