@@ -1,13 +1,12 @@
 #pragma once
 
 #include <libtensor/Export.hpp>
+#include <libtensor/Direction.hpp>
 #include <libtensor/Tensor.hpp>
 
 // Declaration
 namespace tensor
 {
-  enum class Direction { LEFT, RIGHT };
-
   template<Direction direction, typename T> Tensor<T> broadcast_add(Tensor<const T> a, Tensor<const T> b);
   template<Direction direction, typename T> Tensor<T> broadcast_sub(Tensor<const T> a, Tensor<const T> b);
   template<Direction direction, typename T> Tensor<T> broadcast_mul(Tensor<const T> a, Tensor<const T> b);
