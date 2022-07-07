@@ -23,7 +23,7 @@ namespace tensor
   Tensor<T> matrix_product(Tensor<const T> a, bool trans_a, Tensor<const T> b, bool trans_b)
   {
     auto [M, K1] = std::make_pair(a.dimension(0), a.dimension(1));
-    auto [K2, N] = std::make_pair(a.dimension(0), a.dimension(1));
+    auto [K2, N] = std::make_pair(b.dimension(0), b.dimension(1));
 
     if(trans_a) std::swap(M, K1);
     if(trans_b) std::swap(K2, N);

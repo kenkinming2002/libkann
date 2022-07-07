@@ -89,6 +89,11 @@ namespace tensor
       return std::make_tuple(result1, result2, result3);
     }
 
+    static constexpr Shape concat(Shape a)
+    {
+      return a;
+    }
+
     static constexpr Shape concat(Shape a, Shape b)
     {
       Shape shape;
