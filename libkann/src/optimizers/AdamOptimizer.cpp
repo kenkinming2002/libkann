@@ -1,6 +1,7 @@
 #include <libkann/optimizers/AdamOptimizer.hpp>
 
-#include <libtensor/Math.hpp>
+#include <libtensor/Map.hpp>
+#include <libtensor/Norm.hpp>
 
 #include <fmt/core.h>
 
@@ -32,21 +33,19 @@ namespace kann
       variable.optimizer_states.push_back(std::move(v));
     }
 
-    // First and second moment respectively
-    tensor::Tensor<float>& m = variable.optimizer_states[0];
-    tensor::Tensor<float>& v = variable.optimizer_states[1];
+    auto& m = variable.optimizer_states[0];
+    auto& v = variable.optimizer_states[1];
 
-    tensor::math::transform<1>(m.flatten(), {variable.gradient.flatten()}, [this](float m, float gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient; });
-    tensor::math::transform<1>(v.flatten(), {variable.gradient.flatten()}, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient * gradient; });
+    m = tensor::binary_map<float>(m, variable.gradient, [this](float m, float gradient) { return m_beta1 * m + (1.0-m_beta1) * gradient; });
+    v = tensor::binary_map<float>(m, variable.gradient, [this](float v, float gradient) { return m_beta2 * v + (1.0-m_beta2) * gradient * gradient; });
 
-    tensor::Tensor<float> m_hat = tensor::Tensor<float>::create(m.shape());
-    tensor::Tensor<float> v_hat = tensor::Tensor<float>::create(v.shape());
+    auto m_hat = tensor::unary_map<float>(m, [factor = 1.0 / (1.0 - std::pow(m_beta1, m_timestep))](float m) { return m * factor; });
+    auto v_hat = tensor::unary_map<float>(v, [factor = 1.0 / (1.0 - std::pow(m_beta2, m_timestep))](float v) { return v * factor; });
 
-    tensor::math::transform<1>(m_hat.flatten(), {m.flatten()}, tensor::math::SCALE(1.0 / (1.0 - std::pow(m_beta1, m_timestep))));
-    tensor::math::transform<1>(v_hat.flatten(), {v.flatten()}, tensor::math::SCALE(1.0 / (1.0 - std::pow(m_beta2, m_timestep))));
-
-    const float factor = -m_alpha / ( tensor::math::norm(v_hat.flatten()) + m_epsilon );
-    tensor::math::transform<1>(variable.value.flatten(), {m_hat.flatten()}, tensor::math::FMA(factor));
+    const float factor = m_alpha / ( tensor::norm<float>(v_hat) + m_epsilon );
+    variable.value = tensor::binary_map<float>(variable.value, m_hat, [factor](float value, float m_hat) {
+      return value - factor * m_hat;
+    });
   }
 }
 
