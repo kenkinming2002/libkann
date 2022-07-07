@@ -5,6 +5,7 @@ libtensor_sources = [
   'Broadcast.cpp',
   'Reduce.cpp',
   'Norm.cpp',
+  'MaxCoeff.cpp',
   'Utils.cpp',
 ]
 
