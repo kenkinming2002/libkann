@@ -1,8 +1,7 @@
 #include <libkann/Initialize.hpp>
 
 #include <libtensor/Tensor.hpp>
-#include <libtensor/Math.hpp>
-#include <libtensor/Utils.hpp>
+#include <libtensor/MaxCoeff.hpp>
 
 #include <libkann/Layer.hpp>
 #include <libkann/LayerStorage.hpp>
@@ -26,7 +25,7 @@
 
 static bool correct(const tensor::Tensor<const float>& value1, const tensor::Tensor<const float>& value2)
 {
-  return tensor::utils::max_coeff(value1) == tensor::utils::max_coeff(value2);
+  return tensor::max_coeff(value1) == tensor::max_coeff(value2);
 }
 
 static void testing(std::string_view label, kann::Layer& layer,
