@@ -54,9 +54,9 @@ namespace tensor
       for(size_t n=0; n<N; ++n)
         for(size_t k=0; k<K; ++k)
         {
-          auto _input  = _inputs .chip(0, m).chip(1, k);
-          auto _kernel = _kernels.chip(0, k).chip(1, n);
-          auto _output = _outputs.chip(0, m).chip(1, n);
+          auto _input  = _inputs .chip(m, 0).chip(k, 0);
+          auto _kernel = _kernels.chip(k, 0).chip(n, 0);
+          auto _output = _outputs.chip(m, 0).chip(n, 0);
 
           Eigen::array<std::pair<int, int>, 2> paddings;
           paddings[0] = std::make_pair(padding_size.height(), padding_size.height());
@@ -97,9 +97,9 @@ namespace tensor
       for(size_t n=0; n<N; ++n)
         for(size_t k=0; k<K; ++k)
         {
-          auto _input  = _inputs .chip(0, m).chip(1, k);
-          auto _kernel = _kernels.chip(0, k).chip(1, n);
-          auto _output = _outputs.chip(0, m).chip(1, n);
+          auto _input  = _inputs .chip(m, 0).chip(k, 0);
+          auto _kernel = _kernels.chip(k, 0).chip(n, 0);
+          auto _output = _outputs.chip(m, 0).chip(n, 0);
 
           Eigen::array<std::pair<int, int>, 2> paddings;
           paddings[0] = std::make_pair(padding_size.height(), padding_size.height());

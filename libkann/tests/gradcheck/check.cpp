@@ -258,9 +258,9 @@ TEST_CASE("Gradcheck", "[gradcheck]")
     auto layer_def = std::make_shared<kann::ConvolutionalLayerDef>();
     layer_def->input_channel_count = 3;
     layer_def->output_channel_count = 4;
-    layer_def->input_size = kann::Vec2(5, 8);
-    layer_def->output_size = kann::Vec2(2, 4);
-    layer_def->kernel_size = kann::Vec2(4, 5);
+    layer_def->input_size = tensor::Vec2(5, 8);
+    layer_def->output_size = tensor::Vec2(2, 4);
+    layer_def->kernel_size = tensor::Vec2(4, 5);
     test_layer_def(layer_def);
   }
 
