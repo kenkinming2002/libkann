@@ -139,6 +139,27 @@ namespace tensor
       return std::apply([](auto...sizes) { return Shape{sizes...}; }, sizes);
     }
 
+    constexpr Shape unflatten(const auto&... hints) const requires(sizeof...(hints)>0)
+    {
+      // Hints could a size_t or shape
+      auto shape_from_hint = [shape=*this](auto hint) mutable -> Shape {
+        Shape result;
+        if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, FlattenSingle>)
+          result = shape.front(1);
+        else if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, Shape>)
+          result = hint;
+        else
+          []<bool flag=false>() { static_assert(flag, "Unsupported hint type"); }();
+
+        shape = shape.drop_front(1);
+        return result;
+      };
+
+      // Enforce order of evaluation by using brace-initializer
+      std::array<Shape, sizeof...(hints)> shapes{shape_from_hint(hints)...};
+      return std::apply([](auto...shapes) { return Shape::concat(shapes...); }, shapes);
+    }
+
   public:
     constexpr Shape front(size_t count) const      { assert(rank()>=count); return this->split(count, rank() - count).first; }
     constexpr Shape drop_front(size_t count) const { assert(rank()>=count); return this->split(count, rank() - count).second; }
