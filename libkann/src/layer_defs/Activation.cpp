@@ -3,7 +3,7 @@
 #include <libkann/Layer.hpp>
 #include <libkann/LayerStorage.hpp>
 
-#include <libtensor/Math.hpp>
+#include <libtensor/Map.hpp>
 
 namespace kann
 {
@@ -67,8 +67,11 @@ namespace kann
 
   tensor::Tensor<const float> ActivationLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
   {
-    tensor::Tensor<float> outputs = tensor::Tensor<float>::create(inputs.shape());
-    tensor::math::transform<1>(outputs.flatten(), {inputs.flatten()}, [this](float /*output*/, float input)
+    layer.saved_tensors.clear();
+    layer.saved_tensors.reserve(1);
+    layer.saved_tensors.push_back(inputs);
+
+    return tensor::unary_map(inputs, [this](float input)
     {
       switch(type)
       {
@@ -82,20 +85,12 @@ namespace kann
         assert(false && "Unreachable");
       }
     });
-
-    layer.saved_tensors.clear();
-    layer.saved_tensors.reserve(1);
-    layer.saved_tensors.push_back(std::move(inputs));
-
-    return outputs;
   }
 
   tensor::Tensor<const float> ActivationLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
   {
-    tensor::Tensor<const float> inputs = std::move(layer.saved_tensors[0]);
-
-    tensor::Tensor<float> input_gradients = tensor::Tensor<float>::create(inputs.shape());
-    tensor::math::transform<2>(input_gradients.flatten(), {inputs.flatten(), output_gradients.flatten()}, [this](float /*input_gradient*/, float input, float output_gradient)
+    auto inputs = layer.saved_tensors[0];
+    return tensor::binary_map(inputs, output_gradients, [this](float input, float output_gradient)
     {
       float tmp;
       switch(type)
@@ -112,6 +107,5 @@ namespace kann
         assert(false && "Unreachable");
       }
     });
-    return input_gradients;
   }
 }
