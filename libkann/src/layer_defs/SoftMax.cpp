@@ -1,8 +1,11 @@
 #include <libkann/layer_defs/SoftMax.hpp>
 
-#include <libtensor/Tensor.hpp>
-#include <libtensor/Math.hpp>
 #include <libkann/Layer.hpp>
+
+#include <libtensor/Tensor.hpp>
+#include <libtensor/Map.hpp>
+#include <libtensor/Reduce.hpp>
+#include <libtensor/Broadcast.hpp>
 
 #include <fmt/core.h>
 
@@ -39,54 +42,45 @@ namespace kann
 
   tensor::Tensor<const float> SoftMaxLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
   {
-    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, tensor::Tensor<const float> inputs, tensor::Tensor<float> outputs)
-    {
-      const size_t size = this->shape.size();
+    inputs = inputs.flatten(tensor::flatten_single, this->get_input_shape());
 
-      auto _inputs  = inputs .reshape(tensor::Shape{batch_size, size});
-      auto _outputs = outputs.reshape(tensor::Shape{batch_size, size});
+    auto exps    = tensor::unary_map(inputs, [](float input) { return std::exp(input); });
+    auto factors = tensor::reduce<tensor::Direction::RIGHT, float>(exps);
+    auto outputs = tensor::broadcast_div<tensor::Direction::RIGHT, float>(exps, factors);
 
-      tensor::math::transform<1>(_outputs.flatten(), { _inputs.flatten() }, [](double /*output*/, double input) { return std::exp(input); });
+    outputs = outputs.unflatten(tensor::flatten_single, this->get_output_shape());
 
-      // Batch normalization
-      tensor::Tensor<float> factors = tensor::Tensor<float>::create(tensor::Shape(batch_size));
-      factors.fill(0.0);
-      tensor::math::reduce<1>   (factors,  { _outputs }, tensor::math::Direction::RIGHT, tensor::math::ADD);
-      tensor::math::broadcast<1>(_outputs, { factors },  tensor::math::Direction::RIGHT, tensor::math::DIV);
+    // It is actually better to save outouts
+    layer.saved_tensors.clear();
+    layer.saved_tensors.reserve(1);
+    layer.saved_tensors.push_back(outputs);
 
-      // It is actually better to save outouts
-      layer.saved_tensors.clear();
-      layer.saved_tensors.reserve(1);
-      layer.saved_tensors.push_back(outputs);
-      return outputs;
-    });
+    return outputs;
   }
 
   tensor::Tensor<const float> SoftMaxLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
   {
-    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, tensor::Tensor<const float> output_gradients, tensor::Tensor<float> input_gradients)
-    {
-      const size_t size = this->shape.size();
+    auto outputs = layer.saved_tensors[0];
+    auto input_gradients = tensor::Tensor<float>::create(output_gradients.shape());
 
-      tensor::Tensor<const float> outputs = std::move(layer.saved_tensors[0]);
+    outputs          = outputs         .flatten(tensor::flatten_single, this->get_output_shape());
+    output_gradients = output_gradients.flatten(tensor::flatten_single, this->get_output_shape());
+    input_gradients  = input_gradients .flatten(tensor::flatten_single, this->get_input_shape());
 
-      auto _outputs          = outputs         .reshape(tensor::Shape{batch_size, size});
-      auto _input_gradients  = input_gradients .reshape(tensor::Shape{batch_size, size});
-      auto _output_gradients = output_gradients.reshape(tensor::Shape{batch_size, size});
+    const size_t batch_size = outputs.dimension(0), size = outputs.dimension(1);
+    input_gradients.fill(0.0f);
+    for(size_t k=0; k<batch_size; ++k)
+      for(size_t i=0; i<size; ++i)
+        for(size_t j=0; j<size; ++j)
+        {
+          if(i == j)
+            input_gradients(k, i) += output_gradients(k, j) * outputs(k, j) * (1 - outputs(k, i));
+          else
+            input_gradients(k, i) -= output_gradients(k, j) * outputs(k, j) * outputs(k, i);
+        }
 
-      _input_gradients.fill(0.0f);
-      for(size_t k=0; k<batch_size; ++k)
-        for(size_t i=0; i<size; ++i)
-          for(size_t j=0; j<size; ++j)
-          {
-            if(i == j)
-              _input_gradients(k, i) += _output_gradients(k, j) * _outputs(k, j) * (1 - _outputs(k, i));
-            else
-              _input_gradients(k, i) -= _output_gradients(k, j) * _outputs(k, j) * _outputs(k, i);
-          }
-
-      return input_gradients;
-    });
+    input_gradients = input_gradients.unflatten(tensor::flatten_single, this->get_input_shape());
+    return input_gradients;
   }
 }
 
