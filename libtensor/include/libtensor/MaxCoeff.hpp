@@ -5,9 +5,9 @@ namespace tensor
   template<typename T>
   size_t max_coeff(Tensor<const T> a);
 
-  extern template size_t max_coeff(Tensor<const float>       a);
-  extern template size_t max_coeff(Tensor<const double>      a);
-  extern template size_t max_coeff(Tensor<const long double> a);
+  extern template LIBTENSOR_EXPORT size_t max_coeff(Tensor<const float>       a);
+  extern template LIBTENSOR_EXPORT size_t max_coeff(Tensor<const double>      a);
+  extern template LIBTENSOR_EXPORT size_t max_coeff(Tensor<const long double> a);
 }
 
 // Implementation
