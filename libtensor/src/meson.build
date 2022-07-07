@@ -2,6 +2,7 @@ libtensor_sources = [
   'Backend.cpp',
   'Math.cpp',
   'MatrixProduct.cpp',
+  'Broadcast.cpp',
   'Utils.cpp',
 ]
 
