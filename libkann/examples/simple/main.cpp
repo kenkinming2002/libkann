@@ -64,6 +64,8 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function,
   assert(images.size() == count);
   assert(labels.size() == count);
 
+  loss_function.shape = layer.def->get_output_shape();
+
   std::uniform_int_distribution<size_t> dist(0, count-1);
   for(size_t i=0; i<count; ++i)
   {
