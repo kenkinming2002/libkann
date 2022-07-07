@@ -58,6 +58,11 @@ namespace tensor
       return reshape(Shape(size()));
     }
 
+    constexpr Tensor flatten(const auto&... hints) const requires(sizeof...(hints)>0)
+    {
+      return reshape(m_shape.flatten(hints...));
+    }
+
   public:
     void fill(T value)
     {
