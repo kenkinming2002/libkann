@@ -1,6 +1,8 @@
 #include <libkann/loss_functions/Lp.hpp>
 
-#include <libtensor/Math.hpp>
+#include <libtensor/Reduce.hpp>
+#include <libtensor/Broadcast.hpp>
+#include <libtensor/Map.hpp>
 
 namespace kann
 {
@@ -22,30 +24,40 @@ namespace kann
     return value >= 0.0f ? 1.0f : -1.0f;
   }
 
-  tensor::Tensor<const float> LpLossFunction::loss_forward(tensor::Tensor<const float> inputs, tensor::Tensor<const float> expected_outputs)
+  tensor::Tensor<const float> LpLossFunction::forward(tensor::Tensor<const float> inputs)
   {
-    const size_t batch_size = inputs.dimension(0);
-    tensor::Tensor<float> outputs = tensor::Tensor<float>::create(tensor::Shape(batch_size));
+    this->saved_tensors.clear();
+    this->saved_tensors.reserve(1);
+    this->saved_tensors.push_back(inputs);
 
-    outputs.fill(0.0f);
-    tensor::math::reduce<2>(outputs, {inputs, expected_outputs}, tensor::math::Direction::RIGHT, [this](float output, float input, float expected_output) {
+    assert(this->expected_outputs);
+    auto expected_outputs = *this->expected_outputs;
+
+    inputs           = inputs          .flatten(tensor::flatten_single, this->shape);
+    expected_outputs = expected_outputs.flatten(tensor::flatten_single, this->shape);
+
+    auto tmps    = tensor::binary_map(inputs, expected_outputs, [this](float input, float expected_output) {
       const float diff = input - expected_output;
-      return output + pow_abs(diff, m_p);
+      return pow_abs(diff, m_p);
     });
-
+    auto outputs = tensor::reduce<tensor::Direction::RIGHT, float>(tmps);
     return outputs;
   }
 
-  tensor::Tensor<const float> LpLossFunction::loss_backward(tensor::Tensor<const float> inputs, tensor::Tensor<const float> expected_outputs, tensor::Tensor<const float> output_gradients)
+  tensor::Tensor<const float> LpLossFunction::backward(tensor::Tensor<const float> output_gradients)
   {
-    tensor::Tensor<float> input_gradients = tensor::Tensor<float>::create(inputs.shape());
+    assert(this->expected_outputs);
+    auto inputs           = this->saved_tensors[0];
+    auto expected_outputs = *this->expected_outputs;
 
-    tensor::math::transform<2>(input_gradients.flatten(), {inputs.flatten(), expected_outputs.flatten()}, [this](float /*input_gradient*/, float input, const float expected_output) {
+    inputs           = inputs          .flatten(tensor::flatten_single, this->shape);
+    expected_outputs = expected_outputs.flatten(tensor::flatten_single, this->shape);
+
+    auto tmps            = tensor::binary_map(inputs, expected_outputs, [this](float input, float expected_output) {
       const float diff = input - expected_output;
       return m_p * pow_abs(diff, m_p-1) * sgn(diff);
     });
-    tensor::math::broadcast<1>(input_gradients, {output_gradients}, tensor::math::Direction::RIGHT, tensor::math::MUL);
-
+    auto input_gradients = tensor::broadcast_mul<tensor::Direction::RIGHT, float>(tmps, output_gradients);
     return input_gradients;
   }
 }
