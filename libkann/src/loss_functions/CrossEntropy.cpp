@@ -1,33 +1,39 @@
 #include <libkann/loss_functions/CrossEntropy.hpp>
 
-#include <libtensor/Math.hpp>
+#include <libtensor/Reduce.hpp>
+#include <libtensor/Broadcast.hpp>
+#include <libtensor/Map.hpp>
 
 namespace kann
 {
-  tensor::Tensor<const float> CrossEntropyLossFunction::loss_forward(tensor::Tensor<const float> inputs, tensor::Tensor<const float> expected_outputs)
+  tensor::Tensor<const float> CrossEntropyLossFunction::forward(tensor::Tensor<const float> inputs)
   {
-    const size_t batch_size = inputs.shape().dimension(0);
-    tensor::Tensor<float> outputs = tensor::Tensor<float>::create(tensor::Shape{batch_size});
+    this->saved_tensors.clear();
+    this->saved_tensors.reserve(1);
+    this->saved_tensors.push_back(inputs);
 
-    outputs.fill(0.0);
-    tensor::math::reduce<2>(outputs, {inputs, expected_outputs}, tensor::math::Direction::RIGHT, [](float output, float input, float expected_output) {
-      // Assume inputs is properly normalized via the use of a normalization layer such as softmax
-      // Entropy/Information of input * Probability of getting such input
-      return output - std::log(input) * expected_output;
-    });
+    assert(this->expected_outputs);
+    auto expected_outputs = *this->expected_outputs;
 
+    inputs           = inputs          .flatten(tensor::flatten_single, this->shape);
+    expected_outputs = expected_outputs.flatten(tensor::flatten_single, this->shape);
+
+    auto tmps    = tensor::binary_map(inputs, expected_outputs, [](float input, float expected_output) { return -std::log(input) * expected_output; });
+    auto outputs = tensor::reduce<tensor::Direction::RIGHT, float>(tmps);
     return outputs;
   }
 
-  tensor::Tensor<const float> CrossEntropyLossFunction::loss_backward(tensor::Tensor<const float> inputs, tensor::Tensor<const float> expected_outputs, tensor::Tensor<const float> output_gradients)
+  tensor::Tensor<const float> CrossEntropyLossFunction::backward(tensor::Tensor<const float> output_gradients)
   {
-    tensor::Tensor<float> input_gradients = tensor::Tensor<float>::create(inputs.shape());
+    assert(this->expected_outputs);
+    auto inputs           = this->saved_tensors[0];
+    auto expected_outputs = *this->expected_outputs;
 
-    tensor::math::transform<2>(input_gradients.flatten(), {inputs.flatten(), expected_outputs.flatten()}, [](float /*input_gradient*/, float input, const float expected_output)
-    {
-      return - expected_output / input;
-    });
-    tensor::math::broadcast<1>(input_gradients, { output_gradients }, tensor::math::Direction::RIGHT, tensor::math::MUL);
+    inputs           = inputs          .flatten(tensor::flatten_single, this->shape);
+    expected_outputs = expected_outputs.flatten(tensor::flatten_single, this->shape);
+
+    auto tmps            = tensor::binary_map(inputs, expected_outputs, [](float input, float expected_output) { return -expected_output / input; });
+    auto input_gradients = tensor::broadcast_mul<tensor::Direction::RIGHT, float>(tmps, output_gradients);
     return input_gradients;
   }
 }
