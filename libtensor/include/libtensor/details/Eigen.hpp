@@ -1,7 +1,9 @@
 #pragma once
 
 #include <libtensor/Tensor.hpp>
+
 #include <Eigen/Eigen>
+#include <unsupported/Eigen/CXX11/Tensor>
 
 namespace tensor::details
 {
@@ -37,5 +39,22 @@ namespace tensor::details
     assert(value.rank() == 2);
     if constexpr (Trans) return MatrixType::Map(value.data(), value.dimension(0), value.dimension(1)).transpose();
     else                 return MatrixType::Map(value.data(), value.dimension(0), value.dimension(1));
+  }
+
+  template<typename T>
+  static inline auto to_tensor4d(Tensor<T> value, bool trans)
+  {
+    using TensorType = std::conditional_t<std::is_const_v<T>,
+      Eigen::Tensor<std::remove_const_t<T>, 4, Eigen::RowMajor> const,
+      Eigen::Tensor<std::remove_const_t<T>, 4, Eigen::RowMajor>>;
+
+    typename TensorType::Index dim0 = value.dimension(0);
+    typename TensorType::Index dim1 = value.dimension(1);
+    typename TensorType::Index dim2 = value.dimension(2);
+    typename TensorType::Index dim3 = value.dimension(3);
+
+    assert(value.rank() == 4);
+    if (trans) return Eigen::TensorMap<TensorType>(value.data(), dim0, dim1, dim2, dim3).shuffle(Eigen::array<int, 4>{1,0,2,3});
+    else       return Eigen::TensorMap<TensorType>(value.data(), dim0, dim1, dim2, dim3).shuffle(Eigen::array<int, 4>{0,1,2,3});
   }
 }
