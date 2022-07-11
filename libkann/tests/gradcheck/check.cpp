@@ -2,7 +2,7 @@
 #include <catch2/catch_session.hpp>
 
 #include <libkann/Initialize.hpp>
-#include <libtensor/Math.hpp>
+#include <libtensor/Map.hpp>
 
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
@@ -129,9 +129,7 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const te
       tensor::Tensor<const float> input2  = with_unit_batching(perturb(random_input.clone(), i, dx));
       tensor::Tensor<const float> output2 = without_unit_batching(layer.forward(input2.clone()));
 
-      tensor::Tensor<float> output_gradient = output2.clone();
-      tensor::math::transform<1>(output_gradient.flatten(), { output1.flatten() },         tensor::math::SUB);
-      tensor::math::transform<1>(output_gradient.flatten(), { output_gradient.flatten() }, tensor::math::SCALE(1.0f/dx));
+      auto output_gradient = tensor::binary_map(output2, output1, [&dx](float output2, float output1){ return (output2 - output1) / dx; });
 
       tensor::Tensor<float> _input_derivative  = derivative.input.reshape(tensor::Shape(output_size, input_size));
       tensor::Tensor<float> _output_gradient   = output_gradient .reshape(tensor::Shape(output_size));
@@ -165,9 +163,7 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const te
         // Restore
         parameters[k]->value = std::move(saved_parameter);
 
-        tensor::Tensor<float> output_gradient = output2.clone();
-        tensor::math::transform<1>(output_gradient.flatten(), { output1.flatten() },         tensor::math::SUB);
-        tensor::math::transform<1>(output_gradient.flatten(), { output_gradient.flatten() }, tensor::math::SCALE(1.0f/dx));
+        auto output_gradient = tensor::binary_map(output2, output1, [&dx](float output2, float output1){ return (output2 - output1) / dx; });
 
         tensor::Tensor<float> _parameter_derivative = derivative.parameters[k].reshape(tensor::Shape(output_size, parameter_size));
         tensor::Tensor<float> _output_gradient      = output_gradient.reshape(tensor::Shape(output_size));
