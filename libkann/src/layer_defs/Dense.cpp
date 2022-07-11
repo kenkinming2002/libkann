@@ -1,7 +1,6 @@
 #include <libkann/layer_defs/Dense.hpp>
 
 #include <libtensor/Tensor.hpp>
-#include <libtensor/Math.hpp>
 
 #include <libtensor/MatrixProduct.hpp>
 #include <libtensor/Reduce.hpp>
