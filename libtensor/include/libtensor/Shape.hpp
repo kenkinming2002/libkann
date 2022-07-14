@@ -53,6 +53,17 @@ namespace tensor
     }
 
   public:
+    constexpr Shape subshape(size_t begin, size_t count) const
+    {
+      assert(begin+count<=m_dimensions.size());
+
+      Shape result;
+      for(size_t i=begin; i<begin+count; ++i)
+        result.m_dimensions.push_back(m_dimensions[i]);
+      return result;
+    }
+
+  public:
     template<size_t N>
     static constexpr auto concat(std::array<Shape, N> shapes)
     {
@@ -71,8 +82,8 @@ namespace tensor
       size_t begin = 0;
       for(size_t i=0; i<ranks.size(); ++i)
       {
-        begin += ranks[i];
         shapes[i] = shape.subshape(begin, ranks[i]);
+        begin += ranks[i];
       }
       return shapes;
     }
@@ -80,24 +91,20 @@ namespace tensor
   public:
     constexpr Shape flatten(const auto&... hints) const requires(sizeof...(hints)>0)
     {
-      // Hints could a size_t or shape
-      auto size_from_hint = [shape=*this](auto hint) mutable -> size_t {
-        size_t rank;
+      auto rank_from_hint = [](const auto& hint) -> size_t {
         if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, FlattenSingle>)
-          rank = 1;
+          return 1;
         else if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, Shape>)
-          rank = hint.rank();
+          return hint.rank();
         else
           []<bool flag=false>() { static_assert(flag, "Unsupported hint type"); }();
-
-        size_t size = shape.front(rank).size();
-        shape = shape.drop_front(rank);
-        return size;
       };
 
-      // Enforce order of evaluation by using brace-initializer
-      std::array<size_t, sizeof...(hints)> sizes{size_from_hint(hints)...};
-      return std::apply([](auto...sizes) { return Shape{sizes...}; }, sizes);
+      auto ranks      = std::array{rank_from_hint(hints)...};
+      auto sub_shapes = split(*this, ranks);
+      return std::apply([](const auto&... sub_shape) {
+        return Shape{sub_shape.size()...};
+      }, sub_shapes);
     }
 
     constexpr Shape unflatten(const auto&... hints) const requires(sizeof...(hints)>0)
@@ -119,17 +126,6 @@ namespace tensor
       // Enforce order of evaluation by using brace-initializer
       std::array<Shape, sizeof...(hints)> shapes{shape_from_hint(hints)...};
       return std::apply([](auto...shapes) { return Shape::concat<sizeof...(shapes)>({shapes...}); }, shapes);
-    }
-
-  public:
-    constexpr Shape subshape(size_t begin, size_t count) const
-    {
-      assert(begin+count<=m_dimensions.size());
-
-      Shape result;
-      for(size_t i=begin; i<begin+count; ++i)
-        result.m_dimensions.push_back(m_dimensions[i]);
-      return result;
     }
 
   public:
