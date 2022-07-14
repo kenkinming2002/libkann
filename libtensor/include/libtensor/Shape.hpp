@@ -92,6 +92,7 @@ namespace tensor
     }
 
   public:
+    static constexpr Shape make(const auto&... froms);
     constexpr Shape flatten(const auto&... hints)   const requires(sizeof...(hints)>0);
     constexpr Shape unflatten(const auto&... hints) const requires(sizeof...(hints)>0);
 
@@ -135,6 +136,22 @@ namespace tensor
     StaticVector<size_t, MAX_DIMENSION> m_dimensions;
   };
 
+  constexpr Shape Shape::make(const auto&... froms)
+  {
+    Shape result;
+    auto f = [&result](const auto& from) {
+      if constexpr(std::is_same_v<std::remove_cvref_t<decltype(from)>, size_t>)
+        result.m_dimensions.push_back(from);
+      else if constexpr(std::is_same_v<std::remove_cvref_t<decltype(from)>, Shape>)
+        for(size_t dimension : from.m_dimensions)
+          result.m_dimensions.push_back(dimension);
+      else
+        []<bool flag=false>() { static_assert(flag, "Shape make only takes size_t or Shape"); }();
+    };
+    (f(froms), ...);
+    return result;
+  }
+
   struct Hint
   {
     enum class Type { SINGLE, SHAPE } type;
@@ -170,7 +187,7 @@ namespace tensor
         break;
       }
 
-    return std::apply([](auto... dimensions) { return Shape(dimensions...); }, dimensions);
+    return std::apply([](auto... dimensions) { return Shape::make(dimensions...); }, dimensions);
   }
 
   constexpr Shape Shape::unflatten(const auto&... _hints) const requires(sizeof...(_hints)>0)
@@ -199,6 +216,6 @@ namespace tensor
         break;
       }
 
-    return std::apply([](auto... shapes) { return Shape::concat(shapes...); }, shapes);
+    return std::apply([](auto... shapes) { return Shape::make(shapes...); }, shapes);
   }
 }
