@@ -53,36 +53,28 @@ namespace tensor
     }
 
   public:
-    static constexpr Shape concat(Shape a)
+    template<size_t N>
+    static constexpr auto concat(std::array<Shape, N> shapes)
     {
-      return a;
+      Shape result;
+      for(const auto& shape : shapes)
+        for(const auto& dimension : shape.m_dimensions)
+          result.m_dimensions.push_back(dimension);
+
+      return result;
     }
 
-    static constexpr Shape concat(Shape a, Shape b)
+    template<size_t N>
+    static constexpr std::array<Shape, N> split(Shape shape, std::array<size_t, N> ranks)
     {
-      Shape shape;
-      for(size_t dimension : a.m_dimensions)
-        shape.m_dimensions.push_back(dimension);
-
-      for(size_t dimension : b.m_dimensions)
-        shape.m_dimensions.push_back(dimension);
-
-      return shape;
-    }
-
-    static constexpr Shape concat(Shape a, Shape b, Shape c)
-    {
-      Shape shape;
-      for(size_t dimension : a.m_dimensions)
-        shape.m_dimensions.push_back(dimension);
-
-      for(size_t dimension : b.m_dimensions)
-        shape.m_dimensions.push_back(dimension);
-
-      for(size_t dimension : c.m_dimensions)
-        shape.m_dimensions.push_back(dimension);
-
-      return shape;
+      std::array<Shape, N> shapes;
+      size_t begin = 0;
+      for(size_t i=0; i<ranks.size(); ++i)
+      {
+        begin += ranks[i];
+        shapes[i] = shape.subshape(begin, ranks[i]);
+      }
+      return shapes;
     }
 
   public:
@@ -126,7 +118,7 @@ namespace tensor
 
       // Enforce order of evaluation by using brace-initializer
       std::array<Shape, sizeof...(hints)> shapes{shape_from_hint(hints)...};
-      return std::apply([](auto...shapes) { return Shape::concat(shapes...); }, shapes);
+      return std::apply([](auto...shapes) { return Shape::concat<sizeof...(shapes)>({shapes...}); }, shapes);
     }
 
   public:
