@@ -64,9 +64,11 @@ namespace tensor
     }
 
   public:
-    template<size_t N>
-    static constexpr auto concat(std::array<Shape, N> shapes)
+    static constexpr auto concat(auto&&... _shapes)
     {
+      constexpr size_t N = sizeof...(_shapes);
+      std::array<Shape, N> shapes{std::forward<decltype(_shapes)>(_shapes)...};
+
       Shape result;
       for(const auto& shape : shapes)
         for(const auto& dimension : shape.m_dimensions)
@@ -75,16 +77,19 @@ namespace tensor
       return result;
     }
 
-    template<size_t N>
-    static constexpr std::array<Shape, N> split(Shape shape, std::array<size_t, N> ranks)
+    constexpr auto split(auto&&... _ranks) const
     {
-      std::array<Shape, N> shapes;
+      constexpr size_t N = sizeof...(_ranks);
+      std::array<size_t, N> ranks{std::forward<decltype(_ranks)>(_ranks)...};
+      std::array<Shape,  N> shapes;
+
       size_t begin = 0;
-      for(size_t i=0; i<ranks.size(); ++i)
+      for(size_t i=0; i<N; ++i)
       {
-        shapes[i] = shape.subshape(begin, ranks[i]);
+        shapes[i] = this->subshape(begin, ranks[i]);
         begin += ranks[i];
       }
+
       return shapes;
     }
 
@@ -101,10 +106,9 @@ namespace tensor
       };
 
       auto ranks      = std::array{rank_from_hint(hints)...};
-      auto sub_shapes = split(*this, ranks);
-      return std::apply([](const auto&... sub_shape) {
-        return Shape{sub_shape.size()...};
-      }, sub_shapes);
+      auto sub_shapes = std::apply([this](const auto&... ranks)     { return this->split(ranks...); },      ranks);
+      auto shape      = std::apply([]    (const auto&... sub_shape) { return Shape{sub_shape.size()...}; }, sub_shapes);
+      return shape;
     }
 
     constexpr Shape unflatten(const auto&... hints) const requires(sizeof...(hints)>0)
@@ -125,7 +129,7 @@ namespace tensor
 
       // Enforce order of evaluation by using brace-initializer
       std::array<Shape, sizeof...(hints)> shapes{shape_from_hint(hints)...};
-      return std::apply([](auto...shapes) { return Shape::concat<sizeof...(shapes)>({shapes...}); }, shapes);
+      return std::apply([](auto...shapes) { return Shape::concat(shapes...); }, shapes);
     }
 
   public:

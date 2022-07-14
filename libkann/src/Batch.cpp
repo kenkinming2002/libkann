@@ -10,7 +10,7 @@ namespace kann
     std::vector<tensor::Tensor<const float>> results;
 
     const tensor::Shape value_shape  = values.front().shape();
-    const tensor::Shape result_shape = tensor::Shape::concat(std::array{tensor::Shape(batch_size), value_shape});
+    const tensor::Shape result_shape = tensor::Shape::concat(tensor::Shape(batch_size), value_shape);
     const size_t size = value_shape.size();
     for(size_t i=0; i+batch_size<=values.size(); i+=batch_size)
     {

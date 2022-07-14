@@ -30,7 +30,7 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
 
-    Variable weight = Variable::create(tensor::Shape::concat(std::array{input_shape, output_shape}));
+    Variable weight = Variable::create(tensor::Shape::concat(input_shape, output_shape));
     Variable bias   = Variable::create(output_shape);
 
     weight.value.fill_normal(prng, 0.0, 1.0 / std::sqrt(input_shape.size()));

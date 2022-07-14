@@ -16,7 +16,7 @@
 tensor::Tensor<const float> with_unit_batching(tensor::Tensor<const float> value)
 {
   tensor::Shape shape = value.shape();
-  return std::move(value).reshape(tensor::Shape::concat(std::array{tensor::Shape(1), shape}));
+  return std::move(value).reshape(tensor::Shape::concat(tensor::Shape(1), shape));
 }
 
 tensor::Tensor<const float> without_unit_batching(tensor::Tensor<const float> value)
@@ -38,11 +38,11 @@ struct LayerDerivative
     const tensor::Shape input_shape  = layer.def->get_input_shape();
     const tensor::Shape output_shape = layer.def->get_output_shape();
 
-    LayerDerivative derivative{ .input = tensor::Tensor<float>::create(tensor::Shape::concat(std::array{output_shape, input_shape}))};
+    LayerDerivative derivative{ .input = tensor::Tensor<float>::create(tensor::Shape::concat(output_shape, input_shape))};
     for(const kann::Variable* parameter : layer.storage->get_parameters())
     {
       const tensor::Shape parameter_shape = parameter->value.shape();
-      derivative.parameters.push_back(tensor::Tensor<float>::create(tensor::Shape::concat(std::array{output_shape, parameter_shape})));
+      derivative.parameters.push_back(tensor::Tensor<float>::create(tensor::Shape::concat(output_shape, parameter_shape)));
     }
     return derivative;
   }
