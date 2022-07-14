@@ -37,7 +37,7 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
 
-    Variable kernels = Variable::create(tensor::Shape{input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()});
+    Variable kernels = Variable::create(tensor::Shape::make(input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()));
     kernels.value.fill_normal(prng, 0.0, 1.0 / (kernel_size.width() * kernel_size.height()));
 
     layer_storage->parameters.reserve(1);
@@ -48,12 +48,12 @@ namespace kann
 
   tensor::Shape ConvolutionalLayerDef::get_input_shape() const
   {
-    return tensor::Shape{input_channel_count, input_size.height(), input_size.width()};
+    return tensor::Shape::make(input_channel_count, input_size.height(), input_size.width());
   }
 
   tensor::Shape ConvolutionalLayerDef::get_output_shape() const
   {
-    return tensor::Shape{output_channel_count, output_size.height(), output_size.width()};
+    return tensor::Shape::make(output_channel_count, output_size.height(), output_size.width());
   }
 
   tensor::Tensor<const float> ConvolutionalLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const

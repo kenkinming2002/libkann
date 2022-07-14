@@ -43,7 +43,7 @@ namespace tensor
     auto kernel_size = Vec2(kernels.dimension(2), kernels.dimension(3));
     auto padding_size = (kernel_size + output_size - input_size - Vec2(1,1)) / 2;
 
-    auto outputs = Tensor<T>::create(Shape(M, N, output_size.height(), output_size.width()));
+    auto outputs = Tensor<T>::create(Shape::make(M, N, output_size.height(), output_size.width()));
 
     auto _inputs  = details::to_tensor4d(inputs,  trans_inputs);
     auto _kernels = details::to_tensor4d(kernels, trans_kernels);
@@ -86,7 +86,7 @@ namespace tensor
     auto kernel_size = Vec2(kernels.dimension(2), kernels.dimension(3));
     auto padding_size = (kernel_size + output_size - input_size - Vec2(1,1)) / 2;
 
-    auto outputs = Tensor<T>::create(Shape(M, N, output_size.height(), output_size.width()));
+    auto outputs = Tensor<T>::create(Shape::make(M, N, output_size.height(), output_size.width()));
 
     auto _inputs  = details::to_tensor4d(inputs,  trans_inputs);
     auto _kernels = details::to_tensor4d(kernels, trans_kernels);

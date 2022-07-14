@@ -16,7 +16,7 @@
 tensor::Tensor<const float> with_unit_batching(tensor::Tensor<const float> value)
 {
   tensor::Shape shape = value.shape();
-  return std::move(value).reshape(tensor::Shape::concat(tensor::Shape(1), shape));
+  return std::move(value).reshape(tensor::Shape::make(1, shape));
 }
 
 tensor::Tensor<const float> without_unit_batching(tensor::Tensor<const float> value)
@@ -77,8 +77,8 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const t
 
     // Derivative for input
     {
-      tensor::Tensor<float>       _input_derivative = derivative.input.reshape(tensor::Shape(output_size, input_size));
-      tensor::Tensor<const float> _input_gradient   = input_gradient.reshape(tensor::Shape(input_size));
+      tensor::Tensor<float>       _input_derivative = derivative.input.reshape(tensor::Shape::make(output_size, input_size));
+      tensor::Tensor<const float> _input_gradient   = input_gradient.reshape(tensor::Shape::make(input_size));
       for(size_t i=0; i<input_size; ++i)
         _input_derivative(j,i) = _input_gradient(i);
     }
@@ -92,8 +92,8 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const t
         const tensor::Shape parameter_shape = parameters[k]->shape;
         const size_t parameter_size = parameter_shape.size();
 
-        tensor::Tensor<float> _parameter_derivative = derivative.parameters[k].reshape(tensor::Shape(output_size, parameter_size));
-        tensor::Tensor<float> _parameter_gradient   = parameters[k]->gradient .reshape(tensor::Shape(parameter_size));
+        tensor::Tensor<float> _parameter_derivative = derivative.parameters[k].reshape(tensor::Shape::make(output_size, parameter_size));
+        tensor::Tensor<float> _parameter_gradient   = parameters[k]->gradient .reshape(tensor::Shape::make(parameter_size));
         for(size_t i=0; i<parameter_size; ++i)
           _parameter_derivative(j,i) = _parameter_gradient(i);
       }
@@ -131,8 +131,8 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const te
 
       auto output_gradient = tensor::binary_map(output2, output1, [&dx](float output2, float output1){ return (output2 - output1) / dx; });
 
-      tensor::Tensor<float> _input_derivative  = derivative.input.reshape(tensor::Shape(output_size, input_size));
-      tensor::Tensor<float> _output_gradient   = output_gradient .reshape(tensor::Shape(output_size));
+      tensor::Tensor<float> _input_derivative  = derivative.input.reshape(tensor::Shape::make(output_size, input_size));
+      tensor::Tensor<float> _output_gradient   = output_gradient .reshape(tensor::Shape::make(output_size));
       for(size_t j=0; j<output_size; ++j)
         _input_derivative(j,i) = _output_gradient(j);
     }
@@ -165,8 +165,8 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const te
 
         auto output_gradient = tensor::binary_map(output2, output1, [&dx](float output2, float output1){ return (output2 - output1) / dx; });
 
-        tensor::Tensor<float> _parameter_derivative = derivative.parameters[k].reshape(tensor::Shape(output_size, parameter_size));
-        tensor::Tensor<float> _output_gradient      = output_gradient.reshape(tensor::Shape(output_size));
+        tensor::Tensor<float> _parameter_derivative = derivative.parameters[k].reshape(tensor::Shape::make(output_size, parameter_size));
+        tensor::Tensor<float> _output_gradient      = output_gradient         .reshape(tensor::Shape::make(output_size));
         for(size_t j=0; j<output_size; ++j)
           _parameter_derivative(j,i) = _output_gradient(j);
       }
@@ -228,7 +228,7 @@ TEST_CASE("Gradcheck", "[gradcheck]")
   SECTION("Activation Layer")
   {
     auto layer_def = std::make_shared<kann::ActivationLayerDef>();
-    layer_def->shape = tensor::Shape(6,3,8);
+    layer_def->shape = tensor::Shape::make(6,3,8);
 
     SECTION("Identity")
     {
@@ -263,15 +263,15 @@ TEST_CASE("Gradcheck", "[gradcheck]")
   SECTION("Dense Layer")
   {
     auto layer_def = std::make_shared<kann::DenseLayerDef>();
-    layer_def->input_shape  = tensor::Shape{3, 2};
-    layer_def->output_shape = tensor::Shape{5, 3};
+    layer_def->input_shape  = tensor::Shape::make(3, 2);
+    layer_def->output_shape = tensor::Shape::make(5, 3);
     test_layer_def(layer_def);
   }
 
   SECTION("Softmax")
   {
     auto layer_def = std::make_shared<kann::SoftMaxLayerDef>();
-    layer_def->shape = tensor::Shape(7,3,6);
+    layer_def->shape = tensor::Shape::make(7,3,6);
     test_layer_def(layer_def);
   }
 }

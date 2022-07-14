@@ -55,7 +55,7 @@ namespace tensor
 
     Tensor flatten() const
     {
-      return reshape(Shape(size()));
+      return reshape(Shape::make(size()));
     }
 
     constexpr Tensor flatten(const auto&... hints) const requires(sizeof...(hints)>0)

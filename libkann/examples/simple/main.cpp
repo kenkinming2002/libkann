@@ -87,7 +87,7 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function,
     loss_function.expected_outputs = std::move(label_batch);
     tensor::Tensor<const float> loss_batch = loss_function.forward(std::move(prediction_batch));
 
-    tensor::Tensor<float> ones_batch = tensor::Tensor<float>::create(tensor::Shape(batch_size));
+    tensor::Tensor<float> ones_batch = tensor::Tensor<float>::create(tensor::Shape::make(batch_size));
     ones_batch.fill(1.0);
 
     tensor::Tensor<const float> gradient_batch = loss_function.backward(std::move(ones_batch));

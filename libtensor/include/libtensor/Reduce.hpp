@@ -29,13 +29,13 @@ namespace tensor
     auto [M, N] = std::make_pair(value.dimension(0), value.dimension(1));
     if constexpr(direction == Direction::LEFT)
     {
-      auto result = Tensor<T>::create(Shape(N));
+      auto result = Tensor<T>::create(Shape::make(N));
       details::to_array1d(result) = details::to_array2d(value).colwise().sum();
       return result;
     }
     else if constexpr(direction == Direction::RIGHT)
     {
-      auto result = Tensor<T>::create(Shape(M));
+      auto result = Tensor<T>::create(Shape::make(M));
       details::to_array1d(result) = details::to_array2d(value).rowwise().sum();
       return result;
     }

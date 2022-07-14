@@ -31,11 +31,6 @@ namespace tensor
 
   public:
     constexpr Shape() = default;
-    template<typename... Dimensions>
-    constexpr explicit Shape(Dimensions... dimensions)
-    {
-      (m_dimensions.push_back(dimensions), ...);
-    }
 
   public:
     constexpr size_t rank() const { return m_dimensions.size(); }
@@ -140,7 +135,7 @@ namespace tensor
   {
     Shape result;
     auto f = [&result](const auto& from) {
-      if constexpr(std::is_same_v<std::remove_cvref_t<decltype(from)>, size_t>)
+      if constexpr(std::is_convertible_v<std::remove_cvref_t<decltype(from)>, size_t>)
         result.m_dimensions.push_back(from);
       else if constexpr(std::is_same_v<std::remove_cvref_t<decltype(from)>, Shape>)
         for(size_t dimension : from.m_dimensions)
@@ -203,7 +198,7 @@ namespace tensor
       {
       case Hint::Type::SINGLE:
         {
-          shapes[i] = Shape(this->dimension(begin));
+          shapes[i] = Shape::make(this->dimension(begin));
           ++begin;
         }
         break;

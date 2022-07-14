@@ -28,7 +28,7 @@ namespace tensor
     if(trans_a) std::swap(M, K1);
     if(trans_b) std::swap(K2, N);
 
-    auto c = Tensor<T>::create(Shape(M, N));
+    auto c = Tensor<T>::create(Shape::make(M, N));
     if(trans_a)
     {
       if(trans_b) details::to_matrix<false>(c).noalias() = details::to_matrix<true>(a)  * details::to_matrix<true> (b);
