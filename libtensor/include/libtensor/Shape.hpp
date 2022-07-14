@@ -3,15 +3,13 @@
 #include <libtensor/StaticVector.hpp>
 
 #include <vector>
+#include <optional>
 
 #include <stddef.h>
 #include <assert.h>
 
 namespace tensor
 {
-  struct FlattenSingle {};
-  static constexpr FlattenSingle flatten_single = {};
-
   struct Shape
   {
   public:
@@ -94,43 +92,8 @@ namespace tensor
     }
 
   public:
-    constexpr Shape flatten(const auto&... hints) const requires(sizeof...(hints)>0)
-    {
-      auto rank_from_hint = [](const auto& hint) -> size_t {
-        if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, FlattenSingle>)
-          return 1;
-        else if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, Shape>)
-          return hint.rank();
-        else
-          []<bool flag=false>() { static_assert(flag, "Unsupported hint type"); }();
-      };
-
-      auto ranks      = std::array{rank_from_hint(hints)...};
-      auto sub_shapes = std::apply([this](const auto&... ranks)     { return this->split(ranks...); },      ranks);
-      auto shape      = std::apply([]    (const auto&... sub_shape) { return Shape{sub_shape.size()...}; }, sub_shapes);
-      return shape;
-    }
-
-    constexpr Shape unflatten(const auto&... hints) const requires(sizeof...(hints)>0)
-    {
-      // Hints could a size_t or shape
-      auto shape_from_hint = [shape=*this](auto hint) mutable -> Shape {
-        Shape result;
-        if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, FlattenSingle>)
-          result = shape.front(1);
-        else if constexpr(std::is_same_v<std::remove_cvref_t<decltype(hint)>, Shape>)
-          result = hint;
-        else
-          []<bool flag=false>() { static_assert(flag, "Unsupported hint type"); }();
-
-        shape = shape.drop_front(1);
-        return result;
-      };
-
-      // Enforce order of evaluation by using brace-initializer
-      std::array<Shape, sizeof...(hints)> shapes{shape_from_hint(hints)...};
-      return std::apply([](auto...shapes) { return Shape::concat(shapes...); }, shapes);
-    }
+    constexpr Shape flatten(const auto&... hints)   const requires(sizeof...(hints)>0);
+    constexpr Shape unflatten(const auto&... hints) const requires(sizeof...(hints)>0);
 
   public:
     constexpr Shape front(size_t count) const      { assert(rank()>=count); return this->subshape(0,     count); }
@@ -171,4 +134,71 @@ namespace tensor
     // TODO: Use fixed size vector
     StaticVector<size_t, MAX_DIMENSION> m_dimensions;
   };
+
+  struct Hint
+  {
+    enum class Type { SINGLE, SHAPE } type;
+    std::optional<Shape> shape;
+
+    static constexpr Hint single()                 { return Hint{.type = Type::SINGLE, .shape = std::nullopt}; }
+    static constexpr Hint from_shape(Shape shape)  { return Hint{.type = Type::SHAPE,  .shape = std::move(shape)}; }
+  };
+
+  constexpr Shape Shape::flatten(const auto&... _hints)   const requires(sizeof...(_hints)>0)
+  {
+    const size_t N = sizeof...(_hints);
+
+    std::array<Hint, N>   hints{_hints...};
+    std::array<size_t, N> dimensions;
+
+    size_t begin = 0;
+    for(size_t i=0; i<N; ++i)
+      switch(hints[i].type)
+      {
+      case Hint::Type::SINGLE:
+        {
+          dimensions[i] = this->dimension(begin);
+          ++begin;
+        }
+        break;
+      case Hint::Type::SHAPE:
+        {
+          Shape shape = *hints[i].shape;
+          dimensions[i] = shape.size();
+          begin += shape.rank();
+        }
+        break;
+      }
+
+    return std::apply([](auto... dimensions) { return Shape(dimensions...); }, dimensions);
+  }
+
+  constexpr Shape Shape::unflatten(const auto&... _hints) const requires(sizeof...(_hints)>0)
+  {
+    const size_t N = sizeof...(_hints);
+
+    std::array<Hint, N>  hints{_hints...};
+    std::array<Shape, N> shapes;
+
+    size_t begin = 0;
+    for(size_t i=0; i<N; ++i)
+      switch(hints[i].type)
+      {
+      case Hint::Type::SINGLE:
+        {
+          shapes[i] = Shape(this->dimension(begin));
+          ++begin;
+        }
+        break;
+      case Hint::Type::SHAPE:
+        {
+          Shape shape = *hints[i].shape;
+          shapes[i] = shape;
+          begin += shape.rank();
+        }
+        break;
+      }
+
+    return std::apply([](auto... shapes) { return Shape::concat(shapes...); }, shapes);
+  }
 }

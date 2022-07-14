@@ -42,13 +42,13 @@ namespace kann
 
   tensor::Tensor<const float> SoftMaxLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
   {
-    inputs = inputs.flatten(tensor::flatten_single, this->get_input_shape());
+    inputs = inputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
 
     auto exps    = tensor::unary_map(inputs, [](float input) { return std::exp(input); });
     auto factors = tensor::reduce<tensor::Direction::RIGHT, float>(exps);
     auto outputs = tensor::broadcast_div<tensor::Direction::RIGHT, float>(exps, factors);
 
-    outputs = outputs.unflatten(tensor::flatten_single, this->get_output_shape());
+    outputs = outputs.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
 
     // It is actually better to save outouts
     layer.saved_tensors.clear();
@@ -63,9 +63,9 @@ namespace kann
     auto outputs = layer.saved_tensors[0];
     auto input_gradients = tensor::Tensor<float>::create(output_gradients.shape());
 
-    outputs          = outputs         .flatten(tensor::flatten_single, this->get_output_shape());
-    output_gradients = output_gradients.flatten(tensor::flatten_single, this->get_output_shape());
-    input_gradients  = input_gradients .flatten(tensor::flatten_single, this->get_input_shape());
+    outputs          = outputs         .flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
+    output_gradients = output_gradients.flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
+    input_gradients  = input_gradients .flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
 
     const size_t batch_size = outputs.dimension(0), size = outputs.dimension(1);
     input_gradients.fill(0.0f);
@@ -79,7 +79,7 @@ namespace kann
             input_gradients(k, i) -= output_gradients(k, j) * outputs(k, j) * outputs(k, i);
         }
 
-    input_gradients = input_gradients.unflatten(tensor::flatten_single, this->get_input_shape());
+    input_gradients = input_gradients.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
     return input_gradients;
   }
 }

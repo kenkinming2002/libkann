@@ -15,8 +15,8 @@ namespace kann
     assert(this->expected_outputs);
     auto expected_outputs = *this->expected_outputs;
 
-    inputs           = inputs          .flatten(tensor::flatten_single, this->shape);
-    expected_outputs = expected_outputs.flatten(tensor::flatten_single, this->shape);
+    inputs           = inputs          .flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
+    expected_outputs = expected_outputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
 
     auto tmps    = tensor::binary_map(inputs, expected_outputs, [](float input, float expected_output) { return -std::log(input) * expected_output; });
     auto outputs = tensor::reduce<tensor::Direction::RIGHT, float>(tmps);
@@ -29,8 +29,8 @@ namespace kann
     auto inputs           = this->saved_tensors[0];
     auto expected_outputs = *this->expected_outputs;
 
-    inputs           = inputs          .flatten(tensor::flatten_single, this->shape);
-    expected_outputs = expected_outputs.flatten(tensor::flatten_single, this->shape);
+    inputs           = inputs          .flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
+    expected_outputs = expected_outputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
 
     auto tmps            = tensor::binary_map(inputs, expected_outputs, [](float input, float expected_output) { return -expected_output / input; });
     auto input_gradients = tensor::broadcast_mul<tensor::Direction::RIGHT, float>(tmps, output_gradients);
