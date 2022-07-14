@@ -53,42 +53,6 @@ namespace tensor
     }
 
   public:
-    bool is_scalar() const { return rank() == 0; }
-    bool is_vector() const { return rank() == 1; }
-    bool is_matrix() const { return rank() == 2; }
-
-  public:
-    constexpr std::pair<Shape, Shape> split(size_t rank1, size_t rank2) const
-    {
-      assert(rank1+rank2==rank());
-      Shape result1, result2;
-
-      for(size_t i=0; i<rank1; ++i)
-        result1.m_dimensions.push_back(dimension(i));
-
-      for(size_t i=rank1; i<rank1+rank2; ++i)
-        result2.m_dimensions.push_back(dimension(i));
-
-      return std::make_pair(result1, result2);
-    }
-
-    constexpr std::tuple<Shape, Shape, Shape> split(size_t rank1, size_t rank2, size_t rank3) const
-    {
-      assert(rank1+rank2+rank3==rank());
-      Shape result1, result2, result3;
-
-      for(size_t i=0; i<rank1; ++i)
-        result1.m_dimensions.push_back(dimension(i));
-
-      for(size_t i=rank1; i<rank1+rank2; ++i)
-        result2.m_dimensions.push_back(dimension(i));
-
-      for(size_t i=rank1+rank2; i<rank1+rank2+rank3; ++i)
-        result3.m_dimensions.push_back(dimension(i));
-
-      return std::make_tuple(result1, result2, result3);
-    }
-
     static constexpr Shape concat(Shape a)
     {
       return a;
@@ -166,11 +130,22 @@ namespace tensor
     }
 
   public:
-    constexpr Shape front(size_t count) const      { assert(rank()>=count); return this->split(count, rank() - count).first; }
-    constexpr Shape drop_front(size_t count) const { assert(rank()>=count); return this->split(count, rank() - count).second; }
+    constexpr Shape subshape(size_t begin, size_t count) const
+    {
+      assert(begin+count<=m_dimensions.size());
 
-    constexpr Shape back(size_t count) const      { assert(rank()>=count); return this->split(rank() - count, count).second; }
-    constexpr Shape drop_back(size_t count) const { assert(rank()>=count); return this->split(rank() - count, count).first; }
+      Shape result;
+      for(size_t i=begin; i<begin+count; ++i)
+        result.m_dimensions.push_back(m_dimensions[i]);
+      return result;
+    }
+
+  public:
+    constexpr Shape front(size_t count) const      { assert(rank()>=count); return this->subshape(0,     count); }
+    constexpr Shape drop_front(size_t count) const { assert(rank()>=count); return this->subshape(count, rank() - count); }
+
+    constexpr Shape back(size_t count) const      { assert(rank()>=count); return this->subshape(rank() - count, count); }
+    constexpr Shape drop_back(size_t count) const { assert(rank()>=count); return this->subshape(0,              rank() - count);     }
 
   public:
     template<size_t N>
