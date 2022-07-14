@@ -38,11 +38,11 @@ struct LayerDerivative
     const tensor::Shape input_shape  = layer.def->get_input_shape();
     const tensor::Shape output_shape = layer.def->get_output_shape();
 
-    LayerDerivative derivative{ .input = tensor::Tensor<float>::create(tensor::Shape::concat(output_shape, input_shape))};
+    LayerDerivative derivative{ .input = tensor::Tensor<float>::create(tensor::Shape::make(output_shape, input_shape))};
     for(const kann::Variable* parameter : layer.storage->get_parameters())
     {
       const tensor::Shape parameter_shape = parameter->value.shape();
-      derivative.parameters.push_back(tensor::Tensor<float>::create(tensor::Shape::concat(output_shape, parameter_shape)));
+      derivative.parameters.push_back(tensor::Tensor<float>::create(tensor::Shape::make(output_shape, parameter_shape)));
     }
     return derivative;
   }

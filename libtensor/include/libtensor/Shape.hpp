@@ -57,36 +57,6 @@ namespace tensor
     }
 
   public:
-    static constexpr auto concat(auto&&... _shapes)
-    {
-      constexpr size_t N = sizeof...(_shapes);
-      std::array<Shape, N> shapes{std::forward<decltype(_shapes)>(_shapes)...};
-
-      Shape result;
-      for(const auto& shape : shapes)
-        for(const auto& dimension : shape.m_dimensions)
-          result.m_dimensions.push_back(dimension);
-
-      return result;
-    }
-
-    constexpr auto split(auto&&... _ranks) const
-    {
-      constexpr size_t N = sizeof...(_ranks);
-      std::array<size_t, N> ranks{std::forward<decltype(_ranks)>(_ranks)...};
-      std::array<Shape,  N> shapes;
-
-      size_t begin = 0;
-      for(size_t i=0; i<N; ++i)
-      {
-        shapes[i] = this->subshape(begin, ranks[i]);
-        begin += ranks[i];
-      }
-
-      return shapes;
-    }
-
-  public:
     static constexpr Shape make(const auto&... froms);
     constexpr Shape flatten(const auto&... hints)   const requires(sizeof...(hints)>0);
     constexpr Shape unflatten(const auto&... hints) const requires(sizeof...(hints)>0);
