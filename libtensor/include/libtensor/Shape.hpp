@@ -20,11 +20,11 @@ namespace tensor
     static std::vector<size_t> to_vector(Shape shape)        { return std::move(shape.dimensions); }
 
   public:
-    constexpr size_t rank() const { return dimensions.size(); }
-    constexpr size_t dimension(size_t i) const { return dimensions[i]; }
+    size_t rank() const { return dimensions.size(); }
+    size_t dimension(size_t i) const { return dimensions[i]; }
 
   public:
-    constexpr size_t size() const
+    size_t size() const
     {
       size_t size = 1;
       for(size_t i=0; i<rank(); ++i)
