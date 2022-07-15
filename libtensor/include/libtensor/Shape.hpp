@@ -13,21 +13,15 @@ namespace tensor
   struct Shape
   {
   public:
-    static Shape from_vector(std::vector<size_t> dimensions)
-    {
-      Shape shape;
-      shape.m_dimensions = std::move(dimensions);
-      return shape;
-    }
-
-    static std::vector<size_t> to_vector(Shape shape)
-    {
-      return shape.m_dimensions;
-    }
+    std::vector<size_t> dimensions;
 
   public:
-    constexpr size_t rank() const { return m_dimensions.size(); }
-    constexpr size_t dimension(size_t i) const { return m_dimensions[i]; }
+    static Shape from_vector(std::vector<size_t> dimensions) { return Shape{.dimensions = std::move(dimensions)}; }
+    static std::vector<size_t> to_vector(Shape shape)        { return std::move(shape.dimensions); }
+
+  public:
+    constexpr size_t rank() const { return dimensions.size(); }
+    constexpr size_t dimension(size_t i) const { return dimensions[i]; }
 
   public:
     constexpr size_t size() const
@@ -41,11 +35,11 @@ namespace tensor
   public:
     Shape subshape(size_t begin, size_t count) const
     {
-      assert(begin+count<=m_dimensions.size());
+      assert(begin+count<=dimensions.size());
 
       Shape result;
       for(size_t i=begin; i<begin+count; ++i)
-        result.m_dimensions.push_back(m_dimensions[i]);
+        result.dimensions.push_back(dimensions[i]);
       return result;
     }
 
@@ -67,7 +61,7 @@ namespace tensor
     size_t get_index(std::array<size_t, N> indices) const
     {
       assert(rank() == N);
-      std::array<size_t, N> dimensions = [this]<std::size_t... Is>(std::index_sequence<Is...>) { return std::array{m_dimensions[Is]...}; }(std::make_index_sequence<N>());
+      std::array<size_t, N> dimensions = [this]<std::size_t... Is>(std::index_sequence<Is...>) { return std::array{this->dimensions[Is]...}; }(std::make_index_sequence<N>());
       std::array<size_t, N> strides;
       for(size_t i=0; i<N; ++i)
       {
@@ -89,9 +83,6 @@ namespace tensor
   public:
     friend bool operator==(const Shape& lhs, const Shape& rhs) = default;
     friend bool operator!=(const Shape& lhs, const Shape& rhs) = default;
-
-  private:
-    std::vector<size_t> m_dimensions;
   };
 
   Shape Shape::make(const auto&... froms)
@@ -99,10 +90,10 @@ namespace tensor
     Shape result;
     auto f = [&result](const auto& from) {
       if constexpr(std::is_convertible_v<std::remove_cvref_t<decltype(from)>, size_t>)
-        result.m_dimensions.push_back(from);
+        result.dimensions.push_back(from);
       else if constexpr(std::is_same_v<std::remove_cvref_t<decltype(from)>, Shape>)
-        for(size_t dimension : from.m_dimensions)
-          result.m_dimensions.push_back(dimension);
+        for(size_t dimension : from.dimensions)
+          result.dimensions.push_back(dimension);
       else
         []<bool flag=false>() { static_assert(flag, "Shape make only takes size_t or Shape"); }();
     };
