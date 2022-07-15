@@ -20,10 +20,8 @@ namespace kann
     const tensor::Shape& shape = variable.shape;
     if(variable.optimizer_states.empty())
     {
-      tensor::Tensor<float> m = tensor::Tensor<float>::create(shape);
-      tensor::Tensor<float> v = tensor::Tensor<float>::create(shape);
-      m.fill(0.0f);
-      v.fill(0.0f);
+      auto m = tensor::create_constant(shape, 0.0f);
+      auto v = tensor::create_constant(shape, 0.0f);
 
       // Hack to work around the fact that initializer list return by const and
       // thus does not work for move only types

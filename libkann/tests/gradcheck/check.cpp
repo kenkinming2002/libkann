@@ -51,13 +51,12 @@ struct LayerDerivative
 tensor::Tensor<float> create_basis(tensor::Shape shape, size_t i)
 {
   tensor::Tensor<float> result = tensor::Tensor<float>::create(shape);
-  tensor::Tensor<float> _result = result.flatten();
-  _result.fill(0.0f);
-  _result(i) = 1.0f;
+  std::fill_n(result.data(), result.size(), 0.0f);
+  result.data()[i] = 1.0f;
   return result;
 }
 
-inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const tensor::Tensor<float>& random_input)
+inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const tensor::Tensor<const float>& random_input)
 {
   const tensor::Shape input_shape  = layer.def->get_input_shape();
   const tensor::Shape output_shape = layer.def->get_output_shape();
@@ -109,7 +108,7 @@ tensor::Tensor<float> perturb(tensor::Tensor<float> value, size_t i, float diff)
   return value;
 }
 
-inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const tensor::Tensor<float>& random_input, float dx)
+inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const tensor::Tensor<const float>& random_input, float dx)
 {
   const tensor::Shape input_shape  = layer.def->get_input_shape();
   const tensor::Shape output_shape = layer.def->get_output_shape();
@@ -186,8 +185,7 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
 {
   static constexpr float DX = 0.01f;
 
-  tensor::Tensor<float> random_input = tensor::Tensor<float>::create(layer->def->get_input_shape());
-  random_input.fill_uniform(prng, -1.0f, 1.0f);
+  auto random_input = tensor::create_uniform(layer->def->get_input_shape(), -1.0f, 1.0f, prng);
 
   LayerDerivative analytical = compute_analytical_derivative(*layer, random_input);
   LayerDerivative numerical  = compute_numerical_derivative(*layer, random_input, DX);

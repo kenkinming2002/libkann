@@ -68,7 +68,7 @@ namespace kann
     input_gradients  = input_gradients .flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
 
     const size_t batch_size = outputs.dimension(0), size = outputs.dimension(1);
-    input_gradients.fill(0.0f);
+    std::fill_n(input_gradients.data(), input_gradients.size(), 0.0f);
     for(size_t k=0; k<batch_size; ++k)
       for(size_t i=0; i<size; ++i)
         for(size_t j=0; j<size; ++j)

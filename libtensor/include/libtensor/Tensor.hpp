@@ -70,26 +70,6 @@ namespace tensor
     }
 
   public:
-    void fill(T value)
-    {
-      ranges::fill_n(this->data(), this->size(), value);
-    }
-
-    template<typename PRNG>
-    void fill_uniform(PRNG& prng, T a, T b)
-    {
-      std::uniform_real_distribution<T> dist(a, b);
-      ranges::generate_n(this->data(), this->size(), [&]() { return dist(prng); });
-    }
-
-    template<typename PRNG>
-    void fill_normal(PRNG& prng, T mean, T stddev)
-    {
-      std::normal_distribution<T> dist(mean, stddev);
-      ranges::generate_n(this->data(), this->size(), [&]() { return dist(prng); });
-    }
-
-  public:
     T& operator()(auto... indices)             { return m_data[m_shape.get_index(std::array<size_t, sizeof...(indices)>{indices...})]; }
     const T& operator()(auto... indices) const { return m_data[m_shape.get_index(std::array<size_t, sizeof...(indices)>{indices...})]; }
 
