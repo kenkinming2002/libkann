@@ -2,6 +2,7 @@
 
 #include <libtensor/Tensor.hpp>
 
+#include <libtensor/Initializer.hpp>
 #include <libtensor/MatrixProduct.hpp>
 #include <libtensor/Reduce.hpp>
 #include <libtensor/Broadcast.hpp>
@@ -30,11 +31,8 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
 
-    Variable weight = Variable::create(tensor::Shape::make(input_shape, output_shape));
-    Variable bias   = Variable::create(output_shape);
-
-    weight.value.fill_normal(prng, 0.0, 1.0 / std::sqrt(input_shape.size()));
-    bias.value.fill_normal(prng, 0.0, 1.0 / std::sqrt(input_shape.size()));
+    Variable weight = Variable::create_normal(tensor::Shape::make(input_shape, output_shape), 0.0, 1.0 / std::sqrt(input_shape.size()), prng);
+    Variable bias   = Variable::create_normal(output_shape,                                   0.0, 1.0 / std::sqrt(input_shape.size()), prng);
 
     layer_storage->parameters.reserve(2);
     layer_storage->parameters.push_back(std::move(weight));

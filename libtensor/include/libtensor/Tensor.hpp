@@ -14,6 +14,7 @@ namespace tensor
   struct Tensor
   {
   public:
+    Tensor() = default;
     Tensor(Shape shape, std::shared_ptr<T[]> data)
       : m_shape(std::move(shape)), m_data(std::move(data)) {}
 

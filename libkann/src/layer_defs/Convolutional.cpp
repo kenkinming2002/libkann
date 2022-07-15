@@ -1,6 +1,7 @@
 #include <libkann/layer_defs/Convolutional.hpp>
 
 #include <libtensor/Tensor.hpp>
+#include <libtensor/Initializer.hpp>
 #include <libkann/Layer.hpp>
 #include <libkann/LayerStorage.hpp>
 
@@ -37,9 +38,7 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
 
-    Variable kernels = Variable::create(tensor::Shape::make(input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()));
-    kernels.value.fill_normal(prng, 0.0, 1.0 / (kernel_size.width() * kernel_size.height()));
-
+    Variable kernels = Variable::create_normal(tensor::Shape::make(input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()), 0.0, 1.0 / (kernel_size.width() * kernel_size.height()), prng);
     layer_storage->parameters.reserve(1);
     layer_storage->parameters.push_back(std::move(kernels));
 

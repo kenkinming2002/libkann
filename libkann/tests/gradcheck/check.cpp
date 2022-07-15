@@ -92,8 +92,8 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const t
         const tensor::Shape parameter_shape = parameters[k]->shape;
         const size_t parameter_size = parameter_shape.size();
 
-        tensor::Tensor<float> _parameter_derivative = derivative.parameters[k].reshape(tensor::Shape::make(output_size, parameter_size));
-        tensor::Tensor<float> _parameter_gradient   = parameters[k]->gradient .reshape(tensor::Shape::make(parameter_size));
+        auto _parameter_derivative = derivative.parameters[k].reshape(tensor::Shape::make(output_size, parameter_size));
+        auto _parameter_gradient   = parameters[k]->gradient .reshape(tensor::Shape::make(parameter_size));
         for(size_t i=0; i<parameter_size; ++i)
           _parameter_derivative(j,i) = _parameter_gradient(i);
       }
@@ -154,7 +154,7 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const te
         tensor::Tensor<const float> output1 = without_unit_batching(layer.forward(input1.clone()));
 
         // Save and perturb
-        tensor::Tensor<float> saved_parameter = std::move(parameters[k]->value);
+        auto saved_parameter = std::move(parameters[k]->value);
         parameters[k]->value = perturb(saved_parameter.clone(), i, dx);
 
         tensor::Tensor<const float> input2  = with_unit_batching(random_input.clone());
