@@ -86,7 +86,7 @@ namespace kann
 
     auto input_gradients = tensor::matrix_product<float>(output_gradients, false, weight, true);
     auto weight_gradient = tensor::matrix_product<float>(inputs,  true, output_gradients, false);
-    auto bias_gradient   = tensor::reduce<tensor::Direction::LEFT>(output_gradients);
+    auto bias_gradient   = tensor::reduce_outer(output_gradients);
 
     input_gradients = input_gradients.unflatten(tensor::Hint::single(),                      tensor::Hint::from_shape(get_input_shape()));
     weight_gradient = weight_gradient.unflatten(tensor::Hint::from_shape(get_input_shape()), tensor::Hint::from_shape(get_output_shape()));

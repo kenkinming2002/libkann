@@ -19,7 +19,7 @@ namespace kann
     expected_outputs = expected_outputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
 
     auto tmps    = tensor::binary_map(inputs, expected_outputs, [](float input, float expected_output) { return -std::log(input) * expected_output; });
-    auto outputs = tensor::reduce<tensor::Direction::RIGHT, float>(tmps);
+    auto outputs = tensor::reduce_inner<float>(tmps);
     return outputs;
   }
 

@@ -40,7 +40,7 @@ namespace kann
       const float diff = input - expected_output;
       return pow_abs(diff, m_p);
     });
-    auto outputs = tensor::reduce<tensor::Direction::RIGHT, float>(tmps);
+    auto outputs = tensor::reduce_inner<float>(tmps);
     return outputs;
   }
 
