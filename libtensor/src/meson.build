@@ -1,4 +1,5 @@
 libtensor_sources = [
+  'Initializer.cpp',
   'MatrixProduct.cpp',
   'Image.cpp',
   'Broadcast.cpp',
