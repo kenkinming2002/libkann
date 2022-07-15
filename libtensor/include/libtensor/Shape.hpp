@@ -1,7 +1,7 @@
 #pragma once
 
-#include <libtensor/StaticVector.hpp>
-
+#include <array>
+#include <tuple>
 #include <vector>
 #include <optional>
 
@@ -13,24 +13,17 @@ namespace tensor
   struct Shape
   {
   public:
-    static constexpr size_t MAX_DIMENSION = 8;
-
-  public:
     static Shape from_vector(std::vector<size_t> dimensions)
     {
       Shape shape;
-      for(size_t dimension : dimensions)
-        shape.m_dimensions.push_back(dimension);
+      shape.m_dimensions = std::move(dimensions);
       return shape;
     }
 
     static std::vector<size_t> to_vector(Shape shape)
     {
-      return shape.m_dimensions | ranges::to_vector;
+      return shape.m_dimensions;
     }
-
-  public:
-    constexpr Shape() = default;
 
   public:
     constexpr size_t rank() const { return m_dimensions.size(); }
@@ -46,7 +39,7 @@ namespace tensor
     }
 
   public:
-    constexpr Shape subshape(size_t begin, size_t count) const
+    Shape subshape(size_t begin, size_t count) const
     {
       assert(begin+count<=m_dimensions.size());
 
@@ -57,16 +50,17 @@ namespace tensor
     }
 
   public:
-    static constexpr Shape make(const auto&... froms);
-    constexpr Shape flatten(const auto&... hints)   const requires(sizeof...(hints)>0);
-    constexpr Shape unflatten(const auto&... hints) const requires(sizeof...(hints)>0);
+    static Shape make(const auto&... froms);
+
+    Shape flatten(const auto&... hints)   const requires(sizeof...(hints)>0);
+    Shape unflatten(const auto&... hints) const requires(sizeof...(hints)>0);
 
   public:
-    constexpr Shape front(size_t count) const      { assert(rank()>=count); return this->subshape(0,     count); }
-    constexpr Shape drop_front(size_t count) const { assert(rank()>=count); return this->subshape(count, rank() - count); }
+    Shape front(size_t count) const      { assert(rank()>=count); return this->subshape(0,     count); }
+    Shape drop_front(size_t count) const { assert(rank()>=count); return this->subshape(count, rank() - count); }
 
-    constexpr Shape back(size_t count) const      { assert(rank()>=count); return this->subshape(rank() - count, count); }
-    constexpr Shape drop_back(size_t count) const { assert(rank()>=count); return this->subshape(0,              rank() - count);     }
+    Shape back(size_t count) const      { assert(rank()>=count); return this->subshape(rank() - count, count); }
+    Shape drop_back(size_t count) const { assert(rank()>=count); return this->subshape(0,              rank() - count);     }
 
   public:
     template<size_t N>
@@ -97,11 +91,10 @@ namespace tensor
     friend bool operator!=(const Shape& lhs, const Shape& rhs) = default;
 
   private:
-    // TODO: Use fixed size vector
-    StaticVector<size_t, MAX_DIMENSION> m_dimensions;
+    std::vector<size_t> m_dimensions;
   };
 
-  constexpr Shape Shape::make(const auto&... froms)
+  Shape Shape::make(const auto&... froms)
   {
     Shape result;
     auto f = [&result](const auto& from) {
@@ -122,11 +115,11 @@ namespace tensor
     enum class Type { SINGLE, SHAPE } type;
     std::optional<Shape> shape;
 
-    static constexpr Hint single()                 { return Hint{.type = Type::SINGLE, .shape = std::nullopt}; }
-    static constexpr Hint from_shape(Shape shape)  { return Hint{.type = Type::SHAPE,  .shape = std::move(shape)}; }
+    static Hint single()                 { return Hint{.type = Type::SINGLE, .shape = std::nullopt}; }
+    static Hint from_shape(Shape shape)  { return Hint{.type = Type::SHAPE,  .shape = std::move(shape)}; }
   };
 
-  constexpr Shape Shape::flatten(const auto&... _hints)   const requires(sizeof...(_hints)>0)
+  Shape Shape::flatten(const auto&... _hints)   const requires(sizeof...(_hints)>0)
   {
     const size_t N = sizeof...(_hints);
 
@@ -155,7 +148,7 @@ namespace tensor
     return std::apply([](auto... dimensions) { return Shape::make(dimensions...); }, dimensions);
   }
 
-  constexpr Shape Shape::unflatten(const auto&... _hints) const requires(sizeof...(_hints)>0)
+  Shape Shape::unflatten(const auto&... _hints) const requires(sizeof...(_hints)>0)
   {
     const size_t N = sizeof...(_hints);
 
