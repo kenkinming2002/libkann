@@ -5,7 +5,7 @@
 namespace tensor
 {
   template<typename T>
-  Tensor<T> image2d_cross_correlate(Tensor<const T> inputs, bool trans_inputs, Tensor<const T> kernels, bool trans_kernels, Vec2 output_size)
+  Tensor<const T> image2d_cross_correlate(Tensor<const T> inputs, bool trans_inputs, Tensor<const T> kernels, bool trans_kernels, Vec2 output_size)
   {
     auto M = inputs .dimension(0), K1 = inputs .dimension(1);
     auto K2 = kernels.dimension(0), N = kernels.dimension(1);
@@ -48,7 +48,7 @@ namespace tensor
   }
 
   template<typename T>
-  Tensor<T> image2d_convolve(Tensor<const T> inputs, bool trans_inputs, Tensor<const T> kernels, bool trans_kernels, Vec2 output_size)
+  Tensor<const T> image2d_convolve(Tensor<const T> inputs, bool trans_inputs, Tensor<const T> kernels, bool trans_kernels, Vec2 output_size)
   {
     auto M = inputs .dimension(0), K1 = inputs .dimension(1);
     auto K2 = kernels.dimension(0), N = kernels.dimension(1);
@@ -91,11 +91,11 @@ namespace tensor
     return outputs;
   }
 
-  template Tensor<float>       image2d_cross_correlate(Tensor<const float>       inputs, bool trans_inputs, Tensor<const float>       kernels, bool trans_kernels, Vec2 output_size);
-  template Tensor<double>      image2d_cross_correlate(Tensor<const double>      inputs, bool trans_inputs, Tensor<const double>      kernels, bool trans_kernels, Vec2 output_size);
-  template Tensor<long double> image2d_cross_correlate(Tensor<const long double> inputs, bool trans_inputs, Tensor<const long double> kernels, bool trans_kernels, Vec2 output_size);
+  template Tensor<const float>       image2d_cross_correlate(Tensor<const float>       inputs, bool trans_inputs, Tensor<const float>       kernels, bool trans_kernels, Vec2 output_size);
+  template Tensor<const double>      image2d_cross_correlate(Tensor<const double>      inputs, bool trans_inputs, Tensor<const double>      kernels, bool trans_kernels, Vec2 output_size);
+  template Tensor<const long double> image2d_cross_correlate(Tensor<const long double> inputs, bool trans_inputs, Tensor<const long double> kernels, bool trans_kernels, Vec2 output_size);
 
-  template Tensor<float>       image2d_convolve(Tensor<const float>       inputs, bool trans_inputs, Tensor<const float>       kernels, bool trans_kernels, Vec2 output_size);
-  template Tensor<double>      image2d_convolve(Tensor<const double>      inputs, bool trans_inputs, Tensor<const double>      kernels, bool trans_kernels, Vec2 output_size);
-  template Tensor<long double> image2d_convolve(Tensor<const long double> inputs, bool trans_inputs, Tensor<const long double> kernels, bool trans_kernels, Vec2 output_size);
+  template Tensor<const float>       image2d_convolve(Tensor<const float>       inputs, bool trans_inputs, Tensor<const float>       kernels, bool trans_kernels, Vec2 output_size);
+  template Tensor<const double>      image2d_convolve(Tensor<const double>      inputs, bool trans_inputs, Tensor<const double>      kernels, bool trans_kernels, Vec2 output_size);
+  template Tensor<const long double> image2d_convolve(Tensor<const long double> inputs, bool trans_inputs, Tensor<const long double> kernels, bool trans_kernels, Vec2 output_size);
 }

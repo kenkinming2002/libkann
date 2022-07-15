@@ -14,8 +14,8 @@
 namespace tensor
 {
   template<typename T>
-  LIBTENSOR_EXPORT Tensor<T> image2d_cross_correlate(Tensor<const T> inputs, bool trans_inputs, Tensor<const T> kernels, bool trans_kernels, Vec2 output_size);
+  LIBTENSOR_EXPORT Tensor<const T> image2d_cross_correlate(Tensor<const T> inputs, bool trans_inputs, Tensor<const T> kernels, bool trans_kernels, Vec2 output_size);
 
   template<typename T>
-  LIBTENSOR_EXPORT Tensor<T> image2d_convolve(Tensor<const T> inputs, bool trans_inputs, Tensor<const T> kernels, bool trans_kernels, Vec2 output_size);
+  LIBTENSOR_EXPORT Tensor<const T> image2d_convolve(Tensor<const T> inputs, bool trans_inputs, Tensor<const T> kernels, bool trans_kernels, Vec2 output_size);
 }

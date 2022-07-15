@@ -5,8 +5,8 @@
 
 namespace tensor
 {
-  template<typename T> Tensor<T> unary_map(Tensor<const T> a, const auto& f);
-  template<typename T> Tensor<T> binary_map(Tensor<const T> a, Tensor<const T> b, const auto& f);
+  template<typename T> Tensor<const T> unary_map(Tensor<const T> a, const auto& f);
+  template<typename T> Tensor<const T> binary_map(Tensor<const T> a, Tensor<const T> b, const auto& f);
 }
 
 #include <assert.h>
@@ -14,7 +14,7 @@ namespace tensor
 namespace tensor
 {
   template<typename T>
-  Tensor<T> unary_map(Tensor<const T> a, const auto& f)
+  Tensor<const T> unary_map(Tensor<const T> a, const auto& f)
   {
     auto result = Tensor<T>::create(a.shape());
     for(size_t i=0; i<a.size(); ++i)
@@ -23,7 +23,7 @@ namespace tensor
   }
 
   template<typename T>
-  Tensor<T> binary_map(Tensor<const T> a, Tensor<const T> b, const auto& f)
+  Tensor<const T> binary_map(Tensor<const T> a, Tensor<const T> b, const auto& f)
   {
     assert(a.shape() == b.shape());
 

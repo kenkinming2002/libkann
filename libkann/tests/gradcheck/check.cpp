@@ -131,8 +131,8 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const te
 
       auto output_gradient = tensor::binary_map(output2, output1, [&dx](float output2, float output1){ return (output2 - output1) / dx; });
 
-      tensor::Tensor<float> _input_derivative  = derivative.input.reshape(tensor::Shape::make(output_size, input_size));
-      tensor::Tensor<float> _output_gradient   = output_gradient .reshape(tensor::Shape::make(output_size));
+      auto _input_derivative  = derivative.input.reshape(tensor::Shape::make(output_size, input_size));
+      auto _output_gradient   = output_gradient .reshape(tensor::Shape::make(output_size));
       for(size_t j=0; j<output_size; ++j)
         _input_derivative(j,i) = _output_gradient(j);
     }
@@ -165,8 +165,8 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const te
 
         auto output_gradient = tensor::binary_map(output2, output1, [&dx](float output2, float output1){ return (output2 - output1) / dx; });
 
-        tensor::Tensor<float> _parameter_derivative = derivative.parameters[k].reshape(tensor::Shape::make(output_size, parameter_size));
-        tensor::Tensor<float> _output_gradient      = output_gradient         .reshape(tensor::Shape::make(output_size));
+        auto _parameter_derivative = derivative.parameters[k].reshape(tensor::Shape::make(output_size, parameter_size));
+        auto _output_gradient      = output_gradient         .reshape(tensor::Shape::make(output_size));
         for(size_t j=0; j<output_size; ++j)
           _parameter_derivative(j,i) = _output_gradient(j);
       }
