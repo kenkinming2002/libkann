@@ -1,7 +1,10 @@
 #include <libtensor/Tensor.hpp>
 #include <libtensor/Shape.hpp>
-#include <libtensor/Math.hpp>
-#include <libtensor/Utils.hpp>
+#include <libtensor/MatrixProduct.hpp>
+#include <libtensor/Image.hpp>
+#include <libtensor/Map.hpp>
+#include <libtensor/MaxCoeff.hpp>
+#include <libtensor/Norm.hpp>
 
 #include <range/v3/all.hpp>
 #include <fmt/core.h>

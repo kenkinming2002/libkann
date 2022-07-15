@@ -1,7 +1,12 @@
 #include <libkann/layer_defs/Dense.hpp>
 
 #include <libtensor/Tensor.hpp>
-#include <libtensor/Math.hpp>
+
+#include <libtensor/Initializer.hpp>
+#include <libtensor/MatrixProduct.hpp>
+#include <libtensor/Reduce.hpp>
+#include <libtensor/Broadcast.hpp>
+
 #include <libkann/Layer.hpp>
 
 namespace kann
@@ -26,11 +31,8 @@ namespace kann
   {
     auto layer_storage = std::make_shared<LayerStorage>();
 
-    Variable weight = Variable::create(tensor::Shape::concat(input_shape, output_shape));
-    Variable bias   = Variable::create(output_shape);
-
-    weight.value.fill_normal(prng, 0.0, 1.0 / std::sqrt(input_shape.size()));
-    bias.value.fill_normal(prng, 0.0, 1.0 / std::sqrt(input_shape.size()));
+    Variable weight = Variable::create_normal(tensor::Shape::make(input_shape, output_shape), 0.0, 1.0 / std::sqrt(input_shape.size()), prng);
+    Variable bias   = Variable::create_normal(output_shape,                                   0.0, 1.0 / std::sqrt(input_shape.size()), prng);
 
     layer_storage->parameters.reserve(2);
     layer_storage->parameters.push_back(std::move(weight));
@@ -51,59 +53,45 @@ namespace kann
 
   tensor::Tensor<const float> DenseLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
   {
-    return this->forward_helper(layer, std::move(inputs), [this](Layer& layer, size_t batch_size, tensor::Tensor<const float> inputs, tensor::Tensor<float> outputs)
-    {
-      const size_t input_size  = this->get_input_shape().size();
-      const size_t output_size = this->get_output_shape().size();
+    layer.saved_tensors.clear();
+    layer.saved_tensors.reserve(1);
+    layer.saved_tensors.push_back(inputs);
 
-      const Variable& weight = layer.storage->parameters[0];
-      const Variable& bias   = layer.storage->parameters[1];
+    auto weight = layer.storage->parameters[0].value;
+    auto bias   = layer.storage->parameters[1].value;
 
-      auto _inputs  = inputs .reshape(tensor::Shape{batch_size, input_size});
-      auto _outputs = outputs.reshape(tensor::Shape{batch_size, output_size});
+    inputs = inputs.flatten(tensor::Hint::single(),                      tensor::Hint::from_shape(get_input_shape()));
+    weight = weight.flatten(tensor::Hint::from_shape(get_input_shape()), tensor::Hint::from_shape(get_output_shape()));
+    bias   = bias  .flatten(tensor::Hint::from_shape(get_output_shape()));
 
-      auto _weight  = weight.value.reshape(tensor::Shape{input_size, output_size});
-      auto _bias    = bias  .value.reshape(tensor::Shape{output_size});
+    auto product = tensor::matrix_product<float>(inputs, false, weight, false);
+    auto result = tensor::broadcast_add_outer<float>(product, bias);
 
-      tensor::math::product(_outputs, _inputs, false, _weight, false);
-      tensor::math::broadcast<1>(_outputs, { _bias }, tensor::math::Direction::LEFT, tensor::math::ADD);
-
-      layer.saved_tensors.clear();
-      layer.saved_tensors.reserve(1);
-      layer.saved_tensors.push_back(std::move(inputs));
-
-      return outputs;
-    });
+    return result.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(this->get_output_shape()));
   }
 
   tensor::Tensor<const float> DenseLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
   {
-    return this->backward_helper(layer, std::move(output_gradients), [this](Layer& layer, size_t batch_size, tensor::Tensor<const float> output_gradients, tensor::Tensor<float> input_gradients)
-    {
-      const size_t input_size  = this->get_input_shape().size();
-      const size_t output_size = this->get_output_shape().size();
+    auto inputs = layer.saved_tensors[0];
+    auto weight = layer.storage->parameters[0].value;
+    auto bias   = layer.storage->parameters[1].value;
 
-      tensor::Tensor<const float> inputs = std::move(layer.saved_tensors[0]);
-      Variable& weight = layer.storage->parameters[0];
-      Variable& bias   = layer.storage->parameters[1];
+    inputs = inputs.flatten(tensor::Hint::single(),                      tensor::Hint::from_shape(get_input_shape()));
+    weight = weight.flatten(tensor::Hint::from_shape(get_input_shape()), tensor::Hint::from_shape(get_output_shape()));
+    bias   = bias  .flatten(tensor::Hint::from_shape(get_output_shape()));
 
-      auto _inputs           = inputs          .reshape(tensor::Shape{batch_size, input_size});
-      auto _input_gradients  = input_gradients .reshape(tensor::Shape{batch_size, input_size});
-      auto _output_gradients = output_gradients.reshape(tensor::Shape{batch_size, output_size});
+    output_gradients = output_gradients.flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
 
-      auto _weight          = weight.value   .reshape(tensor::Shape{input_size, output_size});
-      auto _weight_gradient = weight.gradient.reshape(tensor::Shape{input_size, output_size});
+    auto input_gradients = tensor::matrix_product<float>(output_gradients, false, weight, true);
+    auto weight_gradient = tensor::matrix_product<float>(inputs,  true, output_gradients, false);
+    auto bias_gradient   = tensor::reduce_outer(output_gradients);
 
-      auto _bias          = bias.value   .reshape(tensor::Shape{output_size});
-      auto _bias_gradient = bias.gradient.reshape(tensor::Shape{output_size});
+    input_gradients = input_gradients.unflatten(tensor::Hint::single(),                      tensor::Hint::from_shape(get_input_shape()));
+    weight_gradient = weight_gradient.unflatten(tensor::Hint::from_shape(get_input_shape()), tensor::Hint::from_shape(get_output_shape()));
+    bias_gradient   = bias_gradient  .unflatten(tensor::Hint::from_shape(get_output_shape()));
 
-      tensor::math::product(_weight_gradient, _inputs,           true,  _output_gradients, false);
-      tensor::math::product(_input_gradients, _output_gradients, false, _weight,           true);
-
-      _bias_gradient.fill(0.0);
-      tensor::math::reduce<1>(_bias_gradient, { _output_gradients }, tensor::math::Direction::LEFT, tensor::math::ADD);
-
-      return input_gradients;
-    });
+    layer.storage->parameters[0].gradient = weight_gradient;
+    layer.storage->parameters[1].gradient = bias_gradient;
+    return input_gradients;
   }
 }

@@ -1,6 +1,6 @@
 #include <libkann/optimizers/SimpleOptimizer.hpp>
 
-#include <libtensor/Math.hpp>
+#include <libtensor/Map.hpp>
 
 namespace kann
 {
@@ -9,6 +9,8 @@ namespace kann
 
   void SimpleOptimizer::optimize(Variable& variable) const
   {
-    tensor::math::transform<1>(variable.value.flatten(), {variable.gradient.flatten()}, tensor::math::FMA(-m_learningRate));
+    variable.value = tensor::binary_map<float>(variable.value, variable.gradient, [this](float value, float gradient) {
+      return value - m_learningRate * gradient;
+    });
   }
 }

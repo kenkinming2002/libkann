@@ -1,6 +1,8 @@
 #include <libkann/loss_functions/Lp.hpp>
 
-#include <libtensor/Math.hpp>
+#include <libtensor/Reduce.hpp>
+#include <libtensor/Broadcast.hpp>
+#include <libtensor/Map.hpp>
 
 namespace kann
 {
@@ -24,52 +26,38 @@ namespace kann
 
   tensor::Tensor<const float> LpLossFunction::forward(tensor::Tensor<const float> inputs)
   {
-    const size_t batch_size = inputs.shape().dimension(0);
-    const tensor::Shape  shape      = inputs.shape().drop_front(1);
-    const size_t size       = shape.size();
-
-    tensor::Tensor<float> outputs = tensor::Tensor<float>::create(tensor::Shape{batch_size});
+    this->saved_tensors.clear();
+    this->saved_tensors.reserve(1);
+    this->saved_tensors.push_back(inputs);
 
     assert(this->expected_outputs);
-    auto _inputs            = inputs           .reshape(tensor::Shape{batch_size, size});
-    auto _expected_outputs  = expected_outputs->reshape(tensor::Shape{batch_size, size});
-    auto _outputs           = outputs          .reshape(tensor::Shape{batch_size});
+    auto expected_outputs = *this->expected_outputs;
 
-    outputs.fill(0.0);
-    tensor::math::reduce<2>(_outputs, {_inputs, _expected_outputs}, tensor::math::Direction::RIGHT, [this](float output, float input, float expected_output)
-    {
+    inputs           = inputs          .flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
+    expected_outputs = expected_outputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
+
+    auto tmps    = tensor::binary_map(inputs, expected_outputs, [this](float input, float expected_output) {
       const float diff = input - expected_output;
-      return output + pow_abs(diff, m_p);
+      return pow_abs(diff, m_p);
     });
-
-    saved_tensors.clear();
-    saved_tensors.reserve(1);
-    saved_tensors.push_back(std::move(inputs));
+    auto outputs = tensor::reduce_inner<float>(tmps);
     return outputs;
   }
 
   tensor::Tensor<const float> LpLossFunction::backward(tensor::Tensor<const float> output_gradients)
   {
-    tensor::Tensor<const float> inputs = std::move(saved_tensors[0]);
-
-    const size_t batch_size = inputs.shape().dimension(0);
-    const tensor::Shape  shape      = inputs.shape().drop_front(1);
-    const size_t size       = shape.size();
-
-    tensor::Tensor<float> input_gradients = tensor::Tensor<float>::create(inputs.shape());
-
     assert(this->expected_outputs);
-    auto _inputs            = inputs           .reshape(tensor::Shape{batch_size, size});
-    auto _input_gradients   = input_gradients  .reshape(tensor::Shape{batch_size, size});
-    auto _expected_outputs  = expected_outputs->reshape(tensor::Shape{batch_size, size});
-    auto _output_gradients  = output_gradients .reshape(tensor::Shape{batch_size});
+    auto inputs           = this->saved_tensors[0];
+    auto expected_outputs = *this->expected_outputs;
 
-    tensor::math::transform<2>(_input_gradients.flatten(), {_inputs.flatten(), _expected_outputs.flatten()}, [this](float /*input_gradient*/, float input, const float expected_output)
-    {
+    inputs           = inputs          .flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
+    expected_outputs = expected_outputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
+
+    auto tmps            = tensor::binary_map(inputs, expected_outputs, [this](float input, float expected_output) {
       const float diff = input - expected_output;
       return m_p * pow_abs(diff, m_p-1) * sgn(diff);
     });
-    tensor::math::broadcast<1>(_input_gradients, { _output_gradients }, tensor::math::Direction::RIGHT, tensor::math::MUL);
+    auto input_gradients = tensor::broadcast_mul_inner<float>(tmps, output_gradients);
     return input_gradients;
   }
 }

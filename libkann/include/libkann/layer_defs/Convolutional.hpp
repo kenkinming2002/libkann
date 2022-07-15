@@ -4,7 +4,7 @@
 
 #include <libkann/LayerDef.hpp>
 
-#include <libkann/Vec.hpp>
+#include <libtensor/Vec.hpp>
 
 namespace kann
 {
@@ -12,7 +12,7 @@ namespace kann
   {
   public:
     size_t input_channel_count, output_channel_count;
-    Vec2 input_size, output_size, kernel_size;
+    tensor::Vec2 input_size, output_size, kernel_size;
 
   public:
     KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer_def);

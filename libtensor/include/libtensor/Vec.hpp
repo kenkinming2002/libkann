@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <compare>
 
-namespace kann
+namespace tensor
 {
   struct Vec2
   {
@@ -35,3 +35,4 @@ namespace kann
   inline constexpr Vec2 operator%(Vec2 v, size_t i) { return Vec2(v.a % i, v.b % i); }
   inline constexpr Vec2 operator/(Vec2 v, size_t i) { return Vec2(v.a / i, v.b / i); }
 }
+

@@ -14,6 +14,7 @@ namespace tensor
   struct Tensor
   {
   public:
+    Tensor() = default;
     Tensor(Shape shape, std::shared_ptr<T[]> data)
       : m_shape(std::move(shape)), m_data(std::move(data)) {}
 
@@ -55,7 +56,17 @@ namespace tensor
 
     Tensor flatten() const
     {
-      return reshape(Shape(size()));
+      return reshape(Shape::make(size()));
+    }
+
+    constexpr Tensor flatten(const auto&... hints) const requires(sizeof...(hints)>0)
+    {
+      return reshape(m_shape.flatten(hints...));
+    }
+
+    constexpr Tensor unflatten(const auto&... hints) const requires(sizeof...(hints)>0)
+    {
+      return reshape(m_shape.unflatten(hints...));
     }
 
   public:

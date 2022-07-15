@@ -79,7 +79,7 @@ namespace kann
 
     for(uint32_t i=0; i<count; ++i)
     {
-      tensor::Tensor<float> image = tensor::Tensor<float>::create(tensor::Shape{1, MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH});
+      tensor::Tensor<float> image = tensor::Tensor<float>::create(tensor::Shape::make(1, MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH));
 
       uint8_t image_data[MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH];
       if(!idx_file.file.read(reinterpret_cast<char*>(image_data), sizeof image_data))
@@ -108,7 +108,7 @@ namespace kann
 
     for(uint32_t i=0; i<count; ++i)
     {
-      tensor::Tensor<float> label = tensor::Tensor<float>::create(tensor::Shape{10});
+      tensor::Tensor<float> label = tensor::Tensor<float>::create(tensor::Shape::make(10));
 
       uint8_t label_data;
       if(!idx_file.file.read(reinterpret_cast<char*>(&label_data), sizeof label_data))

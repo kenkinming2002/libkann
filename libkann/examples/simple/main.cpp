@@ -1,8 +1,7 @@
 #include <libkann/Initialize.hpp>
 
 #include <libtensor/Tensor.hpp>
-#include <libtensor/Math.hpp>
-#include <libtensor/Utils.hpp>
+#include <libtensor/MaxCoeff.hpp>
 
 #include <libkann/Layer.hpp>
 #include <libkann/LayerStorage.hpp>
@@ -26,7 +25,7 @@
 
 static bool correct(const tensor::Tensor<const float>& value1, const tensor::Tensor<const float>& value2)
 {
-  return tensor::utils::max_coeff(value1) == tensor::utils::max_coeff(value2);
+  return tensor::max_coeff(value1) == tensor::max_coeff(value2);
 }
 
 static void testing(std::string_view label, kann::Layer& layer,
@@ -64,6 +63,8 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function,
   assert(images.size() == count);
   assert(labels.size() == count);
 
+  loss_function.shape = layer.def->get_output_shape();
+
   std::uniform_int_distribution<size_t> dist(0, count-1);
   for(size_t i=0; i<count; ++i)
   {
@@ -86,7 +87,7 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function,
     loss_function.expected_outputs = std::move(label_batch);
     tensor::Tensor<const float> loss_batch = loss_function.forward(std::move(prediction_batch));
 
-    tensor::Tensor<float> ones_batch = tensor::Tensor<float>::create(tensor::Shape(batch_size));
+    tensor::Tensor<float> ones_batch = tensor::Tensor<float>::create(tensor::Shape::make(batch_size));
     ones_batch.fill(1.0);
 
     tensor::Tensor<const float> gradient_batch = loss_function.backward(std::move(ones_batch));
