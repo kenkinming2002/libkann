@@ -46,7 +46,7 @@ namespace kann
 
     auto exps    = tensor::unary_map(inputs, [](float input) { return std::exp(input); });
     auto factors = tensor::reduce_inner<float>(exps);
-    auto outputs = tensor::broadcast_div<tensor::Direction::RIGHT, float>(exps, factors);
+    auto outputs = tensor::broadcast_div_inner<float>(exps, factors);
 
     outputs = outputs.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
 

@@ -57,7 +57,7 @@ namespace kann
       const float diff = input - expected_output;
       return m_p * pow_abs(diff, m_p-1) * sgn(diff);
     });
-    auto input_gradients = tensor::broadcast_mul<tensor::Direction::RIGHT, float>(tmps, output_gradients);
+    auto input_gradients = tensor::broadcast_mul_inner<float>(tmps, output_gradients);
     return input_gradients;
   }
 }

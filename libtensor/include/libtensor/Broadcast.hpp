@@ -7,38 +7,13 @@
 // Declaration
 namespace tensor
 {
-  template<Direction direction, typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_add(Tensor<const T> a, Tensor<const T> b);
-  template<Direction direction, typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_sub(Tensor<const T> a, Tensor<const T> b);
-  template<Direction direction, typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_mul(Tensor<const T> a, Tensor<const T> b);
-  template<Direction direction, typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_div(Tensor<const T> a, Tensor<const T> b);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_add_outer(Tensor<const T> a, Tensor<const T> b);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_sub_outer(Tensor<const T> a, Tensor<const T> b);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_mul_outer(Tensor<const T> a, Tensor<const T> b);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_div_outer(Tensor<const T> a, Tensor<const T> b);
 
-  extern template LIBTENSOR_EXPORT Tensor<float> broadcast_add<Direction::LEFT>(Tensor<const float> a, Tensor<const float> b);
-  extern template LIBTENSOR_EXPORT Tensor<float> broadcast_sub<Direction::LEFT>(Tensor<const float> a, Tensor<const float> b);
-  extern template LIBTENSOR_EXPORT Tensor<float> broadcast_mul<Direction::LEFT>(Tensor<const float> a, Tensor<const float> b);
-  extern template LIBTENSOR_EXPORT Tensor<float> broadcast_div<Direction::LEFT>(Tensor<const float> a, Tensor<const float> b);
-
-  extern template LIBTENSOR_EXPORT Tensor<float> broadcast_add<Direction::RIGHT>(Tensor<const float> a, Tensor<const float> b);
-  extern template LIBTENSOR_EXPORT Tensor<float> broadcast_sub<Direction::RIGHT>(Tensor<const float> a, Tensor<const float> b);
-  extern template LIBTENSOR_EXPORT Tensor<float> broadcast_mul<Direction::RIGHT>(Tensor<const float> a, Tensor<const float> b);
-  extern template LIBTENSOR_EXPORT Tensor<float> broadcast_div<Direction::RIGHT>(Tensor<const float> a, Tensor<const float> b);
-
-  extern template LIBTENSOR_EXPORT Tensor<double> broadcast_add<Direction::LEFT>(Tensor<const double> a, Tensor<const double> b);
-  extern template LIBTENSOR_EXPORT Tensor<double> broadcast_sub<Direction::LEFT>(Tensor<const double> a, Tensor<const double> b);
-  extern template LIBTENSOR_EXPORT Tensor<double> broadcast_mul<Direction::LEFT>(Tensor<const double> a, Tensor<const double> b);
-  extern template LIBTENSOR_EXPORT Tensor<double> broadcast_div<Direction::LEFT>(Tensor<const double> a, Tensor<const double> b);
-
-  extern template LIBTENSOR_EXPORT Tensor<double> broadcast_add<Direction::RIGHT>(Tensor<const double> a, Tensor<const double> b);
-  extern template LIBTENSOR_EXPORT Tensor<double> broadcast_sub<Direction::RIGHT>(Tensor<const double> a, Tensor<const double> b);
-  extern template LIBTENSOR_EXPORT Tensor<double> broadcast_mul<Direction::RIGHT>(Tensor<const double> a, Tensor<const double> b);
-  extern template LIBTENSOR_EXPORT Tensor<double> broadcast_div<Direction::RIGHT>(Tensor<const double> a, Tensor<const double> b);
-
-  extern template LIBTENSOR_EXPORT Tensor<long double> broadcast_add<Direction::LEFT>(Tensor<const long double> a, Tensor<const long double> b);
-  extern template LIBTENSOR_EXPORT Tensor<long double> broadcast_sub<Direction::LEFT>(Tensor<const long double> a, Tensor<const long double> b);
-  extern template LIBTENSOR_EXPORT Tensor<long double> broadcast_mul<Direction::LEFT>(Tensor<const long double> a, Tensor<const long double> b);
-  extern template LIBTENSOR_EXPORT Tensor<long double> broadcast_div<Direction::LEFT>(Tensor<const long double> a, Tensor<const long double> b);
-
-  extern template LIBTENSOR_EXPORT Tensor<long double> broadcast_add<Direction::RIGHT>(Tensor<const long double> a, Tensor<const long double> b);
-  extern template LIBTENSOR_EXPORT Tensor<long double> broadcast_sub<Direction::RIGHT>(Tensor<const long double> a, Tensor<const long double> b);
-  extern template LIBTENSOR_EXPORT Tensor<long double> broadcast_mul<Direction::RIGHT>(Tensor<const long double> a, Tensor<const long double> b);
-  extern template LIBTENSOR_EXPORT Tensor<long double> broadcast_div<Direction::RIGHT>(Tensor<const long double> a, Tensor<const long double> b);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_add_inner(Tensor<const T> a, Tensor<const T> b);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_sub_inner(Tensor<const T> a, Tensor<const T> b);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_mul_inner(Tensor<const T> a, Tensor<const T> b);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> broadcast_div_inner(Tensor<const T> a, Tensor<const T> b);
 }

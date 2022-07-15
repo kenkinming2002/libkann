@@ -67,7 +67,7 @@ namespace kann
     bias   = bias  .flatten(tensor::Hint::from_shape(get_output_shape()));
 
     auto product = tensor::matrix_product<float>(inputs, false, weight, false);
-    auto result = tensor::broadcast_add<tensor::Direction::LEFT, float>(product, bias);
+    auto result = tensor::broadcast_add_outer<float>(product, bias);
 
     return result.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(this->get_output_shape()));
   }
