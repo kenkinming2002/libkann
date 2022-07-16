@@ -1,5 +1,8 @@
 #include <libtensor/Tensor.hpp>
 #include <libtensor/Shape.hpp>
+
+#include <libtensor/Broadcast.hpp>
+#include <libtensor/Reduce.hpp>
 #include <libtensor/MatrixProduct.hpp>
 #include <libtensor/Image.hpp>
 #include <libtensor/Map.hpp>
