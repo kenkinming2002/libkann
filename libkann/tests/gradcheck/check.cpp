@@ -183,7 +183,7 @@ static inline std::shared_ptr<kann::Layer> create_layer(std::shared_ptr<const ka
 
 static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
 {
-  static constexpr float DX = 0.01f;
+  static constexpr float DX = 0.0005f;
 
   auto random_input = tensor::create_uniform(layer->def->get_input_shape(), -1.0f, 1.0f, prng);
 
@@ -196,7 +196,7 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
   {
     const float analytical_value = _analytical_derivative(i);
     const float numerical_value  = _numerical_derivative(i);
-    REQUIRE(std::abs(analytical_value - numerical_value) <= 0.01f);
+    REQUIRE(std::abs(analytical_value - numerical_value) <= 0.001f);
   }
 
   for(const auto& [analytical_derivative, numerical_derivative] : ranges::views::zip(analytical.parameters, numerical.parameters))
@@ -207,7 +207,7 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
     {
       const float analytical_value = _analytical_derivative(i);
       const float numerical_value  = _numerical_derivative(i);
-      REQUIRE(std::abs(analytical_value - numerical_value) <= 0.01f);
+      REQUIRE(std::abs(analytical_value - numerical_value) <= 0.001f);
     }
   }
 }
