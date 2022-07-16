@@ -1,7 +1,6 @@
 #pragma once
 
 #include <libtensor/Export.hpp>
-#include <libtensor/Direction.hpp>
 #include <libtensor/Tensor.hpp>
 
 // Declaration
