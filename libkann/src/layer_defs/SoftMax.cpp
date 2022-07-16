@@ -61,25 +61,17 @@ namespace kann
   tensor::Tensor<const float> SoftMaxLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
   {
     auto outputs = layer.saved_tensors[0];
-    auto input_gradients = tensor::Tensor<float>::create(output_gradients.shape());
 
     outputs          = outputs         .flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
     output_gradients = output_gradients.flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
-    input_gradients  = input_gradients .flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
 
-    const size_t batch_size = outputs.dimension(0), size = outputs.dimension(1);
-    std::fill_n(input_gradients.data(), input_gradients.size(), 0.0f);
-    for(size_t k=0; k<batch_size; ++k)
-      for(size_t i=0; i<size; ++i)
-        for(size_t j=0; j<size; ++j)
-        {
-          if(i == j)
-            input_gradients(k, i) += output_gradients(k, j) * outputs(k, j) * (1 - outputs(k, i));
-          else
-            input_gradients(k, i) -= output_gradients(k, j) * outputs(k, j) * outputs(k, i);
-        }
+    auto tmp1 = tensor::binary_map(output_gradients, outputs, [](auto a, auto b) { return a * b; });
+    auto tmp2 = tensor::reduce_inner(tmp1);
+    auto tmp3 = tensor::broadcast_mul_inner(outputs, tmp2);
+    auto input_gradients = tensor::binary_map(tmp1, tmp3, [](auto a, auto b) { return a - b; });
 
     input_gradients = input_gradients.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
+
     return input_gradients;
   }
 }
