@@ -3,7 +3,7 @@
 namespace tensor
 {
   template<typename T>
-  T norm(Tensor<T> value)
+  T norm(Tensor<T> value) noexcept
   {
     T sum{};
     for(T v : value.buffer->data())

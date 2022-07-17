@@ -8,5 +8,5 @@
 
 namespace tensor
 {
-  template<typename T> LIBTENSOR_EXPORT T norm(Tensor<T> a);
+  template<typename T> LIBTENSOR_EXPORT T norm(Tensor<T> a) noexcept;
 }

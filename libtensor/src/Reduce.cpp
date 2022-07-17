@@ -5,7 +5,7 @@
 namespace tensor
 {
   template<typename T>
-  static inline void reduce_outer_raw(size_t M, size_t N, const T* __restrict__ input, T* __restrict__ output)
+  static inline void reduce_outer_raw(size_t M, size_t N, const T* __restrict__ input, T* __restrict__ output) noexcept
   {
     std::fill_n(output, N, T{});
     for(size_t m=0; m<M; ++m)
@@ -14,7 +14,7 @@ namespace tensor
   }
 
   template<typename T>
-  static inline void reduce_inner_raw(size_t M, size_t N, const T* __restrict__ input, T* __restrict__ output)
+  static inline void reduce_inner_raw(size_t M, size_t N, const T* __restrict__ input, T* __restrict__ output) noexcept
   {
     std::fill_n(output, M, T{});
     for(size_t m=0; m<M; ++m)

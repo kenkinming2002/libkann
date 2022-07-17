@@ -3,7 +3,7 @@
 namespace tensor
 {
   template<typename T>
-  size_t max_coeff(Tensor<T> value)
+  size_t max_coeff(Tensor<T> value) noexcept
   {
     size_t coeff = std::numeric_limits<size_t>::max();
     T      max   = -std::numeric_limits<T>::infinity();

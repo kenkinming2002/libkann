@@ -6,7 +6,7 @@
 namespace tensor
 {
   // Tenary operator, but a and b need not have the same type
-  inline static auto ternary(bool cond, auto a, auto b) -> std::variant<decltype(a), decltype(b)>
+  inline static auto ternary(bool cond, auto a, auto b) noexcept -> std::variant<decltype(a), decltype(b)>
   {
     if(cond)
       return std::move(a);
@@ -15,7 +15,7 @@ namespace tensor
   }
 
   template<typename T>
-  static inline void eigen_gemm(size_t M, size_t N, size_t K, const T* A, bool trans_A, const T* B, bool trans_B, T* C)
+  static inline void eigen_gemm(size_t M, size_t N, size_t K, const T* A, bool trans_A, const T* B, bool trans_B, T* C) noexcept
   {
     using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
     auto _A = ternary(trans_A,
@@ -34,7 +34,7 @@ namespace tensor
   }
 
   template<typename T>
-  void matrix_product_raw(size_t M, size_t N, size_t K, const T* A, bool trans_A, const T* B, bool trans_B, T* C)
+  void matrix_product_raw(size_t M, size_t N, size_t K, const T* A, bool trans_A, const T* B, bool trans_B, T* C) noexcept
   {
     eigen_gemm(M, N, K, A, trans_A, B, trans_B, C);
   }

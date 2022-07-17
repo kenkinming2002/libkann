@@ -4,13 +4,13 @@
 
 namespace tensor
 {
-#define BROADCAST_OUTER_RAW(op_name, op)                                                                                                      \
-  template<typename T>                                                                                                                        \
-  static inline void broadcast_##op_name##_outer_raw(size_t M, size_t N, const T* __restrict__ A, const T* __restrict__ B, T* __restrict__ C) \
-  {                                                                                                                                           \
-    for(size_t m=0; m<M; ++m)                                                                                                                 \
-      for(size_t n=0; n<N; ++n)                                                                                                               \
-        C[m*N+n] = A[m*N+n] op B[n];                                                                                                          \
+#define BROADCAST_OUTER_RAW(op_name, op)                                                                                                               \
+  template<typename T>                                                                                                                                 \
+  static inline void broadcast_##op_name##_outer_raw(size_t M, size_t N, const T* __restrict__ A, const T* __restrict__ B, T* __restrict__ C) noexcept \
+  {                                                                                                                                                    \
+    for(size_t m=0; m<M; ++m)                                                                                                                          \
+      for(size_t n=0; n<N; ++n)                                                                                                                        \
+        C[m*N+n] = A[m*N+n] op B[n];                                                                                                                   \
   }
 
   BROADCAST_OUTER_RAW(add, +);
@@ -18,13 +18,13 @@ namespace tensor
   BROADCAST_OUTER_RAW(mul, *);
   BROADCAST_OUTER_RAW(div, /);
 
-#define BROADCAST_INNER_RAW(op_name, op)                                                                                                      \
-  template<typename T>                                                                                                                        \
-  static inline void broadcast_##op_name##_inner_raw(size_t M, size_t N, const T* __restrict__ A, const T* __restrict__ B, T* __restrict__ C) \
-  {                                                                                                                                           \
-    for(size_t m=0; m<M; ++m)                                                                                                                 \
-      for(size_t n=0; n<N; ++n)                                                                                                               \
-        C[m*N+n] = A[m*N+n] op B[m];                                                                                                          \
+#define BROADCAST_INNER_RAW(op_name, op)                                                                                                               \
+  template<typename T>                                                                                                                                 \
+  static inline void broadcast_##op_name##_inner_raw(size_t M, size_t N, const T* __restrict__ A, const T* __restrict__ B, T* __restrict__ C) noexcept \
+  {                                                                                                                                                    \
+    for(size_t m=0; m<M; ++m)                                                                                                                          \
+      for(size_t n=0; n<N; ++n)                                                                                                                        \
+        C[m*N+n] = A[m*N+n] op B[m];                                                                                                                   \
   }
 
   BROADCAST_INNER_RAW(add, +);

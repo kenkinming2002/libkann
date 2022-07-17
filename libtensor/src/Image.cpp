@@ -6,7 +6,7 @@
 namespace tensor
 {
   // Tenary operator, but a and b need not have the same type
-  inline static auto ternary(bool cond, auto a, auto b) -> std::variant<decltype(a), decltype(b)>
+  inline static auto ternary(bool cond, auto a, auto b) noexcept -> std::variant<decltype(a), decltype(b)>
   {
     if(cond)
       return std::move(a);
@@ -22,7 +22,7 @@ namespace tensor
       size_t output_height, size_t output_width,
       const T* inputs, bool trans_inputs,
       const T* kernels, bool trans_kernels,
-      T* outputs)
+      T* outputs) noexcept
   {
     using TensorType = Eigen::Tensor<T, 4, Eigen::RowMajor>;
     using IndexType  = typename TensorType::Index;
@@ -73,7 +73,7 @@ namespace tensor
       size_t output_height, size_t output_width,
       const T* inputs, bool trans_inputs,
       const T* kernels, bool trans_kernels,
-      T* outputs)
+      T* outputs) noexcept
   {
     using TensorType = Eigen::Tensor<T, 4, Eigen::RowMajor>;
     using IndexType  = typename TensorType::Index;
@@ -118,7 +118,7 @@ namespace tensor
   }
 
   template<typename T>
-  void image2d_cross_correlate_raw(size_t M, size_t N, size_t K, Vec2 input_size, Vec2 kernel_size, Vec2 output_size, const T* inputs, bool trans_inputs, const T* kernels, bool trans_kernels, T* outputs)
+  void image2d_cross_correlate_raw(size_t M, size_t N, size_t K, Vec2 input_size, Vec2 kernel_size, Vec2 output_size, const T* inputs, bool trans_inputs, const T* kernels, bool trans_kernels, T* outputs) noexcept
   {
     eigen_gecorr2d(
         M, N, K,
@@ -132,7 +132,7 @@ namespace tensor
   }
 
   template<typename T>
-  void image2d_convolve_raw(size_t M, size_t N, size_t K, Vec2 input_size, Vec2 kernel_size, Vec2 output_size, const T* inputs, bool trans_inputs, const T* kernels, bool trans_kernels, T* outputs)
+  void image2d_convolve_raw(size_t M, size_t N, size_t K, Vec2 input_size, Vec2 kernel_size, Vec2 output_size, const T* inputs, bool trans_inputs, const T* kernels, bool trans_kernels, T* outputs) noexcept
   {
     eigen_geconv2d(
         M, N, K,
