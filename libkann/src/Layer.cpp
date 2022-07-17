@@ -11,9 +11,8 @@ namespace kann
     return layer;
   }
 
-  std::shared_ptr<Layer> Layer::load_and_create_from(const std::string& filename, std::default_random_engine& prng)
+  std::shared_ptr<Layer> Layer::create_from(std::shared_ptr<const LayerDef> def, std::default_random_engine& prng)
   {
-    auto def     = LayerDef::load(filename);
     auto storage = def->create(prng);
     return from(std::move(def), std::move(storage));
   }

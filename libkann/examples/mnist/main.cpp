@@ -100,7 +100,7 @@ int main(int argc, char** argv)
   std::random_device rd;
   std::default_random_engine prng(rd());
 
-  const auto layer         = kann::Layer::load_and_create_from(file_name, prng);
+  const auto layer         = kann::Layer::create_from(kann::LayerDef::load(file_name), prng);
   const auto optimizer     = create_optimizer(optimizer_name, optimizer_arg);
   const auto loss_function = create_loss_function(loss_function_name, loss_function_arg);
   const size_t batch_size = std::stoull(batch_size_str);
