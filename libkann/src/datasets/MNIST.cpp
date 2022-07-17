@@ -59,7 +59,7 @@ namespace kann
     }
   };
 
-  std::vector<tensor::Tensor<const float>> load_mnist_dataset_images(const char* file_name)
+  std::vector<tensor::Tensor<float>> load_mnist_dataset_images(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -74,25 +74,26 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<tensor::Tensor<const float>> images;
+    std::vector<tensor::Tensor<float>> images;
     images.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)
     {
-      tensor::Tensor<float> image = tensor::Tensor<float>::create(tensor::Shape::make(1, MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH));
-
       uint8_t image_data[MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH];
       if(!idx_file.file.read(reinterpret_cast<char*>(image_data), sizeof image_data))
         throw std::runtime_error("MNIST Data Set - Invalid file format");
 
-      ranges::copy(image_data | ranges::views::transform([](uint8_t b) { return (float)b / 255; }), image.data());
-      images.push_back(std::move(image));
+      auto image_buffer = std::make_shared<tensor::Buffer<float>>(MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH);
+      for(size_t i=0; i<MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH; ++i)
+        image_buffer->data().data()[i] = (float)image_data[i] / 255.0f;
+
+      images.push_back(tensor::Tensor<float>(tensor::Shape::make(1, MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH), std::move(image_buffer)));
     }
 
     return images;
   }
 
-  std::vector<tensor::Tensor<const float>> load_mnist_dataset_labels(const char* file_name)
+  std::vector<tensor::Tensor<float>> load_mnist_dataset_labels(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -103,19 +104,20 @@ namespace kann
 
     uint32_t count = idx_file.dimensions[0];
 
-    std::vector<tensor::Tensor<const float>> labels;
+    std::vector<tensor::Tensor<float>> labels;
     labels.reserve(count);
 
     for(uint32_t i=0; i<count; ++i)
     {
-      tensor::Tensor<float> label = tensor::Tensor<float>::create(tensor::Shape::make(10));
-
       uint8_t label_data;
       if(!idx_file.file.read(reinterpret_cast<char*>(&label_data), sizeof label_data))
         throw std::runtime_error("MNIST Data Set - Invalid file format");
 
-      ranges::copy(ranges::views::ints(0,10) | ranges::views::transform([label_data](auto i) -> float { return i == label_data ? 1.0 : 0.0; }), label.data());
-      labels.push_back(std::move(label));
+      auto label_buffer = std::make_shared<tensor::Buffer<float>>(10);
+      for(size_t i=0; i<10; ++i)
+        label_buffer->data().data()[i] = label_data == i ? 1.0f : 0.0f;
+
+      labels.push_back(tensor::Tensor<float>(tensor::Shape::make(10), std::move(label_buffer)));
     }
 
     return labels;

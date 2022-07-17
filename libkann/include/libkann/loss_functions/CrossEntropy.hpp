@@ -8,8 +8,8 @@ namespace kann
   struct KANN_EXPORT CrossEntropyLossFunction : public LossFunction
   {
   public:
-    KANN_EXPORT tensor::Tensor<const float> forward(tensor::Tensor<const float> inputs) override;
-    KANN_EXPORT tensor::Tensor<const float> backward(tensor::Tensor<const float> output_gradients) override;
+    KANN_EXPORT tensor::Tensor<float> forward(tensor::Tensor<float> inputs) override;
+    KANN_EXPORT tensor::Tensor<float> backward(tensor::Tensor<float> output_gradients) override;
   };
 }
 

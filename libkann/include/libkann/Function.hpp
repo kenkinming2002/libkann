@@ -11,10 +11,10 @@ namespace kann
     virtual ~Function() = default;
 
   public:
-    virtual tensor::Tensor<const float> forward(tensor::Tensor<const float> inputs) = 0;
-    virtual tensor::Tensor<const float> backward(tensor::Tensor<const float> output_gradients) = 0;
+    virtual tensor::Tensor<float> forward(tensor::Tensor<float> inputs) = 0;
+    virtual tensor::Tensor<float> backward(tensor::Tensor<float> output_gradients) = 0;
 
   public:
-    std::vector<tensor::Tensor<const float>> saved_tensors;
+    std::vector<tensor::Tensor<float>> saved_tensors;
   };
 }

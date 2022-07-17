@@ -65,7 +65,7 @@ namespace kann
     return std::make_shared<LayerStorage>();
   }
 
-  tensor::Tensor<const float> ActivationLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
+  tensor::Tensor<float> ActivationLayerDef::forward(Layer& layer, tensor::Tensor<float> inputs) const
   {
     layer.saved_tensors.clear();
     layer.saved_tensors.reserve(1);
@@ -87,7 +87,7 @@ namespace kann
     });
   }
 
-  tensor::Tensor<const float> ActivationLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
+  tensor::Tensor<float> ActivationLayerDef::backward(Layer& layer, tensor::Tensor<float> output_gradients) const
   {
     auto inputs = layer.saved_tensors[0];
     return tensor::binary_map(inputs, output_gradients, [this](float input, float output_gradient)

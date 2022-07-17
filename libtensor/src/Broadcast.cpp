@@ -4,97 +4,96 @@
 
 namespace tensor
 {
-  template<typename T>
-  Tensor<const T> broadcast_add_outer(Tensor<const T> a, Tensor<const T> b)
-  {
-    auto c = Tensor<T>::create(a.shape());
-    details::to_array2d(c) = details::to_array2d(a).rowwise() + details::to_array1d(b);
-    return c;
+#define BROADCAST_OUTER_RAW(op_name, op)                                                                                                      \
+  template<typename T>                                                                                                                        \
+  static inline void broadcast_##op_name##_outer_raw(size_t M, size_t N, const T* __restrict__ A, const T* __restrict__ B, T* __restrict__ C) \
+  {                                                                                                                                           \
+    for(size_t m=0; m<M; ++m)                                                                                                                 \
+      for(size_t n=0; n<N; ++n)                                                                                                               \
+        C[m*N+n] = A[m*N+n] op B[n];                                                                                                          \
   }
 
-  template<typename T>
-  Tensor<const T> broadcast_sub_outer(Tensor<const T> a, Tensor<const T> b)
-  {
-    auto c = Tensor<T>::create(a.shape());
-    details::to_array2d(c) = details::to_array2d(a).rowwise() - details::to_array1d(b);
-    return c;
+  BROADCAST_OUTER_RAW(add, +);
+  BROADCAST_OUTER_RAW(sub, -);
+  BROADCAST_OUTER_RAW(mul, *);
+  BROADCAST_OUTER_RAW(div, /);
+
+#define BROADCAST_INNER_RAW(op_name, op)                                                                                                      \
+  template<typename T>                                                                                                                        \
+  static inline void broadcast_##op_name##_inner_raw(size_t M, size_t N, const T* __restrict__ A, const T* __restrict__ B, T* __restrict__ C) \
+  {                                                                                                                                           \
+    for(size_t m=0; m<M; ++m)                                                                                                                 \
+      for(size_t n=0; n<N; ++n)                                                                                                               \
+        C[m*N+n] = A[m*N+n] op B[m];                                                                                                          \
   }
 
-  template<typename T>
-  Tensor<const T> broadcast_mul_outer(Tensor<const T> a, Tensor<const T> b)
-  {
-    auto c = Tensor<T>::create(a.shape());
-    details::to_array2d(c) = details::to_array2d(a).rowwise() * details::to_array1d(b);
-    return c;
+  BROADCAST_INNER_RAW(add, +);
+  BROADCAST_INNER_RAW(sub, -);
+  BROADCAST_INNER_RAW(mul, *);
+  BROADCAST_INNER_RAW(div, /);
+
+#define BROADCAST_OUTER(op_name)                                  \
+  template<typename T>                                            \
+  Tensor<T> broadcast_##op_name##_outer(Tensor<T> a, Tensor<T> b) \
+  {                                                               \
+    size_t M = a.shape.dimension(0);                              \
+    size_t N = a.shape.dimension(1);                              \
+    assert(b.shape.dimension(0) == N);                            \
+                                                                  \
+    auto buffer_a = a.buffer;                                     \
+    auto buffer_b = b.buffer;                                     \
+    auto buffer_c = std::make_shared<Buffer<T>>(M*N);             \
+    broadcast_##op_name##_outer_raw(M, N,                         \
+      buffer_a->data().data(),                                    \
+      buffer_b->data().data(),                                    \
+      buffer_c->data().data()                                     \
+    );                                                            \
+    return Tensor<T>(Shape::make(M, N), std::move(buffer_c));     \
   }
 
-  template<typename T>
-  Tensor<const T> broadcast_div_outer(Tensor<const T> a, Tensor<const T> b)
-  {
-    auto c = Tensor<T>::create(a.shape());
-    details::to_array2d(c) = details::to_array2d(a).rowwise() / details::to_array1d(b);
-    return c;
+  BROADCAST_OUTER(add);
+  BROADCAST_OUTER(sub);
+  BROADCAST_OUTER(mul);
+  BROADCAST_OUTER(div);
+
+#define BROADCAST_INNER(op_name)                                  \
+  template<typename T>                                            \
+  Tensor<T> broadcast_##op_name##_inner(Tensor<T> a, Tensor<T> b) \
+  {                                                               \
+    size_t M = a.shape.dimension(0);                              \
+    size_t N = a.shape.dimension(1);                              \
+    assert(b.shape.dimension(0) == M);                            \
+                                                                  \
+    auto buffer_a = a.buffer;                                     \
+    auto buffer_b = b.buffer;                                     \
+    auto buffer_c = std::make_shared<Buffer<T>>(M*N);             \
+    broadcast_##op_name##_inner_raw(M, N,                         \
+      buffer_a->data().data(),                                    \
+      buffer_b->data().data(),                                    \
+      buffer_c->data().data()                                     \
+    );                                                            \
+    return Tensor<T>(Shape::make(M, N), std::move(buffer_c));     \
   }
 
-  template<typename T>
-  Tensor<const T> broadcast_add_inner(Tensor<const T> a, Tensor<const T> b)
-  {
-    auto c = Tensor<T>::create(a.shape());
-    details::to_array2d(c) = details::to_array2d(a).colwise() + details::to_array1d(b).transpose();
-    return c;
-  }
+  BROADCAST_INNER(add);
+  BROADCAST_INNER(sub);
+  BROADCAST_INNER(mul);
+  BROADCAST_INNER(div);
 
-  template<typename T>
-  Tensor<const T> broadcast_sub_inner(Tensor<const T> a, Tensor<const T> b)
-  {
-    auto c = Tensor<T>::create(a.shape());
-    details::to_array2d(c) = details::to_array2d(a).colwise() - details::to_array1d(b).transpose();
-    return c;
-  }
+#define BROADCAST_INSTANTIATE_TYPED(T, op_name, dir) \
+  template Tensor<T> broadcast_##op_name##_##dir(Tensor<T> a, Tensor<T> b); \
 
-  template<typename T>
-  Tensor<const T> broadcast_mul_inner(Tensor<const T> a, Tensor<const T> b)
-  {
-    auto c = Tensor<T>::create(a.shape());
-    details::to_array2d(c) = details::to_array2d(a).colwise() * details::to_array1d(b).transpose();
-    return c;
-  }
+#define BROADCAST_INSTANTIATE(op_name, dir) \
+  BROADCAST_INSTANTIATE_TYPED(float,       op_name, dir)   \
+  BROADCAST_INSTANTIATE_TYPED(double,      op_name, dir) \
+  BROADCAST_INSTANTIATE_TYPED(long double, op_name, dir)
 
-  template<typename T>
-  Tensor<const T> broadcast_div_inner(Tensor<const T> a, Tensor<const T> b)
-  {
-    auto c = Tensor<T>::create(a.shape());
-    details::to_array2d(c) = details::to_array2d(a).colwise() / details::to_array1d(b).transpose();
-    return c;
-  }
-
-  template Tensor<const float> broadcast_add_outer(Tensor<const float> a, Tensor<const float> b);
-  template Tensor<const float> broadcast_sub_outer(Tensor<const float> a, Tensor<const float> b);
-  template Tensor<const float> broadcast_mul_outer(Tensor<const float> a, Tensor<const float> b);
-  template Tensor<const float> broadcast_div_outer(Tensor<const float> a, Tensor<const float> b);
-
-  template Tensor<const float> broadcast_add_inner(Tensor<const float> a, Tensor<const float> b);
-  template Tensor<const float> broadcast_sub_inner(Tensor<const float> a, Tensor<const float> b);
-  template Tensor<const float> broadcast_mul_inner(Tensor<const float> a, Tensor<const float> b);
-  template Tensor<const float> broadcast_div_inner(Tensor<const float> a, Tensor<const float> b);
-
-  template Tensor<const double> broadcast_add_outer(Tensor<const double> a, Tensor<const double> b);
-  template Tensor<const double> broadcast_sub_outer(Tensor<const double> a, Tensor<const double> b);
-  template Tensor<const double> broadcast_mul_outer(Tensor<const double> a, Tensor<const double> b);
-  template Tensor<const double> broadcast_div_outer(Tensor<const double> a, Tensor<const double> b);
-
-  template Tensor<const double> broadcast_add_inner(Tensor<const double> a, Tensor<const double> b);
-  template Tensor<const double> broadcast_sub_inner(Tensor<const double> a, Tensor<const double> b);
-  template Tensor<const double> broadcast_mul_inner(Tensor<const double> a, Tensor<const double> b);
-  template Tensor<const double> broadcast_div_inner(Tensor<const double> a, Tensor<const double> b);
-
-  template Tensor<const long double> broadcast_add_outer(Tensor<const long double> a, Tensor<const long double> b);
-  template Tensor<const long double> broadcast_sub_outer(Tensor<const long double> a, Tensor<const long double> b);
-  template Tensor<const long double> broadcast_mul_outer(Tensor<const long double> a, Tensor<const long double> b);
-  template Tensor<const long double> broadcast_div_outer(Tensor<const long double> a, Tensor<const long double> b);
-
-  template Tensor<const long double> broadcast_add_inner(Tensor<const long double> a, Tensor<const long double> b);
-  template Tensor<const long double> broadcast_sub_inner(Tensor<const long double> a, Tensor<const long double> b);
-  template Tensor<const long double> broadcast_mul_inner(Tensor<const long double> a, Tensor<const long double> b);
-  template Tensor<const long double> broadcast_div_inner(Tensor<const long double> a, Tensor<const long double> b);
+  BROADCAST_INSTANTIATE(add, outer)
+  BROADCAST_INSTANTIATE(sub, outer)
+  BROADCAST_INSTANTIATE(mul, outer)
+  BROADCAST_INSTANTIATE(div, outer)
+  BROADCAST_INSTANTIATE(add, inner)
+  BROADCAST_INSTANTIATE(sub, inner)
+  BROADCAST_INSTANTIATE(mul, inner)
+  BROADCAST_INSTANTIATE(div, inner)
 }

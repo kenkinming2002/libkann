@@ -55,7 +55,7 @@ namespace kann
     return tensor::Shape::make(output_channel_count, output_size.height(), output_size.width());
   }
 
-  tensor::Tensor<const float> ConvolutionalLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
+  tensor::Tensor<float> ConvolutionalLayerDef::forward(Layer& layer, tensor::Tensor<float> inputs) const
   {
     layer.saved_tensors.clear();
     layer.saved_tensors.reserve(1);
@@ -67,7 +67,7 @@ namespace kann
     return outputs;
   }
 
-  tensor::Tensor<const float> ConvolutionalLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
+  tensor::Tensor<float> ConvolutionalLayerDef::backward(Layer& layer, tensor::Tensor<float> output_gradients) const
   {
     auto inputs = layer.saved_tensors[0];
     auto kernels = layer.storage->parameters[0].value;

@@ -13,11 +13,11 @@ namespace kann
     tensor::Shape shape;
 
   public:
-    tensor::Tensor<const float> value;
-    tensor::Tensor<const float> gradient;
+    tensor::Tensor<float> value;
+    tensor::Tensor<float> gradient;
 
   public:
-    std::vector<tensor::Tensor<const float>> optimizer_states;
+    std::vector<tensor::Tensor<float>> optimizer_states;
 
   public:
     static Variable create_constant(tensor::Shape shape, float value)

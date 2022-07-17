@@ -19,7 +19,7 @@ namespace kann
     std::vector<std::shared_ptr<Layer>> sub_layers;
 
   public:
-    KANN_EXPORT tensor::Tensor<const float> forward(tensor::Tensor<const float> inputs) override;
-    KANN_EXPORT tensor::Tensor<const float> backward(tensor::Tensor<const float> outputs) override;
+    KANN_EXPORT tensor::Tensor<float> forward(tensor::Tensor<float> inputs) override;
+    KANN_EXPORT tensor::Tensor<float> backward(tensor::Tensor<float> outputs) override;
   };
 }

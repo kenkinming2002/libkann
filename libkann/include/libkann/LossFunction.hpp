@@ -11,6 +11,6 @@ namespace kann
   {
   public:
     tensor::Shape shape;
-    std::optional<tensor::Tensor<const float>> expected_outputs;
+    std::optional<tensor::Tensor<float>> expected_outputs;
   };
 }

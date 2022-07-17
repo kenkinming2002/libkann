@@ -18,14 +18,14 @@
 
 #include "../common/common.hpp"
 
-static bool correct(const tensor::Tensor<const float>& value1, const tensor::Tensor<const float>& value2)
+static bool correct(const tensor::Tensor<float>& value1, const tensor::Tensor<float>& value2)
 {
   return tensor::max_coeff(value1) == tensor::max_coeff(value2);
 }
 
 static void testing(std::string_view label, kann::Layer& layer,
-    std::vector<tensor::Tensor<const float>> images,
-    std::vector<tensor::Tensor<const float>> labels,
+    std::vector<tensor::Tensor<float>> images,
+    std::vector<tensor::Tensor<float>> labels,
     size_t batch_size, size_t count)
 {
   kann::ProgressBar progress_bar("  testing", count / batch_size);
@@ -46,8 +46,8 @@ static void testing(std::string_view label, kann::Layer& layer,
 }
 
 static void training(kann::Layer& layer, kann::LossFunction& loss_function,
-    std::vector<tensor::Tensor<const float>> images,
-    std::vector<tensor::Tensor<const float>> labels,
+    std::vector<tensor::Tensor<float>> images,
+    std::vector<tensor::Tensor<float>> labels,
     kann::Optimizer& optimizer,
     size_t batch_size, size_t count, auto& prng)
 {
@@ -81,7 +81,7 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function,
     layer.backward(std::move(grad_batch));
 
     for(size_t i=0; i<batch_size; ++i)
-      progress_bar.update(fmt::format("  loss={}", loss_batch(i)));
+      progress_bar.update(fmt::format("  loss={}", loss_batch.buffer->data()[i]));
 
     for(kann::Variable* parameter : layer.storage->get_parameters())
       optimizer.optimize(*parameter);

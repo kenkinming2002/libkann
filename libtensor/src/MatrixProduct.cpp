@@ -1,34 +1,65 @@
 #include <libtensor/MatrixProduct.hpp>
 
-#include <libtensor/details/Eigen.hpp>
+#include <Eigen/Eigen>
 
 namespace tensor
 {
+  // Eigen API wraped in BLAS like API
   template<typename T>
-  Tensor<const T> matrix_product(Tensor<const T> a, bool trans_a, Tensor<const T> b, bool trans_b)
+  using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
+  template<typename T>
+  static inline void _eigen_gemm(const Eigen::Ref<const MatrixType<T>> A, const Eigen::Ref<const MatrixType<T>> B, Eigen::Ref<MatrixType<T>> C)
   {
-    auto [M, K1] = std::make_pair(a.dimension(0), a.dimension(1));
-    auto [K2, N] = std::make_pair(b.dimension(0), b.dimension(1));
+    C = A * B;
+  }
 
-    if(trans_a) std::swap(M, K1);
-    if(trans_b) std::swap(K2, N);
-
-    auto c = Tensor<T>::create(Shape::make(M, N));
-    if(trans_a)
+  template<typename T>
+  static inline void eigen_gemm(size_t M, size_t N, size_t K, const T* A, bool trans_A, const T* B, bool trans_b, T* C)
+  {
+    // Blas API support transposed arguement directly so we do not need to do this weird dance
+    if(trans_A)
     {
-      if(trans_b) details::to_matrix<false>(c).noalias() = details::to_matrix<true>(a)  * details::to_matrix<true> (b);
-      else        details::to_matrix<false>(c).noalias() = details::to_matrix<true>(a)  * details::to_matrix<false>(b);
+      if(trans_b)
+        _eigen_gemm<T>(Eigen::Map<const MatrixType<T>>(A, K, M).transpose(), Eigen::Map<const MatrixType<T>>(B, N, K).transpose(), Eigen::Map<MatrixType<T>>(C, M, N));
+      else
+        _eigen_gemm<T>(Eigen::Map<const MatrixType<T>>(A, K, M).transpose(), Eigen::Map<const MatrixType<T>>(B, K, N),             Eigen::Map<MatrixType<T>>(C, M, N));
     }
     else
     {
-      if(trans_b) details::to_matrix<false>(c).noalias() = details::to_matrix<false>(a) * details::to_matrix<true> (b);
-      else        details::to_matrix<false>(c).noalias() = details::to_matrix<false>(a) * details::to_matrix<false>(b);
+      if(trans_b)
+        _eigen_gemm<T>(Eigen::Map<const MatrixType<T>>(A, M, K), Eigen::Map<const MatrixType<T>>(B, N, K).transpose(), Eigen::Map<MatrixType<T>>(C, M, N));
+      else
+        _eigen_gemm<T>(Eigen::Map<const MatrixType<T>>(A, M, K), Eigen::Map<const MatrixType<T>>(B, K, N),             Eigen::Map<MatrixType<T>>(C, M, N));
     }
-    return c;
   }
 
-  template Tensor<const float>  matrix_product(Tensor<const float>  a, bool trans_a, Tensor<const float>  b, bool trans_b);
-  template Tensor<const double> matrix_product(Tensor<const double> a, bool trans_a, Tensor<const double> b, bool trans_b);
-  template Tensor<const long double> matrix_product(Tensor<const long double> a, bool trans_a, Tensor<const long double> b, bool trans_b);
+  template<typename T>
+  void matrix_product_raw(size_t M, size_t N, size_t K, const T* A, bool trans_A, const T* B, bool trans_B, T* C)
+  {
+    eigen_gemm(M, N, K, A, trans_A, B, trans_B, C);
+  }
+
+  template<typename T>
+  Tensor<T> matrix_product(Tensor<T> a, bool trans_a, Tensor<T> b, bool trans_b)
+  {
+    auto [M, K1] = std::make_pair(a.shape.dimension(0), a.shape.dimension(1));
+    auto [K2, N] = std::make_pair(b.shape.dimension(0), b.shape.dimension(1));
+
+    if(trans_a) std::swap(M, K1);
+    if(trans_b) std::swap(K2, N);
+    if(K1 != K2) throw std::runtime_error("K mismatch");
+    size_t K = K1;
+
+    auto buffer_a = a.buffer;
+    auto buffer_b = b.buffer;
+    auto buffer_c = std::make_shared<Buffer<T>>(M*N);
+    matrix_product_raw(M, N, K, buffer_a->data().data(), trans_a, buffer_b->data().data(), trans_b, buffer_c->data().data());
+    return Tensor<T>(Shape::make(M, N), std::move(buffer_c));
+  }
+
+  template Tensor<float>  matrix_product(Tensor<float>  a, bool trans_a, Tensor<float>  b, bool trans_b);
+  template Tensor<double> matrix_product(Tensor<double> a, bool trans_a, Tensor<double> b, bool trans_b);
+  template Tensor<long double> matrix_product(Tensor<long double> a, bool trans_a, Tensor<long double> b, bool trans_b);
 }
 

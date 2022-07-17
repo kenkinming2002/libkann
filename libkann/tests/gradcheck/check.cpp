@@ -15,7 +15,9 @@
 #include <libkann/layer_defs/Dense.hpp>
 #include <libkann/layer_defs/SoftMax.hpp>
 
-using Tensor = tensor::Tensor<const float>;
+using Buffer = tensor::Buffer<float>;
+using Tensor = tensor::Tensor<float>;
+using tensor::Shape;
 
 struct LayerDerivative
 {
@@ -23,12 +25,12 @@ struct LayerDerivative
   std::vector<Tensor> parameters;
 };
 
-tensor::Tensor<float> create_basis(size_t size, size_t i)
+Tensor create_basis(size_t size, size_t i)
 {
-  tensor::Tensor<float> result = tensor::Tensor<float>::create(tensor::Shape::make(size));
-  std::fill_n(result.data(), result.size(), 0.0f);
-  result.data()[i] = 1.0f;
-  return result;
+  auto result_buffer = std::make_shared<Buffer>(size);
+  std::fill_n(result_buffer->data().data(), result_buffer->data().size(), 0.0f);
+  result_buffer->data()[i] = 1.0f;
+  return Tensor(Shape::make(size), std::move(result_buffer));
 }
 
 inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const Tensor& random_input)
@@ -68,9 +70,11 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const T
 
 Tensor perturb(Tensor value, size_t i, float diff)
 {
-  auto result = value.clone();
-  result.flatten()(i) += diff;
-  return result;
+  auto value_buffer  = std::move(value.buffer);
+  auto result_buffer = std::make_shared<Buffer>(value_buffer->data().size());
+  std::copy_n(value_buffer->data().data(), value_buffer->data().size(), result_buffer->data().data());
+  result_buffer->data()[i] += diff;
+  return Tensor(std::move(value.shape), std::move(result_buffer));
 }
 
 inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const Tensor& random_input, float dx)
@@ -106,7 +110,7 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const Te
 
       // Save
       auto saved_parameter = std::move(parameter->value);
-      parameter->value = perturb(saved_parameter.clone(), i, dx);
+      parameter->value = perturb(saved_parameter, i, dx);
 
       auto output2 = layer.forward(input).flatten();
 
@@ -136,23 +140,26 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
   LayerDerivative analytical = compute_analytical_derivative(*layer, random_input);
   LayerDerivative numerical  = compute_numerical_derivative(*layer, random_input, DX);
 
-  Tensor _analytical_derivative = analytical.input.flatten();
-  Tensor _numerical_derivative  = numerical.input.flatten();
-  for(size_t i=0; i<_analytical_derivative.size(); ++i)
+  auto analytical_values = analytical.input.buffer->data();
+  auto numerical_values  = numerical .input.buffer->data();
+  for(size_t i=0; i<analytical_values.size(); ++i)
   {
-    const float analytical_value = _analytical_derivative(i);
-    const float numerical_value  = _numerical_derivative(i);
+    const float analytical_value = analytical_values[i];
+    const float numerical_value  = numerical_values[i];
     REQUIRE(std::abs(analytical_value - numerical_value) <= 0.001f);
   }
 
   for(const auto& [analytical_derivative, numerical_derivative] : ranges::views::zip(analytical.parameters, numerical.parameters))
   {
+    auto analytical_values = analytical_derivative.buffer->data();
+    auto numerical_values  = numerical_derivative.buffer->data();
+
     Tensor _analytical_derivative = analytical_derivative.flatten();
     Tensor _numerical_derivative  = numerical_derivative.flatten();
-    for(size_t i=0; i<_analytical_derivative.size(); ++i)
+    for(size_t i=0; i<analytical_values.size(); ++i)
     {
-      const float analytical_value = _analytical_derivative(i);
-      const float numerical_value  = _numerical_derivative(i);
+      const float analytical_value = analytical_values[i];
+      const float numerical_value  = numerical_values[i];
       REQUIRE(std::abs(analytical_value - numerical_value) <= 0.001f);
     }
   }

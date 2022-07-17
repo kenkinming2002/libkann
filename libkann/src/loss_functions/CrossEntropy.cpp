@@ -6,7 +6,7 @@
 
 namespace kann
 {
-  tensor::Tensor<const float> CrossEntropyLossFunction::forward(tensor::Tensor<const float> inputs)
+  tensor::Tensor<float> CrossEntropyLossFunction::forward(tensor::Tensor<float> inputs)
   {
     this->saved_tensors.clear();
     this->saved_tensors.reserve(1);
@@ -23,7 +23,7 @@ namespace kann
     return outputs;
   }
 
-  tensor::Tensor<const float> CrossEntropyLossFunction::backward(tensor::Tensor<const float> output_gradients)
+  tensor::Tensor<float> CrossEntropyLossFunction::backward(tensor::Tensor<float> output_gradients)
   {
     assert(this->expected_outputs);
     auto inputs           = this->saved_tensors[0];

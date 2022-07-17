@@ -24,7 +24,7 @@ namespace kann
     return value >= 0.0f ? 1.0f : -1.0f;
   }
 
-  tensor::Tensor<const float> LpLossFunction::forward(tensor::Tensor<const float> inputs)
+  tensor::Tensor<float> LpLossFunction::forward(tensor::Tensor<float> inputs)
   {
     this->saved_tensors.clear();
     this->saved_tensors.reserve(1);
@@ -44,7 +44,7 @@ namespace kann
     return outputs;
   }
 
-  tensor::Tensor<const float> LpLossFunction::backward(tensor::Tensor<const float> output_gradients)
+  tensor::Tensor<float> LpLossFunction::backward(tensor::Tensor<float> output_gradients)
   {
     assert(this->expected_outputs);
     auto inputs           = this->saved_tensors[0];

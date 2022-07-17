@@ -5,29 +5,59 @@
 namespace tensor
 {
   template<typename T>
-  Tensor<const T> reduce_outer(Tensor<const T> value)
+  static inline void reduce_outer_raw(size_t M, size_t N, const T* __restrict__ input, T* __restrict__ output)
   {
-    auto [M, N] = std::make_pair(value.dimension(0), value.dimension(1));
-    auto result = Tensor<T>::create(Shape::make(N));
-    details::to_array1d(result) = details::to_array2d(value).colwise().sum();
-    return result;
+    std::fill_n(output, N, T{});
+    for(size_t m=0; m<M; ++m)
+      for(size_t n=0; n<N; ++n)
+        output[n] += input[m*N+n];
   }
 
   template<typename T>
-  Tensor<const T> reduce_inner(Tensor<const T> value)
+  static inline void reduce_inner_raw(size_t M, size_t N, const T* __restrict__ input, T* __restrict__ output)
   {
-    auto [M, N] = std::make_pair(value.dimension(0), value.dimension(1));
-    auto result = Tensor<T>::create(Shape::make(M));
-    details::to_array1d(result) = details::to_array2d(value).rowwise().sum();
-    return result;
+    std::fill_n(output, M, T{});
+    for(size_t m=0; m<M; ++m)
+      for(size_t n=0; n<N; ++n)
+        output[m] += input[m*N+n];
   }
 
-  template Tensor<const float> reduce_outer(Tensor<const float> value);
-  template Tensor<const float> reduce_inner(Tensor<const float> value);
+  template<typename T>
+  Tensor<T> reduce_outer(Tensor<T> value)
+  {
+    size_t M = value.shape.dimension(0);
+    size_t N = value.shape.dimension(1);
 
-  template Tensor<const double> reduce_outer(Tensor<const double> value);
-  template Tensor<const double> reduce_inner(Tensor<const double> value);
+    auto value_buffer  = value.buffer;
+    auto result_buffer = std::make_shared<Buffer<T>>(N);
+    reduce_outer_raw(M, N,
+      value_buffer->data().data(),
+      result_buffer->data().data()
+    );
+    return Tensor<T>(Shape::make(N), std::move(result_buffer));
+  }
 
-  template Tensor<const long double> reduce_outer(Tensor<const long double> value);
-  template Tensor<const long double> reduce_inner(Tensor<const long double> value);
+  template<typename T>
+  Tensor<T> reduce_inner(Tensor<T> value)
+  {
+    size_t M = value.shape.dimension(0);
+    size_t N = value.shape.dimension(1);
+
+    auto value_buffer  = value.buffer;
+    auto result_buffer = std::make_shared<Buffer<T>>(M);
+    reduce_inner_raw(M, N,
+      value_buffer->data().data(),
+      result_buffer->data().data()
+    );
+    return Tensor<T>(Shape::make(M), std::move(result_buffer));
+  }
+
+  template Tensor<float> reduce_outer(Tensor<float> value);
+  template Tensor<float> reduce_inner(Tensor<float> value);
+
+  template Tensor<double> reduce_outer(Tensor<double> value);
+  template Tensor<double> reduce_inner(Tensor<double> value);
+
+  template Tensor<long double> reduce_outer(Tensor<long double> value);
+  template Tensor<long double> reduce_inner(Tensor<long double> value);
 }

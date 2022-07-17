@@ -26,52 +26,55 @@ namespace tensor
 
   // The API wraped in a Tensor type, hopefully, you are using these
   template<typename T>
-  Tensor<const T> stack_outer(std::vector<Tensor<const T>> values)
+  Tensor<T> stack_outer(std::vector<Tensor<T>> values)
   {
-    if(values.empty() || std::any_of(values.begin(), values.end(), [&](const auto& value) { return values.front().shape() != value.shape(); }))
+    if(values.empty() || std::any_of(values.begin(), values.end(), [&](const auto& value) { return values.front().shape != value.shape; }))
       throw std::runtime_error("All shapes must be the same for stacking");
 
-    const auto& shape = values.front().shape();
+    const auto& shape = values.front().shape;
     const size_t M = values.size();
     const size_t N = shape.size();
-    auto result = Tensor<T>::create(Shape::make(M, shape));
 
-    T* output = result.data();
+    auto result_buffer = std::make_shared<Buffer<T>>(M * N);
+
+    T* output;
     const T** inputs = new const T*[values.size()];
 
+    output = result_buffer->data().data();
     for(size_t i=0; i<values.size(); ++i)
-      inputs[i] = values[i].data();
+      inputs[i] = values[i].buffer->data().data();
 
     stack_outer(M, N, output, inputs);
 
     delete[] inputs;
 
-    return result;
+    return Tensor<T>(Shape::make(M, shape), std::move(result_buffer));
   }
 
   template<typename T>
-  Tensor<const T> stack_inner(std::vector<Tensor<const T>> values)
+  Tensor<T> stack_inner(std::vector<Tensor<T>> values)
   {
-    if(values.empty() || std::any_of(values.begin(), values.end(), [&](const auto& value) { return values.front().shape() != value.shape(); }))
+    if(values.empty() || std::any_of(values.begin(), values.end(), [&](const auto& value) { return values.front().shape != value.shape; }))
       throw std::runtime_error("All shapes must be the same for stacking");
 
-    const auto& shape = values.front().shape();
+    const auto& shape = values.front().shape;
     const size_t M = values.size();
     const size_t N = shape.size();
 
-    auto result = Tensor<T>::create(Shape::make(M, shape));
+    auto result_buffer = std::make_shared<Buffer<T>>(M * N);
 
-    T* output = result.data();
+    T* output;
     const T** inputs = new const T*[values.size()];
 
+    output = result_buffer->data().data();
     for(size_t i=0; i<values.size(); ++i)
-      inputs[i] = values[i].data();
+      inputs[i] = values[i].buffer->data().data();
 
     stack_inner(M, N, output, inputs);
 
     delete[] inputs;
 
-    return result;
+    return Tensor<T>(Shape::make(M, shape), std::move(result_buffer));
   }
 }
 

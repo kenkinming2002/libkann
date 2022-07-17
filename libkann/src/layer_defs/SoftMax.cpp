@@ -40,7 +40,7 @@ namespace kann
     return shape;
   }
 
-  tensor::Tensor<const float> SoftMaxLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
+  tensor::Tensor<float> SoftMaxLayerDef::forward(Layer& layer, tensor::Tensor<float> inputs) const
   {
     inputs = inputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
 
@@ -58,7 +58,7 @@ namespace kann
     return outputs;
   }
 
-  tensor::Tensor<const float> SoftMaxLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
+  tensor::Tensor<float> SoftMaxLayerDef::backward(Layer& layer, tensor::Tensor<float> output_gradients) const
   {
     auto outputs = layer.saved_tensors[0];
 

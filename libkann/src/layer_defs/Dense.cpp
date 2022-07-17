@@ -51,7 +51,7 @@ namespace kann
     return output_shape;
   }
 
-  tensor::Tensor<const float> DenseLayerDef::forward(Layer& layer, tensor::Tensor<const float> inputs) const
+  tensor::Tensor<float> DenseLayerDef::forward(Layer& layer, tensor::Tensor<float> inputs) const
   {
     layer.saved_tensors.clear();
     layer.saved_tensors.reserve(1);
@@ -70,7 +70,7 @@ namespace kann
     return result.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(this->get_output_shape()));
   }
 
-  tensor::Tensor<const float> DenseLayerDef::backward(Layer& layer, tensor::Tensor<const float> output_gradients) const
+  tensor::Tensor<float> DenseLayerDef::backward(Layer& layer, tensor::Tensor<float> output_gradients) const
   {
     auto inputs = layer.saved_tensors[0];
     auto weight = layer.storage->parameters[0].value;
