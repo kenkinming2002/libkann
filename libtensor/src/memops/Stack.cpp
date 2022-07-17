@@ -1,4 +1,4 @@
-#include <libtensor/Stack.hpp>
+#include <libtensor/memops/Stack.hpp>
 
 namespace tensor
 {

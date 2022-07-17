@@ -1,6 +1,6 @@
 #include <libkann/Batch.hpp>
 
-#include <libtensor/Stack.hpp>
+#include <libtensor/memops/Stack.hpp>
 
 #include <range/v3/all.hpp>
 #include <range/v3/view/join.hpp>

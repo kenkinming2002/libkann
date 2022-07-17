@@ -3,7 +3,7 @@
 
 #include <libkann/Initialize.hpp>
 
-#include <libtensor/Stack.hpp>
+#include <libtensor/memops/Stack.hpp>
 #include <libtensor/Map.hpp>
 
 #include <libkann/Layer.hpp>

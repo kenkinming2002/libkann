@@ -2,11 +2,11 @@ libtensor_sources = [
   'Initializer.cpp',
   'MatrixProduct.cpp',
   'Image.cpp',
-  'Stack.cpp',
   'Broadcast.cpp',
   'Reduce.cpp',
   'Norm.cpp',
   'MaxCoeff.cpp',
+  'memops/Stack.cpp',
 ]
 
 libtensor_lib = library('tensor', libtensor_sources,
