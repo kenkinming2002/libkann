@@ -125,12 +125,6 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const Te
   return derivative;
 }
 
-static inline std::shared_ptr<kann::Layer> create_layer(std::shared_ptr<const kann::LayerDef> layer_def, auto& prng)
-{
-  std::shared_ptr<kann::LayerStorage> layer_storage = layer_def->create(prng);
-  return kann::Layer::from(layer_def, layer_storage);
-}
-
 static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
 {
   static constexpr float DX = 0.0005f;
@@ -170,7 +164,7 @@ static void test_layer_def(std::shared_ptr<const kann::LayerDef> layer_def)
   static std::random_device rd;
   static std::default_random_engine prng(rd());
 
-  std::shared_ptr<kann::Layer> layer = create_layer(std::move(layer_def), prng);
+  std::shared_ptr<kann::Layer> layer = kann::Layer::create_from(std::move(layer_def), prng);
   test_layer(std::move(layer), prng);
 }
 
