@@ -2,6 +2,7 @@ libtensor_sources = [
   'Initializer.cpp',
   'MatrixProduct.cpp',
   'Image.cpp',
+  'Stack.cpp',
   'Broadcast.cpp',
   'Reduce.cpp',
   'Norm.cpp',
