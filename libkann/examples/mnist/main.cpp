@@ -12,36 +12,26 @@
 #include <libkann/Batch.hpp>
 #include <libkann/ProgressBar.hpp>
 
+#include <libtensor/memops/Stack.hpp>
+#include <libtensor/memops/Split.hpp>
+
 #include <random>
 
 #include <fmt/core.h>
 
 #include "../common/common.hpp"
 
-static bool correct(const tensor::Tensor<float>& value1, const tensor::Tensor<float>& value2)
-{
-  return tensor::max_coeff(value1) == tensor::max_coeff(value2);
-}
-
 static void testing(std::string_view label, kann::Layer& layer,
     std::vector<tensor::Tensor<float>> images,
     std::vector<tensor::Tensor<float>> labels,
-    size_t batch_size, size_t count)
+    size_t count)
 {
-  kann::ProgressBar progress_bar("  testing", count / batch_size);
-
-  auto image_batches = kann::batch(images, batch_size);
-  auto label_batches = kann::batch(labels, batch_size);
-
-  size_t correct_count = 0;
-  for(const auto& [image_batch, label_batch] : ranges::views::zip(image_batches, label_batches))
-  {
-    auto pred_batch = layer.forward(image_batch);
-    auto labels = kann::unbatch({label_batch}, batch_size);
-    auto preds  = kann::unbatch({pred_batch},  batch_size);
-    correct_count += ranges::count_if(ranges::views::zip(labels, preds), [](const auto& p){ return correct(p.first, p.second); });
-    progress_bar.update("", 1);
-  }
+  auto images_batch  = tensor::stack_outer(std::move(images));
+  auto preds_batch   = layer.forward(std::move(images_batch));
+  auto preds         = tensor::split_outer(std::move(preds_batch));
+  auto correct_count = ranges::count_if(ranges::views::zip(preds, labels), [](const auto& p) {
+    return tensor::max_coeff(p.first) == tensor::max_coeff(p.second);
+  });
   fmt::print("  {} accuracy:{}/{}\n", label, correct_count, count);
 }
 
@@ -126,15 +116,15 @@ int main(int argc, char** argv)
   auto mnist_training_labels = kann::load_mnist_dataset_labels("libkann/datasets/mnist/train-labels-idx1-ubyte");
 
   // Initial testing
-  testing("Initial testing", *layer, mnist_testing_images, mnist_testing_labels, batch_size, 10000);
+  testing("Initial testing", *layer, mnist_testing_images, mnist_testing_labels, 10000);
   for(size_t i=0; i<epoch; ++i)
   {
     fmt::print("=> Epoch {} begin\n", i);
     {
       // Testing training
       training(*layer, *loss_function, mnist_training_images, mnist_training_labels, *optimizer, batch_size, 60000, prng);
-      testing("Training dataset", *layer, mnist_training_images, mnist_training_labels, batch_size, 60000);
-      testing("Testing dataset", *layer, mnist_testing_images,  mnist_testing_labels,  batch_size, 10000);
+      testing("Training dataset", *layer, mnist_training_images, mnist_training_labels, 60000);
+      testing("Testing dataset",  *layer, mnist_testing_images,  mnist_testing_labels,  10000);
     }
     fmt::print("<= Epoch {} end\n", i);
   }
