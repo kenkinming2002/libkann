@@ -1,37 +1,36 @@
 #include <libtensor/MatrixProduct.hpp>
 
+#include <variant>
 #include <Eigen/Eigen>
 
 namespace tensor
 {
-  // Eigen API wraped in BLAS like API
-  template<typename T>
-  using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-
-  template<typename T>
-  static inline void _eigen_gemm(const Eigen::Ref<const MatrixType<T>> A, const Eigen::Ref<const MatrixType<T>> B, Eigen::Ref<MatrixType<T>> C)
+  // Tenary operator, but a and b need not have the same type
+  inline static auto ternary(bool cond, auto a, auto b) -> std::variant<decltype(a), decltype(b)>
   {
-    C = A * B;
+    if(cond)
+      return std::move(a);
+    else
+      return std::move(b);
   }
 
   template<typename T>
-  static inline void eigen_gemm(size_t M, size_t N, size_t K, const T* A, bool trans_A, const T* B, bool trans_b, T* C)
+  static inline void eigen_gemm(size_t M, size_t N, size_t K, const T* A, bool trans_A, const T* B, bool trans_B, T* C)
   {
-    // Blas API support transposed arguement directly so we do not need to do this weird dance
-    if(trans_A)
-    {
-      if(trans_b)
-        _eigen_gemm<T>(Eigen::Map<const MatrixType<T>>(A, K, M).transpose(), Eigen::Map<const MatrixType<T>>(B, N, K).transpose(), Eigen::Map<MatrixType<T>>(C, M, N));
-      else
-        _eigen_gemm<T>(Eigen::Map<const MatrixType<T>>(A, K, M).transpose(), Eigen::Map<const MatrixType<T>>(B, K, N),             Eigen::Map<MatrixType<T>>(C, M, N));
-    }
-    else
-    {
-      if(trans_b)
-        _eigen_gemm<T>(Eigen::Map<const MatrixType<T>>(A, M, K), Eigen::Map<const MatrixType<T>>(B, N, K).transpose(), Eigen::Map<MatrixType<T>>(C, M, N));
-      else
-        _eigen_gemm<T>(Eigen::Map<const MatrixType<T>>(A, M, K), Eigen::Map<const MatrixType<T>>(B, K, N),             Eigen::Map<MatrixType<T>>(C, M, N));
-    }
+    using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+    auto _A = ternary(trans_A,
+      Eigen::Map<const MatrixType>(A, K, M).transpose(),
+      Eigen::Map<const MatrixType>(A, M, K)
+    );
+
+    auto _B = ternary(trans_B,
+      Eigen::Map<const MatrixType>(B, N, K).transpose(),
+      Eigen::Map<const MatrixType>(B, K, N)
+    );
+
+    auto _C = Eigen::Map<MatrixType>(C, M, N);
+
+    std::visit([&C=_C](const auto& A, const auto& B) { C = A * B; }, _A, _B);
   }
 
   template<typename T>
