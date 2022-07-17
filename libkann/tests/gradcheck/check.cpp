@@ -128,7 +128,7 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const Te
 static inline std::shared_ptr<kann::Layer> create_layer(std::shared_ptr<const kann::LayerDef> layer_def, auto& prng)
 {
   std::shared_ptr<kann::LayerStorage> layer_storage = layer_def->create(prng);
-  return kann::Layer::create_from(layer_def, layer_storage);
+  return kann::Layer::from(layer_def, layer_storage);
 }
 
 static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)

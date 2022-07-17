@@ -9,7 +9,7 @@ namespace kann
   struct KANN_EXPORT Layer : public Function
   {
   public:
-    KANN_EXPORT static std::shared_ptr<Layer> create_from(std::shared_ptr<const LayerDef> def, std::shared_ptr<LayerStorage> storage);
+    KANN_EXPORT static std::shared_ptr<Layer> from(std::shared_ptr<const LayerDef> def, std::shared_ptr<LayerStorage> storage);
     KANN_EXPORT static std::shared_ptr<Layer> load_and_create_from(const std::string& filename, std::default_random_engine& prng);
 
   public:
