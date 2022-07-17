@@ -11,6 +11,13 @@ namespace kann
     return layer;
   }
 
+  std::shared_ptr<Layer> Layer::load_and_create_from(const std::string& filename, std::default_random_engine& prng)
+  {
+    auto def     = LayerDef::load(filename);
+    auto storage = def->create(prng);
+    return create_from(std::move(def), std::move(storage));
+  }
+
   tensor::Tensor<float> Layer::forward(tensor::Tensor<float> inputs)
   {
     return this->def->forward(*this, std::move(inputs));
