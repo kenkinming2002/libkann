@@ -7,6 +7,7 @@ libtensor_sources = [
   'Norm.cpp',
   'MaxCoeff.cpp',
   'memops/Stack.cpp',
+  'memops/Split.cpp',
 ]
 
 libtensor_lib = library('tensor', libtensor_sources,
