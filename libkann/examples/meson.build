@@ -1,1 +1,1 @@
-subdir('simple')
+subdir('mnist')
