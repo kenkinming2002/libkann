@@ -51,24 +51,13 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function,
     kann::Optimizer& optimizer,
     size_t batch_size, size_t count, auto& prng)
 {
-  assert(images.size() == count);
-  assert(labels.size() == count);
-
-  std::uniform_int_distribution<size_t> dist(0, count-1);
-  for(size_t i=0; i<count; ++i)
-  {
-    size_t index1 = dist(prng), index2 = dist(prng);
-    if(index1 == index2)
-      continue;
-
-    std::swap(images[index1], images[index2]);
-    std::swap(labels[index1], labels[index2]);
-  }
+  shuffle(images, labels, prng);
 
   kann::ProgressBar progress_bar("  training", count);
 
   auto image_batches = kann::batch(images, batch_size);
   auto label_batches = kann::batch(labels, batch_size);
+
   for(auto&& [image_batch, label_batch] : ranges::views::zip(image_batches, label_batches))
   {
     loss_function.shape = layer.def->get_output_shape();
