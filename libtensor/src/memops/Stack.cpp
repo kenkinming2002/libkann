@@ -27,7 +27,7 @@ namespace tensor
       for(size_t n=0; n<N; ++n)
       {
         const auto& value_buffer = values[m].buffer;
-        result_buffer->data()[m*N+n] = value_buffer->data()[n];
+        (*result_buffer)[m*N+n] = (*value_buffer)[n];
       }
 
     return Tensor<T>(Shape::make(M, shape), result_buffer);
@@ -47,7 +47,7 @@ namespace tensor
       for(size_t n=0; n<N; ++n)
       {
         const auto& value_buffer = values[n].buffer;
-        result_buffer->data()[m*N+n] = value_buffer->data()[m];
+        (*result_buffer)[m*N+n] = (*value_buffer)[m];
       }
 
     return Tensor<T>(Shape::make(M, shape), result_buffer);
