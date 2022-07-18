@@ -14,6 +14,7 @@
 #include <libtensor/memops/Split.hpp>
 #include <libtensor/memops/Index.hpp>
 
+#include <filesystem>
 #include <fstream>
 #include <random>
 
@@ -27,10 +28,12 @@ static void reconstruct(std::string label, kann::Layer& layer, tensor::Tensor<fl
   auto preds_single  = tensor::split_outer(std::move(preds));
 
   size_t i = 0;
+
+  std::filesystem::create_directories(fmt::format("output/{}", label));
   for(auto&& pred : preds_single)
   {
     // Write ppm file
-    std::ofstream file(fmt::format("output/{}-{:05}.ppm", label, i++));
+    std::ofstream file(fmt::format("output/{}/{:05}.ppm", label, i++));
     file << "P3\n";
     file << "28 28\n";
     file << "255\n";
@@ -56,10 +59,12 @@ static void generate(std::string label, kann::Layer& layer, size_t count, auto& 
   auto preds_single  = tensor::split_outer(std::move(preds));
 
   size_t i = 0;
+
+  std::filesystem::create_directories(fmt::format("output/{}", label));
   for(auto&& pred : preds_single)
   {
     // Write ppm file
-    std::ofstream file(fmt::format("output/{}-{:05}.ppm", label, i++));
+    std::ofstream file(fmt::format("output/{}/{:05}.ppm", label, i++));
     file << "P3\n";
     file << "28 28\n";
     file << "255\n";
