@@ -8,8 +8,6 @@
 #include <libkann/LayerDef.hpp>
 
 #include <libkann/datasets/MNIST.hpp>
-
-#include <libkann/Batch.hpp>
 #include <libkann/ProgressBar.hpp>
 
 #include <libtensor/memops/Stack.hpp>
