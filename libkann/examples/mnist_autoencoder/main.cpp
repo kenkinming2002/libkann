@@ -54,33 +54,46 @@ static void reconstruct(std::string label, kann::Layer& layer, tensor::Tensor<fl
 
 static void generate(std::string label, kann::Layer& layer, size_t count, auto& prng)
 {
-  auto latents = tensor::create_uniform(tensor::Shape::make(count, layer.def->get_input_shape()), 0.0f, 1.0f, prng);
-  auto preds   = layer.forward(std::move(latents));
-  auto preds_single  = tensor::split_outer(std::move(preds));
+  // Rely on the bottleneck layer having two node
+  std::vector<tensor::Tensor<float>> images;
+  images.reserve(count*count);
 
-  size_t i = 0;
+  for(size_t j=0; j<count; ++j)
+    for(size_t i=0; i<count; ++i)
+    {
+      const float y = (float)j / (float)count;
+      const float x = (float)i / (float)count;
 
-  std::filesystem::create_directories(fmt::format("output/{}", label));
-  for(auto&& pred : preds_single)
-  {
-    // Write ppm file
-    std::ofstream file(fmt::format("output/{}/{:05}.ppm", label, i++));
-    file << "P3\n";
-    file << "28 28\n";
-    file << "255\n";
+      auto buffer = tensor::Buffer<float>(2);
+      buffer[0] = y;
+      buffer[1] = x;
+
+      auto latent = tensor::Tensor<float>(tensor::Shape::make(1, 2), std::make_shared<tensor::Buffer<float>>(std::move(buffer)));
+      auto image  = layer.forward(std::move(latent));
+      images.push_back(std::move(image));
+    }
+
+  // Write ppm file
+  std::filesystem::create_directories("output");
+  std::ofstream file(fmt::format("output/{}.ppm", label));
+  file << "P3\n";
+  file << 28 * count << " " << 28 * count << "\n";
+  file << "255\n";
+  for(size_t j=0; j<count; ++j)
     for(size_t y=0; y<28; ++y)
     {
-      for(size_t x=0; x<28; ++x)
-      {
-        const float value_f = (*pred.buffer)[y*28+x];
-        const unsigned value_u = static_cast<unsigned>(std::max(value_f * 255.0f, 0.0f));
+      for(size_t i=0; i<count; ++i)
+        for(size_t x=0; x<28; ++x)
+        {
+          const float value_f = (*images[j*count+i].buffer)[y*28+x];
+          const unsigned value_u = static_cast<unsigned>(std::max(value_f * 255.0f, 0.0f));
 
-        if(x != 0) file << " ";
-        file << value_u << " " << value_u << " " << value_u;
-      }
+          if(i !=0 || x != 0) file << " ";
+          file << value_u << " " << value_u << " " << value_u;
+        }
+
       file << '\n';
     }
-  }
 }
 
 static void training(kann::Layer& layer, kann::LossFunction& loss_function, tensor::Tensor<float> images, kann::Optimizer& optimizer, size_t batch_size, size_t count, auto& prng)
@@ -167,5 +180,5 @@ int main(int argc, char** argv)
   }
   reconstruct("training", *layer, mnist_training_images);
   reconstruct("testing",  *layer, mnist_testing_images);
-  generate("generated", *decoder, 10000, prng);
+  generate("generated", *decoder, 10, prng);
 }
