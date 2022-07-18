@@ -99,7 +99,7 @@ namespace kann
         return output_gradient;
       case ActivationLayerDef::Type::SIGMOID:
         tmp = std::exp(-input);
-        return output_gradient * tmp / ((1+tmp) * (1+tmp));
+        return output_gradient / ( (1.0f + tmp) * (1.0f + 1.0f / tmp) );
       case ActivationLayerDef::Type::TANH:
         tmp = std::cosh(input);
         return output_gradient / (tmp * tmp);
