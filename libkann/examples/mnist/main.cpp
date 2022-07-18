@@ -14,6 +14,7 @@
 
 #include <libtensor/memops/Stack.hpp>
 #include <libtensor/memops/Split.hpp>
+#include <libtensor/memops/Index.hpp>
 
 #include <random>
 
@@ -21,52 +22,49 @@
 
 #include "../common/common.hpp"
 
-static void testing(std::string_view label, kann::Layer& layer,
-    std::vector<tensor::Tensor<float>> images,
-    std::vector<tensor::Tensor<float>> labels,
-    size_t count)
+static void testing(std::string_view label, kann::Layer& layer, tensor::Tensor<float> images, tensor::Tensor<float> labels, size_t count)
 {
-  auto images_batch  = tensor::stack_outer(std::move(images));
-  auto preds_batch   = layer.forward(std::move(images_batch));
-  auto preds         = tensor::split_outer(std::move(preds_batch));
-  auto correct_count = ranges::count_if(ranges::views::zip(preds, labels), [](const auto& p) {
+  auto preds        = layer.forward(std::move(images));
+
+  auto preds_single  = tensor::split_outer(std::move(preds));
+  auto labels_single = tensor::split_outer(std::move(labels));
+  auto correct_count = ranges::count_if(ranges::views::zip(preds_single, labels_single), [](const auto& p) {
     return tensor::max_coeff(p.first) == tensor::max_coeff(p.second);
   });
   fmt::print("  {} accuracy:{}/{}\n", label, correct_count, count);
 }
 
-static void training(kann::Layer& layer, kann::LossFunction& loss_function,
-    std::vector<tensor::Tensor<float>> images,
-    std::vector<tensor::Tensor<float>> labels,
-    kann::Optimizer& optimizer,
-    size_t batch_size, size_t count, auto& prng)
+static void training(kann::Layer& layer, kann::LossFunction& loss_function, tensor::Tensor<float> images, tensor::Tensor<float> labels, kann::Optimizer& optimizer, size_t batch_size, size_t count, auto& prng)
 {
-  shuffle(images, labels, prng);
+  std::vector<size_t> indices(count);
+  std::iota(indices.begin(), indices.end(), 0);
+  std::shuffle(indices.begin(), indices.end(), prng);
 
-  kann::ProgressBar progress_bar("  training", count);
-
-  auto image_batches = kann::batch(images, batch_size);
-  auto label_batches = kann::batch(labels, batch_size);
-
-  for(auto&& [image_batch, label_batch] : ranges::views::zip(image_batches, label_batches))
+  kann::ProgressBar progress_bar("Training", count / batch_size * batch_size);
+  for(size_t i=0; i+batch_size<=count; i+=batch_size)
   {
+    auto sub_indices = std::vector(&indices[i], &indices[i+batch_size]);
+    auto images_batch = tensor::index_outer(images, sub_indices);
+    auto labels_batch = tensor::index_outer(labels, sub_indices);
+
     loss_function.shape = layer.def->get_output_shape();
-    loss_function.expected_outputs = std::move(label_batch);
+    loss_function.expected_outputs = std::move(labels_batch);
 
-    auto ones_batch = tensor::create_constant(tensor::Shape::make(batch_size), 1.0f);
-    auto pred_batch = layer.forward(std::move(image_batch));
-    auto loss_batch = loss_function.forward(std::move(pred_batch));
-    auto grad_batch = loss_function.backward(std::move(ones_batch));
-    layer.backward(std::move(grad_batch));
-
-    for(size_t i=0; i<batch_size; ++i)
-      progress_bar.update(fmt::format("  loss={}", loss_batch.buffer->data()[i]));
+    auto preds_batch = layer.forward(std::move(images_batch));
+    auto losses_batch = loss_function.forward(std::move(preds_batch));
+    auto ones_batch   = tensor::create_constant(tensor::Shape::make(batch_size), 1.0f);
+    auto grads_baatch = loss_function.backward(std::move(ones_batch));
+    layer.backward(std::move(grads_baatch));
 
     for(kann::Variable* parameter : layer.storage->get_parameters())
       optimizer.optimize(*parameter);
 
     optimizer.step();
+
+    for(size_t i=0; i<batch_size; ++i)
+      progress_bar.update(fmt::format("  loss={}", (*losses_batch.buffer)[i]));
   }
+
 }
 
 int main(int argc, char** argv)
@@ -107,11 +105,11 @@ int main(int argc, char** argv)
   const size_t epoch      = std::stoull(epoch_str);
 
   // 3: Running
-  auto mnist_testing_images = kann::load_mnist_dataset_images("libkann/datasets/mnist/t10k-images-idx3-ubyte");
-  auto mnist_testing_labels = kann::load_mnist_dataset_labels("libkann/datasets/mnist/t10k-labels-idx1-ubyte");
+  auto mnist_testing_images = kann::load_mnist_dataset_images_single("libkann/datasets/mnist/t10k-images-idx3-ubyte");
+  auto mnist_testing_labels = kann::load_mnist_dataset_labels_single("libkann/datasets/mnist/t10k-labels-idx1-ubyte");
 
-  auto mnist_training_images = kann::load_mnist_dataset_images("libkann/datasets/mnist/train-images-idx3-ubyte");
-  auto mnist_training_labels = kann::load_mnist_dataset_labels("libkann/datasets/mnist/train-labels-idx1-ubyte");
+  auto mnist_training_images = kann::load_mnist_dataset_images_single("libkann/datasets/mnist/train-images-idx3-ubyte");
+  auto mnist_training_labels = kann::load_mnist_dataset_labels_single("libkann/datasets/mnist/train-labels-idx1-ubyte");
 
   // Initial testing
   testing("Initial testing", *layer, mnist_testing_images, mnist_testing_labels, 10000);
