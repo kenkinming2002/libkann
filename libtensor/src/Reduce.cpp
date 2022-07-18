@@ -1,7 +1,5 @@
 #include <libtensor/Reduce.hpp>
 
-#include <libtensor/details/Eigen.hpp>
-
 namespace tensor
 {
   template<typename T>

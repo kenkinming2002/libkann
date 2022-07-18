@@ -1,7 +1,5 @@
 #include <libtensor/Broadcast.hpp>
 
-#include <libtensor/details/Eigen.hpp>
-
 namespace tensor
 {
 #define BROADCAST_OUTER_RAW(op_name, op)                                                                                                               \
