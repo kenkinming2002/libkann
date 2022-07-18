@@ -41,6 +41,7 @@ namespace kann
       return pow_abs(diff, m_p);
     });
     auto outputs = tensor::reduce_inner<float>(tmps);
+
     return outputs;
   }
 
@@ -58,6 +59,8 @@ namespace kann
       return m_p * pow_abs(diff, m_p-1) * sgn(diff);
     });
     auto input_gradients = tensor::broadcast_mul_inner<float>(tmps, output_gradients);
+
+    input_gradients = input_gradients.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
     return input_gradients;
   }
 }
