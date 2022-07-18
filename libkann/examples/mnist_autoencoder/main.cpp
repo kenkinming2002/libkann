@@ -49,6 +49,35 @@ static void reconstruct(std::string label, kann::Layer& layer, tensor::Tensor<fl
   }
 }
 
+static void generate(std::string label, kann::Layer& layer, size_t count, auto& prng)
+{
+  auto latents = tensor::create_uniform(tensor::Shape::make(count, layer.def->get_input_shape()), 0.0f, 1.0f, prng);
+  auto preds   = layer.forward(std::move(latents));
+  auto preds_single  = tensor::split_outer(std::move(preds));
+
+  size_t i = 0;
+  for(auto&& pred : preds_single)
+  {
+    // Write ppm file
+    std::ofstream file(fmt::format("output/{}-{:05}.ppm", label, i++));
+    file << "P3\n";
+    file << "28 28\n";
+    file << "255\n";
+    for(size_t y=0; y<28; ++y)
+    {
+      for(size_t x=0; x<28; ++x)
+      {
+        const float value_f = (*pred.buffer)[y*28+x];
+        const unsigned value_u = static_cast<unsigned>(std::max(value_f * 255.0f, 0.0f));
+
+        if(x != 0) file << " ";
+        file << value_u << " " << value_u << " " << value_u;
+      }
+      file << '\n';
+    }
+  }
+}
+
 static void training(kann::Layer& layer, kann::LossFunction& loss_function, tensor::Tensor<float> images, kann::Optimizer& optimizer, size_t batch_size, size_t count, auto& prng)
 {
   std::vector<size_t> indices(count);
@@ -111,7 +140,10 @@ int main(int argc, char** argv)
   std::random_device rd;
   std::default_random_engine prng(rd());
 
-  const auto layer         = kann::Layer::create_from(kann::LayerDef::load(file_name), prng);
+  const auto layer     = kann::Layer::create_from(kann::LayerDef::load(file_name), prng);
+  const auto encoder   = layer->sub_layers.at(0);
+  const auto decoder   = layer->sub_layers.at(1);
+
   const auto optimizer     = create_optimizer(optimizer_name, optimizer_arg);
   const auto loss_function = create_loss_function(loss_function_name, loss_function_arg);
   const size_t batch_size = std::stoull(batch_size_str);
@@ -130,4 +162,5 @@ int main(int argc, char** argv)
   }
   reconstruct("training", *layer, mnist_training_images);
   reconstruct("testing",  *layer, mnist_testing_images);
+  generate("generated", *decoder, 10000, prng);
 }
