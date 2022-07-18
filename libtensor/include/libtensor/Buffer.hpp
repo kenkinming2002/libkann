@@ -20,6 +20,10 @@ namespace tensor
     std::span<const T> data() const { return std::span(m_data.get(), m_size); }
     std::span<T>       data()       { return std::span(m_data.get(), m_size); }
 
+  public:
+    const T& operator[](size_t i) const { return m_data[i]; }
+    T&       operator[](size_t i)       { return m_data[i]; }
+
   private:
     std::unique_ptr<T[]> m_data = nullptr;
     size_t               m_size = 0;
