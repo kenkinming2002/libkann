@@ -122,4 +122,56 @@ namespace kann
 
     return labels;
   }
+
+  tensor::Tensor<float> load_mnist_dataset_images_single(const char* file_name)
+  {
+    IDXFile idx_file(file_name);
+    if(idx_file.data_type != DataType::UNSIGNED_BYTE)
+      throw std::runtime_error("MNIST Data Set - Invalid file format");
+
+    size_t size = 1;
+    for(uint32_t dimension : idx_file.dimensions)
+      size *= dimension;
+
+    auto data = std::make_unique_for_overwrite<uint8_t[]>(size);
+    idx_file.file.read(reinterpret_cast<char*>(&data[0]), size * sizeof data[0]);
+
+    auto buffer = std::make_shared<tensor::Buffer<float>>(size);
+    for(size_t i=0; i<size; ++i)
+      (*buffer)[i]  = (float)data[i] / 255.0f;
+
+    tensor::Shape shape;
+    shape.dimensions.reserve(idx_file.dimensions.size());
+    for(uint32_t dimension : idx_file.dimensions)
+      shape.dimensions.push_back(dimension);
+
+    return tensor::Tensor<float>(std::move(shape), std::move(buffer));
+  }
+
+  tensor::Tensor<float> load_mnist_dataset_labels_single(const char* file_name)
+  {
+    IDXFile idx_file(file_name);
+    if(idx_file.data_type != DataType::UNSIGNED_BYTE)
+      throw std::runtime_error("MNIST Data Set - Invalid file format");
+
+    size_t size = 1;
+    for(uint32_t dimension : idx_file.dimensions)
+      size *= dimension;
+
+    auto data = std::make_unique_for_overwrite<uint8_t[]>(size);
+    idx_file.file.read(reinterpret_cast<char*>(&data[0]), size * sizeof data[0]);
+
+    auto buffer = std::make_shared<tensor::Buffer<float>>(size * 10);
+    for(size_t i=0; i<size; ++i)
+      for(size_t j=0; j<10; ++j)
+        (*buffer)[i*10+j] = (data[i] == j) ? 1.0f : 0.0f;
+
+    tensor::Shape shape;
+    shape.dimensions.reserve(idx_file.dimensions.size());
+    for(uint32_t dimension : idx_file.dimensions)
+      shape.dimensions.push_back(dimension);
+    shape.dimensions.push_back(10);
+
+    return tensor::Tensor<float>(std::move(shape), std::move(buffer));
+  }
 }
