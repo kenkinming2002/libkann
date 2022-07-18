@@ -51,8 +51,8 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function, tens
     auto preds_batch = layer.forward(std::move(images_batch));
     auto losses_batch = loss_function.forward(std::move(preds_batch));
     auto ones_batch   = tensor::create_constant(tensor::Shape::make(batch_size), 1.0f);
-    auto grads_baatch = loss_function.backward(std::move(ones_batch));
-    layer.backward(std::move(grads_baatch));
+    auto grads_batch = loss_function.backward(std::move(ones_batch));
+    layer.backward(std::move(grads_batch));
 
     for(kann::Variable* parameter : layer.storage->get_parameters())
       optimizer.optimize(*parameter);
