@@ -59,71 +59,7 @@ namespace kann
     }
   };
 
-  std::vector<tensor::Tensor<float>> load_mnist_dataset_images(const char* file_name)
-  {
-    IDXFile idx_file(file_name);
-    if(idx_file.data_type != DataType::UNSIGNED_BYTE)
-      throw std::runtime_error("MNIST Data Set - Invalid file format");
-
-    if(idx_file.dimensions.size() != 3)
-      throw std::runtime_error("MNIST Data Set - Invalid file format");
-
-    if(idx_file.dimensions[1] != MNIST_DATASET_IMAGE_WIDTH ||
-       idx_file.dimensions[2] != MNIST_DATASET_IMAGE_WIDTH)
-      throw std::runtime_error("MNIST Data Set - Invalid file format");
-
-    uint32_t count = idx_file.dimensions[0];
-
-    std::vector<tensor::Tensor<float>> images;
-    images.reserve(count);
-
-    for(uint32_t i=0; i<count; ++i)
-    {
-      uint8_t image_data[MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH];
-      if(!idx_file.file.read(reinterpret_cast<char*>(image_data), sizeof image_data))
-        throw std::runtime_error("MNIST Data Set - Invalid file format");
-
-      auto image_buffer = std::make_shared<tensor::Buffer<float>>(MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH);
-      for(size_t i=0; i<MNIST_DATASET_IMAGE_WIDTH * MNIST_DATASET_IMAGE_WIDTH; ++i)
-        image_buffer->data().data()[i] = (float)image_data[i] / 255.0f;
-
-      images.push_back(tensor::Tensor<float>(tensor::Shape::make(1, MNIST_DATASET_IMAGE_WIDTH, MNIST_DATASET_IMAGE_WIDTH), std::move(image_buffer)));
-    }
-
-    return images;
-  }
-
-  std::vector<tensor::Tensor<float>> load_mnist_dataset_labels(const char* file_name)
-  {
-    IDXFile idx_file(file_name);
-    if(idx_file.data_type != DataType::UNSIGNED_BYTE)
-      throw std::runtime_error("MNIST Data Set - Invalid file format");
-
-    if(idx_file.dimensions.size() != 1)
-      throw std::runtime_error("MNIST Data Set - Invalid file format");
-
-    uint32_t count = idx_file.dimensions[0];
-
-    std::vector<tensor::Tensor<float>> labels;
-    labels.reserve(count);
-
-    for(uint32_t i=0; i<count; ++i)
-    {
-      uint8_t label_data;
-      if(!idx_file.file.read(reinterpret_cast<char*>(&label_data), sizeof label_data))
-        throw std::runtime_error("MNIST Data Set - Invalid file format");
-
-      auto label_buffer = std::make_shared<tensor::Buffer<float>>(10);
-      for(size_t i=0; i<10; ++i)
-        label_buffer->data().data()[i] = label_data == i ? 1.0f : 0.0f;
-
-      labels.push_back(tensor::Tensor<float>(tensor::Shape::make(10), std::move(label_buffer)));
-    }
-
-    return labels;
-  }
-
-  tensor::Tensor<float> load_mnist_dataset_images_single(const char* file_name)
+  tensor::Tensor<float> load_mnist_dataset_images(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)
@@ -148,7 +84,7 @@ namespace kann
     return tensor::Tensor<float>(std::move(shape), std::move(buffer));
   }
 
-  tensor::Tensor<float> load_mnist_dataset_labels_single(const char* file_name)
+  tensor::Tensor<float> load_mnist_dataset_labels(const char* file_name)
   {
     IDXFile idx_file(file_name);
     if(idx_file.data_type != DataType::UNSIGNED_BYTE)

@@ -168,8 +168,8 @@ int main(int argc, char** argv)
   const size_t epoch      = std::stoull(epoch_str);
 
   // 3: Running
-  auto mnist_testing_images = kann::load_mnist_dataset_images_single("libkann/datasets/mnist/t10k-images-idx3-ubyte");
-  auto mnist_training_images = kann::load_mnist_dataset_images_single("libkann/datasets/mnist/train-images-idx3-ubyte");
+  auto mnist_testing_images  = kann::load_mnist_dataset_images("libkann/datasets/mnist/t10k-images-idx3-ubyte");
+  auto mnist_training_images = kann::load_mnist_dataset_images("libkann/datasets/mnist/train-images-idx3-ubyte");
 
   // Initial testing
   for(size_t i=0; i<epoch; ++i)
