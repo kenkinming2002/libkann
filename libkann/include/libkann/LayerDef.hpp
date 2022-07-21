@@ -1,7 +1,6 @@
 #pragma once
 
 #include <libkann/Export.hpp>
-#include <libkann/Tag.hpp>
 #include <libtensor/Shape.hpp>
 #include <libtensor/Tensor.hpp>
 #include <libkann/LayerStorage.hpp>
@@ -37,8 +36,6 @@ namespace kann
     KANN_EXPORT static std::shared_ptr<const LayerDef> load(std::istream& is);
 
   public:
-    // Question: How do we support tagging? Do we store tag in parent layer def or in child
-    Tag tag = Tag::ALL;
     std::vector<std::shared_ptr<const LayerDef>> sub_layer_defs;
 
   public:
