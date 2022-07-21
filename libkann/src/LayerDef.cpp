@@ -33,33 +33,60 @@ namespace kann
     return load(root);
   }
 
-  static auto& save_map()
+  namespace
   {
-    static std::unordered_map<std::type_index, LayerDef::save_t> instance;
-    return instance;
-  }
+    struct Info
+    {
+      std::string name;
+      std::type_index type_index;
 
-  static auto& load_map()
-  {
-    static std::unordered_map<std::string, LayerDef::load_t> instance;
-    return instance;
+      LayerDef::save_t save;
+      LayerDef::load_t load;
+    };
+
+    auto& name_map()
+    {
+      static std::unordered_map<std::string, Info> instance;
+      return instance;
+    }
+
+    auto& type_index_map()
+    {
+      static std::unordered_map<std::type_index, Info> instance;
+      return instance;
+    }
   }
 
   void LayerDef::register_save_load(std::string name, const std::type_info& type_info, save_t save, load_t load)
   {
-    save_map().emplace(std::type_index(type_info), save);
-    load_map().emplace(std::move(name), load);
+    auto type_index = std::type_index(type_info);
+    auto info = Info{
+      .name       = name,
+      .type_index = type_index,
+      .save       = save,
+      .load       = load
+    };
+    name_map()      .emplace(name,       info);
+    type_index_map().emplace(type_index, info);
   }
 
   YAML::Node LayerDef::save(std::shared_ptr<const LayerDef> layer)
   {
     auto type_index = std::type_index(typeid(*layer));
-    return save_map().at(type_index)(layer);
+    const auto& info = type_index_map().at(type_index);
+
+    auto node = info.save(layer);
+    node["type"] = info.name;
+    return node;
   }
 
   std::shared_ptr<const LayerDef> LayerDef::load(YAML::Node node)
   {
     auto name = node["type"].as<std::string>();
-    return load_map().at(name)(node);
+    const auto& info = name_map().at(name);
+
+    node.remove("type");
+    auto layer = info.load(node);
+    return layer;
   }
 }
