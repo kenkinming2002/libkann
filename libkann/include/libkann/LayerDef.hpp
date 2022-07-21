@@ -18,6 +18,13 @@ namespace kann
   struct LayerDef
   {
   public:
+    KANN_EXPORT static void save(std::shared_ptr<const LayerDef> def, const std::string& filename);
+    KANN_EXPORT static void save(std::shared_ptr<const LayerDef> def, std::ostream& os);
+
+    KANN_EXPORT static std::shared_ptr<const LayerDef> load(const std::string& filename);
+    KANN_EXPORT static std::shared_ptr<const LayerDef> load(std::istream& is);
+
+  public:
     using save_t = YAML::Node(*)(std::shared_ptr<const LayerDef>);
     using load_t = std::shared_ptr<const LayerDef>(*)(YAML::Node);
 
@@ -30,10 +37,6 @@ namespace kann
   public:
     KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer);
     KANN_EXPORT static std::shared_ptr<const LayerDef> load(YAML::Node node);
-
-  public:
-    KANN_EXPORT static std::shared_ptr<const LayerDef> load(const std::string& filename);
-    KANN_EXPORT static std::shared_ptr<const LayerDef> load(std::istream& is);
 
   public:
     std::vector<std::shared_ptr<const LayerDef>> sub_layer_defs;

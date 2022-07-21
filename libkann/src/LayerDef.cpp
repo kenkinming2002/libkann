@@ -3,10 +3,36 @@
 #include <range/v3/all.hpp>
 
 #include <typeindex>
-#include <iostream>
+#include <fstream>
 
 namespace kann
 {
+  void LayerDef::save(std::shared_ptr<const LayerDef> def, const std::string& filename)
+  {
+    std::ofstream of;
+    of.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+    of.open(filename);
+    save(std::move(def), of);
+  }
+
+  void LayerDef::save(std::shared_ptr<const LayerDef> def, std::ostream& os)
+  {
+    YAML::Node root = save(def);
+    os << root;
+  }
+
+  std::shared_ptr<const LayerDef> LayerDef::load(const std::string& filename)
+  {
+    YAML::Node root = YAML::LoadFile(filename);
+    return load(root);
+  }
+
+  std::shared_ptr<const LayerDef> LayerDef::load(std::istream& is)
+  {
+    YAML::Node root = YAML::Load(is);
+    return load(root);
+  }
+
   static auto& save_map()
   {
     static std::unordered_map<std::type_index, LayerDef::save_t> instance;
@@ -35,17 +61,5 @@ namespace kann
   {
     auto name = node["type"].as<std::string>();
     return load_map().at(name)(node);
-  }
-
-  std::shared_ptr<const LayerDef> LayerDef::load(const std::string& filename)
-  {
-    YAML::Node root = YAML::LoadFile(filename);
-    return load(root);
-  }
-
-  std::shared_ptr<const LayerDef> LayerDef::load(std::istream& is)
-  {
-    YAML::Node root = YAML::Load(is);
-    return load(root);
   }
 }
