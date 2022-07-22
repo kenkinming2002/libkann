@@ -3,7 +3,6 @@
 #include <libtensor/Tensor.hpp>
 #include <libtensor/Initializer.hpp>
 #include <libkann/Layer.hpp>
-#include <libkann/LayerStorage.hpp>
 
 #include <libtensor/Image.hpp>
 
@@ -34,48 +33,43 @@ namespace kann
     return layer_def;
   }
 
-  std::shared_ptr<LayerStorage> ConvolutionalLayerDef::create(std::default_random_engine& prng) const
+  std::shared_ptr<Layer> ConvolutionalLayerDef::create() const
   {
-    auto layer_storage = std::make_shared<LayerStorage>();
-
-    Variable kernels = Variable::create_normal(tensor::Shape::make(input_channel_count, output_channel_count, kernel_size.height(), kernel_size.width()), 0.0, 1.0 / (kernel_size.width() * kernel_size.height()), prng);
-    layer_storage->parameters.reserve(1);
-    layer_storage->parameters.push_back(std::move(kernels));
-
-    return layer_storage;
+    auto layer = std::make_shared<ConvolutionalLayer>();
+    layer->def = *this;
+    return layer;
   }
 
-  tensor::Shape ConvolutionalLayerDef::get_input_shape() const
+  const LayerDef& ConvolutionalLayer::get_def() const { return def; }
+
+  tensor::Shape ConvolutionalLayer::get_input_shape()  const { return tensor::Shape::make(def.input_channel_count,  def.input_size.height(),  def.input_size.width()); }
+  tensor::Shape ConvolutionalLayer::get_output_shape() const { return tensor::Shape::make(def.output_channel_count, def.output_size.height(), def.output_size.width()); }
+
+  void ConvolutionalLayer::initialize(std::default_random_engine& prng)
   {
-    return tensor::Shape::make(input_channel_count, input_size.height(), input_size.width());
+    this->kernels = Variable::create_normal(
+        tensor::Shape::make(def.input_channel_count, def.output_channel_count, def.kernel_size.height(), def.kernel_size.width()),
+        0.0, 1.0 / (def.kernel_size.width() * def.kernel_size.height()), prng);
   }
 
-  tensor::Shape ConvolutionalLayerDef::get_output_shape() const
+  std::unordered_map<std::string, const Variable*> ConvolutionalLayer::parameters_map() const { return {{"kernels", &kernels}}; }
+  std::unordered_map<std::string, Variable*>       ConvolutionalLayer::parameters_map()       { return {{"kernels", &kernels}}; }
+
+  tensor::Tensor<float> ConvolutionalLayer::forward(tensor::Tensor<float> inputs)
   {
-    return tensor::Shape::make(output_channel_count, output_size.height(), output_size.width());
-  }
-
-  tensor::Tensor<float> ConvolutionalLayerDef::forward(Layer& layer, tensor::Tensor<float> inputs) const
-  {
-    layer.saved_tensors.clear();
-    layer.saved_tensors.reserve(1);
-    layer.saved_tensors.push_back(inputs);
-
-    auto kernels = layer.storage->parameters[0].value;
-
-    auto outputs = tensor::image2d_cross_correlate<float>(inputs, false, kernels, false, output_size);
+    saved_tensors = { inputs };
+    auto kernels = this->kernels.value;
+    auto outputs = tensor::image2d_cross_correlate<float>(inputs, false, kernels, false, def.output_size);
     return outputs;
   }
 
-  tensor::Tensor<float> ConvolutionalLayerDef::backward(Layer& layer, tensor::Tensor<float> output_gradients) const
+  tensor::Tensor<float> ConvolutionalLayer::backward(tensor::Tensor<float> output_gradients)
   {
-    auto inputs = layer.saved_tensors[0];
-    auto kernels = layer.storage->parameters[0].value;
-
-    auto input_gradients  = tensor::image2d_convolve       <float>(output_gradients, false, kernels, true, input_size);
-    auto kernel_gradients = tensor::image2d_cross_correlate<float>(inputs, true, output_gradients, false,  kernel_size);
-
-    layer.storage->parameters[0].gradient = kernel_gradients;
+    auto inputs = saved_tensors[0];
+    auto kernels = this->kernels.value;
+    auto input_gradients  = tensor::image2d_convolve       <float>(output_gradients, false, kernels, true, def.input_size);
+    auto kernel_gradients = tensor::image2d_cross_correlate<float>(inputs, true, output_gradients, false,  def.kernel_size);
+    this->kernels.gradient = kernel_gradients;
     return input_gradients;
   }
 }

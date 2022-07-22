@@ -1,9 +1,9 @@
 #include <libkann/layer_defs/Sequential.hpp>
 
 #include <libkann/Layer.hpp>
-#include <libkann/LayerStorage.hpp>
 
 #include <range/v3/all.hpp>
+#include <fmt/core.h>
 
 #include <assert.h>
 
@@ -12,8 +12,8 @@ namespace kann
   YAML::Node SequentialLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
   {
     YAML::Node node;
-    node["layers"] = layer_def->sub_layer_defs
-      | ranges::views::transform([&](std::shared_ptr<const LayerDef> sub_layer_def) { return LayerDef::save(sub_layer_def); } )
+    node["layers"] = std::static_pointer_cast<const SequentialLayerDef>(layer_def)->defs
+      | ranges::views::transform([&](const auto& def) { return LayerDef::save(def); } )
       | ranges::to_vector;
     return node;
   }
@@ -22,46 +22,70 @@ namespace kann
   {
     auto layer_def = std::make_shared<SequentialLayerDef>();
     auto layer_defs_node = node["layers"];
-    layer_def->sub_layer_defs = layer_defs_node
+    layer_def->defs = layer_defs_node
       | ranges::views::transform([](YAML::Node child) { return LayerDef::load(child); })
       | ranges::to_vector;
 
     return layer_def;
   }
 
-  std::shared_ptr<LayerStorage> SequentialLayerDef::create(std::default_random_engine& prng) const
+  std::shared_ptr<Layer> SequentialLayerDef::create() const
   {
-    auto layer_storage = std::make_shared<LayerStorage>();
-    layer_storage->sub_layer_storages = sub_layer_defs
-      | ranges::views::transform([&prng](const auto& sub_layer_def) { return sub_layer_def->create(prng); })
-      | ranges::to_vector;
-    return layer_storage;
+    auto layer = std::make_shared<SequentialLayer>();
+    layer->def = *this;
+    for(const auto& def : defs)
+      layer->layers.push_back(def->create());
+    return layer;
   }
 
-  tensor::Shape SequentialLayerDef::get_input_shape() const
+  const LayerDef& SequentialLayer::get_def() const
   {
-    return sub_layer_defs.front()->get_input_shape();
+    return def;
   }
 
-  tensor::Shape SequentialLayerDef::get_output_shape() const
+  tensor::Shape SequentialLayer::get_input_shape()  const { return layers.front()->get_input_shape(); }
+  tensor::Shape SequentialLayer::get_output_shape() const { return layers.back()->get_output_shape(); }
+
+  void SequentialLayer::initialize(std::default_random_engine& prng)
   {
-    return sub_layer_defs.back()->get_output_shape();
+    for(auto& layer : layers)
+      layer->initialize(prng);
   }
 
-  tensor::Tensor<float> SequentialLayerDef::forward(Layer& layer, tensor::Tensor<float> inputs) const
+  std::unordered_map<std::string, const Variable*> SequentialLayer::parameters_map() const
   {
-    tensor::Tensor<float> outputs = std::move(inputs);
-    for(auto& sub_layer : layer.sub_layers)
-      outputs = sub_layer->forward(std::move(outputs));
+    std::unordered_map<std::string, const Variable*> map;
+    for(const auto& [i, layer] : ranges::views::enumerate(layers))
+      for(const auto& [name, variable] : layer->parameters_map())
+        map.insert({fmt::format("layer{}.{}", i, name), variable});
+
+    return map;
+  }
+
+  std::unordered_map<std::string, Variable*> SequentialLayer::parameters_map()
+  {
+    std::unordered_map<std::string, Variable*> map;
+    for(const auto& [i, layer] : ranges::views::enumerate(layers))
+      for(const auto& [name, variable] : layer->parameters_map())
+        map.insert({fmt::format("layer{}.{}", i, name), variable});
+
+    return map;
+  }
+
+  tensor::Tensor<float> SequentialLayer::forward(tensor::Tensor<float> inputs)
+  {
+    auto outputs = std::move(inputs);
+    for(auto& layer : layers)
+      outputs = layer->forward(std::move(outputs));
 
     return outputs;
   }
 
-  tensor::Tensor<float> SequentialLayerDef::backward(Layer& layer, tensor::Tensor<float> output_gradients) const
+  tensor::Tensor<float> SequentialLayer::backward(tensor::Tensor<float> output_gradients)
   {
     tensor::Tensor<float> input_gradients = std::move(output_gradients);
-    for(auto& sub_layer : layer.sub_layers | ranges::views::reverse)
-      input_gradients = sub_layer->backward(std::move(input_gradients));
+    for(auto& layer : ranges::views::reverse(layers))
+      input_gradients = layer->backward(std::move(input_gradients));
 
     return input_gradients;
   }

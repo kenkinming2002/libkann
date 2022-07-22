@@ -4,8 +4,8 @@
 #include <libtensor/MaxCoeff.hpp>
 
 #include <libkann/Layer.hpp>
-#include <libkann/LayerStorage.hpp>
 #include <libkann/LayerDef.hpp>
+#include <libkann/layer_defs/Sequential.hpp>
 
 #include <libkann/datasets/MNIST.hpp>
 #include <libkann/ProgressBar.hpp>
@@ -108,7 +108,7 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function, tens
     auto sub_indices = std::vector(&indices[i], &indices[i+batch_size]);
     auto images_batch = tensor::index_outer(images, sub_indices);
 
-    loss_function.shape = layer.def->get_output_shape();
+    loss_function.shape = layer.get_output_shape();
     loss_function.expected_outputs = images_batch;
 
     auto preds_batch = layer.forward(std::move(images_batch));
@@ -117,7 +117,7 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function, tens
     auto grads_batch = loss_function.backward(std::move(ones_batch));
     layer.backward(std::move(grads_batch));
 
-    for(kann::Variable* parameter : layer.storage->get_parameters())
+    for(const auto&[name, parameter] : layer.parameters_map())
       optimizer.optimize(*parameter);
 
     optimizer.step();
@@ -158,9 +158,10 @@ int main(int argc, char** argv)
   std::random_device rd;
   std::default_random_engine prng(rd());
 
-  const auto layer     = kann::Layer::create_from(kann::LayerDef::load(file_name), prng);
-  const auto encoder   = layer->sub_layers.at(0);
-  const auto decoder   = layer->sub_layers.at(1);
+  const auto layer = kann::LayerDef::load(file_name)->create();
+  layer->initialize(prng);
+  const auto encoder   = std::static_pointer_cast<kann::SequentialLayer>(layer)->layers.at(0);
+  const auto decoder   = std::static_pointer_cast<kann::SequentialLayer>(layer)->layers.at(1);
 
   const auto optimizer     = create_optimizer(optimizer_name, optimizer_arg);
   const auto loss_function = create_loss_function(loss_function_name, loss_function_arg);

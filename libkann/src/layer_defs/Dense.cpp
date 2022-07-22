@@ -27,38 +27,33 @@ namespace kann
     return layer_def;
   }
 
-  std::shared_ptr<LayerStorage> DenseLayerDef::create(std::default_random_engine& prng) const
+  std::shared_ptr<Layer> DenseLayerDef::create() const
   {
-    auto layer_storage = std::make_shared<LayerStorage>();
-
-    Variable weight = Variable::create_normal(tensor::Shape::make(input_shape, output_shape), 0.0, 1.0 / std::sqrt(input_shape.size()), prng);
-    Variable bias   = Variable::create_normal(output_shape,                                   0.0, 1.0 / std::sqrt(input_shape.size()), prng);
-
-    layer_storage->parameters.reserve(2);
-    layer_storage->parameters.push_back(std::move(weight));
-    layer_storage->parameters.push_back(std::move(bias));
-
-    return layer_storage;
+    auto layer = std::make_shared<DenseLayer>();
+    layer->def = *this;
+    return layer;
   }
 
-  tensor::Shape DenseLayerDef::get_input_shape() const
+  const LayerDef& DenseLayer::get_def() const { return def; }
+
+  tensor::Shape DenseLayer::get_input_shape()  const { return def.input_shape; }
+  tensor::Shape DenseLayer::get_output_shape() const { return def.output_shape; }
+
+  void DenseLayer::initialize(std::default_random_engine& prng)
   {
-    return input_shape;
+    this->weight = Variable::create_normal(tensor::Shape::make(def.input_shape, def.output_shape), 0.0, 1.0 / std::sqrt(def.input_shape.size()), prng);
+    this->bias   = Variable::create_normal(def.output_shape,                                       0.0, 1.0 / std::sqrt(def.input_shape.size()), prng);
   }
 
-  tensor::Shape DenseLayerDef::get_output_shape() const
-  {
-    return output_shape;
-  }
+  std::unordered_map<std::string, const Variable*> DenseLayer::parameters_map() const { return {{"weight", &weight}, {"bias", &bias}}; }
+  std::unordered_map<std::string, Variable*>       DenseLayer::parameters_map()       { return {{"weight", &weight}, {"bias", &bias}}; }
 
-  tensor::Tensor<float> DenseLayerDef::forward(Layer& layer, tensor::Tensor<float> inputs) const
+  tensor::Tensor<float> DenseLayer::forward(tensor::Tensor<float> inputs)
   {
-    layer.saved_tensors.clear();
-    layer.saved_tensors.reserve(1);
-    layer.saved_tensors.push_back(inputs);
+    saved_tensors = { inputs };
 
-    auto weight = layer.storage->parameters[0].value;
-    auto bias   = layer.storage->parameters[1].value;
+    auto weight = this->weight.value;
+    auto bias   = this->bias.value;
 
     inputs = inputs.flatten(tensor::Hint::single(),                      tensor::Hint::from_shape(get_input_shape()));
     weight = weight.flatten(tensor::Hint::from_shape(get_input_shape()), tensor::Hint::from_shape(get_output_shape()));
@@ -70,11 +65,11 @@ namespace kann
     return result.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(this->get_output_shape()));
   }
 
-  tensor::Tensor<float> DenseLayerDef::backward(Layer& layer, tensor::Tensor<float> output_gradients) const
+  tensor::Tensor<float> DenseLayer::backward(tensor::Tensor<float> output_gradients)
   {
-    auto inputs = layer.saved_tensors[0];
-    auto weight = layer.storage->parameters[0].value;
-    auto bias   = layer.storage->parameters[1].value;
+    auto inputs = saved_tensors[0];
+    auto weight = this->weight.value;
+    auto bias   = this->bias.value;
 
     inputs = inputs.flatten(tensor::Hint::single(),                      tensor::Hint::from_shape(get_input_shape()));
     weight = weight.flatten(tensor::Hint::from_shape(get_input_shape()), tensor::Hint::from_shape(get_output_shape()));
@@ -90,8 +85,8 @@ namespace kann
     weight_gradient = weight_gradient.unflatten(tensor::Hint::from_shape(get_input_shape()), tensor::Hint::from_shape(get_output_shape()));
     bias_gradient   = bias_gradient  .unflatten(tensor::Hint::from_shape(get_output_shape()));
 
-    layer.storage->parameters[0].gradient = weight_gradient;
-    layer.storage->parameters[1].gradient = bias_gradient;
+    this->weight.gradient = weight_gradient;
+    this->bias.gradient   = bias_gradient;
     return input_gradients;
   }
 }

@@ -5,7 +5,7 @@
 
 namespace kann
 {
-  struct Function
+  struct KANN_EXPORT Function
   {
   public:
     virtual ~Function() = default;

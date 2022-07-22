@@ -3,7 +3,6 @@
 #include <libkann/Export.hpp>
 #include <libtensor/Shape.hpp>
 #include <libtensor/Tensor.hpp>
-#include <libkann/LayerStorage.hpp>
 
 #include <yaml-cpp/yaml.h>
 
@@ -39,20 +38,7 @@ namespace kann
     KANN_EXPORT static std::shared_ptr<const LayerDef> load(YAML::Node node);
 
   public:
-    std::vector<std::shared_ptr<const LayerDef>> sub_layer_defs;
-
-  public:
     KANN_EXPORT virtual ~LayerDef() = default;
-
-  public:
-    KANN_EXPORT virtual std::shared_ptr<LayerStorage> create(std::default_random_engine& prng) const = 0;
-
-  public:
-    KANN_EXPORT virtual tensor::Shape get_input_shape() const = 0;
-    KANN_EXPORT virtual tensor::Shape get_output_shape() const = 0;
-
-  public:
-    KANN_EXPORT virtual tensor::Tensor<float> forward(Layer& layer, tensor::Tensor<float> inputs) const = 0;
-    KANN_EXPORT virtual tensor::Tensor<float> backward(Layer& layer, tensor::Tensor<float> output_gradients) const = 0;
+    KANN_EXPORT virtual std::shared_ptr<Layer> create() const { assert(false && "Unimplemented"); };
   };
 }

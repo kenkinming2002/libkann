@@ -3,7 +3,6 @@ libkann_sources = [
 
   # Layers
   'Layer.cpp',
-  'LayerStorage.cpp',
   'LayerDef.cpp',
   'layer_defs/Activation.cpp',
   'layer_defs/Convolutional.cpp',
