@@ -1,4 +1,4 @@
-#include <libkann/layer_defs/Sequential.hpp>
+#include <libkann/layers/Sequential.hpp>
 
 #include <libkann/Layer.hpp>
 
@@ -21,8 +21,8 @@ namespace kann
   std::shared_ptr<const LayerDef> SequentialLayerDef::load(YAML::Node node)
   {
     auto layer_def = std::make_shared<SequentialLayerDef>();
-    auto layer_defs_node = node["layers"];
-    layer_def->defs = layer_defs_node
+    auto layers_node = node["layers"];
+    layer_def->defs = layers_node
       | ranges::views::transform([](YAML::Node child) { return LayerDef::load(child); })
       | ranges::to_vector;
 

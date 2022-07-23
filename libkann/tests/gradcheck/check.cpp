@@ -9,10 +9,10 @@
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
 
-#include <libkann/layer_defs/Activation.hpp>
-#include <libkann/layer_defs/Convolutional.hpp>
-#include <libkann/layer_defs/Dense.hpp>
-#include <libkann/layer_defs/SoftMax.hpp>
+#include <libkann/layers/Activation.hpp>
+#include <libkann/layers/Convolutional.hpp>
+#include <libkann/layers/Dense.hpp>
+#include <libkann/layers/SoftMax.hpp>
 
 using Buffer = tensor::Buffer<float>;
 using Tensor = tensor::Tensor<float>;

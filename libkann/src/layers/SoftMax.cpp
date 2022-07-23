@@ -1,4 +1,4 @@
-#include <libkann/layer_defs/SoftMax.hpp>
+#include <libkann/layers/SoftMax.hpp>
 
 #include <libkann/Layer.hpp>
 

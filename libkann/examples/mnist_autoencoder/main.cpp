@@ -5,7 +5,7 @@
 
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
-#include <libkann/layer_defs/Sequential.hpp>
+#include <libkann/layers/Sequential.hpp>
 
 #include <libkann/datasets/MNIST.hpp>
 #include <libkann/ProgressBar.hpp>

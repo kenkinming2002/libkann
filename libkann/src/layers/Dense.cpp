@@ -1,4 +1,4 @@
-#include <libkann/layer_defs/Dense.hpp>
+#include <libkann/layers/Dense.hpp>
 
 #include <libtensor/Tensor.hpp>
 

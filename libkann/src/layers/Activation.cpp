@@ -1,4 +1,4 @@
-#include <libkann/layer_defs/Activation.hpp>
+#include <libkann/layers/Activation.hpp>
 
 #include <libkann/Layer.hpp>
 

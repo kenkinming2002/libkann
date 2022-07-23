@@ -1,4 +1,4 @@
-#include <libkann/layer_defs/Convolutional.hpp>
+#include <libkann/layers/Convolutional.hpp>
 
 #include <libtensor/Tensor.hpp>
 #include <libtensor/Initializer.hpp>
