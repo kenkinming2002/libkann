@@ -1,7 +1,6 @@
-#include <libkann/layer_defs/Activation.hpp>
+#include <libkann/layers/Activation.hpp>
 
 #include <libkann/Layer.hpp>
-#include <libkann/LayerStorage.hpp>
 
 #include <libtensor/Map.hpp>
 
@@ -50,30 +49,30 @@ namespace kann
     return layer_def;
   }
 
-  tensor::Shape ActivationLayerDef::get_input_shape() const
+
+  std::shared_ptr<Layer> ActivationLayerDef::create() const
   {
-    return shape;
+    auto layer = std::make_shared<ActivationLayer>();
+    layer->def = *this;
+    return layer;
   }
 
-  tensor::Shape ActivationLayerDef::get_output_shape() const
-  {
-    return shape;
-  }
+  const LayerDef& ActivationLayer::get_def() const { return def; }
 
-  std::shared_ptr<LayerStorage> ActivationLayerDef::create(std::default_random_engine& prng) const
-  {
-    return std::make_shared<LayerStorage>();
-  }
+  tensor::Shape ActivationLayer::get_input_shape()  const { return def.shape; }
+  tensor::Shape ActivationLayer::get_output_shape() const { return def.shape; }
 
-  tensor::Tensor<float> ActivationLayerDef::forward(Layer& layer, tensor::Tensor<float> inputs) const
-  {
-    layer.saved_tensors.clear();
-    layer.saved_tensors.reserve(1);
-    layer.saved_tensors.push_back(inputs);
+  void ActivationLayer::initialize(std::default_random_engine& prng) {}
 
+  std::unordered_map<std::string, const Variable*> ActivationLayer::parameters_map() const { return {}; }
+  std::unordered_map<std::string, Variable*>       ActivationLayer::parameters_map()       { return {}; }
+
+  tensor::Tensor<float> ActivationLayer::forward(tensor::Tensor<float> inputs)
+  {
+    saved_tensors = {inputs};
     return tensor::unary_map(inputs, [this](float input)
     {
-      switch(type)
+      switch(def.type)
       {
       case ActivationLayerDef::Type::IDENTITY:
         return input;
@@ -87,13 +86,13 @@ namespace kann
     });
   }
 
-  tensor::Tensor<float> ActivationLayerDef::backward(Layer& layer, tensor::Tensor<float> output_gradients) const
+  tensor::Tensor<float> ActivationLayer::backward(tensor::Tensor<float> output_gradients)
   {
-    auto inputs = layer.saved_tensors[0];
+    auto inputs = saved_tensors[0];
     return tensor::binary_map(inputs, output_gradients, [this](float input, float output_gradient)
     {
       float tmp;
-      switch(type)
+      switch(def.type)
       {
       case ActivationLayerDef::Type::IDENTITY:
         return output_gradient;

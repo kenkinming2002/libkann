@@ -4,7 +4,6 @@
 #include <libtensor/MaxCoeff.hpp>
 
 #include <libkann/Layer.hpp>
-#include <libkann/LayerStorage.hpp>
 #include <libkann/LayerDef.hpp>
 
 #include <libkann/datasets/MNIST.hpp>
@@ -45,7 +44,7 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function, tens
     auto images_batch = tensor::index_outer(images, sub_indices);
     auto labels_batch = tensor::index_outer(labels, sub_indices);
 
-    loss_function.shape = layer.def->get_output_shape();
+    loss_function.shape = layer.get_output_shape();
     loss_function.expected_outputs = std::move(labels_batch);
 
     auto preds_batch = layer.forward(std::move(images_batch));
@@ -54,7 +53,7 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function, tens
     auto grads_batch = loss_function.backward(std::move(ones_batch));
     layer.backward(std::move(grads_batch));
 
-    for(kann::Variable* parameter : layer.storage->get_parameters())
+    for(auto [name, parameter] : layer.parameters_map())
       optimizer.optimize(*parameter);
 
     optimizer.step();
@@ -96,7 +95,9 @@ int main(int argc, char** argv)
   std::random_device rd;
   std::default_random_engine prng(rd());
 
-  const auto layer         = kann::Layer::create_from(kann::LayerDef::load(file_name), prng);
+  const auto layer = kann::LayerDef::load(file_name)->create();
+  layer->initialize(prng);
+
   const auto optimizer     = create_optimizer(optimizer_name, optimizer_arg);
   const auto loss_function = create_loss_function(loss_function_name, loss_function_arg);
   const size_t batch_size = std::stoull(batch_size_str);

@@ -8,12 +8,11 @@
 
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
-#include <libkann/LayerStorage.hpp>
 
-#include <libkann/layer_defs/Activation.hpp>
-#include <libkann/layer_defs/Convolutional.hpp>
-#include <libkann/layer_defs/Dense.hpp>
-#include <libkann/layer_defs/SoftMax.hpp>
+#include <libkann/layers/Activation.hpp>
+#include <libkann/layers/Convolutional.hpp>
+#include <libkann/layers/Dense.hpp>
+#include <libkann/layers/SoftMax.hpp>
 
 using Buffer = tensor::Buffer<float>;
 using Tensor = tensor::Tensor<float>;
@@ -22,7 +21,7 @@ using tensor::Shape;
 struct LayerDerivative
 {
   Tensor input;
-  std::vector<Tensor> parameters;
+  std::unordered_map<std::string, Tensor> parameters;
 };
 
 Tensor create_basis(size_t size, size_t i)
@@ -35,19 +34,11 @@ Tensor create_basis(size_t size, size_t i)
 
 inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const Tensor& random_input)
 {
-  const auto input_shape  = layer.def->get_input_shape();
-  const auto output_shape = layer.def->get_output_shape();
-
-  auto parameters = layer.storage->get_parameters();
-  const size_t parameters_count = parameters.size();
-
-  LayerDerivative derivative;
-  derivative.parameters.resize(parameters_count);
+  const auto input_shape  = layer.get_input_shape();
+  const auto output_shape = layer.get_output_shape();
 
   std::vector<Tensor> input_gradients;
-  std::vector<std::vector<Tensor>> parameters_gradients;
-  parameters_gradients.resize(parameters_count);
-
+  std::unordered_map<std::string, std::vector<Tensor>> parameters_gradients;
   for(size_t j=0; j<output_shape.size(); ++j)
   {
     auto input           = random_input.reshape(tensor::Shape::make(1, input_shape));
@@ -57,14 +48,15 @@ inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const T
     auto input_gradient  = layer.backward(std::move(output_gradient)).flatten();
 
     input_gradients.push_back(std::move(input_gradient));
-    parameters_gradients.push_back({});
-    for(size_t k=0; k<parameters_count; ++k)
-      parameters_gradients[k].push_back(parameters[k]->gradient);
+    for(const auto& [name, parameter] : layer.parameters_map())
+      parameters_gradients[name].push_back(parameter->gradient);
   }
 
+  LayerDerivative derivative;
   derivative.input = tensor::stack_outer(input_gradients);
-  for(size_t k=0; k<parameters_count; ++k)
-    derivative.parameters[k] = tensor::stack_outer(parameters_gradients[k]);
+  for(const auto& [name, parameter] : layer.parameters_map())
+    derivative.parameters.insert({name, tensor::stack_outer(parameters_gradients.at(name))});
+
   return derivative;
 }
 
@@ -79,8 +71,8 @@ Tensor perturb(Tensor value, size_t i, float diff)
 
 inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const Tensor& random_input, float dx)
 {
-  const tensor::Shape input_shape  = layer.def->get_input_shape();
-  const tensor::Shape output_shape = layer.def->get_output_shape();
+  const tensor::Shape input_shape  = layer.get_input_shape();
+  const tensor::Shape output_shape = layer.get_output_shape();
 
   LayerDerivative derivative;
 
@@ -99,7 +91,7 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const Te
   }
   derivative.input = tensor::stack_inner(output_gradients);
 
-  for(auto* parameter : layer.storage->get_parameters())
+  for(const auto& [name, parameter] : layer.parameters_map())
   {
     std::vector<Tensor> parameter_gradients;
     for(size_t i=0; i<parameter->shape.size(); ++i)
@@ -120,7 +112,7 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const Te
       auto output_gradient = tensor::binary_map(output2, output1, [&dx](float output2, float output1){ return (output2 - output1) / dx; });
       parameter_gradients.push_back(std::move(output_gradient));
     }
-    derivative.parameters.push_back(tensor::stack_inner(parameter_gradients));
+    derivative.parameters.insert({name, tensor::stack_inner(parameter_gradients)});
   }
   return derivative;
 }
@@ -129,7 +121,7 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
 {
   static constexpr float DX = 0.0005f;
 
-  auto random_input = tensor::create_uniform(layer->def->get_input_shape(), -1.0f, 1.0f, prng);
+  auto random_input = tensor::create_uniform(layer->get_input_shape(), -1.0f, 1.0f, prng);
 
   LayerDerivative analytical = compute_analytical_derivative(*layer, random_input);
   LayerDerivative numerical  = compute_numerical_derivative(*layer, random_input, DX);
@@ -143,8 +135,10 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
     REQUIRE(std::abs(analytical_value - numerical_value) <= 0.001f);
   }
 
-  for(const auto& [analytical_derivative, numerical_derivative] : ranges::views::zip(analytical.parameters, numerical.parameters))
+  for(const auto& [name, analytical_derivative] : analytical.parameters)
   {
+    const auto& numerical_derivative = numerical.parameters.at(name);
+
     auto analytical_values = analytical_derivative.buffer->data();
     auto numerical_values  = numerical_derivative.buffer->data();
 
@@ -164,7 +158,8 @@ static void test_layer_def(std::shared_ptr<const kann::LayerDef> layer_def)
   static std::random_device rd;
   static std::default_random_engine prng(rd());
 
-  std::shared_ptr<kann::Layer> layer = kann::Layer::create_from(std::move(layer_def), prng);
+  std::shared_ptr<kann::Layer> layer = layer_def->create();
+  layer->initialize(prng);
   test_layer(std::move(layer), prng);
 }
 

@@ -1,4 +1,4 @@
-#include <libkann/layer_defs/SoftMax.hpp>
+#include <libkann/layers/SoftMax.hpp>
 
 #include <libkann/Layer.hpp>
 
@@ -25,22 +25,24 @@ namespace kann
     return layer_def;
   }
 
-  std::shared_ptr<LayerStorage> SoftMaxLayerDef::create(std::default_random_engine& prng) const
+  std::shared_ptr<Layer> SoftMaxLayerDef::create() const
   {
-    return std::make_shared<LayerStorage>();
+    auto layer = std::make_shared<SoftMaxLayer>();
+    layer->def = *this;
+    return layer;
   }
 
-  tensor::Shape SoftMaxLayerDef::get_input_shape() const
-  {
-    return shape;
-  }
+  const LayerDef& SoftMaxLayer::get_def() const { return def; }
 
-  tensor::Shape SoftMaxLayerDef::get_output_shape() const
-  {
-    return shape;
-  }
+  tensor::Shape SoftMaxLayer::get_input_shape()  const { return def.shape; }
+  tensor::Shape SoftMaxLayer::get_output_shape() const { return def.shape; }
 
-  tensor::Tensor<float> SoftMaxLayerDef::forward(Layer& layer, tensor::Tensor<float> inputs) const
+  void SoftMaxLayer::initialize(std::default_random_engine& prng) {}
+
+  std::unordered_map<std::string, const Variable*> SoftMaxLayer::parameters_map() const { return {}; }
+  std::unordered_map<std::string, Variable*>       SoftMaxLayer::parameters_map()       { return {}; }
+
+  tensor::Tensor<float> SoftMaxLayer::forward(tensor::Tensor<float> inputs)
   {
     inputs = inputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
 
@@ -49,18 +51,13 @@ namespace kann
     auto outputs = tensor::broadcast_div_inner<float>(exps, factors);
 
     outputs = outputs.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
-
-    // It is actually better to save outouts
-    layer.saved_tensors.clear();
-    layer.saved_tensors.reserve(1);
-    layer.saved_tensors.push_back(outputs);
-
+    saved_tensors = { outputs };
     return outputs;
   }
 
-  tensor::Tensor<float> SoftMaxLayerDef::backward(Layer& layer, tensor::Tensor<float> output_gradients) const
+  tensor::Tensor<float> SoftMaxLayer::backward(tensor::Tensor<float> output_gradients)
   {
-    auto outputs = layer.saved_tensors[0];
+    auto outputs = saved_tensors[0];
 
     outputs          = outputs         .flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
     output_gradients = output_gradients.flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
