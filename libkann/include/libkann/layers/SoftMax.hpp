@@ -13,10 +13,6 @@ namespace kann
     tensor::Shape shape;
 
   public:
-    KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer_def);
-    KANN_EXPORT static std::shared_ptr<const LayerDef> load(YAML::Node node);
-
-  public:
     KANN_EXPORT std::shared_ptr<Layer> create() const override;
   };
 

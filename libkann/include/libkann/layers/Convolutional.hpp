@@ -16,10 +16,6 @@ namespace kann
     tensor::Vec2 input_size, output_size, kernel_size;
 
   public:
-    KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer_def);
-    KANN_EXPORT static std::shared_ptr<const LayerDef> load(YAML::Node node);
-
-  public:
     KANN_EXPORT std::shared_ptr<Layer> create() const override;
   };
 

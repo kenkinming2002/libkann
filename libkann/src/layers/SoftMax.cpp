@@ -11,18 +11,18 @@
 
 namespace kann
 {
-  YAML::Node SoftMaxLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
+  template<> YAML::Node LayerDef::save_impl(const SoftMaxLayerDef& def)
   {
     YAML::Node node;
-    node["shape"] = tensor::Shape::to_vector(std::static_pointer_cast<const SoftMaxLayerDef>(layer_def)->shape);
+    node["shape"] = tensor::Shape::to_vector(def.shape);
     return node;
   }
 
-  std::shared_ptr<const LayerDef> SoftMaxLayerDef::load(YAML::Node node)
+  template<> SoftMaxLayerDef LayerDef::load_impl(const YAML::Node& node)
   {
-    auto layer_def = std::make_shared<SoftMaxLayerDef>();
-    layer_def->shape = tensor::Shape::from_vector(node["shape"].as<std::vector<size_t>>());
-    return layer_def;
+    SoftMaxLayerDef def;
+    def.shape = tensor::Shape::from_vector(node["shape"].as<std::vector<size_t>>());
+    return def;
   }
 
   std::shared_ptr<Layer> SoftMaxLayerDef::create() const

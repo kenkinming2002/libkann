@@ -33,22 +33,21 @@ namespace kann
       throw std::runtime_error("Unknown activation function type - " + name);
   }
 
-  YAML::Node ActivationLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
+  template<> YAML::Node LayerDef::save_impl(const ActivationLayerDef& def)
   {
     YAML::Node node;
-    node["shape"]    = tensor::Shape::to_vector(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->shape);
-    node["function"] = to_string(std::static_pointer_cast<const ActivationLayerDef>(layer_def)->type);
+    node["shape"]    = tensor::Shape::to_vector(def.shape);
+    node["function"] = to_string(def.type);
     return node;
   }
 
-  std::shared_ptr<const LayerDef> ActivationLayerDef::load(YAML::Node node)
+  template<> ActivationLayerDef LayerDef::load_impl(const YAML::Node& node)
   {
-    auto layer_def = std::make_shared<ActivationLayerDef>();
-    layer_def->shape = tensor::Shape::from_vector(node["shape"].as<std::vector<size_t>>());
-    layer_def->type  = from_string(node["function"].as<std::string>());
-    return layer_def;
+    ActivationLayerDef def;
+    def.shape = tensor::Shape::from_vector(node["shape"].as<std::vector<size_t>>());
+    def.type  = from_string(node["function"].as<std::string>());
+    return def;
   }
-
 
   std::shared_ptr<Layer> ActivationLayerDef::create() const
   {

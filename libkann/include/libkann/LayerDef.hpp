@@ -7,6 +7,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <typeinfo>
+#include <typeindex>
 
 #include <vector>
 #include <random>
@@ -24,18 +25,34 @@ namespace kann
     KANN_EXPORT static std::shared_ptr<const LayerDef> load(std::istream& is);
 
   public:
-    using save_t = YAML::Node(*)(std::shared_ptr<const LayerDef>);
-    using load_t = std::shared_ptr<const LayerDef>(*)(YAML::Node);
-
-  public:
-    KANN_EXPORT static void register_save_load(std::string name, const std::type_info& type_info, save_t save, load_t load);
-
-    template<typename T>
-    static void register_save_load(std::string name) { register_save_load(std::move(name), typeid(T), T::save, T::load); }
-
-  public:
     KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer);
     KANN_EXPORT static std::shared_ptr<const LayerDef> load(YAML::Node node);
+
+  public:
+    template<typename T> static YAML::Node save_impl(const T& def);
+    template<typename T> static T load_impl(const YAML::Node& node);
+
+  public:
+    struct Info
+    {
+      std::string     type_name;
+      std::type_index type_index;
+
+      YAML::Node(*save)(const std::shared_ptr<const LayerDef>& def);
+      std::shared_ptr<const LayerDef>(*load)(const YAML::Node& node);
+    };
+    KANN_EXPORT static void register_save_load(Info info);
+
+    template<typename T>
+    static void register_save_load(std::string name)
+    {
+      register_save_load(Info{
+        .type_name  = std::move(name),
+        .type_index = std::type_index(typeid(T)),
+        .save = [](const std::shared_ptr<const LayerDef>& def) -> YAML::Node                      { return save_impl<T>(static_cast<const T&>(*def));    },
+        .load = [](const YAML::Node& node)                     -> std::shared_ptr<const LayerDef> { return std::make_shared<const T>(load_impl<T>(node)); },
+      });
+    }
 
   public:
     KANN_EXPORT virtual ~LayerDef() = default;

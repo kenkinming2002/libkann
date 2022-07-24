@@ -11,20 +11,20 @@
 
 namespace kann
 {
-  YAML::Node DenseLayerDef::save(std::shared_ptr<const LayerDef> layer_def)
+  template<> YAML::Node LayerDef::save_impl(const DenseLayerDef& def)
   {
     YAML::Node node;
-    node["input_shape"]  = tensor::Shape::to_vector(std::static_pointer_cast<const DenseLayerDef>(layer_def)->input_shape);
-    node["output_shape"] = tensor::Shape::to_vector(std::static_pointer_cast<const DenseLayerDef>(layer_def)->output_shape);
+    node["input_shape"]  = tensor::Shape::to_vector(def.input_shape);
+    node["output_shape"] = tensor::Shape::to_vector(def.output_shape);
     return node;
   }
 
-  std::shared_ptr<const LayerDef> DenseLayerDef::load(YAML::Node node)
+  template<> DenseLayerDef LayerDef::load_impl(const YAML::Node& node)
   {
-    auto layer_def = std::make_shared<DenseLayerDef>();
-    layer_def->input_shape  = tensor::Shape::from_vector(node["input_shape"].as<std::vector<size_t>>());
-    layer_def->output_shape = tensor::Shape::from_vector(node["output_shape"].as<std::vector<size_t>>());
-    return layer_def;
+    DenseLayerDef def;
+    def.input_shape  = tensor::Shape::from_vector(node["input_shape"].as<std::vector<size_t>>());
+    def.output_shape = tensor::Shape::from_vector(node["output_shape"].as<std::vector<size_t>>());
+    return def;
   }
 
   std::shared_ptr<Layer> DenseLayerDef::create() const

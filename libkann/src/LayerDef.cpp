@@ -33,60 +33,41 @@ namespace kann
     return load(root);
   }
 
-  namespace
+  static auto& type_name_map()
   {
-    struct Info
-    {
-      std::string name;
-      std::type_index type_index;
-
-      LayerDef::save_t save;
-      LayerDef::load_t load;
-    };
-
-    auto& name_map()
-    {
-      static std::unordered_map<std::string, Info> instance;
-      return instance;
-    }
-
-    auto& type_index_map()
-    {
-      static std::unordered_map<std::type_index, Info> instance;
-      return instance;
-    }
+    static std::unordered_map<std::string, LayerDef::Info> instance;
+    return instance;
   }
 
-  void LayerDef::register_save_load(std::string name, const std::type_info& type_info, save_t save, load_t load)
+  static auto& type_index_map()
   {
-    auto type_index = std::type_index(type_info);
-    auto info = Info{
-      .name       = name,
-      .type_index = type_index,
-      .save       = save,
-      .load       = load
-    };
-    name_map()      .emplace(name,       info);
-    type_index_map().emplace(type_index, info);
+    static std::unordered_map<std::type_index, LayerDef::Info> instance;
+    return instance;
   }
 
   YAML::Node LayerDef::save(std::shared_ptr<const LayerDef> layer)
   {
-    auto type_index = std::type_index(typeid(*layer));
+    const auto& type_index = std::type_index(typeid(*layer));
     const auto& info = type_index_map().at(type_index);
 
     auto node = info.save(layer);
-    node["type"] = info.name;
+    node["type"] = info.type_name;
     return node;
   }
 
   std::shared_ptr<const LayerDef> LayerDef::load(YAML::Node node)
   {
-    auto name = node["type"].as<std::string>();
-    const auto& info = name_map().at(name);
+    const auto& type_name = node["type"].as<std::string>();
+    const auto& info = type_name_map().at(type_name);
 
     node.remove("type");
     auto layer = info.load(node);
     return layer;
+  }
+
+  void LayerDef::register_save_load(Info info)
+  {
+    type_index_map().emplace(info.type_index, info);
+    type_name_map() .emplace(info.type_name,  info);
   }
 }
