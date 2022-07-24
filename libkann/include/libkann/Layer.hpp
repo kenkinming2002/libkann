@@ -1,11 +1,11 @@
 #pragma once
 
 #include <libkann/Function.hpp>
-#include <libkann/LayerDef.hpp>
 #include <libkann/Variable.hpp>
 
 namespace kann
 {
+  struct LayerDef;
   struct KANN_EXPORT Layer : public Function
   {
   // Could I auto-magically generate them? Unfortunately, c++ have no reflection support.
