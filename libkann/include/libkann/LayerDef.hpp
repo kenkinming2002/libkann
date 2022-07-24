@@ -56,6 +56,6 @@ namespace kann
 
   public:
     KANN_EXPORT virtual ~LayerDef() = default;
-    KANN_EXPORT virtual std::shared_ptr<Layer> create() const { assert(false && "Unimplemented"); };
+    KANN_EXPORT virtual std::shared_ptr<Layer> create() const = 0;
   };
 }
