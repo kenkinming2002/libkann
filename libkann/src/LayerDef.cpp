@@ -12,24 +12,13 @@ namespace kann
     std::ofstream of;
     of.exceptions(std::ofstream::badbit | std::ofstream::failbit);
     of.open(filename);
-    save(std::move(def), of);
-  }
-
-  void LayerDef::save(std::shared_ptr<const LayerDef> def, std::ostream& os)
-  {
     YAML::Node root = save(def);
-    os << root;
+    of << root;
   }
 
   std::shared_ptr<const LayerDef> LayerDef::load(const std::string& filename)
   {
     YAML::Node root = YAML::LoadFile(filename);
-    return load(root);
-  }
-
-  std::shared_ptr<const LayerDef> LayerDef::load(std::istream& is)
-  {
-    YAML::Node root = YAML::Load(is);
     return load(root);
   }
 

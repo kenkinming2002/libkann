@@ -19,10 +19,7 @@ namespace kann
   {
   public:
     KANN_EXPORT static void save(std::shared_ptr<const LayerDef> def, const std::string& filename);
-    KANN_EXPORT static void save(std::shared_ptr<const LayerDef> def, std::ostream& os);
-
     KANN_EXPORT static std::shared_ptr<const LayerDef> load(const std::string& filename);
-    KANN_EXPORT static std::shared_ptr<const LayerDef> load(std::istream& is);
 
   public:
     KANN_EXPORT static YAML::Node save(std::shared_ptr<const LayerDef> layer);
