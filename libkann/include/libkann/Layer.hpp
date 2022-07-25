@@ -8,6 +8,10 @@ namespace kann
   struct LayerDef;
   struct KANN_EXPORT Layer : public Function
   {
+  public:
+    KANN_EXPORT void save_parameters(const std::string& dirname, bool include_gradient) const;
+    KANN_EXPORT void load_parameters(const std::string& dirname, bool include_gradient);
+
   // Could I auto-magically generate them? Unfortunately, c++ have no reflection support.
   // All of them should be pretty easy to generate
   public:
@@ -23,4 +27,5 @@ namespace kann
     KANN_EXPORT virtual std::unordered_map<std::string, const Variable*> parameters_map() const = 0;
     KANN_EXPORT virtual std::unordered_map<std::string, Variable*>       parameters_map()       = 0;
   };
+
 }
