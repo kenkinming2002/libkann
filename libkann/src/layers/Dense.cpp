@@ -7,11 +7,12 @@
 #include <libtensor/Reduce.hpp>
 #include <libtensor/Broadcast.hpp>
 
+#include <libkann/SL.hpp>
 #include <libkann/Layer.hpp>
 
 namespace kann
 {
-  template<> YAML::Node LayerDef::save_impl(const DenseLayerDef& def)
+  template<> YAML::Node save_layer_def_impl(const DenseLayerDef& def)
   {
     YAML::Node node;
     node["input_shape"]  = tensor::Shape::to_vector(def.input_shape);
@@ -19,7 +20,7 @@ namespace kann
     return node;
   }
 
-  template<> DenseLayerDef LayerDef::load_impl(const YAML::Node& node)
+  template<> DenseLayerDef load_layer_def_impl(const YAML::Node& node)
   {
     DenseLayerDef def;
     def.input_shape  = tensor::Shape::from_vector(node["input_shape"].as<std::vector<size_t>>());

@@ -1,5 +1,6 @@
 libkann_sources = [
   'Initialize.cpp',
+  'SL.cpp',
 
   # Layers
   'Layer.cpp',

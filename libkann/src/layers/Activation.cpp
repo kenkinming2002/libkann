@@ -1,5 +1,6 @@
 #include <libkann/layers/Activation.hpp>
 
+#include <libkann/SL.hpp>
 #include <libkann/Layer.hpp>
 
 #include <libtensor/Map.hpp>
@@ -33,7 +34,7 @@ namespace kann
       throw std::runtime_error("Unknown activation function type - " + name);
   }
 
-  template<> YAML::Node LayerDef::save_impl(const ActivationLayerDef& def)
+  template<> YAML::Node save_layer_def_impl(const ActivationLayerDef& def)
   {
     YAML::Node node;
     node["shape"]    = tensor::Shape::to_vector(def.shape);
@@ -41,7 +42,7 @@ namespace kann
     return node;
   }
 
-  template<> ActivationLayerDef LayerDef::load_impl(const YAML::Node& node)
+  template<> ActivationLayerDef load_layer_def_impl(const YAML::Node& node)
   {
     ActivationLayerDef def;
     def.shape = tensor::Shape::from_vector(node["shape"].as<std::vector<size_t>>());

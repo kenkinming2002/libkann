@@ -1,6 +1,6 @@
 #include <libkann/Initialize.hpp>
 
-#include <libkann/LayerDef.hpp>
+#include <libkann/SL.hpp>
 
 #include <libkann/layers/Activation.hpp>
 #include <libkann/layers/Convolutional.hpp>
@@ -16,10 +16,10 @@ namespace kann
   {
     feenableexcept(FE_INVALID);
 
-    LayerDef::register_save_load<ActivationLayerDef>("activation");
-    LayerDef::register_save_load<ConvolutionalLayerDef>("convolution");
-    LayerDef::register_save_load<SequentialLayerDef>("sequential");
-    LayerDef::register_save_load<DenseLayerDef>("dense");
-    LayerDef::register_save_load<SoftMaxLayerDef>("softmax");
+    layer_def_sl_register<ActivationLayerDef>("activation");
+    layer_def_sl_register<ConvolutionalLayerDef>("convolution");
+    layer_def_sl_register<SequentialLayerDef>("sequential");
+    layer_def_sl_register<DenseLayerDef>("dense");
+    layer_def_sl_register<SoftMaxLayerDef>("softmax");
   }
 }

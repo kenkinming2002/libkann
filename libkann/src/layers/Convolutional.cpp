@@ -2,13 +2,15 @@
 
 #include <libtensor/Tensor.hpp>
 #include <libtensor/Initializer.hpp>
+
+#include <libkann/SL.hpp>
 #include <libkann/Layer.hpp>
 
 #include <libtensor/Image.hpp>
 
 namespace kann
 {
-  template<> YAML::Node LayerDef::save_impl(const ConvolutionalLayerDef& def)
+  template<> YAML::Node save_layer_def_impl(const ConvolutionalLayerDef& def)
   {
     YAML::Node node;
     node["input_channel_count"]  = def.input_channel_count;
@@ -22,7 +24,7 @@ namespace kann
     return node;
   }
 
-  template<> ConvolutionalLayerDef LayerDef::load_impl(const YAML::Node& node)
+  template<> ConvolutionalLayerDef load_layer_def_impl(const YAML::Node& node)
   {
     ConvolutionalLayerDef def;
     def.input_channel_count  = node["input_channel_count"].as<size_t>();

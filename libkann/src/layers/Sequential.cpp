@@ -1,5 +1,6 @@
 #include <libkann/layers/Sequential.hpp>
 
+#include <libkann/SL.hpp>
 #include <libkann/Layer.hpp>
 
 #include <range/v3/all.hpp>
@@ -9,21 +10,21 @@
 
 namespace kann
 {
-  template<> YAML::Node LayerDef::save_impl(const SequentialLayerDef& def)
+  template<> YAML::Node save_layer_def_impl(const SequentialLayerDef& def)
   {
     YAML::Node node;
     node["layers"] = def.defs
-      | ranges::views::transform([&](const auto& def) { return LayerDef::save(def); } )
+      | ranges::views::transform([&](const auto& def) { return save_layer_def(def); } )
       | ranges::to_vector;
     return node;
   }
 
-  template<> SequentialLayerDef LayerDef::load_impl(const YAML::Node& node)
+  template<> SequentialLayerDef load_layer_def_impl(const YAML::Node& node)
   {
     SequentialLayerDef def;
     auto layers_node = node["layers"];
     def.defs = layers_node
-      | ranges::views::transform([](YAML::Node child) { return LayerDef::load(child); })
+      | ranges::views::transform([](YAML::Node child) { return load_layer_def(child); })
       | ranges::to_vector;
 
     return def;

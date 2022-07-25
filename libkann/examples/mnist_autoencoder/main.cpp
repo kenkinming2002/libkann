@@ -3,6 +3,8 @@
 #include <libtensor/Tensor.hpp>
 #include <libtensor/MaxCoeff.hpp>
 
+#include <libkann/SL.hpp>
+
 #include <libkann/Layer.hpp>
 #include <libkann/LayerDef.hpp>
 #include <libkann/layers/Sequential.hpp>
@@ -158,7 +160,7 @@ int main(int argc, char** argv)
   std::random_device rd;
   std::default_random_engine prng(rd());
 
-  const auto layer = kann::LayerDef::load(file_name)->create();
+  const auto layer = kann::load_layer_def(file_name)->create();
   layer->initialize(prng);
   const auto encoder   = std::static_pointer_cast<kann::SequentialLayer>(layer)->layers.at(0);
   const auto decoder   = std::static_pointer_cast<kann::SequentialLayer>(layer)->layers.at(1);
