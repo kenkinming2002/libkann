@@ -13,7 +13,6 @@ libkann_sources = [
 
   # Datasets
   'datasets/MNIST.cpp',
-  'datasets/Random.cpp',
 
   # Optimizers
   #'Optimizer.cpp',
