@@ -49,9 +49,9 @@ namespace kann
   }
 
   // Layer save/load
-  KANN_EXPORT void layer_save_parameters(const Layer& layer, const std::string& dirname, bool include_gradient);
-  KANN_EXPORT void layer_load_parameters(Layer& layer, const std::string& dirname, bool include_gradient);
+  KANN_EXPORT void save_layer_parameters(const Layer& layer, const std::string& dirname, bool include_gradient);
+  KANN_EXPORT void load_layer_parameters(Layer& layer, const std::string& dirname, bool include_gradient);
 
-  KANN_EXPORT void layer_save(const Layer& layer, const std::string& dirname, bool include_gradient);
-  KANN_EXPORT std::unique_ptr<Layer> layer_load(const std::string& dirname, bool include_gradient);
+  KANN_EXPORT void save_layer(const Layer& layer, const std::string& dirname, bool include_gradient);
+  KANN_EXPORT std::unique_ptr<Layer> load_layer(const std::string& dirname, bool include_gradient);
 }

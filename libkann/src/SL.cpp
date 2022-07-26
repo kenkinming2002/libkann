@@ -66,7 +66,7 @@ namespace kann
     type_name_map() .emplace(info.type_name,  info);
   }
 
-  void layer_save_parameters(const Layer& layer, const std::string& dirname, bool include_gradient)
+  void save_layer_parameters(const Layer& layer, const std::string& dirname, bool include_gradient)
   {
     std::filesystem::create_directories(dirname);
     for(const auto& [name, parameter] : layer.parameters_map())
@@ -77,7 +77,7 @@ namespace kann
     }
   }
 
-  void layer_load_parameters(Layer& layer, const std::string& dirname, bool include_gradient)
+  void load_layer_parameters(Layer& layer, const std::string& dirname, bool include_gradient)
   {
     for(const auto& [name, parameter] : layer.parameters_map())
     {
@@ -87,17 +87,17 @@ namespace kann
     }
   }
 
-  void layer_save(const Layer& layer, const std::string& dirname, bool include_gradient)
+  void save_layer(const Layer& layer, const std::string& dirname, bool include_gradient)
   {
     save_layer_def(layer.get_def(), fmt::format("{}/layer.def", dirname));
-    layer_save_parameters(layer, dirname, include_gradient);
+    save_layer_parameters(layer, dirname, include_gradient);
   }
 
-  std::unique_ptr<Layer> layer_load(const std::string& dirname, bool include_gradient)
+  std::unique_ptr<Layer> load_layer(const std::string& dirname, bool include_gradient)
   {
     auto def = load_layer_def(fmt::format("{}/layer.def", dirname));
     auto layer = def->create();
-    layer_load_parameters(*layer, dirname, include_gradient);
+    load_layer_parameters(*layer, dirname, include_gradient);
     return layer;
   }
 }
