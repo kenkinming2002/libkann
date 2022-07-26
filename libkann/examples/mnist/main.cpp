@@ -45,7 +45,6 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function, tens
     auto images_batch = tensor::index_outer(images, sub_indices);
     auto labels_batch = tensor::index_outer(labels, sub_indices);
 
-    loss_function.shape = layer.get_output_shape();
     loss_function.expected_outputs = std::move(labels_batch);
 
     auto preds_batch = layer.forward(std::move(images_batch));
