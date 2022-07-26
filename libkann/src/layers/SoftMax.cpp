@@ -26,9 +26,9 @@ namespace kann
     return def;
   }
 
-  std::shared_ptr<Layer> SoftMaxLayerDef::create() const
+  std::unique_ptr<Layer> SoftMaxLayerDef::create() const
   {
-    auto layer = std::make_shared<SoftMaxLayer>();
+    auto layer = std::make_unique<SoftMaxLayer>();
     layer->def = *this;
     return layer;
   }

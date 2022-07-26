@@ -28,9 +28,9 @@ namespace kann
     return def;
   }
 
-  std::shared_ptr<Layer> DenseLayerDef::create() const
+  std::unique_ptr<Layer> DenseLayerDef::create() const
   {
-    auto layer = std::make_shared<DenseLayer>();
+    auto layer = std::make_unique<DenseLayer>();
     layer->def = *this;
     return layer;
   }

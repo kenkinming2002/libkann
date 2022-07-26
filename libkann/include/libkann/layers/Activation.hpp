@@ -22,7 +22,7 @@ namespace kann
     Type type;
 
   public:
-    KANN_EXPORT std::shared_ptr<Layer> create() const override;
+    KANN_EXPORT std::unique_ptr<Layer> create() const override;
   };
 
   struct KANN_EXPORT ActivationLayer final : public Layer

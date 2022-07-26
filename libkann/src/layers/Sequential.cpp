@@ -32,9 +32,9 @@ namespace kann
     return def;
   }
 
-  std::shared_ptr<Layer> SequentialLayerDef::create() const
+  std::unique_ptr<Layer> SequentialLayerDef::create() const
   {
-    auto layer = std::make_shared<SequentialLayer>();
+    auto layer = std::make_unique<SequentialLayer>();
     layer->def = *this;
     for(const auto& def : defs)
       layer->layers.push_back(def->create());

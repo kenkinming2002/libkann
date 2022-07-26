@@ -162,8 +162,8 @@ int main(int argc, char** argv)
 
   const auto layer = kann::load_layer_def(file_name)->create();
   layer->initialize(prng);
-  const auto encoder   = std::static_pointer_cast<kann::SequentialLayer>(layer)->layers.at(0);
-  const auto decoder   = std::static_pointer_cast<kann::SequentialLayer>(layer)->layers.at(1);
+  const auto encoder   = static_cast<kann::SequentialLayer*>(layer.get())->layers.at(0);
+  const auto decoder   = static_cast<kann::SequentialLayer*>(layer.get())->layers.at(1);
 
   const auto optimizer     = create_optimizer(optimizer_name, optimizer_arg);
   const auto loss_function = create_loss_function(loss_function_name, loss_function_arg);

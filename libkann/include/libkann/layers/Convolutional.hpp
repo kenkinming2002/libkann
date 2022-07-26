@@ -16,7 +16,7 @@ namespace kann
     tensor::Vec2 input_size, output_size, kernel_size;
 
   public:
-    KANN_EXPORT std::shared_ptr<Layer> create() const override;
+    KANN_EXPORT std::unique_ptr<Layer> create() const override;
   };
 
   struct ConvolutionalLayer : public Layer

@@ -35,9 +35,9 @@ namespace kann
     return def;
   }
 
-  std::shared_ptr<Layer> ConvolutionalLayerDef::create() const
+  std::unique_ptr<Layer> ConvolutionalLayerDef::create() const
   {
-    auto layer = std::make_shared<ConvolutionalLayer>();
+    auto layer = std::make_unique<ConvolutionalLayer>();
     layer->def = *this;
     return layer;
   }

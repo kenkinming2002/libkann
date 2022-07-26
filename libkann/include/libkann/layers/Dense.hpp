@@ -13,7 +13,7 @@ namespace kann
     tensor::Shape input_shape, output_shape;
 
   public:
-    KANN_EXPORT std::shared_ptr<Layer> create() const override;
+    KANN_EXPORT std::unique_ptr<Layer> create() const override;
   };
 
   struct DenseLayer : public Layer

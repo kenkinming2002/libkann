@@ -50,9 +50,9 @@ namespace kann
     return def;
   }
 
-  std::shared_ptr<Layer> ActivationLayerDef::create() const
+  std::unique_ptr<Layer> ActivationLayerDef::create() const
   {
-    auto layer = std::make_shared<ActivationLayer>();
+    auto layer = std::make_unique<ActivationLayer>();
     layer->def = *this;
     return layer;
   }
