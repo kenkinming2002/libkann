@@ -1,3 +1,3 @@
 #pragma once
 
-#define KANN_EXPORT __attribute__ ((visibility ("default")))
+#define LIBKANN_EXPORT __attribute__ ((visibility ("default")))

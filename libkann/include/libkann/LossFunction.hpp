@@ -7,7 +7,7 @@
 
 namespace kann
 {
-  struct KANN_EXPORT LossFunction : public Function
+  struct LIBKANN_EXPORT LossFunction : public Function
   {
   public:
     std::optional<tensor::Tensor<float>> expected_outputs;

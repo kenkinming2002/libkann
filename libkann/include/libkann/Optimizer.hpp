@@ -9,10 +9,10 @@ namespace kann
   class Optimizer
   {
   public:
-    KANN_EXPORT virtual ~Optimizer() = default;
+    LIBKANN_EXPORT virtual ~Optimizer() = default;
 
   public:
-    KANN_EXPORT virtual void step() {}
-    KANN_EXPORT virtual void optimize(Variable& variable) const = 0;
+    LIBKANN_EXPORT virtual void step() {}
+    LIBKANN_EXPORT virtual void optimize(Variable& variable) const = 0;
   };
 }

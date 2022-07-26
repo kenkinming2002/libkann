@@ -10,7 +10,7 @@ namespace kann
   struct LayerDef
   {
   public:
-    KANN_EXPORT virtual ~LayerDef() = default;
-    KANN_EXPORT virtual std::unique_ptr<Layer> create() const = 0;
+    LIBKANN_EXPORT virtual ~LayerDef() = default;
+    LIBKANN_EXPORT virtual std::unique_ptr<Layer> create() const = 0;
   };
 }

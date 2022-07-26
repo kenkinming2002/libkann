@@ -6,18 +6,18 @@
 namespace kann
 {
   struct LayerDef;
-  struct KANN_EXPORT Layer : public Function
+  struct LIBKANN_EXPORT Layer : public Function
   {
   // Could I auto-magically generate them? Unfortunately, c++ have no reflection support.
   // All of them should be pretty easy to generate
   public:
-    KANN_EXPORT virtual const LayerDef& get_def() const = 0;
+    LIBKANN_EXPORT virtual const LayerDef& get_def() const = 0;
 
   public:
-    KANN_EXPORT virtual void initialize(std::default_random_engine& prng) = 0;
+    LIBKANN_EXPORT virtual void initialize(std::default_random_engine& prng) = 0;
 
-    KANN_EXPORT virtual std::unordered_map<std::string, const Variable*> parameters_map() const = 0;
-    KANN_EXPORT virtual std::unordered_map<std::string, Variable*>       parameters_map()       = 0;
+    LIBKANN_EXPORT virtual std::unordered_map<std::string, const Variable*> parameters_map() const = 0;
+    LIBKANN_EXPORT virtual std::unordered_map<std::string, Variable*>       parameters_map()       = 0;
   };
 
 }

@@ -4,5 +4,5 @@
 
 namespace kann
 {
-  KANN_EXPORT void initialize();
+  LIBKANN_EXPORT void initialize();
 }

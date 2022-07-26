@@ -16,11 +16,11 @@ namespace kann
 
   // LayerDef save/load
 
-  KANN_EXPORT void save_layer_def(const LayerDef& def, const std::string& filename);
-  KANN_EXPORT std::unique_ptr<LayerDef> load_layer_def(const std::string& filename);
+  LIBKANN_EXPORT void save_layer_def(const LayerDef& def, const std::string& filename);
+  LIBKANN_EXPORT std::unique_ptr<LayerDef> load_layer_def(const std::string& filename);
 
-  KANN_EXPORT YAML::Node save_layer_def(const LayerDef& layer);
-  KANN_EXPORT std::unique_ptr<LayerDef> load_layer_def(YAML::Node node);
+  LIBKANN_EXPORT YAML::Node save_layer_def(const LayerDef& layer);
+  LIBKANN_EXPORT std::unique_ptr<LayerDef> load_layer_def(YAML::Node node);
 
   // LayerDef save/load specializaton
   // Again, ideally, we would have reflection support in c++, but we do not
@@ -37,7 +37,7 @@ namespace kann
     std::unique_ptr<LayerDef>(*load)(const YAML::Node& node);
   };
 
-  KANN_EXPORT void layer_def_sl_register(LayerDefInfo info);
+  LIBKANN_EXPORT void layer_def_sl_register(LayerDefInfo info);
   template<typename T> void layer_def_sl_register(std::string name)
   {
     layer_def_sl_register(LayerDefInfo{
@@ -49,9 +49,9 @@ namespace kann
   }
 
   // Layer save/load
-  KANN_EXPORT void save_layer_parameters(const Layer& layer, const std::string& dirname, bool include_gradient);
-  KANN_EXPORT void load_layer_parameters(Layer& layer, const std::string& dirname, bool include_gradient);
+  LIBKANN_EXPORT void save_layer_parameters(const Layer& layer, const std::string& dirname, bool include_gradient);
+  LIBKANN_EXPORT void load_layer_parameters(Layer& layer, const std::string& dirname, bool include_gradient);
 
-  KANN_EXPORT void save_layer(const Layer& layer, const std::string& dirname, bool include_gradient);
-  KANN_EXPORT std::unique_ptr<Layer> load_layer(const std::string& dirname, bool include_gradient);
+  LIBKANN_EXPORT void save_layer(const Layer& layer, const std::string& dirname, bool include_gradient);
+  LIBKANN_EXPORT std::unique_ptr<Layer> load_layer(const std::string& dirname, bool include_gradient);
 }

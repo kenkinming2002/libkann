@@ -5,11 +5,11 @@
 
 namespace kann
 {
-  struct KANN_EXPORT CrossEntropyLossFunction : public LossFunction
+  struct LIBKANN_EXPORT CrossEntropyLossFunction : public LossFunction
   {
   public:
-    KANN_EXPORT tensor::Tensor<float> forward(tensor::Tensor<float> inputs) override;
-    KANN_EXPORT tensor::Tensor<float> backward(tensor::Tensor<float> output_gradients) override;
+    LIBKANN_EXPORT tensor::Tensor<float> forward(tensor::Tensor<float> inputs) override;
+    LIBKANN_EXPORT tensor::Tensor<float> backward(tensor::Tensor<float> output_gradients) override;
   };
 }
 

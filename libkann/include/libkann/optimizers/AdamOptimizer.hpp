@@ -6,14 +6,14 @@
 
 namespace kann
 {
-  class KANN_EXPORT AdamOptimizer : public Optimizer
+  class LIBKANN_EXPORT AdamOptimizer : public Optimizer
   {
   public:
-    KANN_EXPORT AdamOptimizer(float alpha, float beta1, float beta2, float epsilon);
+    LIBKANN_EXPORT AdamOptimizer(float alpha, float beta1, float beta2, float epsilon);
 
   public:
-    KANN_EXPORT void step() override;
-    KANN_EXPORT void optimize(Variable& variable) const override;
+    LIBKANN_EXPORT void step() override;
+    LIBKANN_EXPORT void optimize(Variable& variable) const override;
 
   private:
     float m_alpha;
