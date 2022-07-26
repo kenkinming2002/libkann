@@ -111,14 +111,14 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, tensor::
   return derivative;
 }
 
-static inline void test_layer(std::shared_ptr<kann::Layer> layer, tensor::Shape input_shape, tensor::Shape output_shape, auto& prng)
+static inline void test_layer(kann::Layer& layer, tensor::Shape input_shape, tensor::Shape output_shape, auto& prng)
 {
   static constexpr float DX = 0.0005f;
 
   auto random_input = tensor::create_uniform(input_shape, -1.0f, 1.0f, prng);
 
-  LayerDerivative analytical = compute_analytical_derivative(*layer, input_shape, output_shape, random_input);
-  LayerDerivative numerical  = compute_numerical_derivative(*layer, input_shape, output_shape, random_input, DX);
+  LayerDerivative analytical = compute_analytical_derivative(layer, input_shape, output_shape, random_input);
+  LayerDerivative numerical  = compute_numerical_derivative(layer, input_shape, output_shape, random_input, DX);
 
   auto analytical_values = analytical.input.buffer->data();
   auto numerical_values  = numerical .input.buffer->data();
@@ -147,66 +147,67 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, tensor::Shape 
   }
 }
 
-static void test_layer_def(std::shared_ptr<const kann::LayerDef> layer_def, tensor::Shape input_shape, tensor::Shape output_shape)
+static void test_layer_def(const kann::LayerDef& def, tensor::Shape input_shape, tensor::Shape output_shape)
 {
   static std::random_device rd;
   static std::default_random_engine prng(rd());
 
-  std::shared_ptr<kann::Layer> layer = layer_def->create();
+  auto layer = def.create();
   layer->initialize(prng);
-  test_layer(std::move(layer), input_shape, output_shape, prng);
+  test_layer(*layer, input_shape, output_shape, prng);
 }
 
 TEST_CASE("Gradcheck", "[gradcheck]")
 {
   SECTION("Activation Layer")
   {
-    auto layer_def = std::make_shared<kann::ActivationLayerDef>();
     auto shape = tensor::Shape::make(11, 23, 12);
 
+    kann::ActivationLayerDef def;
     SECTION("Identity")
     {
-      layer_def->type = kann::ActivationLayerDef::Type::IDENTITY;
-      test_layer_def(layer_def, shape, shape);
+      def.type = kann::ActivationLayerDef::Type::IDENTITY;
+      test_layer_def(def, shape, shape);
     }
 
     SECTION("Sigmoid")
     {
-      layer_def->type = kann::ActivationLayerDef::Type::SIGMOID;
-      test_layer_def(layer_def, shape, shape);
+      def.type = kann::ActivationLayerDef::Type::SIGMOID;
+      test_layer_def(def, shape, shape);
     }
 
     SECTION("Tanh")
     {
-      layer_def->type = kann::ActivationLayerDef::Type::TANH;
-      test_layer_def(layer_def, shape, shape);
+      def.type = kann::ActivationLayerDef::Type::TANH;
+      test_layer_def(def, shape, shape);
     }
   }
 
   SECTION("Convolutional Layer")
   {
-    auto layer_def = std::make_shared<kann::ConvolutionalLayerDef>();
-    layer_def->input_channel_count = 3;
-    layer_def->output_channel_count = 5;
-    layer_def->input_size = tensor::Vec2(8, 12);
-    layer_def->output_size = tensor::Vec2(4, 6);
-    layer_def->kernel_size = tensor::Vec2(5, 7);
-    test_layer_def(layer_def, tensor::Shape::make(3, 8, 12), tensor::Shape::make(5, 4, 6));
+    kann::ConvolutionalLayerDef def;
+    def.input_channel_count = 3;
+    def.output_channel_count = 5;
+    def.input_size = tensor::Vec2(8, 12);
+    def.output_size = tensor::Vec2(4, 6);
+    def.kernel_size = tensor::Vec2(5, 7);
+    test_layer_def(def, tensor::Shape::make(3, 8, 12), tensor::Shape::make(5, 4, 6));
   }
 
   SECTION("Dense Layer")
   {
-    auto layer_def = std::make_shared<kann::DenseLayerDef>();
-    layer_def->input_size  = 23;
-    layer_def->output_size = 41;
-    test_layer_def(layer_def, tensor::Shape::make(23), tensor::Shape::make(41));
+    kann::DenseLayerDef def;
+    def.input_size  = 23;
+    def.output_size = 41;
+    test_layer_def(def, tensor::Shape::make(23), tensor::Shape::make(41));
   }
 
   SECTION("Softmax")
   {
-    auto layer_def = std::make_shared<kann::SoftMaxLayerDef>();
     auto shape = tensor::Shape::make(7, 5, 6);
-    test_layer_def(layer_def, shape, shape);
+
+    kann::SoftMaxLayerDef def;
+    test_layer_def(def, shape, shape);
   }
 }
 
