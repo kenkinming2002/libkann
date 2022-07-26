@@ -2,8 +2,12 @@ type: "sequential"
 layers:
   - type: "sequential"
     layers:
+      - type: "reshape"
+        input_shape : [28, 28]
+        output_shape : [784]
+
       - type: "dense"
-        input_shape : [1,28,28]
+        input_shape : [784]
         output_shape : [30]
 
       - type: "activation"
@@ -30,8 +34,12 @@ layers:
 
       - type: "dense"
         input_shape : [30]
-        output_shape : [1,28,28]
+        output_shape : [784]
 
       - type: "activation"
-        shape: [1,28,28]
+        shape: [784]
         function: "sigmoid"
+
+      - type: "reshape"
+        input_shape : [784]
+        output_shape : [28, 28]
