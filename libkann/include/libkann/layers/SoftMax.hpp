@@ -10,9 +10,6 @@ namespace kann
   struct KANN_EXPORT SoftMaxLayerDef : public LayerDef
   {
   public:
-    tensor::Shape shape;
-
-  public:
     KANN_EXPORT std::unique_ptr<Layer> create() const override;
   };
 
@@ -23,9 +20,6 @@ namespace kann
 
   public:
     KANN_EXPORT const LayerDef& get_def() const override;
-
-    KANN_EXPORT tensor::Shape get_input_shape()  const override;
-    KANN_EXPORT tensor::Shape get_output_shape() const override;
 
     KANN_EXPORT void initialize(std::default_random_engine& prng) override;
 

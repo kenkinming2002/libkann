@@ -4,8 +4,9 @@
 
 #include <libkann/layers/Activation.hpp>
 #include <libkann/layers/Convolutional.hpp>
-#include <libkann/layers/Sequential.hpp>
 #include <libkann/layers/Dense.hpp>
+#include <libkann/layers/Reshape.hpp>
+#include <libkann/layers/Sequential.hpp>
 #include <libkann/layers/SoftMax.hpp>
 
 #include <fenv.h>
@@ -18,8 +19,9 @@ namespace kann
 
     layer_def_sl_register<ActivationLayerDef>("activation");
     layer_def_sl_register<ConvolutionalLayerDef>("convolution");
-    layer_def_sl_register<SequentialLayerDef>("sequential");
     layer_def_sl_register<DenseLayerDef>("dense");
+    layer_def_sl_register<ReshapeLayerDef>("reshape");
+    layer_def_sl_register<SequentialLayerDef>("sequential");
     layer_def_sl_register<SoftMaxLayerDef>("softmax");
   }
 }

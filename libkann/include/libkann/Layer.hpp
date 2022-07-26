@@ -13,10 +13,6 @@ namespace kann
   public:
     KANN_EXPORT virtual const LayerDef& get_def() const = 0;
 
-    // Forwarded from LayerDef
-    KANN_EXPORT virtual tensor::Shape get_input_shape()  const = 0;
-    KANN_EXPORT virtual tensor::Shape get_output_shape() const = 0;
-
   public:
     KANN_EXPORT virtual void initialize(std::default_random_engine& prng) = 0;
 

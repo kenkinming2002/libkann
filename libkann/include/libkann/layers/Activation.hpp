@@ -16,9 +16,6 @@ namespace kann
       SIGMOID,
       TANH
     };
-
-  public:
-    tensor::Shape shape;
     Type type;
 
   public:
@@ -32,9 +29,6 @@ namespace kann
 
   public:
     KANN_EXPORT const LayerDef& get_def() const override;
-
-    KANN_EXPORT tensor::Shape get_input_shape()  const override;
-    KANN_EXPORT tensor::Shape get_output_shape() const override;
 
     KANN_EXPORT void initialize(std::default_random_engine& prng) override;
 

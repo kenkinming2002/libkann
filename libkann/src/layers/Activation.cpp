@@ -37,7 +37,6 @@ namespace kann
   template<> YAML::Node save_layer_def_impl(const ActivationLayerDef& def)
   {
     YAML::Node node;
-    node["shape"]    = tensor::Shape::to_vector(def.shape);
     node["function"] = to_string(def.type);
     return node;
   }
@@ -45,7 +44,6 @@ namespace kann
   template<> ActivationLayerDef load_layer_def_impl(const YAML::Node& node)
   {
     ActivationLayerDef def;
-    def.shape = tensor::Shape::from_vector(node["shape"].as<std::vector<size_t>>());
     def.type  = from_string(node["function"].as<std::string>());
     return def;
   }
@@ -58,9 +56,6 @@ namespace kann
   }
 
   const LayerDef& ActivationLayer::get_def() const { return def; }
-
-  tensor::Shape ActivationLayer::get_input_shape()  const { return def.shape; }
-  tensor::Shape ActivationLayer::get_output_shape() const { return def.shape; }
 
   void ActivationLayer::initialize(std::default_random_engine& prng) {}
 

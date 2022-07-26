@@ -45,7 +45,6 @@ static void training(kann::Layer& layer, kann::LossFunction& loss_function, tens
     auto images_batch = tensor::index_outer(images, sub_indices);
     auto labels_batch = tensor::index_outer(labels, sub_indices);
 
-    loss_function.shape = layer.get_output_shape();
     loss_function.expected_outputs = std::move(labels_batch);
 
     auto preds_batch = layer.forward(std::move(images_batch));
@@ -105,8 +104,8 @@ int main(int argc, char** argv)
   const size_t epoch      = std::stoull(epoch_str);
 
   // 3: Running
-  auto mnist_testing_images  = kann::load_mnist_dataset_images("libkann/datasets/mnist/t10k-images-idx3-ubyte") .reshape(tensor::Shape::make(10000, 1, 28, 28));
-  auto mnist_training_images = kann::load_mnist_dataset_images("libkann/datasets/mnist/train-images-idx3-ubyte").reshape(tensor::Shape::make(60000, 1, 28, 28));
+  auto mnist_testing_images  = kann::load_mnist_dataset_images("libkann/datasets/mnist/t10k-images-idx3-ubyte");
+  auto mnist_training_images = kann::load_mnist_dataset_images("libkann/datasets/mnist/train-images-idx3-ubyte");
 
   auto mnist_testing_labels = kann::load_mnist_dataset_labels("libkann/datasets/mnist/t10k-labels-idx1-ubyte");
   auto mnist_training_labels = kann::load_mnist_dataset_labels("libkann/datasets/mnist/train-labels-idx1-ubyte");

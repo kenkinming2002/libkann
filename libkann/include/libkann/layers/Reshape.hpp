@@ -7,20 +7,20 @@
 
 namespace kann
 {
-  struct KANN_EXPORT DenseLayerDef : public LayerDef
+  struct KANN_EXPORT ReshapeLayerDef final : public LayerDef
   {
   public:
-    size_t input_size, output_size;
+    tensor::Shape input_shape;
+    tensor::Shape output_shape;
 
   public:
     KANN_EXPORT std::unique_ptr<Layer> create() const override;
   };
 
-  struct DenseLayer : public Layer
+  struct KANN_EXPORT ReshapeLayer final : public Layer
   {
   public:
-    DenseLayerDef def;
-    Variable weight, bias;
+    ReshapeLayerDef def;
 
   public:
     KANN_EXPORT const LayerDef& get_def() const override;
@@ -34,3 +34,4 @@ namespace kann
     KANN_EXPORT tensor::Tensor<float> backward(tensor::Tensor<float> output_gradients) override;
   };
 }
+
