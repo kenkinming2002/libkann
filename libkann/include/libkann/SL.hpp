@@ -16,11 +16,11 @@ namespace kann
 
   // LayerDef save/load
 
-  KANN_EXPORT void save_layer_def(std::shared_ptr<const LayerDef> def, const std::string& filename);
-  KANN_EXPORT std::shared_ptr<const LayerDef> load_layer_def(const std::string& filename);
+  KANN_EXPORT void save_layer_def(const LayerDef& def, const std::string& filename);
+  KANN_EXPORT std::unique_ptr<LayerDef> load_layer_def(const std::string& filename);
 
-  KANN_EXPORT YAML::Node save_layer_def(std::shared_ptr<const LayerDef> layer);
-  KANN_EXPORT std::shared_ptr<const LayerDef> load_layer_def(YAML::Node node);
+  KANN_EXPORT YAML::Node save_layer_def(const LayerDef& layer);
+  KANN_EXPORT std::unique_ptr<LayerDef> load_layer_def(YAML::Node node);
 
   // LayerDef save/load specializaton
   // Again, ideally, we would have reflection support in c++, but we do not
@@ -33,8 +33,8 @@ namespace kann
     std::string     type_name;
     std::type_index type_index;
 
-    YAML::Node(*save)(const std::shared_ptr<const LayerDef>& def);
-    std::shared_ptr<const LayerDef>(*load)(const YAML::Node& node);
+    YAML::Node(*save)(const LayerDef& def);
+    std::unique_ptr<LayerDef>(*load)(const YAML::Node& node);
   };
 
   KANN_EXPORT void layer_def_sl_register(LayerDefInfo info);
@@ -43,8 +43,8 @@ namespace kann
     layer_def_sl_register(LayerDefInfo{
       .type_name  = std::move(name),
       .type_index = std::type_index(typeid(T)),
-      .save = [](const std::shared_ptr<const LayerDef>& def) -> YAML::Node                      { return save_layer_def_impl<T>(static_cast<const T&>(*def));    },
-      .load = [](const YAML::Node& node)                     -> std::shared_ptr<const LayerDef> { return std::make_shared<const T>(load_layer_def_impl<T>(node)); },
+      .save = [](const LayerDef& def)     -> YAML::Node                { return save_layer_def_impl<T>(static_cast<const T&>(def));    },
+      .load = [](const YAML::Node& node)  -> std::unique_ptr<LayerDef> { return std::make_unique<T>(load_layer_def_impl<T>(node)); },
     });
   }
 

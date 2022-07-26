@@ -13,7 +13,7 @@
 
 namespace kann
 {
-  void save_layer_def(std::shared_ptr<const LayerDef> def, const std::string& filename)
+  void save_layer_def(const LayerDef& def, const std::string& filename)
   {
     std::ofstream of;
     of.exceptions(std::ofstream::badbit | std::ofstream::failbit);
@@ -22,7 +22,7 @@ namespace kann
     of << root;
   }
 
-  std::shared_ptr<const LayerDef> load_layer_def(const std::string& filename)
+  std::unique_ptr<LayerDef> load_layer_def(const std::string& filename)
   {
     YAML::Node root = YAML::LoadFile(filename);
     return load_layer_def(root);
@@ -40,17 +40,17 @@ namespace kann
     return instance;
   }
 
-  YAML::Node save_layer_def(std::shared_ptr<const LayerDef> layer)
+  YAML::Node save_layer_def(const LayerDef& def)
   {
-    const auto& type_index = std::type_index(typeid(*layer));
+    const auto& type_index = std::type_index(typeid(def));
     const auto& info = type_index_map().at(type_index);
 
-    auto node = info.save(layer);
+    auto node = info.save(def);
     node["type"] = info.type_name;
     return node;
   }
 
-  std::shared_ptr<const LayerDef> load_layer_def(YAML::Node node)
+  std::unique_ptr<LayerDef> load_layer_def(YAML::Node node)
   {
     const auto& type_name = node["type"].as<std::string>();
     const auto& info = type_name_map().at(type_name);

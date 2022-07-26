@@ -12,21 +12,23 @@ namespace kann
 {
   template<> YAML::Node save_layer_def_impl(const SequentialLayerDef& def)
   {
+    std::vector<YAML::Node> nodes;
+    for(const auto& def : def.defs)
+      nodes.push_back(save_layer_def(*def));
+
     YAML::Node node;
-    node["layers"] = def.defs
-      | ranges::views::transform([&](const auto& def) { return save_layer_def(def); } )
-      | ranges::to_vector;
+    node["layers"] = nodes;
     return node;
   }
 
   template<> SequentialLayerDef load_layer_def_impl(const YAML::Node& node)
   {
-    SequentialLayerDef def;
-    auto layers_node = node["layers"];
-    def.defs = layers_node
-      | ranges::views::transform([](YAML::Node child) { return load_layer_def(child); })
-      | ranges::to_vector;
+    std::vector<std::shared_ptr<const LayerDef>> defs;
+    for(const auto& node : node["layers"])
+      defs.push_back(load_layer_def(node));
 
+    SequentialLayerDef def;
+    def.defs = std::move(defs);
     return def;
   }
 
