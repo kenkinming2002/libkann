@@ -26,3 +26,9 @@ libtensor_dep = declare_dependency(
   dependencies        : [fmt_dep, range_v3_dep],
   link_with : libtensor_lib,
 )
+
+pkg = import('pkgconfig')
+pkg.generate(libtensor_lib,
+  name : 'libtensor'
+)
+

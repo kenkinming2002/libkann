@@ -41,6 +41,11 @@ libkann_dep = declare_dependency(
   link_with : libkann_lib,
 )
 
+pkg = import('pkgconfig')
+pkg.generate(libkann_lib,
+  name : 'libkann'
+)
+
 subdir('tests')
 subdir('examples')
 
