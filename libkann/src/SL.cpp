@@ -86,4 +86,19 @@ namespace kann
       parameter->gradient = tensor::load_tensor(fmt::format("{}/{}.gradient", dirname, name));
     }
   }
+
+  void layer_save(const Layer& layer, const std::string& dirname, bool include_gradient)
+  {
+    save_layer_def(layer.get_def(), fmt::format("{}/layer.def", dirname));
+    layer_save_parameters(layer, dirname, include_gradient);
+  }
+
+  std::unique_ptr<Layer> layer_load(const std::string& dirname, bool include_gradient)
+  {
+    auto def = load_layer_def(fmt::format("{}/layer.def", dirname));
+    auto layer = def->create();
+    layer_load_parameters(*layer, dirname, include_gradient);
+    return layer;
+  }
 }
+
