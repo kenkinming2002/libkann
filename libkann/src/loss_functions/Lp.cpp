@@ -45,17 +45,11 @@ namespace kann
     assert(this->expected_outputs);
     auto inputs           = this->saved_tensors[0];
     auto expected_outputs = *this->expected_outputs;
-
-    inputs           = inputs          .flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
-    expected_outputs = expected_outputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
-
     auto tmps            = tensor::binary_map(inputs, expected_outputs, [this](float input, float expected_output) {
       const float diff = input - expected_output;
       return m_p * pow_abs(diff, m_p-1) * sgn(diff);
     });
     auto input_gradients = tensor::broadcast_mul_inner<float>(tmps, output_gradients);
-
-    input_gradients = input_gradients.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
     return input_gradients;
   }
 }

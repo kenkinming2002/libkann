@@ -45,13 +45,9 @@ namespace kann
 
   tensor::Tensor<float> SoftMaxLayer::forward(tensor::Tensor<float> inputs)
   {
-    inputs = inputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
-
     auto exps    = tensor::unary_map(inputs, [](float input) { return std::exp(input); });
-    auto factors = tensor::reduce_inner<float>(exps, 1);
+    auto factors = tensor::reduce_inner<float>(exps, -1);
     auto outputs = tensor::broadcast_div_inner<float>(exps, factors);
-
-    outputs = outputs.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
     saved_tensors = { outputs };
     return outputs;
   }
@@ -59,17 +55,10 @@ namespace kann
   tensor::Tensor<float> SoftMaxLayer::backward(tensor::Tensor<float> output_gradients)
   {
     auto outputs = saved_tensors[0];
-
-    outputs          = outputs         .flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
-    output_gradients = output_gradients.flatten(tensor::Hint::single(), tensor::Hint::from_shape(get_output_shape()));
-
     auto tmp1 = tensor::binary_map(output_gradients, outputs, [](auto a, auto b) { return a * b; });
-    auto tmp2 = tensor::reduce_inner(tmp1, 1);
+    auto tmp2 = tensor::reduce_inner(tmp1, -1);
     auto tmp3 = tensor::broadcast_mul_inner(outputs, tmp2);
     auto input_gradients = tensor::binary_map(tmp1, tmp3, [](auto a, auto b) { return a - b; });
-
-    input_gradients = input_gradients.unflatten(tensor::Hint::single(), tensor::Hint::from_shape(get_input_shape()));
-
     return input_gradients;
   }
 }
