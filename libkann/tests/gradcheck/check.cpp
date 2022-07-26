@@ -32,11 +32,8 @@ Tensor create_basis(size_t size, size_t i)
   return Tensor(Shape::make(size), std::move(result_buffer));
 }
 
-inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, const Tensor& random_input)
+inline LayerDerivative compute_analytical_derivative(kann::Layer& layer, tensor::Shape input_shape, tensor::Shape output_shape, const Tensor& random_input)
 {
-  const auto input_shape  = layer.get_input_shape();
-  const auto output_shape = layer.get_output_shape();
-
   std::vector<Tensor> input_gradients;
   std::unordered_map<std::string, std::vector<Tensor>> parameters_gradients;
   for(size_t j=0; j<output_shape.size(); ++j)
@@ -69,11 +66,8 @@ Tensor perturb(Tensor value, size_t i, float diff)
   return Tensor(std::move(value.shape), std::move(result_buffer));
 }
 
-inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const Tensor& random_input, float dx)
+inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, tensor::Shape input_shape, tensor::Shape output_shape, const Tensor& random_input, float dx)
 {
-  const tensor::Shape input_shape  = layer.get_input_shape();
-  const tensor::Shape output_shape = layer.get_output_shape();
-
   LayerDerivative derivative;
 
   // Derivative with respect to inputs
@@ -117,14 +111,14 @@ inline LayerDerivative compute_numerical_derivative(kann::Layer& layer, const Te
   return derivative;
 }
 
-static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
+static inline void test_layer(std::shared_ptr<kann::Layer> layer, tensor::Shape input_shape, tensor::Shape output_shape, auto& prng)
 {
   static constexpr float DX = 0.0005f;
 
   auto random_input = tensor::create_uniform(layer->get_input_shape(), -1.0f, 1.0f, prng);
 
-  LayerDerivative analytical = compute_analytical_derivative(*layer, random_input);
-  LayerDerivative numerical  = compute_numerical_derivative(*layer, random_input, DX);
+  LayerDerivative analytical = compute_analytical_derivative(*layer, input_shape, output_shape, random_input);
+  LayerDerivative numerical  = compute_numerical_derivative(*layer, input_shape, output_shape, random_input, DX);
 
   auto analytical_values = analytical.input.buffer->data();
   auto numerical_values  = numerical .input.buffer->data();
@@ -153,39 +147,41 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, auto& prng)
   }
 }
 
-static void test_layer_def(std::shared_ptr<const kann::LayerDef> layer_def)
+static void test_layer_def(std::shared_ptr<const kann::LayerDef> layer_def, tensor::Shape input_shape, tensor::Shape output_shape)
 {
   static std::random_device rd;
   static std::default_random_engine prng(rd());
 
   std::shared_ptr<kann::Layer> layer = layer_def->create();
   layer->initialize(prng);
-  test_layer(std::move(layer), prng);
+  test_layer(std::move(layer), input_shape, output_shape, prng);
 }
 
 TEST_CASE("Gradcheck", "[gradcheck]")
 {
   SECTION("Activation Layer")
   {
+    auto shape = tensor::Shape::make(11, 23, 12);
+
     auto layer_def = std::make_shared<kann::ActivationLayerDef>();
-    layer_def->shape = tensor::Shape::make(11, 23, 12);
+    layer_def->shape = shape;
 
     SECTION("Identity")
     {
       layer_def->type = kann::ActivationLayerDef::Type::IDENTITY;
-      test_layer_def(layer_def);
+      test_layer_def(layer_def, shape, shape);
     }
 
     SECTION("Sigmoid")
     {
       layer_def->type = kann::ActivationLayerDef::Type::SIGMOID;
-      test_layer_def(layer_def);
+      test_layer_def(layer_def, shape, shape);
     }
 
     SECTION("Tanh")
     {
       layer_def->type = kann::ActivationLayerDef::Type::TANH;
-      test_layer_def(layer_def);
+      test_layer_def(layer_def, shape, shape);
     }
   }
 
@@ -197,7 +193,7 @@ TEST_CASE("Gradcheck", "[gradcheck]")
     layer_def->input_size = tensor::Vec2(8, 12);
     layer_def->output_size = tensor::Vec2(4, 6);
     layer_def->kernel_size = tensor::Vec2(5, 7);
-    test_layer_def(layer_def);
+    test_layer_def(layer_def, tensor::Shape::make(10, 8, 12), tensor::Shape::make(21, 4, 6));
   }
 
   SECTION("Dense Layer")
@@ -205,14 +201,16 @@ TEST_CASE("Gradcheck", "[gradcheck]")
     auto layer_def = std::make_shared<kann::DenseLayerDef>();
     layer_def->input_size  = 399;
     layer_def->output_size = 352;
-    test_layer_def(layer_def);
+    test_layer_def(layer_def, tensor::Shape::make(399), tensor::Shape::make(352));
   }
 
   SECTION("Softmax")
   {
+    auto shape = tensor::Shape::make(13, 22, 12);
+
     auto layer_def = std::make_shared<kann::SoftMaxLayerDef>();
-    layer_def->shape = tensor::Shape::make(13, 22, 12);
-    test_layer_def(layer_def);
+    layer_def->shape = shape;
+    test_layer_def(layer_def, shape, shape);
   }
 }
 
