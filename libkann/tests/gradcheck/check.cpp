@@ -115,7 +115,7 @@ static inline void test_layer(std::shared_ptr<kann::Layer> layer, tensor::Shape 
 {
   static constexpr float DX = 0.0005f;
 
-  auto random_input = tensor::create_uniform(layer->get_input_shape(), -1.0f, 1.0f, prng);
+  auto random_input = tensor::create_uniform(input_shape, -1.0f, 1.0f, prng);
 
   LayerDerivative analytical = compute_analytical_derivative(*layer, input_shape, output_shape, random_input);
   LayerDerivative numerical  = compute_numerical_derivative(*layer, input_shape, output_shape, random_input, DX);
