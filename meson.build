@@ -1,4 +1,4 @@
-project('libkann', 'cpp', version : '0.1.0', default_options : ['cpp_std=c++2a'])
+project('libkann', 'cpp', version : '1.0.0', default_options : ['cpp_std=c++2a'])
 
 fmt_dep = dependency('fmt')
 range_v3_dep = dependency('range-v3')
