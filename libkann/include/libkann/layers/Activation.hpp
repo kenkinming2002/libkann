@@ -16,9 +16,6 @@ namespace kann
       SIGMOID,
       TANH
     };
-
-  public:
-    tensor::Shape shape;
     Type type;
 
   public:

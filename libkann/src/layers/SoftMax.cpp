@@ -15,14 +15,12 @@ namespace kann
   template<> YAML::Node save_layer_def_impl(const SoftMaxLayerDef& def)
   {
     YAML::Node node;
-    node["shape"] = tensor::Shape::to_vector(def.shape);
     return node;
   }
 
   template<> SoftMaxLayerDef load_layer_def_impl(const YAML::Node& node)
   {
     SoftMaxLayerDef def;
-    def.shape = tensor::Shape::from_vector(node["shape"].as<std::vector<size_t>>());
     return def;
   }
 

@@ -161,10 +161,8 @@ TEST_CASE("Gradcheck", "[gradcheck]")
 {
   SECTION("Activation Layer")
   {
-    auto shape = tensor::Shape::make(11, 23, 12);
-
     auto layer_def = std::make_shared<kann::ActivationLayerDef>();
-    layer_def->shape = shape;
+    auto shape = tensor::Shape::make(11, 23, 12);
 
     SECTION("Identity")
     {
@@ -206,10 +204,8 @@ TEST_CASE("Gradcheck", "[gradcheck]")
 
   SECTION("Softmax")
   {
-    auto shape = tensor::Shape::make(13, 22, 12);
-
     auto layer_def = std::make_shared<kann::SoftMaxLayerDef>();
-    layer_def->shape = shape;
+    auto shape = tensor::Shape::make(13, 22, 12);
     test_layer_def(layer_def, shape, shape);
   }
 }

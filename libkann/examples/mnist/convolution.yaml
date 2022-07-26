@@ -15,7 +15,6 @@ layers:
     kernel_height: 5
 
   - type: "activation"
-    shape: [5, 24, 24]
     function: "sigmoid"
 
   - type: "convolution"
@@ -29,7 +28,6 @@ layers:
     kernel_height: 5
 
   - type: "activation"
-    shape: [5, 20, 20]
     function: "sigmoid"
 
   - type: "reshape"
@@ -41,7 +39,6 @@ layers:
     output_size : 100
 
   - type: "activation"
-    shape: [100]
     function: "sigmoid"
 
   - type: "dense"
@@ -49,5 +46,4 @@ layers:
     output_size : 10
 
   - type: "activation"
-    shape: [10]
     function: "sigmoid"
