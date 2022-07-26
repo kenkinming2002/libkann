@@ -5,6 +5,6 @@
 
 namespace tensor
 {
-  template<typename T> LIBTENSOR_EXPORT Tensor<T> reduce_outer(Tensor<T> value);
-  template<typename T> LIBTENSOR_EXPORT Tensor<T> reduce_inner(Tensor<T> value);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> reduce_outer(Tensor<T> value, ssize_t count);
+  template<typename T> LIBTENSOR_EXPORT Tensor<T> reduce_inner(Tensor<T> value, ssize_t count);
 }

@@ -14,12 +14,10 @@ namespace kann
 
     assert(this->expected_outputs);
     auto expected_outputs = *this->expected_outputs;
-
-    inputs           = inputs          .flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
-    expected_outputs = expected_outputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
-
-    auto tmps    = tensor::binary_map(inputs, expected_outputs, [](float input, float expected_output) { return -std::log(input) * expected_output; });
-    auto outputs = tensor::reduce_inner<float>(tmps);
+    auto tmps    = tensor::binary_map(inputs, expected_outputs, [](float input, float expected_output) {
+      return -std::log(input) * expected_output;
+    });
+    auto outputs = tensor::reduce_inner<float>(tmps, -1);
     return outputs;
   }
 

@@ -66,7 +66,7 @@ namespace kann
     auto bias   = this->bias.value;
     auto input_gradients = tensor::matrix_product<float>(output_gradients, false, weight, true);
     auto weight_gradient = tensor::matrix_product<float>(inputs,  true, output_gradients, false);
-    auto bias_gradient   = tensor::reduce_outer(output_gradients);
+    auto bias_gradient   = tensor::reduce_outer(output_gradients, 1);
     this->weight.gradient = weight_gradient;
     this->bias.gradient   = bias_gradient;
     return input_gradients;

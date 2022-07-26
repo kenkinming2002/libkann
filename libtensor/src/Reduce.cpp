@@ -3,59 +3,59 @@
 namespace tensor
 {
   template<typename T>
-  static inline void reduce_outer_raw(size_t M, size_t N, const T* __restrict__ input, T* __restrict__ output) noexcept
+  Tensor<T> reduce_outer(Tensor<T> value, ssize_t count)
   {
-    std::fill_n(output, N, T{});
-    for(size_t m=0; m<M; ++m)
-      for(size_t n=0; n<N; ++n)
-        output[n] += input[m*N+n];
-  }
+    if(count<0)
+      count += value.shape.rank();
 
-  template<typename T>
-  static inline void reduce_inner_raw(size_t M, size_t N, const T* __restrict__ input, T* __restrict__ output) noexcept
-  {
-    std::fill_n(output, M, T{});
-    for(size_t m=0; m<M; ++m)
-      for(size_t n=0; n<N; ++n)
-        output[m] += input[m*N+n];
-  }
+    assert(count>=0 && count<value.shape.rank());
+    const Shape outer_shape = value.shape.front(count);
+    const Shape inner_shape = value.shape.drop_front(count);
 
-  template<typename T>
-  Tensor<T> reduce_outer(Tensor<T> value)
-  {
-    size_t M = value.shape.dimension(0);
-    size_t N = value.shape.dimension(1);
+    const size_t M = outer_shape.size();
+    const size_t N = inner_shape.size();
 
     auto value_buffer  = value.buffer;
     auto result_buffer = std::make_shared<Buffer<T>>(N);
-    reduce_outer_raw(M, N,
-      value_buffer->data().data(),
-      result_buffer->data().data()
-    );
-    return Tensor<T>(Shape::make(N), std::move(result_buffer));
+
+    std::fill_n(result_buffer->data().data(), result_buffer->data().size(), T{});
+    for(size_t m=0; m<M; ++m)
+      for(size_t n=0; n<N; ++n)
+        (*result_buffer)[n] += (*value_buffer)[m*N+n];
+
+    return Tensor<T>(inner_shape, std::move(result_buffer));
   }
 
   template<typename T>
-  Tensor<T> reduce_inner(Tensor<T> value)
+  Tensor<T> reduce_inner(Tensor<T> value, ssize_t count)
   {
-    size_t M = value.shape.dimension(0);
-    size_t N = value.shape.dimension(1);
+    if(count<0)
+      count += value.shape.rank();
+
+    assert(count>=0 && count<value.shape.rank());
+    const Shape outer_shape = value.shape.drop_back(count);
+    const Shape inner_shape = value.shape.back(count);
+
+    const size_t M = outer_shape.size();
+    const size_t N = inner_shape.size();
 
     auto value_buffer  = value.buffer;
     auto result_buffer = std::make_shared<Buffer<T>>(M);
-    reduce_inner_raw(M, N,
-      value_buffer->data().data(),
-      result_buffer->data().data()
-    );
-    return Tensor<T>(Shape::make(M), std::move(result_buffer));
+
+    std::fill_n(result_buffer->data().data(), result_buffer->data().size(), T{});
+    for(size_t m=0; m<M; ++m)
+      for(size_t n=0; n<N; ++n)
+        (*result_buffer)[m] += (*value_buffer)[m*N+n];
+
+    return Tensor<T>(outer_shape, std::move(result_buffer));
   }
 
-  template Tensor<float> reduce_outer(Tensor<float> value);
-  template Tensor<float> reduce_inner(Tensor<float> value);
+  template Tensor<float> reduce_outer(Tensor<float> value, ssize_t count);
+  template Tensor<float> reduce_inner(Tensor<float> value, ssize_t count);
 
-  template Tensor<double> reduce_outer(Tensor<double> value);
-  template Tensor<double> reduce_inner(Tensor<double> value);
+  template Tensor<double> reduce_outer(Tensor<double> value, ssize_t count);
+  template Tensor<double> reduce_inner(Tensor<double> value, ssize_t count);
 
-  template Tensor<long double> reduce_outer(Tensor<long double> value);
-  template Tensor<long double> reduce_inner(Tensor<long double> value);
+  template Tensor<long double> reduce_outer(Tensor<long double> value, ssize_t count);
+  template Tensor<long double> reduce_inner(Tensor<long double> value, ssize_t count);
 }

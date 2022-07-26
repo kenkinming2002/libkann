@@ -32,16 +32,11 @@ namespace kann
 
     assert(this->expected_outputs);
     auto expected_outputs = *this->expected_outputs;
-
-    inputs           = inputs          .flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
-    expected_outputs = expected_outputs.flatten(tensor::Hint::single(), tensor::Hint::from_shape(this->shape));
-
     auto tmps    = tensor::binary_map(inputs, expected_outputs, [this](float input, float expected_output) {
       const float diff = input - expected_output;
       return pow_abs(diff, m_p);
     });
-    auto outputs = tensor::reduce_inner<float>(tmps);
-
+    auto outputs = tensor::reduce_inner<float>(tmps, -1);
     return outputs;
   }
 
