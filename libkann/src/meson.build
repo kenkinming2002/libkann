@@ -8,6 +8,7 @@ libkann_sources = [
   'layers/Activation.cpp',
   'layers/Convolutional.cpp',
   'layers/Dense.cpp',
+  'layers/Reshape.cpp',
   'layers/Sequential.cpp',
   'layers/SoftMax.cpp',
 
