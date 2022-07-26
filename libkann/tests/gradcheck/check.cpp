@@ -186,26 +186,26 @@ TEST_CASE("Gradcheck", "[gradcheck]")
   SECTION("Convolutional Layer")
   {
     auto layer_def = std::make_shared<kann::ConvolutionalLayerDef>();
-    layer_def->input_channel_count = 10;
-    layer_def->output_channel_count = 21;
+    layer_def->input_channel_count = 3;
+    layer_def->output_channel_count = 5;
     layer_def->input_size = tensor::Vec2(8, 12);
     layer_def->output_size = tensor::Vec2(4, 6);
     layer_def->kernel_size = tensor::Vec2(5, 7);
-    test_layer_def(layer_def, tensor::Shape::make(10, 8, 12), tensor::Shape::make(21, 4, 6));
+    test_layer_def(layer_def, tensor::Shape::make(3, 8, 12), tensor::Shape::make(5, 4, 6));
   }
 
   SECTION("Dense Layer")
   {
     auto layer_def = std::make_shared<kann::DenseLayerDef>();
-    layer_def->input_size  = 399;
-    layer_def->output_size = 352;
-    test_layer_def(layer_def, tensor::Shape::make(399), tensor::Shape::make(352));
+    layer_def->input_size  = 23;
+    layer_def->output_size = 41;
+    test_layer_def(layer_def, tensor::Shape::make(23), tensor::Shape::make(41));
   }
 
   SECTION("Softmax")
   {
     auto layer_def = std::make_shared<kann::SoftMaxLayerDef>();
-    auto shape = tensor::Shape::make(13, 22, 12);
+    auto shape = tensor::Shape::make(7, 5, 6);
     test_layer_def(layer_def, shape, shape);
   }
 }
