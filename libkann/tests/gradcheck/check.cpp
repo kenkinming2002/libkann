@@ -203,8 +203,8 @@ TEST_CASE("Gradcheck", "[gradcheck]")
   SECTION("Dense Layer")
   {
     auto layer_def = std::make_shared<kann::DenseLayerDef>();
-    layer_def->input_shape  = tensor::Shape::make(19, 21);
-    layer_def->output_shape = tensor::Shape::make(32, 11);
+    layer_def->input_size  = 399;
+    layer_def->output_size = 352;
     test_layer_def(layer_def);
   }
 

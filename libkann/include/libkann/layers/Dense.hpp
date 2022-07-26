@@ -10,7 +10,7 @@ namespace kann
   struct KANN_EXPORT DenseLayerDef : public LayerDef
   {
   public:
-    tensor::Shape input_shape, output_shape;
+    size_t input_size, output_size;
 
   public:
     KANN_EXPORT std::unique_ptr<Layer> create() const override;

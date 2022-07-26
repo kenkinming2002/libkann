@@ -37,16 +37,16 @@ layers:
     output_shape : [2000]
 
   - type: "dense"
-    input_shape : [2000]
-    output_shape : [100]
+    input_size : 2000
+    output_size : 100
 
   - type: "activation"
     shape: [100]
     function: "sigmoid"
 
   - type: "dense"
-    input_shape : [100]
-    output_shape : [10]
+    input_size : 100
+    output_size : 10
 
   - type: "activation"
     shape: [10]

@@ -7,16 +7,16 @@ layers:
         output_shape : [784]
 
       - type: "dense"
-        input_shape : [784]
-        output_shape : [30]
+        input_size : 784
+        output_size : 30
 
       - type: "activation"
         shape: [30]
         function: "sigmoid"
 
       - type: "dense"
-        input_shape : [30]
-        output_shape : [2]
+        input_size : 30
+        output_size : 2
 
       - type: "activation"
         shape: [2]
@@ -25,16 +25,16 @@ layers:
   - type: "sequential"
     layers:
       - type: "dense"
-        input_shape : [2]
-        output_shape : [30]
+        input_size : 2
+        output_size : 30
 
       - type: "activation"
         shape: [30]
         function: "sigmoid"
 
       - type: "dense"
-        input_shape : [30]
-        output_shape : [784]
+        input_size : 30
+        output_size : 784
 
       - type: "activation"
         shape: [784]
