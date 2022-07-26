@@ -24,9 +24,6 @@ namespace kann
   public:
     KANN_EXPORT const LayerDef& get_def() const override;
 
-    KANN_EXPORT tensor::Shape get_input_shape()  const override;
-    KANN_EXPORT tensor::Shape get_output_shape() const override;
-
     KANN_EXPORT void initialize(std::default_random_engine& prng) override;
 
     KANN_EXPORT std::unordered_map<std::string, const Variable*> parameters_map() const override;

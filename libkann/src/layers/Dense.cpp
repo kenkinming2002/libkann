@@ -37,9 +37,6 @@ namespace kann
 
   const LayerDef& DenseLayer::get_def() const { return def; }
 
-  tensor::Shape DenseLayer::get_input_shape()  const { return tensor::Shape::make(def.input_size); }
-  tensor::Shape DenseLayer::get_output_shape() const { return tensor::Shape::make(def.output_size); }
-
   void DenseLayer::initialize(std::default_random_engine& prng)
   {
     this->weight = Variable::create_normal(tensor::Shape::make(def.input_size, def.output_size), 0.0, 1.0 / std::sqrt(def.input_size), prng);

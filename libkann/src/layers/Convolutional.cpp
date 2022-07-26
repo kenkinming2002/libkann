@@ -44,9 +44,6 @@ namespace kann
 
   const LayerDef& ConvolutionalLayer::get_def() const { return def; }
 
-  tensor::Shape ConvolutionalLayer::get_input_shape()  const { return tensor::Shape::make(def.input_channel_count,  def.input_size.height(),  def.input_size.width()); }
-  tensor::Shape ConvolutionalLayer::get_output_shape() const { return tensor::Shape::make(def.output_channel_count, def.output_size.height(), def.output_size.width()); }
-
   void ConvolutionalLayer::initialize(std::default_random_engine& prng)
   {
     this->kernels = Variable::create_normal(

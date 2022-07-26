@@ -35,9 +35,6 @@ namespace kann
 
   const LayerDef& SoftMaxLayer::get_def() const { return def; }
 
-  tensor::Shape SoftMaxLayer::get_input_shape()  const { return def.shape; }
-  tensor::Shape SoftMaxLayer::get_output_shape() const { return def.shape; }
-
   void SoftMaxLayer::initialize(std::default_random_engine& prng) {}
 
   std::unordered_map<std::string, const Variable*> SoftMaxLayer::parameters_map() const { return {}; }

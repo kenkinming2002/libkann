@@ -46,9 +46,6 @@ namespace kann
     return def;
   }
 
-  tensor::Shape SequentialLayer::get_input_shape()  const { return layers.front()->get_input_shape(); }
-  tensor::Shape SequentialLayer::get_output_shape() const { return layers.back()->get_output_shape(); }
-
   void SequentialLayer::initialize(std::default_random_engine& prng)
   {
     for(auto& layer : layers)

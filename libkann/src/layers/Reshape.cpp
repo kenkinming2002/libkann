@@ -32,9 +32,6 @@ namespace kann
 
   const LayerDef& ReshapeLayer::get_def() const { return def; }
 
-  tensor::Shape ReshapeLayer::get_input_shape()  const { return def.input_shape; }
-  tensor::Shape ReshapeLayer::get_output_shape() const { return def.output_shape; }
-
   void ReshapeLayer::initialize(std::default_random_engine& prng) {}
 
   std::unordered_map<std::string, const Variable*> ReshapeLayer::parameters_map() const { return {}; }

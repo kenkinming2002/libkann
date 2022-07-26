@@ -59,9 +59,6 @@ namespace kann
 
   const LayerDef& ActivationLayer::get_def() const { return def; }
 
-  tensor::Shape ActivationLayer::get_input_shape()  const { return def.shape; }
-  tensor::Shape ActivationLayer::get_output_shape() const { return def.shape; }
-
   void ActivationLayer::initialize(std::default_random_engine& prng) {}
 
   std::unordered_map<std::string, const Variable*> ActivationLayer::parameters_map() const { return {}; }
